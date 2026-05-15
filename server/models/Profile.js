@@ -1,0 +1,50 @@
+const mongoose = require("mongoose");
+
+const S = new mongoose.Schema({
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, unique: true },
+  bio:  { type: String, default: "" },
+  photoUrl:    { type: String, default: "" },
+  avatarEmoji: { type: String, default: "" },
+  avatarColor: { type: String, default: "#6366f1" },
+
+  // ── Emociones ──
+  currentEmotion: { type: String, enum: ["feliz","tranquilo","ansioso","triste","enojado","confundido","esperanzado","agotado","motivado","nostalgico"], default: "tranquilo" },
+  emotionHistory: [{ emotion: String, note: String, intensity: { type: Number, default: 5 }, date: { type: Date, default: Date.now } }],
+
+  // ── Sesiones y racha ──
+  sessionsCount: { type: Number, default: 0 },
+  streakDays:    { type: Number, default: 0 },
+  lastSession:   { type: Date },
+
+  // ── Contacto de emergencia ──
+  emergencyContact: {
+    name:  { type: String, default: "" },
+    phone: { type: String, default: "" },
+    relation: { type: String, default: "" }
+  },
+
+  // ── PIN de bloqueo ──
+  pin:       { type: String, default: "" },  // guardado como hash
+  pinEnabled: { type: Boolean, default: false },
+
+  // ── Recordatorio diario ──
+  reminderEnabled: { type: Boolean, default: false },
+  reminderHour:    { type: Number, default: 9 },   // hora 0-23
+  reminderMinute:  { type: Number, default: 0 },
+
+  // ── Personalización ──
+  theme: { type: String, enum: ["default","ocean","forest","sunset","midnight"], default: "default" },
+
+  // ── Onboarding ──
+  onboardingDone: { type: Boolean, default: false },
+
+  // ── Eventos de crisis (para historial interno) ──
+  crisisEvents: [{ message: String, timestamp: { type: Date, default: Date.now } }],
+
+  // ── Patrones emocionales ──
+  negativeStreakCount: { type: Number, default: 0 }, // días consecutivos con emoción negativa
+
+  updatedAt: { type: Date, default: Date.now }
+});
+
+module.exports = mongoose.model("Profile", S);

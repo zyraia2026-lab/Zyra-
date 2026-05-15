@@ -1,0 +1,12 @@
+const mongoose = require("mongoose");
+const S = new mongoose.Schema({
+  user:      { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  title:     { type: String, required: true },
+  category:  { type: String, enum: ["bienestar","habitos","relaciones","trabajo","personal","mindfulness"], default: "personal" },
+  completed: { type: Boolean, default: false },
+  reminder:  { type: String, default: "" },
+  dueDate:   { type: Date },
+  priority:  { type: String, enum: ["alta","media","baja"], default: "media" },
+  createdAt: { type: Date, default: Date.now }
+});
+module.exports = mongoose.model("Goal", S);
