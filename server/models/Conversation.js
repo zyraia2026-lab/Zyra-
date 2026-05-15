@@ -5,13 +5,15 @@ const messageSchema = new mongoose.Schema({
   content:   String,
   timestamp: { type: Date, default: Date.now },
   cards: [new mongoose.Schema({
-    type:    { type: String, enum: ["song","book","place","quote"] },
+    type:    { type: String, enum: ["song","book","place","quote","movie","ejercicio"] },
     title:   String,
     artist:  String,
     author:  String,
     name:    String,
     text:    String,
     videoId: String,
+    platform: String,
+    ejercicio: String,
   }, { _id: false })]
 });
 

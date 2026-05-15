@@ -169,7 +169,6 @@ function detectArtist(message) {
 function extractArtistName(message) {
   const m = message.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
 
-  // Palabras genéricas que NO son artistas
   const GENERIC = new Set([
     "una cancion","una canción","algo","musica","música","canciones","una","algo de",
     "una de","lo que sea","cualquier","cualquiera","random","algo bonito","algo bueno",
@@ -196,19 +195,16 @@ function extractArtistName(message) {
 }
 
 /* ════════════════════════════════════════
-   YOUTUBE — Búsqueda real de canciones
-   Los títulos vienen de YouTube, no de IA
+   YOUTUBE
 ════════════════════════════════════════ */
-const ytCache     = {};  // title|artist → videoId
-const ytSongCache = {};  // artistName   → [{title,videoId}]
+const ytCache     = {};
+const ytSongCache = {};
 
-/* Buscar videoId de una canción conocida */
 async function getVideoId(title, artist) {
   const key = `${title}|${artist}`.toLowerCase();
   if (ytCache[key]) return ytCache[key];
   if (!process.env.YT_API_KEY) return null;
   try {
-    // Búsqueda específica: título + artista + audio oficial
     const q = encodeURIComponent(`${title} ${artist} official audio`);
     const r = await fetch(
       `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${q}&type=video&videoCategoryId=10&maxResults=3&key=${process.env.YT_API_KEY}`
@@ -216,17 +212,14 @@ async function getVideoId(title, artist) {
     const d = await r.json();
     if (d.error) { console.error("YT API:", d.error.message); return null; }
 
-    // Elegir el resultado cuyo título incluya el nombre del artista o la canción
     const titleLower  = title.toLowerCase();
     const artistLower = artist.toLowerCase();
     const items = d.items || [];
 
-    // Primero intentar match exacto
     let best = items.find(item => {
       const vt = item.snippet.title.toLowerCase();
       return vt.includes(titleLower) || vt.includes(artistLower);
     });
-    // Si no hay match, tomar el primero
     if (!best && items.length > 0) best = items[0];
 
     const id = best?.id?.videoId || null;
@@ -235,18 +228,15 @@ async function getVideoId(title, artist) {
   } catch(e) { console.error("getVideoId error:", e.message); return null; }
 }
 
-/* Buscar canciones REALES de un artista desconocido via YouTube */
 async function getSongsForUnknownArtist(artistName) {
   const key = artistName.toLowerCase().trim();
   if (ytSongCache[key]) return ytSongCache[key];
 
   if (!process.env.YT_API_KEY) {
-    // Sin YT API key, usar Groq pero con prompt muy estricto
     return getSongsViaGroq(artistName);
   }
 
   try {
-    // Buscar "las canciones más populares de [artista]"
     const queries = [
       `${artistName} canciones populares`,
       `${artistName} mejores canciones`,
@@ -289,15 +279,12 @@ async function getSongsForUnknownArtist(artistName) {
     console.error("YT artist search error:", e.message);
   }
 
-  // Fallback: Groq
   return getSongsViaGroq(artistName);
 }
 
-/* Separar título y artista del string de YouTube */
 function parseSongFromYT(ytTitle, requestedArtist) {
   const artistFmt = requestedArtist.split(" ").map(w => w[0].toUpperCase()+w.slice(1)).join(" ");
 
-  // Limpiar TODA la basura de YouTube
   let clean = ytTitle
     .replace(/\(official\s*(video|audio|music\s*video|lyric\s*video|visualizer|mv|clip)\)/gi, "")
     .replace(/\[official\s*(video|audio|music\s*video|lyric\s*video|visualizer|mv|clip)\]/gi, "")
@@ -312,15 +299,12 @@ function parseSongFromYT(ytTitle, requestedArtist) {
     .replace(/\[lyrics?\]/gi, "")
     .replace(/\(visualizer\)/gi, "")
     .replace(/\blyrics?\b/gi, "")
-    .replace(/\bremix\b/gi, "Remix")  // mantener "Remix" limpio
-    // Limpiar emojis usados como separadores (❌ x ✖ etc)
+    .replace(/\bremix\b/gi, "Remix")
     .replace(/\s*[❌✖×x]\s*/gi, ", ")
-    // Limpiar separadores raros al final
     .replace(/[|｜]\s*.*/g, "")
     .replace(/\s{2,}/g, " ")
     .trim();
 
-  // Separar por " - " o " – "
   const dashParts = clean.split(/\s[–\-—]\s/);
   if (dashParts.length >= 2) {
     const left  = dashParts[0].trim();
@@ -334,7 +318,6 @@ function parseSongFromYT(ytTitle, requestedArtist) {
     return { title: right, artist: left };
   }
 
-  // Sin separador: quitar nombre del artista si está al inicio
   const artNorm   = requestedArtist.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
   const cleanNorm = clean.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
   if (cleanNorm.startsWith(artNorm.slice(0,6))) {
@@ -345,7 +328,6 @@ function parseSongFromYT(ytTitle, requestedArtist) {
   return { title: clean, artist: artistFmt };
 }
 
-/* Verificar que el resultado es relevante para el artista */
 function isRelevantSong(ytTitle, artistName) {
   const t = ytTitle.toLowerCase();
   if (/reaction|reaccion|cover by|tutorial|karaoke|learn|aprender/.test(t)) return false;
@@ -353,7 +335,6 @@ function isRelevantSong(ytTitle, artistName) {
   return true;
 }
 
-/* Fallback: pedir títulos a Groq con prompt muy estricto */
 async function getSongsViaGroq(artistName) {
   if (!groq) return null;
   try {
@@ -370,7 +351,7 @@ REGLAS ABSOLUTAS:
 ["Titulo Exacto 1","Titulo Exacto 2","Titulo Exacto 3","Titulo Exacto 4","Titulo Exacto 5"]
 Si el artista no existe como músico: []`
       }],
-      temperature: 0.0,  // determinista — sin creatividad
+      temperature: 0.0,
       max_tokens: 150
     });
     const raw = r.choices[0]?.message?.content?.trim() || "[]";
@@ -378,15 +359,13 @@ Si el artista no existe como músico: []`
     if (!match) return null;
     const songs = JSON.parse(match[0]);
     if (!Array.isArray(songs) || !songs.length) return null;
-    // Devolver en formato con título, sin videoId aún
     return songs.filter(s => typeof s === "string" && s.length > 1)
                 .map(title => ({ title, videoId: null }));
   } catch { return null; }
 }
 
-
 /* ════════════════════════════════════════
-   CATEGORÍAS Y CANCIONES GENÉRICAS
+   CATEGORÍAS
 ════════════════════════════════════════ */
 function detectCategory(msg) {
   const m = msg.toLowerCase();
@@ -436,7 +415,6 @@ function parseResponse(text, book, quote, movie) {
   if (quote) { const re=/\[FRASE:\s*"([^"]+)"\s*-\s*"([^"]+)"\]/gi;  while((m=re.exec(text))!==null) cards.push({type:"quote",text:m[1],author:m[2]}); }
   if (movie) { const re=/\[PELICULA:\s*"([^"]+)"\s*-\s*"([^"]+)"\]/gi;while((m=re.exec(text))!==null) cards.push({type:"movie",title:m[1],platform:m[2]}); }
 
-  // ── Ejercicios guiados ──
   const exRe = /\[EJERCICIO:(respiracion|grounding|afirmacion)\]/gi;
   while ((m = exRe.exec(text)) !== null) {
     cards.push({ type: "ejercicio", ejercicio: m[1].toLowerCase() });
@@ -452,7 +430,7 @@ function parseResponse(text, book, quote, movie) {
 }
 
 /* ════════════════════════════════════════
-   CONSTRUIR SYSTEM PROMPT CON MEMORIA REAL
+   SYSTEM PROMPT
 ════════════════════════════════════════ */
 async function buildSystemPrompt(userId, userName) {
   const [profile, goals, journals] = await Promise.all([
@@ -466,44 +444,35 @@ async function buildSystemPrompt(userId, userName) {
   const currentEmotion = profile?.currentEmotion || null;
   if (currentEmotion) memoryBlock += `\n- Estado emocional actual: ${currentEmotion}`;
 
-  // Historial emocional reciente
   const emotionHistory = profile?.emotionHistory?.slice(-7) || [];
   if (emotionHistory.length > 0) {
     const summary = emotionHistory.map(e => `${e.emotion}${e.note ? ` ("${e.note}")` : ""}`).join(", ");
     memoryBlock += `\n- Historial emocional reciente: ${summary}`;
   }
 
-  // Patrón negativo repetido — alerta especial
   const negStreak = profile?.negativeStreakCount || 0;
   if (negStreak >= 3) {
     memoryBlock += `\n- ALERTA: lleva ${negStreak} registros consecutivos con emociones negativas. Menciónalo con cuidado y pregunta cómo ha estado esta semana en general.`;
   }
 
-  // Metas activas
   const activeGoals = goals.filter(g => !g.completed);
   if (activeGoals.length > 0) {
     memoryBlock += `\n- Metas activas: ${activeGoals.map(g => g.title).join(", ")}`;
   }
 
-  // Metas completadas recientemente
   const recentDone = goals.filter(g => g.completed).slice(0, 2);
   if (recentDone.length > 0) {
     memoryBlock += `\n- Metas completadas recientemente: ${recentDone.map(g => g.title).join(", ")} — puedes felicitarle por eso.`;
   }
 
-  // Diario reciente
   if (journals.length > 0) {
     const jSummary = journals.map(j => `"${j.title || "sin título"}": ${j.content.substring(0,80)}...`).join(" | ");
     memoryBlock += `\n- Entradas recientes de su diario: ${jSummary}`;
   }
 
-  // Sesiones
   if (profile?.sessionsCount > 0) {
     memoryBlock += `\n- Lleva ${profile.sessionsCount} sesiones contigo`;
   }
-
-  // Tema de personalización
-  const theme = profile?.theme || "default";
 
   return `Eres Zyra, la acompañante emocional personal de ${firstName}. Eres como su amiga más cercana que siempre recuerda todo.
 
@@ -567,23 +536,19 @@ exports.sendMessage = async (req, res) => {
     const quoteReq = wantsQuote(message);
     const movieReq = wantsMovie(message);
 
-    // Actualizar emoción detectada sin bloquear
     callPython("/analyze", { text: message }, 2000)
       .then(ea => { if (ea?.emotion) Profile.findOneAndUpdate({ user: req.user._id }, { currentEmotion: ea.emotion }).catch(()=>{}); })
       .catch(()=>{});
 
-    // Canciones usadas
     const usedSongs = (history || []).flatMap(m =>
       m.role === "assistant" && m.cards ? m.cards.filter(c=>c.type==="song").map(c=>c.title.toLowerCase()) : []
     );
 
-    // System prompt — con protección total
     let systemPrompt = `Eres Zyra, una acompañante emocional cálida y empática. Hablas en español latinoamericano natural. Respuestas cortas de 2-4 oraciones. No eres una IA, eres Zyra.`;
     try {
       systemPrompt = await buildSystemPrompt(req.user._id, req.user.name);
     } catch(e) {
       console.error("buildSystemPrompt error:", e.message);
-      // Continúa con el prompt básico
     }
 
     const aiMessages = [
@@ -595,14 +560,13 @@ exports.sendMessage = async (req, res) => {
       { role: "user", content: message }
     ];
 
-    // Llamar a Groq — modelos ordenados por estabilidad
+    // ── Groq — modelos actualizados sin deprecados ──
     let rawResponse = "";
     if (groq) {
       const MODELS = [
-        "llama3-8b-8192",        // más básico y estable
-        "llama3-70b-8192",       // más potente
-        "mixtral-8x7b-32768",    // alternativa
-        "gemma2-9b-it",          // último recurso
+        "llama-3.1-8b-instant",      // rápido y estable
+        "llama-3.3-70b-versatile",   // más potente
+        "mixtral-8x7b-32768",        // alternativa
       ];
       for (const model of MODELS) {
         try {
@@ -624,8 +588,6 @@ exports.sendMessage = async (req, res) => {
       rawResponse = "Hola, estoy aquí contigo. Cuéntame ¿cómo te sientes en este momento?";
     }
 
-    // ── Detección de patrón negativo repetido ──
-    // Si lleva 3+ días negativos, Zyra lo menciona una vez por sesión
     try {
       const profile = await Profile.findOne({ user: req.user._id }).lean();
       const negStreak = profile?.negativeStreakCount || 0;
