@@ -121,6 +121,19 @@
 .ob-dot.active { background:#6366f1;width:20px;border-radius:4px }
 </style>
 
+<!-- ══ ZYRA TOASTS & CONFIRM (reemplazo de alert/confirm nativos) ══ -->
+<div id="zyra-toast-stack"></div>
+<div id="zyra-confirm-overlay">
+  <div class="zyra-confirm-box">
+    <div class="zyra-confirm-icon" id="zyra-confirm-icon">❓</div>
+    <p class="zyra-confirm-msg" id="zyra-confirm-msg"></p>
+    <div class="zyra-confirm-actions">
+      <button class="zyra-confirm-cancel" id="zyra-confirm-cancel">Cancelar</button>
+      <button class="zyra-confirm-ok" id="zyra-confirm-ok">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ ZYRA SAFETY — PANTALLA DE CRISIS ══ -->
 <div id="zyra-crisis-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:#0d0d0d;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:20px">
   <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none">
@@ -340,42 +353,28 @@
 <div class="onboard-overlay" id="onboard-overlay" style="display:none">
   <div class="onboard-modal">
     <div class="onboard-steps-bar">
-      <div class="onboard-step-dot active" id="tour-dot-0"></div>
-      <div class="onboard-step-dot" id="tour-dot-1"></div>
-      <div class="onboard-step-dot" id="tour-dot-2"></div>
+      <div class="onboard-step-dot active" id="ob-dot-0"></div>
+      <div class="onboard-step-dot" id="ob-dot-1"></div>
+      <div class="onboard-step-dot" id="ob-dot-2"></div>
     </div>
-    
-    <div class="onboard-step" id="tour-step-0">
+    <div class="onboard-step" id="ob-step-0">
       <div style="font-size:56px;margin-bottom:16px">💙</div>
       <h2>Bienvenido a Zyra</h2>
       <p>Tu espacio seguro para el bienestar emocional. Zyra te acompaña 24/7 sin juicios.</p>
       <button class="morning-btn" onclick="onboardNext(1)">Continuar →</button>
     </div>
-
-    <div class="onboard-step" id="tour-step-1" style="display:none">
+    <div class="onboard-step" id="ob-step-1" style="display:none">
       <div style="font-size:56px;margin-bottom:16px">🎯</div>
       <h2>Todo en un lugar</h2>
-      <p>Chat con IA, música terapéutica, ejercicios de respiración y diario emocional.</p>
+      <p>Chat con IA, música terapéutica, ejercicios de respiración, diario emocional y metas personales.</p>
       <button class="morning-btn" onclick="onboardNext(2)">Continuar →</button>
     </div>
-
-    <div class="onboard-step" id="tour-step-2" style="display:none">
+    <div class="onboard-step" id="ob-step-2" style="display:none">
       <div style="font-size:56px;margin-bottom:16px">✨</div>
-       <h2>Zyra te conoce</h2>
-      <div style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:16px; padding:16px; margin:15px 0; text-align:left;">
-     <div style="display:flex; align-items:flex-start; gap:12px;">
-        <input type="checkbox" id="accept-terms" style="cursor:pointer; width:18px; height:18px;">
-        <label for="accept-terms" style="color:#9ca3af; font-size:12px; cursor:pointer; line-height:1.5;">
-          Acepto los <a href="TERMINOS Y CONDICIONES ZYRA (TyC).pdf" target="_blank" style="color:#8b5cf6; font-weight:bold; text-decoration:underline;">Términos y Condiciones</a> de Aksum Emotional SAS.
-        </label>
-      </div>
+      <h2>Zyra te conoce</h2>
+      <p>Cuanto más uses Zyra, más personalizada será tu experiencia. ¡Empieza hoy!</p>
+      <button class="morning-btn" onclick="finishOnboarding()">¡Empezar ahora!</button>
     </div>
-  </div>
-  
-
-   <button class="morning-btn" id="finish-btn" onclick="finishOnboarding()">¡Empezar ahora!</button>
-   <p id="terms-warning" style="color:#ef4444; font-size:11px; margin-top:8px; display:none;">⚠️ Debes aceptar los términos para continuar</p>
-  </div>
   </div>
 </div>
 
@@ -399,8 +398,8 @@
   <button class="mobile-nav-btn" onclick="showPage('profile')" data-page="profile">
     <span class="mnb-icon">👤</span><span class="mnb-label">Perfil</span>
   </button>
-  <button class="mobile-nav-btn" onclick="doLogout()" style="color:#ef4444">
-    <span class="mnb-icon">🚪</span><span class="mnb-label">Salir</span>
+  <button class="mobile-nav-btn" onclick="showPage('goals')" data-page="goals">
+    <span class="mnb-icon">🎯</span><span class="mnb-label">Metas</span>
   </button>
 </div>
 <div class="auth-wrap">
@@ -666,7 +665,7 @@
     <div class="nav-right">
       <button class="btn-sm purple" onclick="startTest()" style="font-size:11px">✨ Test Emocional</button>
       <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Modo oscuro">🌙</button>
-      <button class="btn-sm" onclick="openNightMode()" title="Modo descanso" style="font-size:16px;padding:7px 10px">🌙</button>
+      <button class="btn-sm" onclick="openNightMode()" title="Modo descanso (respiración y sonidos para dormir)" style="font-size:16px;padding:7px 10px">😴</button>
       <div class="avatar" id="nav-avatar" onclick="showPage('profile')" style="cursor:pointer" title="Mi perfil">?</div>
       <button class="btn-logout" onclick="doLogout()">Salir</button>
     </div>
@@ -1094,7 +1093,7 @@
   <div class="card" style="border-color:#fecaca">
     <div class="card-header"><span class="card-title" style="color:var(--red)">⚠️ Zona de peligro</span></div>
     <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.6">Eliminar tu cuenta borrará permanentemente todos tus datos. Esta acción no se puede deshacer.</p>
-    <button class="btn-sm" style="background:#fef2f2;border-color:#fecaca;color:var(--red)" onclick="if(confirm('¿Seguro? Esta acción es irreversible.'))alert('Contacta al soporte para eliminar tu cuenta.')">Eliminar mi cuenta</button>
+    <button class="btn-sm" style="background:#fef2f2;border-color:#fecaca;color:var(--red)" onclick="confirmDeleteAccount()">Eliminar mi cuenta</button>
   </div>
 
 </div>
@@ -1256,6 +1255,54 @@ let resendTimers = {};
 let ytPlayerCount = 0;
 let activeYTId = null;
 
+/* ══ TOASTS & CONFIRM (reemplazo de alert/confirm) ══ */
+function zyraToast(msg, type = "info", duration = 3200) {
+  const stack = document.getElementById("zyra-toast-stack");
+  if (!stack) { console.log(msg); return; }
+  const icons = { success: "✅", error: "⚠️", info: "💬" };
+  const el = document.createElement("div");
+  el.className = "zyra-toast " + type;
+  el.innerHTML = `<span class="zyra-toast-icon">${icons[type]||icons.info}</span>
+    <span class="zyra-toast-msg">${msg}</span>
+    <button class="zyra-toast-close" aria-label="Cerrar">✕</button>`;
+  el.querySelector(".zyra-toast-close").onclick = () => removeToast(el);
+  stack.appendChild(el);
+  const timer = setTimeout(() => removeToast(el), duration);
+  el._timer = timer;
+}
+function removeToast(el) {
+  if (!el || el._removing) return;
+  el._removing = true;
+  if (el._timer) clearTimeout(el._timer);
+  el.classList.add("out");
+  setTimeout(() => el.remove(), 250);
+}
+function zyraConfirm(msg, opts = {}) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById("zyra-confirm-overlay");
+    const msgEl   = document.getElementById("zyra-confirm-msg");
+    const iconEl  = document.getElementById("zyra-confirm-icon");
+    const okBtn   = document.getElementById("zyra-confirm-ok");
+    const cancelBtn = document.getElementById("zyra-confirm-cancel");
+    if (!overlay) { resolve(window.confirm(msg)); return; }
+
+    msgEl.textContent = msg;
+    iconEl.textContent = opts.icon || (opts.danger ? "🗑️" : "❓");
+    okBtn.textContent = opts.okText || "Confirmar";
+    cancelBtn.textContent = opts.cancelText || "Cancelar";
+    okBtn.className = "zyra-confirm-ok" + (opts.danger ? " danger" : "");
+
+    const cleanup = (result) => {
+      overlay.classList.remove("show");
+      okBtn.onclick = null; cancelBtn.onclick = null;
+      resolve(result);
+    };
+    okBtn.onclick = () => cleanup(true);
+    cancelBtn.onclick = () => cleanup(false);
+    overlay.classList.add("show");
+  });
+}
+
 const EMOTIONS = [
   {key:"feliz",      label:"Feliz",        emoji:"😊", color:"#f59e0b"},
   {key:"tranquilo",  label:"Tranquilo",    emoji:"😌", color:"#10b981"},
@@ -1334,7 +1381,7 @@ async function resendCode(type) {
     await api("/auth/resend-code", "POST", {email: pendingEmail});
     const p = type === "login" ? "vl" : "vr";
     clearCodeInputs(p); startResendTimer(p);
-  } catch(e) { alert(e.message); }
+  } catch(e) { zyraToast(e.message, "error"); }
 }
 function showError(id, msg) { const e = document.getElementById(id); if(e) { e.textContent = msg; e.style.display = "block"; } }
 function hideError(id) { const e = document.getElementById(id); if(e) { e.style.display = "none"; e.textContent = ""; } }
@@ -1394,7 +1441,22 @@ async function doLoginVerify() {
     token = d.token; user = d.user;
     localStorage.setItem("zyra_token", token);
     localStorage.setItem("zyra_user", JSON.stringify(user));
-    clearForms(); updateNav(); showPage("dashboard");
+    token = d.token; user = d.user;
+    localStorage.setItem("zyra_token", token);
+    localStorage.setItem("zyra_user", JSON.stringify(user));
+    clearForms();
+    updateNav();
+    // Cargar datos de perfil (foto, emoji, color, tema)
+    try {
+      const pd = await api("/profile", "GET");
+      const p = pd.profile;
+      if (p.photoUrl)    localStorage.setItem("zyra_photo", p.photoUrl);
+      if (p.avatarEmoji) localStorage.setItem("zyra_avatar_emoji", p.avatarEmoji);
+      if (p.avatarColor) localStorage.setItem("zyra_avatar_color", p.avatarColor);
+      if (p.theme)       applyColorTheme(p.theme);
+      applyAvatarEverywhere(p.photoUrl, p.avatarEmoji, p.avatarColor);
+    } catch(e) {}
+    showPage("dashboard");
   } catch(e) { showError("vl-error", e.message); shakeCode("vl"); }
   finally { btn.disabled = false; btn.textContent = "Verificar y Entrar →"; }
 }
@@ -1430,7 +1492,15 @@ async function doRegisterVerify() {
     token = d.token; user = d.user;
     localStorage.setItem("zyra_token", token);
     localStorage.setItem("zyra_user", JSON.stringify(user));
-    clearForms(); updateNav(); startTest(true);
+    clearForms();
+    user = d.user;
+    localStorage.setItem("zyra_user", JSON.stringify(user));
+    updateNav();
+    // Guardar nombre inmediatamente en el perfil
+    if (user?.name) {
+      api("/auth/update-profile", "PUT", { name: user.name }).catch(() => {});
+    }
+    startTest(true);
   } catch(e) { showError("vr-error", e.message); shakeCode("vr"); }
   finally { btn.disabled = false; btn.textContent = "Confirmar y Crear Cuenta →"; }
 }
@@ -1509,7 +1579,7 @@ function updateNav() {
 function handleProfilePhoto(event) {
   const file = event.target.files[0];
   if(!file) return;
-  if(file.size > 3 * 1024 * 1024) return alert("La imagen debe ser menor a 3MB");
+  if(file.size > 3 * 1024 * 1024) return zyraToast("La imagen debe ser menor a 3MB", "error");
   const reader = new FileReader();
   reader.onload = async function(e) {
     const base64 = e.target.result;
@@ -1602,28 +1672,32 @@ async function selectAvatarColor(color) {
 
 async function saveProfileInfo() {
   const name = document.getElementById("prof-name-input").value.trim();
-  if(!name) return alert("Escribe tu nombre");
+  if(!name) return zyraToast("Escribe tu nombre", "error");
   try {
     await api("/auth/update-profile","PUT",{name});
     user.name = name;
     localStorage.setItem("zyra_user", JSON.stringify(user));
     updateNav();
-    alert("✅ Perfil actualizado");
-  } catch(e) { alert(e.message); }
+    zyraToast("✅ Perfil actualizado", "success");
+  } catch(e) { zyraToast(e.message, "error"); }
 }
 
+async function confirmDeleteAccount() {
+  const ok = await zyraConfirm("¿Seguro? Esta acción es irreversible.", {danger:true, okText:"Sí, continuar"});
+  if (ok) zyraToast("Contacta al soporte para eliminar tu cuenta.", "info");
+}
 async function saveProfilePassword() {
   const p1 = document.getElementById("prof-pass-new").value;
   const p2 = document.getElementById("prof-pass-confirm").value;
-  if(!p1 || !p2) return alert("Completa ambos campos");
-  if(p1 !== p2) return alert("Las contraseñas no coinciden");
-  if(p1.length < 6) return alert("Mínimo 6 caracteres");
+  if(!p1 || !p2) return zyraToast("Completa ambos campos", "error");
+  if(p1 !== p2) return zyraToast("Las contraseñas no coinciden", "error");
+  if(p1.length < 6) return zyraToast("Mínimo 6 caracteres", "error");
   try {
     await api("/auth/update-password","PUT",{password:p1});
     document.getElementById("prof-pass-new").value = "";
     document.getElementById("prof-pass-confirm").value = "";
-    alert("✅ Contraseña actualizada");
-  } catch(e) { alert(e.message); }
+    zyraToast("✅ Contraseña actualizada", "success");
+  } catch(e) { zyraToast(e.message, "error"); }
 }
 
 /* ── DASHBOARD ── */
@@ -1673,14 +1747,14 @@ document.addEventListener("DOMContentLoaded", () => {
   if(slider) slider.oninput = () => { document.getElementById("intensity-val").textContent = slider.value; };
 });
 async function saveEmotion() {
-  if(!selectedEmotion) return alert("Selecciona una emoción primero");
+  if(!selectedEmotion) return zyraToast("Selecciona una emoción primero", "error");
   const note = document.getElementById("emotion-note").value;
   const intensity = parseInt(document.getElementById("emotion-intensity").value) || 5;
   try {
     await api("/profile/emotion", "POST", {emotion: selectedEmotion, note, intensity});
     document.getElementById("emotion-note").value = ""; selectedEmotion = "";
     document.getElementById("emotion-form").style.display = "none"; loadDashboard();
-  } catch(e) { alert(e.message); }
+  } catch(e) { zyraToast(e.message, "error"); }
 }
 function renderChart(history) {
   const el = document.getElementById("emotion-chart");
@@ -1750,7 +1824,7 @@ async function addGoal() {
   const reminder = document.getElementById("goal-reminder").value.trim();
   const dueDate = document.getElementById("goal-date").value;
   const priority = document.getElementById("goal-priority").value;
-  if(!title) return alert("Escribe una meta");
+  if(!title) return zyraToast("Escribe una meta", "error");
   try {
     await api("/goals","POST",{title,category,reminder,dueDate:dueDate||undefined,priority});
     document.getElementById("goal-title").value = "";
@@ -1758,10 +1832,10 @@ async function addGoal() {
     document.getElementById("goal-date").value = "";
     document.getElementById("add-goal-form").classList.remove("show");
     loadGoals();
-  } catch(e) { alert(e.message); }
+  } catch(e) { zyraToast(e.message, "error"); }
 }
 async function toggleGoal(id) { try { await api("/goals/"+id+"/toggle","PUT"); loadGoals(); } catch(e) {} }
-async function deleteGoal(id) { if(!confirm("¿Eliminar meta?")) return; try { await api("/goals/"+id,"DELETE"); loadGoals(); } catch(e) {} }
+async function deleteGoal(id) { if(!await zyraConfirm("¿Eliminar meta?", {danger:true, okText:"Eliminar"})) return; try { await api("/goals/"+id,"DELETE"); loadGoals(); } catch(e) {} }
 
 /* ── JOURNAL ── */
 function toggleJournalForm() { document.getElementById("add-journal-form").classList.toggle("show"); }
@@ -1788,7 +1862,7 @@ async function addJournalEntry() {
   const title = document.getElementById("journal-title").value.trim();
   const content = document.getElementById("journal-content").value.trim();
   const emotion = document.getElementById("journal-emotion").value;
-  if(!content) return alert("Escribe algo en el diario");
+  if(!content) return zyraToast("Escribe algo en el diario", "error");
   try {
     await api("/journal","POST",{title,content,emotion:emotion||undefined});
     document.getElementById("journal-title").value = "";
@@ -1796,9 +1870,9 @@ async function addJournalEntry() {
     document.getElementById("journal-emotion").value = "";
     document.getElementById("add-journal-form").classList.remove("show");
     loadJournal();
-  } catch(e) { alert(e.message); }
+  } catch(e) { zyraToast(e.message, "error"); }
 }
-async function deleteJournal(id) { if(!confirm("¿Eliminar entrada?")) return; try { await api("/journal/"+id,"DELETE"); loadJournal(); } catch(e) {} }
+async function deleteJournal(id) { if(!await zyraConfirm("¿Eliminar entrada?", {danger:true, okText:"Eliminar"})) return; try { await api("/journal/"+id,"DELETE"); loadJournal(); } catch(e) {} }
 
 /* ════════════════════════════════════════
    TEST EMOCIONAL
@@ -1923,22 +1997,27 @@ function renderTestStep() {
       </div>
       <div class="test-nav">
         <span class="test-step-counter">${testStep+1} / ${TEST_Q.length}</span>
-        <div style="display:flex;gap:12px;align-items:center">
-          ${testStep > 0 ? `<button class="btn-sm" onclick="testBack()">← Atrás</button>` : ""}
-          <button class="btn-primary" style="width:auto;padding:13px 32px"
-            onclick="testNext()" ${testAnswers[testStep]===undefined?"disabled":""}>
-            ${testStep < TEST_Q.length - 1 ? "Siguiente →" : "Ver mi resultado →"}
-          </button>
-        </div>
+        ${testStep > 0 ? `<button class="btn-sm" onclick="testBack()">← Atrás</button>` : "<span></span>"}
       </div>
     </div>`;
 }
-function selectTestOpt(idx) { testAnswers[testStep] = idx; renderTestStep(); }
-function testBack() { if(testStep > 0) { testStep--; renderTestStep(); } }
+function testBack() {
+  if (testStep > 0) { testStep--; renderTestStep(); }
+}
 function testNext() {
-  if(testAnswers[testStep] === undefined) return;
-  if(testStep < TEST_Q.length - 1) { testStep++; renderTestStep(); }
-  else showTestResult();
+  if (testAnswers[testStep] === undefined) return;
+  if (testStep < TEST_Q.length - 1) { testStep++; renderTestStep(); }
+  else { showTestResult(); }
+}
+function selectTestOpt(idx) {
+  testAnswers[testStep] = idx;
+  // Avanzar inmediatamente, sin delay ni "rebote"
+  if (testStep < TEST_Q.length - 1) {
+    testStep++;
+    renderTestStep();
+  } else {
+    showTestResult();
+  }
 }
 function showTestResult() {
   const mood = TEST_Q[0].opts[testAnswers[0]]?.v || "tranquilo";
@@ -2626,12 +2705,12 @@ async function saveEmergencyContact() {
   const name     = document.getElementById("ec-name")?.value?.trim();
   const phone    = document.getElementById("ec-phone")?.value?.trim();
   const relation = document.getElementById("ec-relation")?.value?.trim();
-  if (!name || !phone) return alert("Escribe el nombre y teléfono del contacto");
+  if (!name || !phone) return zyraToast("Escribe el nombre y teléfono del contacto", "error");
   try {
     await api("/profile/emergency", "POST", { name, phone, relation });
     const st = document.getElementById("ec-status");
     if (st) { st.style.display = "block"; setTimeout(() => st.style.display = "none", 3000); }
-  } catch(e) { alert(e.message); }
+  } catch(e) { zyraToast(e.message, "error"); }
 }
 
 async function loadEmergencyContact() {
@@ -2651,32 +2730,32 @@ async function loadEmergencyContact() {
 async function savePinFromProfile() {
   const input = document.getElementById("pin-new-input");
   const pin   = input?.value?.trim();
-  if (!pin || !/^\d{4}$/.test(pin)) return alert("El PIN debe ser exactamente 4 dígitos");
+  if (!pin || !/^\d{4}$/.test(pin)) return zyraToast("El PIN debe ser exactamente 4 dígitos", "error");
   try {
     await api("/profile/pin", "POST", { pin });
     if (input) input.value = "";
     const msg = document.getElementById("pin-status-msg");
     if (msg) msg.textContent = "✅ PIN activado correctamente";
-    alert("✅ PIN activado. Se pedirá la próxima vez que abras Zyra.");
-  } catch(e) { alert(e.message); }
+    zyraToast("✅ PIN activado. Se pedirá la próxima vez que abras Zyra.", "success");
+  } catch(e) { zyraToast(e.message, "error"); }
 }
 
 async function disablePinFromProfile() {
-  if (!confirm("¿Desactivar el PIN de bloqueo?")) return;
+  if (!await zyraConfirm("¿Desactivar el PIN de bloqueo?")) return;
   try {
     await api("/profile/pin", "DELETE");
     const msg = document.getElementById("pin-status-msg");
     if (msg) msg.textContent = "PIN desactivado";
-    alert("PIN desactivado.");
-  } catch(e) { alert(e.message); }
+    zyraToast("PIN desactivado.", "success");
+  } catch(e) { zyraToast(e.message, "error"); }
 }
 
 async function changeThemeFromProfile(theme) {
   try {
     await api("/profile", "PUT", { theme });
     applyColorTheme(theme);
-    alert("✅ Tema aplicado: " + theme);
-  } catch(e) { alert(e.message); }
+    zyraToast("✅ Tema aplicado: " + theme, "success");
+  } catch(e) { zyraToast(e.message, "error"); }
 }
 
 async function exportMyData() {
@@ -2697,22 +2776,22 @@ async function exportMyData() {
     btn.textContent = "⬇️ Exportar mis datos";
     btn.disabled = false;
   } catch(e) {
-    alert("Error al exportar: " + e.message);
+    zyraToast("Error al exportar: " + e.message, "error");
     event.target.textContent = "⬇️ Exportar mis datos";
     event.target.disabled = false;
   }
 }
 
 async function deleteMyData() {
-  if (!confirm("¿Borrar TODO tu historial, conversaciones, metas y diario?\n\nEsta acción NO se puede deshacer.")) return;
-  if (!confirm("¿Estás completamente seguro? Se eliminarán todas tus conversaciones, metas y diario.")) return;
+  if (!await zyraConfirm("¿Borrar TODO tu historial, conversaciones, metas y diario?\n\nEsta acción NO se puede deshacer.", {danger:true, okText:"Continuar"})) return;
+  if (!await zyraConfirm("¿Estás completamente seguro? Se eliminarán todas tus conversaciones, metas y diario.", {danger:true, okText:"Sí, borrar todo"})) return;
   try {
     await api("/profile/data", "DELETE");
-    alert("✅ Todos tus datos han sido eliminados.");
+    zyraToast("✅ Todos tus datos han sido eliminados.", "success");
     chatHistory = [];
     currentConvId = null;
     showPage("dashboard");
-  } catch(e) { alert(e.message); }
+  } catch(e) { zyraToast(e.message, "error"); }
 }
 
 /* ════ ZYRA PIN — LÓGICA DE BLOQUEO ════ */
@@ -2780,30 +2859,20 @@ let obReason = "";
 let obTheme  = "default";
 
 async function checkOnboarding() {
+  if (!token || !user) return; // No mostrar si no está logueado
   try {
     const d = await api("/profile", "GET");
     if (!d.profile?.onboardingDone) {
-      // Si ya completó el tour, mostrar directamente el cuestionario de datos
-      const tourDone = localStorage.getItem('zyra_onboarded');
-      if (tourDone) {
-        const el = document.getElementById("zyra-onboarding");
-        if (el) {
-          el.style.display = "flex";
-          // Mostrar primer paso del cuestionario
-          for (let i = 0; i <= 3; i++) {
-            const s = document.getElementById('ob-step-' + i);
-            const dot = document.getElementById('ob-dot-' + i);
-            if (s) s.style.display = i === 0 ? 'block' : 'none';
-            if (dot) dot.className = 'ob-dot' + (i === 0 ? ' active' : '');
-          }
-        }
-      } else {
-        // Mostrar el Tour de bienvenida primero
-        const tour = document.getElementById("onboard-overlay");
-        if (tour) tour.style.display = 'flex';
-      }
+      // Pre-llenar el nombre si ya existe
+      const nameInput = document.getElementById("ob-name-input");
+      if (nameInput && user?.name) nameInput.value = user.name;
+
+      const el = document.getElementById("zyra-onboarding");
+      if (el) el.style.display = "flex";
     }
-  } catch(e) {}
+  } catch (e) {
+    console.error("checkOnboarding error:", e);
+  }
 }
 
 function obNext(step) {
@@ -2846,28 +2915,33 @@ function obSelectTheme(btn, theme) {
 }
 
 async function obFinish() {
-  try {
-    const nameInput = document.getElementById("ob-name-input");
-    const name = nameInput?.value?.trim();
+  const nameInput = document.getElementById("ob-name-input");
+  const name = nameInput?.value?.trim();
 
-    // Guardar nombre si lo cambió
-    if (name && user) {
-      await api("/auth/update-name", "PUT", { name }).catch(() => {});
-      user.name = name;
-      localStorage.setItem("zyra_user", JSON.stringify(user));
+  try {
+    // 1. Actualizar nombre si se escribió uno
+    if (name) {
+      await api("/auth/update-profile", "PUT", { name }).catch(() => {});
+      if (user) {
+        user.name = name;
+        localStorage.setItem("zyra_user", JSON.stringify(user));
+      }
     }
 
-    // Guardar tema y marcar onboarding como hecho
-    await api("/profile", "PUT", { theme: obTheme, onboardingDone: true });
+    // 2. Guardar tema, razón y marcar onboarding como completado
+    await api("/profile", "PUT", {
+      theme: obTheme,
+      onboardingDone: true,
+      onboardingReason: obReason
+    }).catch(() => {});
 
+  } catch (e) {
+    console.error("obFinish error:", e);
+  } finally {
+    // 3. Siempre cerrar el onboarding y navegar al chat
     const el = document.getElementById("zyra-onboarding");
     if (el) el.style.display = "none";
-
-    // Ir directo al chat con mensaje de bienvenida
-    showPage("assistant");
-  } catch(e) {
-    const el = document.getElementById("zyra-onboarding");
-    if (el) el.style.display = "none";
+    updateNav();
     showPage("assistant");
   }
 }
@@ -3014,7 +3088,7 @@ window.addEventListener("load", () => {
 });
 
 function toggleVoice() {
-  if(!sr) return alert("Usa Chrome o Edge para el reconocimiento de voz");
+  if(!sr) return zyraToast("Usa Chrome o Edge para el reconocimiento de voz", "error");
   if(listening) {
     sr.stop(); setListening(false); setVoiceStatus(""); voiceMode = false;
   } else {
@@ -3123,7 +3197,7 @@ function endVoiceCall() {
 function vcToggleListen() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SR) {
-    alert('Tu navegador no soporta reconocimiento de voz.\nUsa Chrome en Android o Chrome/Edge en PC.');
+    zyraToast('Tu navegador no soporta reconocimiento de voz. Usa Chrome en Android o Chrome/Edge en PC.', "error");
     return;
   }
 
@@ -3471,7 +3545,7 @@ async function quickEmotionSelect(emotion) {
     if(he) he.textContent=emojiMap[emotion]||'🌊';
     if(stEm) stEm.textContent=emotion.charAt(0).toUpperCase()+emotion.slice(1);
     if(stEi) stEi.textContent=emojiMap[emotion]||'😌';
-    setTimeout(()=>{if(confirm(`Registré que te sientes ${emotion}. ¿Quieres hablar con Zyra?`))showPage('assistant');},400);
+    // Registrado — sin diálogo nativo que interrumpa
   } catch(e){}
 }
 function closeQuickEmotion() {
@@ -3793,14 +3867,14 @@ function toggleFocus() {
         playNotifSound();
         if(!focusIsBreak){
           focusSession++; updateFocusDots();
-          if(focusSession>=4){alert('🎉 ¡4 sesiones completadas! Tómate un descanso largo.');closeFocusMode();return;}
-          alert('✅ ¡Sesión completada! Descansa 5 minutos.');
+          if(focusSession>=4){zyraToast('🎉 ¡4 sesiones completadas! Tómate un descanso largo.', "success");closeFocusMode();return;}
+          zyraToast('✅ ¡Sesión completada! Descansa 5 minutos.', "success");
           focusIsBreak=true; focusSeconds=5*60; focusTotalSeconds=5*60;
           document.getElementById('focus-phase').textContent='Descanso';
         } else {
           focusIsBreak=false; focusSeconds=25*60; focusTotalSeconds=25*60;
           document.getElementById('focus-phase').textContent='Enfoque';
-          alert('Descanso terminado. ¿Listo para otra sesión?');
+          zyraToast('Descanso terminado. ¿Listo para otra sesión?', "info");
         }
         updateFocusTimer();
         if(btn) btn.textContent='▶ Iniciar';
@@ -3979,69 +4053,22 @@ async function openShareProgress() {
 }
 function shareProgress() {
   const card=document.getElementById('share-card-preview');
-  if(!card){alert('Captura la pantalla manualmente para compartir.');return;}
-  alert('📸 Toma una captura de pantalla para compartir tu progreso.\n\nPróximamente: exportar como imagen automáticamente.');
+  if(!card){zyraToast('Captura la pantalla manualmente para compartir.', "info");return;}
+  zyraToast('📸 Toma una captura de pantalla para compartir tu progreso. Próximamente: exportar como imagen automáticamente.', "info", 4500);
 }
 
 /* ════════════════════════════════════════
-   LOGICA DE ONBOARDING Y TERMINOS
+   ONBOARDING
 ════════════════════════════════════════ */
 
-// 1. Controla los pasos del Tour de Bienvenida (el de los puntos)
 function onboardNext(step) {
-    const steps = document.querySelectorAll('.onboard-step');
-    steps.forEach(s => s.style.display = 'none');
-
-    const targetStep = document.getElementById('tour-step-' + step);
-    if (targetStep) targetStep.style.display = 'block';
-
-    const dots = document.querySelectorAll('.onboard-step-dot');
-    dots.forEach((dot, index) => {
-        index === step ? dot.classList.add('active') : dot.classList.remove('active');
-    });
+  for(let i=0;i<3;i++){const el=document.getElementById(`ob-step-${i}`);if(el)el.style.display='none';}
+  for(let i=0;i<3;i++){const el=document.getElementById(`ob-dot-${i}`);if(el)el.classList.toggle('active',i===step);}
+  const s=document.getElementById(`ob-step-${step}`); if(s) s.style.display='block';
 }
-
-// 2. Finaliza el Tour, valida términos y abre el formulario de datos
 function finishOnboarding() {
-    const checkbox = document.getElementById('accept-terms');
-    const warning = document.getElementById('terms-warning');
-
-    // Validación de seguridad
-    if (!checkbox || !checkbox.checked) {
-        if (warning) warning.style.display = 'block';
-        return;
-    }
-
-    const overlay = document.getElementById('onboard-overlay');
-    if (overlay) {
-        overlay.style.display = 'none';
-        
-        // Persistencia: No volver a mostrar el tour
-        localStorage.setItem('zyra_onboarded', 'true');
-
-        // Transición al Onboarding de Datos (Nombre, Motivo, etc.)
-        const dataOnboarding = document.getElementById('zyra-onboarding');
-        if (dataOnboarding) {
-            dataOnboarding.style.display = 'flex';
-            // Mostrar paso 0 del cuestionario de datos
-            for (let i = 0; i <= 3; i++) {
-                const s = document.getElementById('ob-step-' + i);
-                const d = document.getElementById('ob-dot-' + i);
-                if (s) s.style.display = i === 0 ? 'block' : 'none';
-                if (d) d.className = 'ob-dot' + (i === 0 ? ' active' : '');
-            }
-        }
-        
-        console.log("✅ Términos aceptados. Iniciando configuración de perfil.");
-    }
-}
-
-// 3. obNext ya está definida arriba — esta es una referencia para recordar que maneja ob-step-* y ob-dot-*
-
-// 4. Función para abrir los Términos y Condiciones
-function openFullTerms() {
-    // Esto intentará abrir el PDF que subiste en una pestaña nueva
-    window.open('TERMINOS Y CONDICIONES ZYRA (TyC).pdf', '_blank');
+  localStorage.setItem('zyra_onboarded','1');
+  const o=document.getElementById('onboard-overlay'); if(o) o.style.display='none';
 }
 
 /* ════════════════════════════════════════
@@ -4098,22 +4125,17 @@ function injectZyraAvatars() {
     if (!existingSVG) vcAv.insertAdjacentHTML('afterbegin', buildZyraSVG(128));
   }
 
-  // Chat (avatar de Zyra en mensajes)
-  document.querySelectorAll('.msg-av.bot').forEach(av => {
-    if (av.querySelector('img')) return; // ya tiene imagen, no reemplazar
-  });
+  // Chat (avatar de Zyra en mensajes) — usa el logo, no se reemplaza
 }
 
 document.addEventListener('DOMContentLoaded', injectZyraAvatars);
-
-// Extender loadDashboard con funcionalidades extra
 const _baseLoadDashboard = loadDashboard;
 loadDashboard = async function() {
-  try { await _baseLoadDashboard(); } catch(e) { console.error('loadDashboard error:', e); }
-  setTimeout(() => { if(typeof ZyraRecs !== 'undefined') ZyraRecs.load(); }, 500);
-  if(typeof checkMorning === 'function') checkMorning();
-  if(typeof checkOnboarding === 'function') checkOnboarding();
-  setTimeout(() => { if(typeof checkWeeklyReport === 'function') checkWeeklyReport(); }, 2000);
+  await _baseLoadDashboard();
+  setTimeout(()=>ZyraRecs.load(), 500);
+  checkMorning();
+  checkOnboarding();
+  setTimeout(()=>checkWeeklyReport(), 2000);
 };
 
 // Añadir Share en el perfil

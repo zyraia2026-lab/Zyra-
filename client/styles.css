@@ -1515,8 +1515,9 @@ textarea.chat-ta::placeholder{color:var(--placeholder);-webkit-text-fill-color:v
 .test-question{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--text);margin-bottom:8px;line-height:1.4;letter-spacing:-.3px}
 .test-sub{font-size:14px;color:var(--text3);margin-bottom:32px;line-height:1.6}
 .test-options{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:36px}
-.test-option{background:var(--surface);border:2px solid var(--border);border-radius:var(--r-md);padding:18px;cursor:pointer;transition:all .22s var(--ease);text-align:left;display:flex;align-items:flex-start;gap:14px}
-.test-option:hover{background:#f0f9ff;border-color:var(--celeste);transform:translateY(-2px);box-shadow:var(--shadow-sm)}
+.test-option{background:var(--surface);border:2px solid var(--border);border-radius:var(--r-md);padding:18px;cursor:pointer;transition:background .15s,border-color .15s;text-align:left;display:flex;align-items:flex-start;gap:14px}
+.test-option:active{transform:none}
+.test-option:hover{background:#f0f9ff;border-color:var(--celeste);box-shadow:var(--shadow-sm)}
 .test-option.selected{background:#f0f9ff;border-color:var(--sky);box-shadow:var(--shadow-glow)}
 .test-option-emoji{font-size:28px;flex-shrink:0;line-height:1}
 .test-option-text{font-size:14px;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:3px}
@@ -2757,3 +2758,61 @@ body {
   from { transform: rotate(-1deg) translateY(0); }
   to   { transform: rotate(1deg) translateY(-3px); }
 }
+
+/* ══════════════════════════════════════════
+   ZYRA TOASTS & CONFIRM MODAL
+   (reemplazo de alert()/confirm() nativos)
+══════════════════════════════════════════ */
+#zyra-toast-stack {
+  position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
+  z-index: 10500; display: flex; flex-direction: column; gap: 8px;
+  width: min(380px, calc(100vw - 32px)); pointer-events: none;
+}
+.zyra-toast {
+  pointer-events: auto;
+  display: flex; align-items: center; gap: 10px;
+  background: var(--card, #fff); color: var(--text, #1f2937);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 14px; padding: 12px 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.15);
+  font-size: 13px; font-weight: 600; line-height: 1.4;
+  animation: zyraToastIn .35s var(--bounce, cubic-bezier(.34,1.56,.64,1)) both;
+}
+.zyra-toast.out { animation: zyraToastOut .25s ease both; }
+.zyra-toast.success { border-color: #6ee7b7; background: #ecfdf5; color: #065f46; }
+.zyra-toast.error   { border-color: #fecaca; background: #fef2f2; color: #991b1b; }
+.zyra-toast.info    { border-color: #bfdbfe; background: #eff6ff; color: #1e40af; }
+.zyra-toast-icon { font-size: 18px; flex-shrink: 0; }
+.zyra-toast-msg  { flex: 1; }
+.zyra-toast-close {
+  background: none; border: none; cursor: pointer; font-size: 14px;
+  color: inherit; opacity: .5; flex-shrink: 0; padding: 2px;
+}
+.zyra-toast-close:hover { opacity: 1; }
+@keyframes zyraToastIn  { from{opacity:0;transform:translateY(-12px) scale(.96)} to{opacity:1;transform:none} }
+@keyframes zyraToastOut { from{opacity:1;transform:none} to{opacity:0;transform:translateY(-12px) scale(.96)} }
+
+/* Confirm modal */
+#zyra-confirm-overlay {
+  display: none; position: fixed; inset: 0; z-index: 10600;
+  background: rgba(0,0,0,.5); backdrop-filter: blur(6px);
+  align-items: center; justify-content: center; padding: 20px;
+}
+#zyra-confirm-overlay.show { display: flex; }
+.zyra-confirm-box {
+  background: var(--card, #fff); border-radius: 18px; padding: 26px;
+  max-width: 360px; width: 100%; text-align: center;
+  box-shadow: 0 24px 60px rgba(0,0,0,.25);
+  animation: modalPop .3s var(--bounce, cubic-bezier(.34,1.56,.64,1));
+}
+.zyra-confirm-icon { font-size: 36px; margin-bottom: 8px; }
+.zyra-confirm-msg { font-size: 14px; color: var(--text, #1f2937); line-height: 1.6; margin: 0 0 20px; white-space: pre-line; }
+.zyra-confirm-actions { display: flex; gap: 10px; }
+.zyra-confirm-actions button {
+  flex: 1; border: none; border-radius: 12px; padding: 12px 16px;
+  font-size: 14px; font-weight: 700; cursor: pointer; transition: transform .15s, opacity .15s;
+}
+.zyra-confirm-actions button:active { transform: scale(.97); }
+.zyra-confirm-cancel { background: var(--surface, #f3f4f6); color: var(--text2, #4b5563); }
+.zyra-confirm-ok { background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff; }
+.zyra-confirm-ok.danger { background: linear-gradient(135deg,#ef4444,#dc2626); }
