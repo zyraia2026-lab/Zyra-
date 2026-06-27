@@ -2816,3 +2816,83 @@ body {
 .zyra-confirm-cancel { background: var(--surface, #f3f4f6); color: var(--text2, #4b5563); }
 .zyra-confirm-ok { background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff; }
 .zyra-confirm-ok.danger { background: linear-gradient(135deg,#ef4444,#dc2626); }
+
+/* ══════════════════════════════════════
+   ZYRA v6 — MEJORAS GENERALES + MOBILE
+══════════════════════════════════════ */
+
+/* Avatar sparkle hover effect */
+.zyra-avatar-svg svg:hover { filter: drop-shadow(0 6px 24px rgba(99,102,241,.55)) !important; transform: scale(1.04); transition: all .3s ease; }
+
+/* Chat avatar online dot */
+.chat-zyra-avatar { position: relative; flex-shrink: 0; }
+
+/* Plan badge en perfil */
+.plan-user-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: linear-gradient(135deg,rgba(99,102,241,.2),rgba(167,139,250,.1));
+  border: 1px solid rgba(99,102,241,.35); border-radius: 20px;
+  padding: 4px 14px; font-size: 12px; font-weight: 700; color: #a78bfa;
+  margin-top: 8px;
+}
+
+/* PWA install button in profile */
+.pwa-install-card {
+  background: linear-gradient(135deg,rgba(99,102,241,.1),rgba(139,92,246,.06));
+  border: 1.5px solid rgba(99,102,241,.3); border-radius: 16px;
+  padding: 20px; display: flex; align-items: center; gap: 16px;
+  cursor: pointer; transition: all .2s; margin-bottom: 16px;
+}
+.pwa-install-card:hover { border-color: rgba(99,102,241,.6); transform: translateY(-2px); }
+
+/* Mobile improvements */
+@media (max-width: 768px) {
+  /* Better touch targets */
+  button, .btn, .nav-btn { min-height: 44px; }
+  
+  /* Prevent text zoom on input focus (iOS) */
+  input, textarea, select { font-size: 16px !important; }
+  
+  /* Chat input area safe area */
+  .chat-input-area {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+  
+  /* Fix bottom nav overlap */
+  .page.active {
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+
+  /* Larger mobile nav icons */
+  .mnb-icon { font-size: 20px !important; }
+  
+  /* Plan cards stack better on mobile */
+  .plan-card { padding: 20px 16px; }
+  .plan-amount { font-size: 28px; }
+}
+
+/* iOS standalone mode extra padding */
+@media (display-mode: standalone) {
+  body { padding-top: env(safe-area-inset-top); }
+  #mobile-tabbar { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+/* APK/WebAPK install instructions */
+.apk-steps {
+  background: var(--surface2, rgba(255,255,255,.04));
+  border: 1px solid var(--border); border-radius: 14px;
+  padding: 20px; margin-top: 16px;
+}
+.apk-step {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.apk-step:last-child { border-bottom: none; }
+.apk-step-num {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: linear-gradient(135deg,#6366f1,#8b5cf6);
+  color: #fff; font-size: 12px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.apk-step-text { color: var(--text2, #9ca3af); font-size: 13px; line-height: 1.5; }
+
