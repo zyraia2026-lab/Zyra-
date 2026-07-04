@@ -12,9 +12,18 @@ const S = new mongoose.Schema({
   emotionHistory: [{ emotion: String, note: String, intensity: { type: Number, default: 5 }, date: { type: Date, default: Date.now } }],
 
   // ── Sesiones y racha ──
-  sessionsCount: { type: Number, default: 0 },
-  streakDays:    { type: Number, default: 0 },
-  lastSession:   { type: Date },
+  sessionsCount:  { type: Number, default: 0 },
+  streakDays:     { type: Number, default: 0 },
+  lastSession:    { type: Date },
+  lastActiveDate: { type: Date, default: null },
+
+  // ── Gamificación ──
+  coins:                  { type: Number, default: 0 },
+  missionsCompletedToday: [{ type: String }],
+  missionsResetAt:        { type: Date, default: null },
+  achievements:           [{ type: String }],
+  unlockedItems:          [{ type: String }],
+  equippedBadge:          { type: String, default: "" },
 
   // ── Contacto de emergencia ──
   emergencyContact: {

@@ -1,5 +1,5 @@
-// ══ ZYRA SERVICE WORKER v3.0 ══
-const CACHE_NAME = 'zyra-v3';
+// ══ ZYRA SERVICE WORKER v4.0 ══
+const CACHE_NAME = 'zyra-v4';
 const STATIC_ASSETS = ['/', '/index.html', '/styles.css', '/manifest.json'];
 
 self.addEventListener('install', e => {
@@ -37,8 +37,8 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Fonts — cache first
-  if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
+  // CDN resources (Three.js, Fonts) — cache first
+  if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com' || url.hostname === 'cdnjs.cloudflare.com') {
     e.respondWith(
       caches.match(request).then(cached => cached || fetch(request).then(res => {
         const clone = res.clone();
