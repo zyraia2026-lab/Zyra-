@@ -21,6 +21,8 @@
 <meta name="description" content="Tu acompañante emocional con IA. Habla, siente, crece."/>
 <!-- iOS touch icon fallback -->
 <link rel="apple-touch-icon" href="/Imagenes/1000154669.png"/>
+<!-- Three.js para avatar 3D -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
@@ -613,6 +615,9 @@
   <button class="mobile-nav-btn" onclick="showPage('assistant')" data-page="assistant">
     <span class="mnb-icon">💬</span><span class="mnb-label">Zyra IA</span>
   </button>
+  <button class="mobile-nav-btn" onclick="showPage('games')" data-page="games">
+    <span class="mnb-icon">🎮</span><span class="mnb-label">Juegos</span>
+  </button>
   <button class="mobile-nav-btn" onclick="showPage('journal')" data-page="journal">
     <span class="mnb-icon">📔</span><span class="mnb-label">Diario</span>
   </button>
@@ -882,12 +887,19 @@
     <div class="nav-links">
       <button class="nav-btn active" onclick="showPage('dashboard')">🏠 Inicio</button>
       <button class="nav-btn" onclick="showPage('wellness')">🧘 Bienestar</button>
+      <button class="nav-btn" onclick="showPage('games')">🎮 Juegos</button>
       <button class="nav-btn" onclick="showPage('goals')">🎯 Metas</button>
       <button class="nav-btn" onclick="showPage('planes')">✦ Planes</button>
       <button class="nav-btn" onclick="showPage('journal')">📔 Diario</button>
       <button class="nav-btn" onclick="showPage('assistant')">💬 Zyra IA</button>
     </div>
     <div class="nav-right">
+      <div class="nav-streak-badge" id="nav-streak-badge" onclick="showPage('dashboard')" title="Racha de días" style="display:none">
+        <span>🔥</span><span id="nav-streak-count">0</span>
+      </div>
+      <div class="nav-coins-badge" id="nav-coins-badge" onclick="showPage('profile')" title="Monedas Zyra" style="display:none">
+        <span>🪙</span><span id="nav-coins-count">0</span>
+      </div>
       <button class="btn-sm purple" onclick="startTest()" style="font-size:11px">✨ Test Emocional</button>
       <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Modo oscuro">🌙</button>
       <button class="btn-sm" onclick="openNightMode()" title="Modo descanso (respiración y sonidos para dormir)" style="font-size:16px;padding:7px 10px">😴</button>
@@ -951,6 +963,41 @@
       <div class="quick-card-title">Modo Enfoque</div>
       <div class="quick-card-desc">Pomodoro + sonidos ambientales</div>
       <div class="quick-card-badge"><span class="badge orange">25 min</span></div>
+    </div>
+  </div>
+
+  <!-- ══ RACHA + MISIONES ══ -->
+  <div class="grid2" id="gamification-row" style="margin-bottom:24px;display:none">
+    <!-- Racha -->
+    <div class="card streak-card" style="background:linear-gradient(135deg,rgba(251,146,60,.12),rgba(249,115,22,.06));border-color:rgba(251,146,60,.3)">
+      <div style="display:flex;align-items:center;gap:16px">
+        <div class="streak-flame" id="streak-flame-big">🔥</div>
+        <div>
+          <div style="font-size:40px;font-weight:900;color:var(--text);line-height:1" id="streak-number-big">0</div>
+          <div style="font-size:13px;color:var(--text3);font-weight:600">días de racha</div>
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:6px">
+          <span>Monedas Zyra</span>
+          <span id="coins-big-display">🪙 0</span>
+        </div>
+        <div class="streak-milestones">
+          <div class="streak-mile" id="sm-3">🔥 3</div>
+          <div class="streak-mile" id="sm-7">⚡ 7</div>
+          <div class="streak-mile" id="sm-14">🌙 14</div>
+          <div class="streak-mile" id="sm-30">👑 30</div>
+        </div>
+      </div>
+      <button class="btn-sm" style="margin-top:12px;width:100%;font-size:12px" onclick="openRewardsShop()">🛍️ Tienda de recompensas</button>
+    </div>
+    <!-- Misiones diarias -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📋 Misiones de hoy</span>
+        <span id="missions-progress-badge" class="badge blue">0/5</span>
+      </div>
+      <div id="missions-list" style="display:flex;flex-direction:column;gap:8px"></div>
     </div>
   </div>
 
@@ -1019,6 +1066,68 @@
     <button class="btn-cta" onclick="showPage('assistant')">Comenzar sesión 💬</button>
   </div>
 </div>
+</div>
+
+<!-- ══════ JUEGOS ══════ -->
+<div id="page-games" class="page">
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo" onclick="showPage('dashboard')"><img src="/Imagenes/1000154669.png" class="nav-logo-img" alt="Zyra"/><span class="nav-brand">Zyra</span></div>
+    <div class="nav-links">
+      <button class="nav-btn" onclick="showPage('dashboard')">🏠 Inicio</button>
+      <button class="nav-btn" onclick="showPage('wellness')">🧘 Bienestar</button>
+      <button class="nav-btn active" onclick="showPage('games')">🎮 Juegos</button>
+      <button class="nav-btn" onclick="showPage('goals')">🎯 Metas</button>
+      <button class="nav-btn" onclick="showPage('planes')">✦ Planes</button>
+      <button class="nav-btn" onclick="showPage('journal')">📔 Diario</button>
+      <button class="nav-btn" onclick="showPage('assistant')">💬 Zyra IA</button>
+    </div>
+    <div class="nav-right">
+      <div class="avatar" id="nav-avatar-games" onclick="showPage('profile')" style="cursor:pointer">?</div>
+      <button class="btn-logout" onclick="doLogout()">Salir</button>
+    </div>
+  </div>
+</nav>
+<div class="container">
+  <div class="page-header">
+    <h1 class="page-title">🎮 Juegos de Bienestar</h1>
+    <p class="page-subtitle">Actividades relajantes para calmar la mente y reducir el estrés</p>
+  </div>
+
+  <!-- Selector de juegos -->
+  <div class="games-tabs" id="games-tabs">
+    <button class="game-tab active" id="gtab-breath"    onclick="openGame('breath')">🫧 Respiración</button>
+    <button class="game-tab"        id="gtab-bubbles"   onclick="openGame('bubbles')">✨ Burbujas Zen</button>
+    <button class="game-tab"        id="gtab-memory"    onclick="openGame('memory')">🧠 Memory</button>
+    <button class="game-tab"        id="gtab-zen"       onclick="openGame('zen')">🪨 Jardín Zen</button>
+  </div>
+
+  <div id="game-container"></div>
+</div>
+</div>
+
+<!-- ══ MODAL TIENDA DE RECOMPENSAS ══ -->
+<div id="rewards-shop-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:9000;overflow-y:auto;padding:20px">
+  <div style="max-width:600px;margin:0 auto;background:var(--surface);border-radius:24px;padding:28px;position:relative">
+    <button onclick="closeRewardsShop()" style="position:absolute;top:16px;right:16px;background:var(--surface2);border:none;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;color:var(--text)">×</button>
+    <h2 style="margin:0 0 4px;font-size:20px">🛍️ Tienda Zyra</h2>
+    <p style="color:var(--text3);font-size:13px;margin-bottom:20px">Canjea tus monedas por recompensas exclusivas</p>
+    <div style="display:flex;align-items:center;gap:8px;background:rgba(99,102,241,.1);border-radius:12px;padding:10px 16px;margin-bottom:20px">
+      <span style="font-size:22px">🪙</span>
+      <span style="font-size:18px;font-weight:800;color:var(--text)" id="shop-coins-display">0</span>
+      <span style="font-size:13px;color:var(--text3)">monedas disponibles</span>
+    </div>
+    <div class="rewards-grid" id="rewards-grid"></div>
+  </div>
+</div>
+
+<!-- ══ MODAL LOGROS ══ -->
+<div id="achievements-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:9000;overflow-y:auto;padding:20px">
+  <div style="max-width:560px;margin:0 auto;background:var(--surface);border-radius:24px;padding:28px;position:relative">
+    <button onclick="closeAchievements()" style="position:absolute;top:16px;right:16px;background:var(--surface2);border:none;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;color:var(--text)">×</button>
+    <h2 style="margin:0 0 20px;font-size:20px">🏆 Mis Logros</h2>
+    <div id="achievements-grid" class="achievements-grid"></div>
+  </div>
 </div>
 
 <!-- ══════ WELLNESS ══════ -->
@@ -1229,47 +1338,99 @@
     </div>
   </div>
 </nav>
-<div class="container" style="max-width:700px">
+<div class="container" style="max-width:720px">
   <div class="section-title">👤 Mi Perfil</div>
-  <div class="card" style="text-align:center;padding:44px 36px;margin-bottom:20px">
-    <div style="position:relative;display:inline-block;margin-bottom:24px">
-      <div id="profile-avatar-big" style="width:110px;height:110px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:800;color:white;margin:0 auto;overflow:hidden;box-shadow:var(--shadow-blue);cursor:pointer;border:4px solid white" onclick="document.getElementById('profile-photo-input').click()">
-        <span id="profile-avatar-letter">?</span>
-        <img id="profile-avatar-img" src="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%"/>
+
+  <!-- ══ HERO CARD ══ -->
+  <div class="profile-hero-card" style="background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(139,92,246,.08));border:1.5px solid rgba(99,102,241,.3);border-radius:24px;padding:32px;margin-bottom:20px;position:relative;overflow:hidden">
+    <div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(99,102,241,.15),transparent);pointer-events:none"></div>
+    <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+      <!-- Avatar -->
+      <div style="position:relative;flex-shrink:0">
+        <div id="profile-avatar-big" style="width:100px;height:100px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:800;color:white;overflow:hidden;box-shadow:0 8px 24px rgba(99,102,241,.4);cursor:pointer;border:3px solid rgba(255,255,255,.3)" onclick="document.getElementById('profile-photo-input').click()">
+          <span id="profile-avatar-letter">?</span>
+          <img id="profile-avatar-img" src="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%"/>
+        </div>
+        <button onclick="document.getElementById('profile-photo-input').click()" style="position:absolute;bottom:0;right:0;width:30px;height:30px;border-radius:50%;background:var(--grad);border:2px solid white;cursor:pointer;color:white;font-size:13px;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm)">📷</button>
+        <input type="file" id="profile-photo-input" accept="image/*" style="display:none" onchange="handleProfilePhoto(event)"/>
       </div>
-      <button onclick="document.getElementById('profile-photo-input').click()" style="position:absolute;bottom:0;right:0;width:34px;height:34px;border-radius:50%;background:var(--grad);border:3px solid white;cursor:pointer;color:white;font-size:14px;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm)">📷</button>
-      <input type="file" id="profile-photo-input" accept="image/*" style="display:none" onchange="handleProfilePhoto(event)"/>
+      <!-- Info -->
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <h2 id="profile-name-big" style="font-size:22px;font-weight:800;color:var(--text);margin:0">Cargando...</h2>
+          <span id="prof-equipped-badge" style="font-size:18px;display:none"></span>
+        </div>
+        <p id="profile-email-big" style="font-size:13px;color:var(--text3);margin:4px 0 12px">tu@email.com</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span id="prof-plan-badge" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:#a78bfa;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700">✦ Plan Gratis</span>
+          <span id="prof-streak-badge" style="background:rgba(251,146,60,.15);border:1px solid rgba(251,146,60,.3);color:#fb923c;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700">🔥 0 días</span>
+          <span id="prof-coins-badge" style="background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);color:#fbbf24;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700">🪙 0 monedas</span>
+        </div>
+      </div>
     </div>
-    <h2 id="profile-name-big" style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--text);margin-bottom:4px">Cargando...</h2>
-    <p id="profile-email-big" style="font-size:14px;color:var(--text3);margin-bottom:28px">tu@email.com</p>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px">
-      <div style="background:var(--surface);border-radius:var(--r-md);padding:18px;border:2px solid var(--border)">
-        <div style="font-size:28px;font-weight:800;color:var(--sky);font-family:'Playfair Display',serif" id="prof-sessions">0</div>
-        <div style="font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-top:4px">Sesiones</div>
+    <!-- Stats grid -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px">
+      <div style="background:rgba(14,165,233,.1);border-radius:14px;padding:14px;text-align:center">
+        <div style="font-size:26px;font-weight:900;color:#38bdf8" id="prof-sessions">0</div>
+        <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Sesiones</div>
       </div>
-      <div style="background:var(--surface);border-radius:var(--r-md);padding:18px;border:2px solid var(--border)">
-        <div style="font-size:28px;font-weight:800;color:var(--purple);font-family:'Playfair Display',serif" id="prof-goals">0</div>
-        <div style="font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-top:4px">Metas</div>
+      <div style="background:rgba(139,92,246,.1);border-radius:14px;padding:14px;text-align:center">
+        <div style="font-size:26px;font-weight:900;color:#a78bfa" id="prof-goals">0</div>
+        <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Metas</div>
       </div>
-      <div style="background:var(--surface);border-radius:var(--r-md);padding:18px;border:2px solid var(--border)">
-        <div style="font-size:28px;font-weight:800;color:var(--green);font-family:'Playfair Display',serif" id="prof-journal">0</div>
-        <div style="font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-top:4px">Diario</div>
+      <div style="background:rgba(16,185,129,.1);border-radius:14px;padding:14px;text-align:center">
+        <div style="font-size:26px;font-weight:900;color:#34d399" id="prof-journal">0</div>
+        <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Diario</div>
       </div>
+      <div style="background:rgba(251,146,60,.1);border-radius:14px;padding:14px;text-align:center">
+        <div style="font-size:26px;font-weight:900;color:#fb923c" id="prof-streak-stat">0</div>
+        <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Racha</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ LOGROS + TIENDA ══ -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+    <button onclick="openAchievements()" class="card" style="text-align:center;padding:18px;cursor:pointer;border:none;transition:transform .15s;display:block" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+      <div style="font-size:28px;margin-bottom:6px">🏆</div>
+      <div style="font-size:14px;font-weight:700;color:var(--text)">Mis Logros</div>
+      <div style="font-size:12px;color:var(--text3)" id="prof-ach-count">0 obtenidos</div>
+    </button>
+    <button onclick="openRewardsShop()" class="card" style="text-align:center;padding:18px;cursor:pointer;border:none;background:linear-gradient(135deg,rgba(251,191,36,.1),rgba(251,146,60,.06));transition:transform .15s;display:block" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+      <div style="font-size:28px;margin-bottom:6px">🛍️</div>
+      <div style="font-size:14px;font-weight:700;color:var(--text)">Tienda Zyra</div>
+      <div style="font-size:12px;color:#fbbf24" id="prof-coins-shop">🪙 0 monedas</div>
+    </button>
+  </div>
+
+  <!-- ══ MI PLAN ══ -->
+  <div class="card" id="prof-plan-card" style="margin-bottom:20px;background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.04));border:1.5px solid rgba(99,102,241,.2)">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="width:48px;height:48px;border-radius:14px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 12px rgba(99,102,241,.3)">✦</div>
+        <div>
+          <div style="font-size:16px;font-weight:800;color:var(--text)" id="prof-plan-name">Plan Gratis</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px" id="prof-plan-desc">15 mensajes · 3 metas · Chat básico</div>
+        </div>
+      </div>
+      <button onclick="showPage('planes')" style="background:var(--grad);border:none;border-radius:12px;color:white;font-weight:700;font-size:13px;padding:10px 18px;cursor:pointer;box-shadow:0 4px 12px rgba(99,102,241,.3)">Mejorar plan ↗</button>
+    </div>
+  </div>
+
+  <!-- ══ INSTALAR + AVATAR ══ -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="pwa-install-card" onclick="showInstallGuide()">
+      <div style="font-size:32px">📱</div>
+      <div style="flex:1">
+        <div style="font-weight:700;color:var(--text);margin-bottom:2px">Instalar Zyra en tu celular</div>
+        <div style="font-size:12px;color:var(--text3)">App nativa • Sin Play Store</div>
+      </div>
+      <div style="color:var(--text3);font-size:18px">→</div>
     </div>
   </div>
 
   <div class="card" style="margin-bottom:20px">
-      <!-- Instalar como app -->
-  <div class="pwa-install-card" onclick="showInstallGuide()">
-    <div style="font-size:32px">📱</div>
-    <div style="flex:1">
-      <div style="font-weight:700;color:var(--text);margin-bottom:2px">Instalar Zyra en tu celular</div>
-      <div style="font-size:12px;color:var(--text3)">App nativa • Sin Play Store</div>
-    </div>
-    <div style="color:var(--text3);font-size:18px">→</div>
-  </div>
-
-  <div class="card-header"><span class="card-title">🎨 Avatar personalizado</span></div>
+    <div class="card-header"><span class="card-title">🎨 Avatar personalizado</span></div>
     <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.6">Elige un emoji y color para tu avatar, o sube una foto de perfil arriba.</p>
     <div id="avatar-emoji-picker"></div>
   </div>
@@ -1641,13 +1802,14 @@ function showPage(name) {
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
   const pg = document.getElementById("page-" + name);
   if(pg) pg.classList.add("active");
-  if(name === "dashboard") loadDashboard();
+  if(name === "dashboard") { loadDashboard(); setTimeout(loadGamification, 300); }
   if(name === "assistant") loadAssistant();
-  if(name === "goals")     loadGoals();
+  if(name === "goals")     { loadGoals(); setTimeout(()=>triggerMission('check_goals'), 500); }
   if(name === "planes")    setTimeout(function(){ if(typeof loadPlanesPage==="function") loadPlanesPage(); }, 150);
   if(name === "journal")   loadJournal();
   if(name === "wellness")  loadWellness();
   if(name === "profile")   loadProfile();
+  if(name === "games")     setTimeout(()=>{ if(typeof openGame==="function") openGame('breath'); }, 100);
 
   // ── Tabbar móvil: mostrar/ocultar y marcar activo ──
   const noTabPages = ['login','register','verify-login','verify-register','voice-call'];
@@ -1721,6 +1883,7 @@ async function doLoginVerify() {
       applyAvatarEverywhere(p.photoUrl, p.avatarEmoji, p.avatarColor);
     } catch(e) {}
     loadPlanStatus();
+    loadGamification();
     showPage("dashboard");
   } catch(e) { showError("vl-error", e.message); shakeCode("vl"); }
   finally { btn.disabled = false; btn.textContent = "Verificar y Entrar →"; }
@@ -1784,7 +1947,7 @@ function applyAvatarEverywhere(photoUrl, emoji, color) {
   const colorAv = color    || localStorage.getItem("zyra_avatar_color") || "var(--grad)";
   const init    = user ? user.name.charAt(0).toUpperCase() : "?";
 
-  ["nav-avatar","nav-avatar2","nav-avatar3","nav-avatar4","nav-avatarw","nav-avatarp","nav-avatar-planes"].forEach(id => {
+  ["nav-avatar","nav-avatar2","nav-avatar3","nav-avatar4","nav-avatarw","nav-avatarp","nav-avatar-planes","nav-avatar-games"].forEach(id => {
     const el = document.getElementById(id);
     if(!el) return;
     if(photo) {
@@ -1856,8 +2019,9 @@ function handleProfilePhoto(event) {
 
 async function loadProfile() {
   try {
-    const [ud, pd, gd, jd] = await Promise.all([
-      api("/auth/me"), api("/profile"), api("/goals"), api("/journal")
+    const [ud, pd, gd, jd, gs] = await Promise.all([
+      api("/auth/me"), api("/profile"), api("/goals"), api("/journal"),
+      api("/gamification/status").catch(() => null)
     ]);
     const p = pd.profile;
 
@@ -1876,17 +2040,55 @@ async function loadProfile() {
     if(ni) ni.value = ud.user?.name || user?.name || "";
     if(ei) ei.value = ud.user?.email || user?.email || "";
 
-    const ps = document.getElementById("prof-sessions");
-    const pg = document.getElementById("prof-goals");
-    const pj = document.getElementById("prof-journal");
+    const ps  = document.getElementById("prof-sessions");
+    const pg  = document.getElementById("prof-goals");
+    const pj  = document.getElementById("prof-journal");
+    const pst = document.getElementById("prof-streak-stat");
     if(ps) ps.textContent = p.sessionsCount || 0;
     if(pg) pg.textContent = Array.isArray(gd?.goals) ? gd.goals.length : (Array.isArray(gd) ? gd.length : 0);
     if(pj) pj.textContent = Array.isArray(jd?.entries) ? jd.entries.length : (Array.isArray(jd) ? jd.length : 0);
 
+    // Gamification badges in hero
+    if(gs) {
+      const streak = gs.streak || 0;
+      const coins  = gs.coins  || 0;
+      const achCount = (gs.achievements||[]).filter(a=>a.earned).length;
+      const sb = document.getElementById("prof-streak-badge");
+      const cb = document.getElementById("prof-coins-badge");
+      const ab = document.getElementById("prof-ach-count");
+      const cs = document.getElementById("prof-coins-shop");
+      if(sb) sb.textContent = `🔥 ${streak} día${streak!==1?"s":""}`;
+      if(cb) cb.textContent = `🪙 ${coins} moneda${coins!==1?"s":""}`;
+      if(ab) ab.textContent = `${achCount} obtenido${achCount!==1?"s":""}`;
+      if(cs) cs.textContent = `🪙 ${coins} monedas`;
+      if(pst) pst.textContent = streak;
+      // Equipped badge
+      if(gs.equippedBadge) {
+        const badgeEl = document.getElementById("prof-equipped-badge");
+        const BADGE_EMOJIS = { badge_fire:"🔥", badge_star:"⭐", badge_moon:"🌙", badge_crown:"👑", badge_diamond:"💎" };
+        if(badgeEl) { badgeEl.textContent = BADGE_EMOJIS[gs.equippedBadge]||""; badgeEl.style.display=""; }
+      }
+    }
+
+    // Plan info card
+    const planNames = { free:"Plan Gratis", basic:"Plan Básico", premium:"Plan Premium" };
+    const planDescs = {
+      free:    "15 mensajes · 3 metas · Chat básico",
+      basic:   "100 mensajes · 10 metas · Diario ilimitado",
+      premium: "Mensajes ilimitados · Todo incluido · Voz IA"
+    };
+    const plan = _zyraCurrentPlan || "free";
+    const planEl = document.getElementById("prof-plan-name");
+    const descEl = document.getElementById("prof-plan-desc");
+    const badgEl = document.getElementById("prof-plan-badge");
+    if(planEl) planEl.textContent = planNames[plan] || "Plan Gratis";
+    if(descEl) descEl.textContent = planDescs[plan] || planDescs.free;
+    if(badgEl) badgEl.textContent = `✦ ${planNames[plan]||"Plan Gratis"}`;
+
     renderAvatarPicker(p.avatarEmoji, p.avatarColor);
     loadEmergencyContact();
     const pinMsg = document.getElementById("pin-status-msg");
-    if (pinMsg) pinMsg.textContent = p.pinEnabled ? "🔐 PIN activo" : "Sin PIN configurado";
+    if(pinMsg) pinMsg.textContent = p.pinEnabled ? "🔐 PIN activo" : "Sin PIN configurado";
   } catch(e) { console.error("loadProfile error:", e); }
 }
 
@@ -2015,8 +2217,10 @@ async function saveEmotion() {
   const intensity = parseInt(document.getElementById("emotion-intensity").value) || 5;
   try {
     await api("/profile/emotion", "POST", {emotion: selectedEmotion, note, intensity});
+    localStorage.setItem('zyra_last_emotion', selectedEmotion);
     document.getElementById("emotion-note").value = ""; selectedEmotion = "";
     document.getElementById("emotion-form").style.display = "none"; loadDashboard();
+    triggerMission('log_emotion');
   } catch(e) { zyraToast(e.message, "error"); }
 }
 function renderChart(history) {
@@ -2136,6 +2340,7 @@ async function addJournalEntry() {
     document.getElementById("journal-emotion").value = "";
     document.getElementById("add-journal-form").classList.remove("show");
     loadJournal();
+    triggerMission('write_journal');
   } catch(e) {
     if (e.status === 403 && e.data?.limitReached) { showUpgradePrompt('journal', 'basic'); }
     else zyraToast(e.message, "error");
@@ -3309,6 +3514,9 @@ async function sendMsg() {
     chatHistory.push({role:"assistant",content:d.response});
     if(chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
     if(!currentConvId) { currentConvId = d.conversationId; loadHistory(); }
+    // Trigger mission after 5 messages in a session
+    const userMsgs = chatHistory.filter(m => m.role === 'user').length;
+    if (userMsgs === 5) triggerMission('chat_zyra');
     if (d.messagesRemaining !== undefined && d.messagesRemaining !== null) {
       _zyraMessagesRemaining = d.messagesRemaining;
       updateMsgsRemainingUI();
@@ -3334,6 +3542,7 @@ window.addEventListener("load", () => {
       .then(d=>{ if(d.ytKey) window.YT_API_KEY = d.ytKey; })
       .catch(()=>{});
     loadPlanStatus();
+    loadGamification();
   }
   loadTTSVoice();
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -3431,10 +3640,28 @@ function openVoiceCall() {
   if(t) t.innerHTML = '';
   vcClosePlayer();
 
+  setTimeout(()=>initZyra3DAvatar(), 300);
+
   setTimeout(()=>{
     const name = user ? user.name.split(' ')[0] : '';
     vcSetStatus('En llamada');
-    const greeting = 'Hola '+name+' 💙 Estoy aquí contigo. ¿Cómo te sientes ahora mismo?';
+    const emotion = localStorage.getItem('zyra_last_emotion') || '';
+    const hour = new Date().getHours();
+    const timeOfDay = hour < 12 ? 'mañana' : hour < 18 ? 'tarde' : 'noche';
+    const GREETINGS = [
+      `Qué bueno escucharte, ${name}. ¿Cómo llegaste a esta ${timeOfDay}?`,
+      `Hola ${name}, aquí estoy contigo. ¿Qué hay en tu mente ahora mismo?`,
+      `${name}, me alegra que me llames. ¿Cómo estás en este momento?`,
+      `Hola, ${name}. Lista para escucharte. ¿De qué quieres hablar hoy?`,
+    ];
+    const EMOTION_GREETINGS = {
+      triste:    `${name}, te escucho. ¿Cómo has estado hoy?`,
+      ansioso:   `Hola ${name}. Respira. Estoy aquí. ¿Qué está pasando?`,
+      enojado:   `${name}, aquí estoy. ¿Qué fue lo que pasó?`,
+      feliz:     `¡Hola ${name}! Se nota buena energía. ¿Qué hay de bueno?`,
+      agotado:   `${name}, parece que fue un día largo. ¿Cómo te sientes?`,
+    };
+    const greeting = EMOTION_GREETINGS[emotion] || GREETINGS[Math.floor(Math.random()*GREETINGS.length)];
     vcAddMessage('bot', greeting);
     vcSpeak(greeting, true);
   }, 800);
@@ -3474,6 +3701,7 @@ function vcCreateSR() {
 }
 
 function endVoiceCall() {
+  destroyZyra3DAvatar();
   if(vcTimer) { clearInterval(vcTimer); vcTimer = null; }
   if(vcSR) { try { vcSR.abort(); } catch(e){} vcSR = null; }
   window.speechSynthesis.cancel();
@@ -3566,12 +3794,23 @@ function vcSpeak(text, isGreeting) {
   if(!ttsVoice) loadTTSVoice();
   const clean = cleanTTS(text); if(!clean) return;
   const utt = new SpeechSynthesisUtterance(clean);
-  utt.lang = 'es-ES'; utt.rate = isGreeting ? 0.88 : 0.90; utt.pitch = 1.12;
+  utt.lang = 'es-ES';
+  utt.rate  = isGreeting ? 0.86 : 0.88;   // un poco más lento, más natural
+  utt.pitch = 1.18;                         // más femenino y cálido
+  utt.volume = 1;
   if(ttsVoice) utt.voice = ttsVoice;
   vcSpeaking = true; vcSetBodyClass(true);
   vcSetStatus('Zyra está hablando...'); vcSetWaveLabel('Escucha a Zyra...');
   vcSetWaveActive(true, true);
-  utt.onend = ()=>{ vcSpeaking=false; vcSetBodyClass(false); vcSetStatus('En llamada'); vcSetWaveLabel('Toca el micrófono para hablar'); vcSetWaveActive(false,false); };
+  utt.onend = ()=>{
+    vcSpeaking = false; vcSetBodyClass(false);
+    vcSetStatus('En llamada'); vcSetWaveLabel('Toca el micrófono para hablar');
+    vcSetWaveActive(false,false);
+    // Auto-start listening after Zyra speaks (hands-free mode)
+    if (!vcMuted && !vcListening) {
+      setTimeout(() => { if (!vcListening && !vcSpeaking) vcStartListening(); }, 400);
+    }
+  };
   utt.onerror = ()=>{ vcSpeaking=false; vcSetBodyClass(false); vcSetStatus('En llamada'); vcSetWaveActive(false,false); vcSetWaveLabel('Toca el micrófono para hablar'); };
   window.speechSynthesis.speak(utt);
 }
@@ -5636,6 +5875,807 @@ function launchConfetti() {
   });
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 2500);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GAMIFICACIÓN — Racha, Misiones, Monedas, Logros, Tienda
+═══════════════════════════════════════════════════════════ */
+let _gamifStatus = null;
+
+async function loadGamification() {
+  if (!token) return;
+  try {
+    // Record visit (updates streak) then fetch status
+    const [visitData, status] = await Promise.all([
+      api('/gamification/visit', 'POST').catch(() => null),
+      api('/gamification/status'),
+    ]);
+    _gamifStatus = status;
+    renderGamification(status);
+
+    // Show new achievement toasts
+    if (visitData?.newAchievements?.length) {
+      visitData.newAchievements.forEach((a, i) => {
+        setTimeout(() => showAchievementToast(a), i * 1500);
+      });
+    }
+  } catch(e) {}
+}
+
+function renderGamification(s) {
+  if (!s) return;
+  const row = document.getElementById('gamification-row');
+  if (row) row.style.display = 'grid';
+
+  // Nav badges
+  const nbStreak = document.getElementById('nav-streak-badge');
+  const nbCoins  = document.getElementById('nav-coins-badge');
+  const ncCount  = document.getElementById('nav-streak-count');
+  const coinsCount = document.getElementById('nav-coins-count');
+  if (nbStreak) { nbStreak.style.display = 'flex'; if (ncCount) ncCount.textContent = s.streak; }
+  if (nbCoins)  { nbCoins.style.display  = 'flex'; if (coinsCount) coinsCount.textContent = s.coins; }
+
+  // Big streak display
+  const sn = document.getElementById('streak-number-big');
+  if (sn) sn.textContent = s.streak;
+  const cbd = document.getElementById('coins-big-display');
+  if (cbd) cbd.textContent = '🪙 ' + s.coins;
+
+  // Streak milestones
+  [3,7,14,30].forEach(n => {
+    const el = document.getElementById('sm-' + n);
+    if (el) el.classList.toggle('reached', s.streak >= n);
+  });
+
+  // Missions
+  const ml = document.getElementById('missions-list');
+  const mb = document.getElementById('missions-progress-badge');
+  if (ml && s.missions) {
+    ml.innerHTML = s.missions.map(m => `
+      <div class="mission-item ${m.completed ? 'done' : ''}" id="mission-${m.id}">
+        <div class="mission-check">${m.completed ? '✓' : ''}</div>
+        <span class="mission-label">${m.emoji} ${m.label}</span>
+        <span class="mission-coins">+${m.coins}🪙</span>
+      </div>`).join('');
+    if (mb) {
+      const done = s.missions.filter(m => m.completed).length;
+      mb.textContent = done + '/' + s.missions.length;
+      mb.className = 'badge ' + (done === s.missions.length ? 'green' : 'blue');
+    }
+  }
+}
+
+async function triggerMission(missionId) {
+  if (!token) return;
+  try {
+    const d = await api('/gamification/mission/' + missionId, 'POST');
+    if (d.alreadyDone) return;
+    // Update nav coins
+    const cc = document.getElementById('nav-coins-count');
+    if (cc) cc.textContent = d.totalCoins;
+    const cbd = document.getElementById('coins-big-display');
+    if (cbd) cbd.textContent = '🪙 ' + d.totalCoins;
+    if (_gamifStatus) _gamifStatus.coins = d.totalCoins;
+
+    // Animate the mission item
+    const mi = document.getElementById('mission-' + missionId);
+    if (mi) {
+      mi.classList.add('done');
+      mi.querySelector('.mission-check').textContent = '✓';
+      mi.querySelector('.mission-label').style.textDecoration = 'line-through';
+    }
+    // Coin toast
+    const total = d.missionsCompleted || 0;
+    zyraToast('+' + d.coinsEarned + ' 🪙 monedas' + (d.allCompleted ? ' — ¡Día perfecto! 🌟' : ''), 'success', 2500);
+
+    // Update progress badge
+    const mb = document.getElementById('missions-progress-badge');
+    if (mb && _gamifStatus?.missions) {
+      if (!_gamifStatus._completedIds) _gamifStatus._completedIds = [];
+      if (!_gamifStatus._completedIds.includes(missionId)) _gamifStatus._completedIds.push(missionId);
+      const done = _gamifStatus.missions.filter(m => m.completed).length +
+                   (_gamifStatus._completedIds.length);
+    }
+
+    if (d.newAchievements?.length) {
+      d.newAchievements.forEach((a, i) => setTimeout(() => showAchievementToast(a), i * 1500));
+    }
+    if (d.allCompleted) {
+      for (let i = 0; i < 15; i++) setTimeout(() => launchConfetti(), i * 100);
+    }
+  } catch(e) {}
+}
+
+function showAchievementToast(ach) {
+  const el = document.createElement('div');
+  el.className = 'ach-toast';
+  el.innerHTML = `
+    <div class="ach-toast-emoji">${ach.emoji}</div>
+    <div class="ach-toast-text">
+      <div class="ach-toast-title">¡Logro desbloqueado!</div>
+      <div class="ach-toast-name">${ach.label}</div>
+    </div>`;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 500); }, 3500);
+}
+
+async function openRewardsShop() {
+  const modal = document.getElementById('rewards-shop-modal');
+  if (!modal) return;
+  modal.style.display = 'block';
+  // Refresh status
+  try {
+    const s = await api('/gamification/status');
+    _gamifStatus = s;
+    const sc = document.getElementById('shop-coins-display');
+    if (sc) sc.textContent = s.coins;
+    const grid = document.getElementById('rewards-grid');
+    if (grid) {
+      grid.innerHTML = s.rewards.map(r => `
+        <div class="reward-card ${r.unlocked ? 'owned' : ''}" onclick="redeemReward('${r.id}')">
+          <div class="r-emoji">${r.emoji}</div>
+          <div class="r-name">${r.label}</div>
+          ${r.unlocked
+            ? '<div class="r-owned">✓ Desbloqueado</div>'
+            : `<div class="r-cost">🪙 ${r.cost}</div>`}
+        </div>`).join('');
+    }
+  } catch(e) {}
+}
+function closeRewardsShop() {
+  const m = document.getElementById('rewards-shop-modal');
+  if (m) m.style.display = 'none';
+}
+
+async function redeemReward(rewardId) {
+  try {
+    const d = await api('/gamification/redeem/' + rewardId, 'POST');
+    if (d.alreadyOwned) { zyraToast('Ya tienes este ítem', 'info'); return; }
+    zyraToast('¡Desbloqueado! 🎉 -' + (_gamifStatus?.rewards?.find(r=>r.id===rewardId)?.cost||'?') + '🪙', 'success');
+    // Refresh shop
+    await openRewardsShop();
+    // Update nav coins
+    const cc = document.getElementById('nav-coins-count');
+    if (cc) cc.textContent = d.newCoins;
+    // If it's a theme, apply it
+    const reward = (_gamifStatus?.rewards||[]).find(r => r.id === rewardId);
+    if (reward?.type === 'theme') {
+      applyColorTheme(rewardId.replace('theme_', ''));
+    }
+  } catch(e) {
+    if (e.data?.notEnoughCoins) zyraToast('Necesitas más monedas: ' + e.data.need + ' 🪙', 'error');
+    else zyraToast(e.message, 'error');
+  }
+}
+
+async function openAchievements() {
+  const modal = document.getElementById('achievements-modal');
+  if (!modal) return;
+  modal.style.display = 'block';
+  try {
+    const s = await api('/gamification/status');
+    const grid = document.getElementById('achievements-grid');
+    if (grid) {
+      grid.innerHTML = s.achievements.map(a => `
+        <div class="ach-card ${a.earned ? 'earned' : 'locked'}">
+          <div class="a-emoji">${a.emoji}</div>
+          <div class="a-name">${a.label}</div>
+          <div class="a-desc">${a.earned ? a.desc : '???'}</div>
+        </div>`).join('');
+    }
+  } catch(e) {}
+}
+function closeAchievements() {
+  const m = document.getElementById('achievements-modal');
+  if (m) m.style.display = 'none';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   JUEGOS RELAJANTES
+═══════════════════════════════════════════════════════════ */
+let _currentGame = null;
+
+function openGame(name) {
+  // Update tabs
+  ['breath','bubbles','memory','zen'].forEach(t => {
+    const btn = document.getElementById('gtab-' + t);
+    if (btn) btn.classList.toggle('active', t === name);
+  });
+  _currentGame = name;
+  const container = document.getElementById('game-container');
+  if (!container) return;
+
+  // Stop any running game
+  if (window._gameCleanup) { window._gameCleanup(); window._gameCleanup = null; }
+
+  if (name === 'breath')  renderBreathGame(container);
+  if (name === 'bubbles') renderBubblesGame(container);
+  if (name === 'memory')  renderMemoryGame(container);
+  if (name === 'zen')     renderZenGarden(container);
+}
+
+/* ── JUEGO 1: Respiración guiada 4-7-8 ── */
+function renderBreathGame(el) {
+  el.innerHTML = `
+    <div class="breath-game">
+      <div>
+        <div class="breath-phase-label" id="bp-label">Listo</div>
+        <div class="breath-timer-label" id="bp-timer">—</div>
+        <div class="breath-counter" id="bp-cycles">Ciclos: 0</div>
+      </div>
+      <div class="breath-circle-wrap">
+        <div class="breath-circle" id="breath-circle">
+          <span class="breath-inner-text" id="breath-inner">Pulsa inicio</span>
+        </div>
+      </div>
+      <div style="font-size:13px;color:var(--text3);max-width:300px;text-align:center;line-height:1.6">
+        La técnica 4-7-8 activa tu sistema nervioso parasimpático para calmar la ansiedad en minutos.
+      </div>
+      <div class="breath-controls">
+        <button class="btn-primary" style="padding:12px 28px" id="breath-start-btn" onclick="toggleBreathing()">▶ Iniciar</button>
+        <button class="btn-sm" onclick="resetBreathing()">↺ Reiniciar</button>
+      </div>
+      <div style="font-size:12px;color:var(--text3)">Inhala 4s · Mantén 7s · Exhala 8s</div>
+    </div>`;
+
+  let phase = 0, tick = 0, cycles = 0, running = false, timer = null;
+  const PHASES = [
+    { name: 'Inhala', duration: 4, cls: 'inhale', color: '#6366f1', inner: 'Inhala...' },
+    { name: 'Mantén', duration: 7, cls: 'hold',   color: '#8b5cf6', inner: 'Mantén...' },
+    { name: 'Exhala', duration: 8, cls: 'exhale',  color: '#06b6d4', inner: 'Exhala...' },
+  ];
+
+  function runTick() {
+    const p = PHASES[phase];
+    const circle = document.getElementById('breath-circle');
+    const label  = document.getElementById('bp-label');
+    const timerEl = document.getElementById('bp-timer');
+    const inner  = document.getElementById('breath-inner');
+    if (!circle) { clearInterval(timer); return; }
+
+    if (tick === 0) {
+      circle.className = 'breath-circle ' + p.cls;
+      if (label)  label.textContent = p.name;
+      if (inner)  inner.textContent = p.inner;
+    }
+    if (timerEl) timerEl.textContent = p.duration - tick;
+    tick++;
+    if (tick > p.duration) {
+      tick = 0; phase++;
+      if (phase >= PHASES.length) { phase = 0; cycles++; }
+      const cyc = document.getElementById('bp-cycles');
+      if (cyc) cyc.textContent = 'Ciclos: ' + cycles;
+      if (cycles >= 4) { stopBreathing(); triggerMission('do_exercise'); }
+    }
+  }
+
+  function startBreathing() {
+    running = true; phase = 0; tick = 0;
+    const btn = document.getElementById('breath-start-btn');
+    if (btn) btn.textContent = '⏸ Pausar';
+    timer = setInterval(runTick, 1000);
+  }
+  function stopBreathing() {
+    running = false; clearInterval(timer);
+    const btn = document.getElementById('breath-start-btn');
+    if (btn) btn.textContent = '▶ Continuar';
+    const label = document.getElementById('bp-label');
+    if (label) label.textContent = cycles >= 4 ? '¡Ejercicio completado! 🌟' : 'Pausado';
+  }
+  function resetBreathing() {
+    stopBreathing(); phase = 0; tick = 0; cycles = 0; running = false;
+    const circle = document.getElementById('breath-circle');
+    const label  = document.getElementById('bp-label');
+    const timerEl = document.getElementById('bp-timer');
+    const inner  = document.getElementById('breath-inner');
+    const cyc    = document.getElementById('bp-cycles');
+    const btn    = document.getElementById('breath-start-btn');
+    if (circle) circle.className = 'breath-circle';
+    if (label)  label.textContent = 'Listo';
+    if (timerEl) timerEl.textContent = '—';
+    if (inner)  inner.textContent = 'Pulsa inicio';
+    if (cyc)    cyc.textContent = 'Ciclos: 0';
+    if (btn)    btn.textContent = '▶ Iniciar';
+  }
+
+  window.toggleBreathing = () => { if (running) stopBreathing(); else startBreathing(); };
+  window.resetBreathing  = resetBreathing;
+  window._gameCleanup    = () => { clearInterval(timer); };
+}
+
+/* ── JUEGO 2: Burbujas Zen ── */
+function renderBubblesGame(el) {
+  const AFFIRMATIONS = [
+    'Eres suficiente','Mereces paz','Eres amado','Hoy es un buen día',
+    'Confía en ti','Eres fuerte','Respira','Todo pasa',
+    'Eres capaz','Hay esperanza','Sigue adelante','Eres valioso',
+  ];
+  const COLORS = [
+    'rgba(99,102,241,.55)','rgba(139,92,246,.55)','rgba(236,72,153,.5)',
+    'rgba(6,182,212,.55)','rgba(16,185,129,.5)','rgba(251,146,60,.5)',
+  ];
+  let popped = 0;
+  el.innerHTML = `
+    <div style="padding:16px 0">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding:0 4px">
+        <span style="font-size:13px;color:var(--text3)">Toca las burbujas para liberar el estrés</span>
+        <span style="font-size:13px;font-weight:700;color:var(--accent)" id="bubbles-score">Liberadas: 0</span>
+      </div>
+      <div class="bubbles-game" id="bubbles-field"></div>
+    </div>`;
+
+  const field = document.getElementById('bubbles-field');
+  if (!field) return;
+
+  function spawnBubble() {
+    if (!document.getElementById('bubbles-field')) return;
+    const size = 70 + Math.random() * 80;
+    const b = document.createElement('div');
+    b.className = 'zen-bubble';
+    const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+    const aff   = AFFIRMATIONS[Math.floor(Math.random() * AFFIRMATIONS.length)];
+    const dur   = 4 + Math.random() * 5;
+    const left  = 5 + Math.random() * 80;
+    const top   = 10 + Math.random() * 70;
+    const delay = Math.random() * 2;
+    b.style.cssText = `width:${size}px;height:${size}px;left:${left}%;top:${top}%;
+      background:${color};animation-duration:${dur}s;animation-delay:${delay}s;
+      box-shadow:0 4px 20px ${color.replace('.5','1').replace('.55','1').replace('.6','1')};
+      font-size:${size > 110 ? 13 : 11}px;`;
+    b.textContent = aff;
+    b.onclick = () => {
+      if (b.classList.contains('bubble-pop')) return;
+      b.classList.add('bubble-pop');
+      popped++;
+      const sc = document.getElementById('bubbles-score');
+      if (sc) sc.textContent = 'Liberadas: ' + popped;
+      setTimeout(() => b.remove(), 300);
+      if (popped >= 10) triggerMission('do_exercise');
+    };
+    field.appendChild(b);
+    setTimeout(() => { if (b.parentNode) b.remove(); }, (dur + delay + 1) * 1000);
+  }
+
+  const spawnInterval = setInterval(spawnBubble, 1200);
+  for (let i = 0; i < 6; i++) setTimeout(spawnBubble, i * 200);
+  window._gameCleanup = () => clearInterval(spawnInterval);
+}
+
+/* ── JUEGO 3: Memory Emocional ── */
+function renderMemoryGame(el) {
+  const EMOJIS = ['😊','😌','😰','😢','😤','🤔','🌟','😮‍💨','💪','🌅','😍','🥳'];
+  let cards = [], flipped = [], matched = 0, moves = 0, startTime = null, gameTimer = null;
+
+  function shuffle(arr) {
+    const a = [...arr]; for (let i = a.length-1; i>0; i--) {
+      const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a;
+  }
+
+  function buildGrid(pairs) {
+    const pick = EMOJIS.slice(0, pairs);
+    return shuffle([...pick,...pick]);
+  }
+
+  function startGame(pairs = 6) {
+    cards = buildGrid(pairs); flipped = []; matched = 0; moves = 0;
+    startTime = Date.now();
+    if (gameTimer) clearInterval(gameTimer);
+    gameTimer = setInterval(() => {
+      const t = document.getElementById('mem-timer');
+      if (t) t.textContent = Math.floor((Date.now() - startTime) / 1000) + 's';
+    }, 1000);
+    render();
+  }
+
+  function render() {
+    el.innerHTML = `
+      <div class="memory-game">
+        <div class="memory-stats">
+          <div class="memory-stat"><div class="memory-stat-val" id="mem-moves">0</div><div class="memory-stat-lbl">Movimientos</div></div>
+          <div class="memory-stat"><div class="memory-stat-val" id="mem-matched">0/${cards.length/2}</div><div class="memory-stat-lbl">Pares</div></div>
+          <div class="memory-stat"><div class="memory-stat-val" id="mem-timer">0s</div><div class="memory-stat-lbl">Tiempo</div></div>
+        </div>
+        <div class="memory-grid" style="grid-template-columns:repeat(4,80px)">
+          ${cards.map((emoji,i) => `
+            <div class="mem-card" id="mc-${i}" onclick="flipCard(${i})">
+              <div class="mem-card-inner">
+                <div class="mem-card-front">✦</div>
+                <div class="mem-card-back">${emoji}</div>
+              </div>
+            </div>`).join('')}
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn-sm" onclick="memStartGame(6)">6 pares (Fácil)</button>
+          <button class="btn-sm" onclick="memStartGame(8)">8 pares (Difícil)</button>
+        </div>
+      </div>`;
+  }
+
+  window.flipCard = (i) => {
+    if (flipped.length >= 2) return;
+    if (flipped.includes(i)) return;
+    const card = document.getElementById('mc-' + i);
+    if (!card || card.classList.contains('matched')) return;
+    card.classList.add('flipped');
+    flipped.push(i);
+    if (flipped.length === 2) {
+      moves++;
+      const mEl = document.getElementById('mem-moves');
+      if (mEl) mEl.textContent = moves;
+      const [a, b] = flipped;
+      if (cards[a] === cards[b]) {
+        matched++;
+        const mEl2 = document.getElementById('mem-matched');
+        if (mEl2) mEl2.textContent = matched + '/' + (cards.length/2);
+        document.getElementById('mc-'+a)?.classList.add('matched');
+        document.getElementById('mc-'+b)?.classList.add('matched');
+        flipped = [];
+        if (matched === cards.length/2) {
+          clearInterval(gameTimer);
+          const elapsed = Math.floor((Date.now()-startTime)/1000);
+          zyraToast('🎉 ¡Ganaste en ' + moves + ' movimientos y ' + elapsed + 's!', 'success', 4000);
+          triggerMission('do_exercise');
+        }
+      } else {
+        setTimeout(() => {
+          document.getElementById('mc-'+a)?.classList.remove('flipped');
+          document.getElementById('mc-'+b)?.classList.remove('flipped');
+          flipped = [];
+        }, 900);
+      }
+    }
+  };
+  window.memStartGame = startGame;
+  window._gameCleanup = () => { clearInterval(gameTimer); };
+  startGame(6);
+}
+
+/* ── JUEGO 4: Jardín Zen ── */
+function renderZenGarden(el) {
+  const STONES = ['🪨','⭕','🌸','🌿','🍃','💮','🌺','⚪','⬛','🪷'];
+  let selectedStone = '🪨';
+  let placedItems = [];
+
+  el.innerHTML = `
+    <div style="padding:16px 0">
+      <div style="font-size:13px;color:var(--text3);margin-bottom:12px">Coloca elementos en tu jardín zen. Haz clic en el jardín para colocar, clic derecho para borrar.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        ${STONES.map(s => `<button class="zen-stone-btn ${s===selectedStone?'active':''}" onclick="selectZenStone('${s}')" style="font-size:22px;width:40px;height:40px;border-radius:10px;border:2px solid ${s===selectedStone?'var(--accent)':'var(--border)'};background:var(--surface2);cursor:pointer">${s}</button>`).join('')}
+        <button onclick="clearZenGarden()" style="padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text3);cursor:pointer;font-size:12px">🗑️ Limpiar</button>
+      </div>
+      <canvas id="zen-canvas" class="zen-garden" width="800" height="420" style="width:100%;height:280px"></canvas>
+    </div>`;
+
+  const canvas = document.getElementById('zen-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  function drawSand() {
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    // Sand base
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark' ||
+      (!document.documentElement.getAttribute('data-theme') && window.matchMedia('(prefers-color-scheme:dark)').matches);
+    ctx.fillStyle = isDark ? '#1c1a12' : '#f5e6c8';
+    ctx.fillRect(0, 0, w, h);
+
+    // Sand rake lines
+    ctx.strokeStyle = isDark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.08)';
+    ctx.lineWidth = 1.5;
+    for (let y = 20; y < h; y += 18) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+
+    // Draw placed items
+    placedItems.forEach(item => {
+      ctx.font = item.size + 'px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(item.stone, item.x, item.y);
+    });
+  }
+
+  function getCanvasPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top)  * scaleY,
+    };
+  }
+
+  canvas.onclick = (e) => {
+    const pos = getCanvasPos(e);
+    placedItems.push({ stone: selectedStone, x: pos.x, y: pos.y, size: 28 + Math.random()*16 });
+    drawSand();
+    if (placedItems.length >= 5) triggerMission('do_exercise');
+  };
+  canvas.oncontextmenu = (e) => {
+    e.preventDefault();
+    const pos = getCanvasPos(e);
+    placedItems = placedItems.filter(i => Math.hypot(i.x - pos.x, i.y - pos.y) > 25);
+    drawSand();
+  };
+
+  window.selectZenStone = (s) => {
+    selectedStone = s;
+    document.querySelectorAll('.zen-stone-btn').forEach(b => {
+      b.style.borderColor = b.textContent.trim() === s ? 'var(--accent)' : 'var(--border)';
+    });
+  };
+  window.clearZenGarden = () => { placedItems = []; drawSand(); };
+  window._gameCleanup = null;
+  drawSand();
+}
+
+/* No showPage override needed — hooks added inline below */
+
+// ══════════════════════════════════════════
+// AVATAR 3D ZYRA — Three.js
+// ══════════════════════════════════════════
+let _3d = { active: false, renderer: null, animId: null, resizeFn: null };
+
+function initZyra3DAvatar() {
+  if (!window.THREE) return;
+  destroyZyra3DAvatar();
+
+  const container = document.getElementById("vc-avatar");
+  if (!container) return;
+
+  // Hide SVG fallback
+  const svg = document.getElementById("vc-avatar-svg-fallback");
+  if (svg) svg.style.display = "none";
+
+  const W = container.clientWidth  || 220;
+  const H = container.clientHeight || 220;
+
+  // Renderer
+  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  renderer.setSize(W, H);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(0x000000, 0);
+  container.appendChild(renderer.domElement);
+
+  const scene  = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 100);
+  camera.position.set(0, 1.2, 5.5);
+  camera.lookAt(0, 1.2, 0);
+
+  // ── Lights ──
+  scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+  const pL1 = new THREE.PointLight(0x8b5cf6, 3.5, 12);
+  pL1.position.set(-2.5, 3, 3);
+  scene.add(pL1);
+  const pL2 = new THREE.PointLight(0x38bdf8, 2, 10);
+  pL2.position.set(2.5, 0, 2);
+  scene.add(pL2);
+  const pL3 = new THREE.PointLight(0xec4899, 1.5, 8);
+  pL3.position.set(0, -2, 3);
+  scene.add(pL3);
+
+  // ── Materials ──
+  const skinMat  = new THREE.MeshPhongMaterial({ color: 0xf5c8a8, shininess: 20 });
+  const hairMat  = new THREE.MeshPhongMaterial({ color: 0x1e1248, shininess: 80, specular: 0x6366f1 });
+  const dressMat = new THREE.MeshPhongMaterial({ color: 0x6366f1, shininess: 120, specular: 0xc4b5fd, emissive: 0x1e1b4b, emissiveIntensity: 0.3 });
+  const eyeMat   = new THREE.MeshPhongMaterial({ color: 0x0f0a1e, shininess: 200 });
+  const shineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const lipMat   = new THREE.MeshPhongMaterial({ color: 0xd4608a, shininess: 60 });
+  const gemMat   = new THREE.MeshPhongMaterial({ color: 0x818cf8, shininess: 300, specular: 0xffffff, emissive: 0x4f46e5, emissiveIntensity: 0.6 });
+
+  // ── Avatar group ──
+  const avatar = new THREE.Group();
+  scene.add(avatar);
+
+  // Head
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.78, 32, 32), skinMat);
+  head.scale.set(1, 1.08, 0.96);
+  head.position.set(0, 2.1, 0);
+  avatar.add(head);
+
+  // Hair back
+  const hairBack = new THREE.Mesh(new THREE.SphereGeometry(0.84, 32, 32), hairMat);
+  hairBack.scale.set(1.02, 1.12, 0.88);
+  hairBack.position.set(0, 2.18, -0.08);
+  avatar.add(hairBack);
+
+  // Hair top dome
+  const hairTopGeo = new THREE.SphereGeometry(0.82, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.55);
+  const hairTop = new THREE.Mesh(hairTopGeo, hairMat);
+  hairTop.position.set(0, 2.38, 0.04);
+  hairTop.rotation.x = -0.18;
+  avatar.add(hairTop);
+
+  // Hair side strands
+  [-0.72, 0.72].forEach((x, i) => {
+    const strand = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.07, 1.0, 10), hairMat);
+    strand.position.set(x, 1.72, 0.05);
+    strand.rotation.z = i === 0 ? 0.18 : -0.18;
+    avatar.add(strand);
+    // Curl at bottom
+    const curl = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.055, 8, 12, Math.PI), hairMat);
+    curl.position.set(x + (i===0?0.07:-0.07), 1.22, 0.05);
+    curl.rotation.z = i === 0 ? 0.4 : -0.4;
+    avatar.add(curl);
+  });
+
+  // Eyes
+  const eyeGeo = new THREE.SphereGeometry(0.115, 16, 16);
+  [-0.28, 0.28].forEach(x => {
+    const eye = new THREE.Mesh(eyeGeo, eyeMat);
+    eye.position.set(x, 2.15, 0.68);
+    avatar.add(eye);
+    // Shine
+    const shine = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 8), shineMat);
+    shine.position.set(x + 0.035, 2.18, 0.77);
+    avatar.add(shine);
+  });
+
+  // Eyelashes (thin flat arcs above eyes)
+  [-0.28, 0.28].forEach(x => {
+    const lash = new THREE.Mesh(
+      new THREE.TorusGeometry(0.14, 0.025, 6, 12, Math.PI * 0.7),
+      hairMat
+    );
+    lash.position.set(x, 2.25, 0.64);
+    lash.rotation.x = -0.3;
+    lash.rotation.z = x < 0 ? 0.2 : -0.2;
+    avatar.add(lash);
+  });
+
+  // Lips
+  const lipGeo = new THREE.TorusGeometry(0.1, 0.028, 6, 16, Math.PI);
+  const lips = new THREE.Mesh(lipGeo, lipMat);
+  lips.position.set(0, 1.88, 0.70);
+  lips.rotation.x = 0.15;
+  avatar.add(lips);
+
+  // Neck
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.25, 0.38, 16), skinMat);
+  neck.position.set(0, 1.5, 0);
+  avatar.add(neck);
+
+  // Body / dress
+  const bodyGeo = new THREE.CylinderGeometry(0.6, 0.82, 1.4, 20);
+  const body = new THREE.Mesh(bodyGeo, dressMat);
+  body.position.set(0, 0.72, 0);
+  avatar.add(body);
+
+  // Dress flare at bottom
+  const flare = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 1.1, 0.5, 20), dressMat);
+  flare.position.set(0, 0.06, 0);
+  avatar.add(flare);
+
+  // Collar / neckline detail
+  const collar = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.04, 8, 24), gemMat);
+  collar.position.set(0, 1.38, 0);
+  collar.rotation.x = Math.PI / 2;
+  avatar.add(collar);
+
+  // Gem pendant
+  const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.07), gemMat);
+  gem.position.set(0, 1.22, 0.3);
+  avatar.add(gem);
+
+  // Shoulders
+  [-0.82, 0.82].forEach(x => {
+    const sh = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), dressMat);
+    sh.position.set(x, 1.28, 0);
+    sh.scale.set(1, 0.85, 0.9);
+    avatar.add(sh);
+  });
+
+  // Arms
+  [-1.05, 1.05].forEach((x, i) => {
+    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.13, 1.0, 12), skinMat);
+    arm.position.set(x, 0.72, 0.08);
+    arm.rotation.z = i === 0 ? 0.28 : -0.28;
+    avatar.add(arm);
+    // Hand
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 12), skinMat);
+    hand.position.set(x + (i===0?-0.14:0.14), 0.22, 0.1);
+    avatar.add(hand);
+  });
+
+  // ── Floating particles ──
+  const pCount = 80;
+  const pPositions = new Float32Array(pCount * 3);
+  for (let i = 0; i < pCount; i++) {
+    const r = 1.8 + Math.random() * 1.2;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.random() * Math.PI;
+    pPositions[i*3]   = r * Math.sin(phi) * Math.cos(theta);
+    pPositions[i*3+1] = r * Math.cos(phi) + 1.2;
+    pPositions[i*3+2] = r * Math.sin(phi) * Math.sin(theta) - 0.8;
+  }
+  const pGeo = new THREE.BufferGeometry();
+  pGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
+  const pMat = new THREE.PointsMaterial({ color: 0x818cf8, size: 0.045, transparent: true, opacity: 0.65 });
+  const particles = new THREE.Points(pGeo, pMat);
+  scene.add(particles);
+
+  // ── Ground glow disc ──
+  const glowDisc = new THREE.Mesh(
+    new THREE.CircleGeometry(1.2, 32),
+    new THREE.MeshBasicMaterial({ color: 0x6366f1, transparent: true, opacity: 0.12, side: THREE.DoubleSide })
+  );
+  glowDisc.rotation.x = -Math.PI / 2;
+  glowDisc.position.set(0, -0.26, 0);
+  scene.add(glowDisc);
+
+  // ── Animation ──
+  const clock = new THREE.Clock();
+  _3d.active = true;
+  _3d.renderer = renderer;
+
+  function animate() {
+    if (!_3d.active) return;
+    _3d.animId = requestAnimationFrame(animate);
+    const t = clock.getElapsedTime();
+
+    // Breathing: subtle body Y scale
+    const breathScale = 1 + Math.sin(t * 1.4) * 0.025;
+    body.scale.y = breathScale;
+    neck.position.y = 1.5 + Math.sin(t * 1.4) * 0.01;
+
+    // Float bob
+    avatar.position.y = Math.sin(t * 0.75) * 0.06;
+
+    // Gentle head sway
+    head.rotation.z     = Math.sin(t * 0.55) * 0.04;
+    hairBack.rotation.z = head.rotation.z;
+    hairTop.rotation.z  = head.rotation.z;
+
+    // Speaking: head bob + gem pulse
+    if (window.vcSpeaking) {
+      head.position.y = 2.1 + Math.sin(t * 9) * 0.035;
+      gem.scale.setScalar(1 + Math.sin(t * 12) * 0.25);
+      pMat.opacity = 0.8 + Math.sin(t * 6) * 0.2;
+    } else {
+      head.position.y = 2.1;
+      gem.scale.setScalar(1 + Math.sin(t * 2) * 0.08);
+      pMat.opacity = 0.55 + Math.sin(t * 1.2) * 0.1;
+    }
+
+    // Particles slow orbit
+    particles.rotation.y += 0.0025;
+
+    // Glow disc pulse
+    glowDisc.material.opacity = 0.08 + Math.sin(t * 1.4) * 0.04;
+
+    // Light color cycle (subtle)
+    pL1.intensity = 3.2 + Math.sin(t * 1.2) * 0.4;
+    pL2.intensity = 1.8 + Math.sin(t * 0.9 + 1) * 0.3;
+
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  // Resize handler
+  _3d.resizeFn = () => {
+    const nW = container.clientWidth;
+    const nH = container.clientHeight;
+    camera.aspect = nW / nH;
+    camera.updateProjectionMatrix();
+    renderer.setSize(nW, nH);
+  };
+  window.addEventListener('resize', _3d.resizeFn);
+}
+
+function destroyZyra3DAvatar() {
+  _3d.active = false;
+  if (_3d.animId) { cancelAnimationFrame(_3d.animId); _3d.animId = null; }
+  if (_3d.resizeFn) { window.removeEventListener('resize', _3d.resizeFn); _3d.resizeFn = null; }
+  if (_3d.renderer) {
+    const canvas = _3d.renderer.domElement;
+    if (canvas && canvas.parentNode) canvas.parentNode.removeChild(canvas);
+    _3d.renderer.dispose();
+    _3d.renderer = null;
+  }
+  // Restore SVG fallback
+  const svg = document.getElementById("vc-avatar-svg-fallback");
+  if (svg) svg.style.display = "";
 }
 </script>
 

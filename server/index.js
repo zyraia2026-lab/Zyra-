@@ -23,6 +23,7 @@ app.use("/api/chat",          require("./routes/chat"));
 app.use("/api/goals",         require("./routes/goals"));
 app.use("/api/journal",       require("./routes/journal"));
 app.use("/api/report",        require("./routes/report"));
+app.use("/api/gamification",  require("./routes/gamification"));
 
 app.get("/api/health", (req, res) => res.json({ status: "OK", ai: "Zyra/Groq", version: "5.0" }));
 app.get("/api/config", auth, (req, res) => res.json({ ytKey: process.env.YT_API_KEY || "" }));
