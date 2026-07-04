@@ -200,7 +200,25 @@
 <!-- ══════════════════════════════════════════
      ZYRA PLANES — PÁGINA DE PAQUETES
 ══════════════════════════════════════════ -->
-<div class="page" id="page-planes" style="display:none">
+<div class="page" id="page-planes">
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo" onclick="showPage('dashboard')"><img src="/Imagenes/1000154669.png" class="nav-logo-img" alt="Zyra"/><span class="nav-brand">Zyra</span></div>
+    <div class="nav-links">
+      <button class="nav-btn" onclick="showPage('dashboard')">🏠 Inicio</button>
+      <button class="nav-btn" onclick="showPage('wellness')">🧘 Bienestar</button>
+      <button class="nav-btn" onclick="showPage('goals')">🎯 Metas</button>
+      <button class="nav-btn active" onclick="showPage('planes')">✦ Planes</button>
+      <button class="nav-btn" onclick="showPage('journal')">📔 Diario</button>
+      <button class="nav-btn" onclick="showPage('assistant')">💬 Zyra IA</button>
+    </div>
+    <div class="nav-right">
+      <div class="avatar" id="nav-avatar-planes" onclick="showPage('profile')" style="cursor:pointer" title="Mi perfil">?</div>
+      <button class="btn-logout" onclick="doLogout()">Salir</button>
+    </div>
+  </div>
+</nav>
+<div class="container">
   <div class="page-header">
     <h1 class="page-title">✦ Planes Zyra</h1>
     <p class="page-subtitle">Elige el plan perfecto para tu bienestar</p>
@@ -210,6 +228,17 @@
   <div id="plan-actual-badge" style="text-align:center;margin-bottom:24px">
     <span style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.4);color:#a78bfa;padding:6px 18px;border-radius:20px;font-size:13px;font-weight:700">
       ✦ Tu plan actual: <span id="plan-actual-nombre">Gratis</span>
+    </span>
+  </div>
+
+  <!-- Toggle Mensual / Anual -->
+  <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:28px">
+    <span id="billing-label-m" style="font-size:13px;font-weight:700;color:var(--text)">Mensual</span>
+    <button id="billing-toggle" onclick="toggleBilling()" aria-label="Cambiar periodo de facturación" style="width:52px;height:28px;border-radius:99px;background:#6366f1;border:none;cursor:pointer;position:relative;transition:background .3s;flex-shrink:0">
+      <span id="billing-toggle-dot" style="position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:white;transition:transform .3s;display:block"></span>
+    </button>
+    <span id="billing-label-y" style="font-size:13px;font-weight:700;color:var(--text3)">Anual
+      <span style="background:#10b981;color:white;font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px;margin-left:6px">Ahorra 17%</span>
     </span>
   </div>
 
@@ -223,38 +252,41 @@
       <div class="plan-price"><span class="plan-amount">$0</span><span class="plan-period">/mes</span></div>
       <div class="plan-desc">Perfecto para empezar tu viaje de bienestar</div>
       <ul class="plan-features">
-        <li class="feat-ok">✓ Chat con Zyra (30 mensajes/día)</li>
-        <li class="feat-ok">✓ Registro emocional diario</li>
-        <li class="feat-ok">✓ Diario personal (5 entradas)</li>
-        <li class="feat-ok">✓ 2 metas activas</li>
-        <li class="feat-ok">✓ Dashboard básico</li>
-        <li class="feat-no">✗ Llamadas de voz con Zyra</li>
-        <li class="feat-no">✗ Análisis de emociones avanzado</li>
-        <li class="feat-no">✗ Reportes PDF</li>
-        <li class="feat-no">✗ Sonidos ambientales premium</li>
-        <li class="feat-no">✗ Modo Enfoque ilimitado</li>
+        <li class="feat-ok">✓ Registro y acceso completo</li>
+        <li class="feat-ok">✓ 15 mensajes con Zyra IA al día</li>
+        <li class="feat-ok">✓ 3 metas activas</li>
+        <li class="feat-ok">✓ 10 entradas de diario al mes</li>
+        <li class="feat-ok">✓ Test emocional</li>
+        <li class="feat-ok">✓ Modo crisis ilimitado</li>
+        <li class="feat-ok">✓ Sin anuncios</li>
+        <li class="feat-no">🔒 Llamadas de voz con Zyra</li>
+        <li class="feat-no">🔒 Contacto de emergencia</li>
+        <li class="feat-no">🔒 Exportar mis datos</li>
       </ul>
-      <button class="plan-btn plan-btn-outline" id="btn-plan-free">Plan actual</button>
+      <button class="plan-btn plan-btn-outline" id="btn-plan-free" disabled>Plan actual</button>
     </div>
 
     <!-- ── PLAN BÁSICO ── -->
     <div class="plan-card" id="plan-basic" onclick="selectPlan('basic')">
-      <div class="plan-badge plan-badge-blue">Popular</div>
+      <div class="plan-badge plan-badge-blue">⚡ Popular</div>
       <div class="plan-icon">⚡</div>
       <div class="plan-name">Básico</div>
-      <div class="plan-price"><span class="plan-amount">$4.99</span><span class="plan-period">/mes</span></div>
-      <div class="plan-desc">Para quienes quieren ir más profundo</div>
+      <div class="plan-price">
+        <span class="plan-amount" id="price-basic-amount">$9.900</span><span class="plan-period" id="price-basic-period"> COP/mes</span>
+        <div id="price-basic-alt" style="font-size:11px;color:#818cf8;margin-top:3px">o $99.000 COP/año</div>
+      </div>
+      <div class="plan-desc">Más mensajes, más metas, funciones avanzadas</div>
       <ul class="plan-features">
-        <li class="feat-ok">✓ Chat ilimitado con Zyra</li>
-        <li class="feat-ok">✓ Registro emocional avanzado</li>
-        <li class="feat-ok">✓ Diario ilimitado</li>
-        <li class="feat-ok">✓ Metas ilimitadas</li>
-        <li class="feat-ok">✓ Dashboard con gráficas</li>
-        <li class="feat-ok">✓ 5 llamadas de voz/mes</li>
-        <li class="feat-ok">✓ Análisis semanal</li>
-        <li class="feat-ok">✓ Sonidos ambientales</li>
-        <li class="feat-no">✗ Reportes PDF personalizados</li>
-        <li class="feat-no">✗ Modo Enfoque avanzado</li>
+        <li class="feat-ok">✓ 100 mensajes con Zyra IA al día</li>
+        <li class="feat-ok">✓ 10 metas activas</li>
+        <li class="feat-ok">✓ 30 entradas de diario al mes</li>
+        <li class="feat-ok">✓ Contacto de emergencia</li>
+        <li class="feat-ok">✓ Exportar mis datos (JSON)</li>
+        <li class="feat-ok">✓ Música y ejercicios guiados</li>
+        <li class="feat-ok">✓ Modo crisis ilimitado</li>
+        <li class="feat-ok">✓ Sin anuncios</li>
+        <li class="feat-no">🔒 Llamadas de voz con Zyra</li>
+        <li class="feat-no">🔒 Reportes en PDF</li>
       </ul>
       <button class="plan-btn plan-btn-primary" id="btn-plan-basic" onclick="event.stopPropagation();upgradePlan('basic')">Elegir Básico →</button>
     </div>
@@ -265,21 +297,21 @@
       <div class="plan-icon">👑</div>
       <div class="plan-name">Premium</div>
       <div class="plan-price">
-        <span class="plan-amount">$9.99</span><span class="plan-period">/mes</span>
-        <div style="font-size:11px;color:#fbbf24;margin-top:2px">o $79.99/año (ahorra 33%)</div>
+        <span class="plan-amount" id="price-premium-amount">$24.900</span><span class="plan-period" id="price-premium-period"> COP/mes</span>
+        <div id="price-premium-alt" style="font-size:11px;color:#fbbf24;margin-top:3px">o $249.000 COP/año (ahorra 17%)</div>
       </div>
-      <div class="plan-desc">La experiencia Zyra completa sin límites</div>
+      <div class="plan-desc">La experiencia Zyra completa, sin límites</div>
       <ul class="plan-features">
-        <li class="feat-ok feat-gold">★ Todo lo de Básico</li>
-        <li class="feat-ok feat-gold">★ Llamadas de voz ilimitadas</li>
-        <li class="feat-ok feat-gold">★ Reportes PDF mensuales</li>
-        <li class="feat-ok feat-gold">★ Análisis emocional con IA profunda</li>
-        <li class="feat-ok feat-gold">★ Modo Enfoque avanzado</li>
-        <li class="feat-ok feat-gold">★ Sonidos + música terapéutica</li>
-        <li class="feat-ok feat-gold">★ Recordatorios personalizados</li>
-        <li class="feat-ok feat-gold">★ Historial de sesiones ilimitado</li>
-        <li class="feat-ok feat-gold">★ Notificaciones push</li>
-        <li class="feat-ok feat-gold">★ Soporte prioritario</li>
+        <li class="feat-ok feat-gold">★ Mensajes ilimitados con Zyra IA</li>
+        <li class="feat-ok feat-gold">★ Metas ilimitadas</li>
+        <li class="feat-ok feat-gold">★ Diario ilimitado</li>
+        <li class="feat-ok feat-gold">★ Llamadas de voz con Zyra</li>
+        <li class="feat-ok feat-gold">★ Contacto de emergencia</li>
+        <li class="feat-ok feat-gold">★ Exportar datos + Reportes PDF</li>
+        <li class="feat-ok feat-gold">★ IA con modelo avanzado (Llama 70B)</li>
+        <li class="feat-ok feat-gold">★ Música ilimitada por ánimo</li>
+        <li class="feat-ok feat-gold">★ Modo crisis ilimitado</li>
+        <li class="feat-ok feat-gold">★ Sin anuncios</li>
       </ul>
       <button class="plan-btn plan-btn-gold" id="btn-plan-premium" onclick="event.stopPropagation();upgradePlan('premium')">Elegir Premium ✦</button>
     </div>
@@ -370,6 +402,7 @@
   .plan-amount { font-size:30px }
 }
 </style>
+</div><!-- /page-planes -->
 
 <!-- ══ AMBIENT SOUND FAB ══ -->
 <button class="ambient-fab" id="ambient-fab" onclick="toggleAmbientPanel()" style="display:none" title="Sonidos ambientales">🎧</button>
@@ -541,9 +574,9 @@
 <div class="onboard-overlay" id="onboard-overlay" style="display:none">
   <div class="onboard-modal">
     <div class="onboard-steps-bar">
-      <div class="onboard-step-dot active" id="ob-dot-0"></div>
-      <div class="onboard-step-dot" id="ob-dot-1"></div>
-      <div class="onboard-step-dot" id="ob-dot-2"></div>
+      <div class="onboard-step-dot active" id="tour-dot-0"></div>
+      <div class="onboard-step-dot" id="tour-dot-1"></div>
+      <div class="onboard-step-dot" id="tour-dot-2"></div>
     </div>
     <div class="onboard-step" id="ob-step-0">
       <div style="font-size:56px;margin-bottom:16px">💙</div>
@@ -1155,7 +1188,7 @@
       </div>
       <div class="ai-badge">✦ Zyra IA</div>
       <button class="btn-tts" id="btn-tts-toggle" onclick="toggleAutoSpeak()" title="Activar voz">🔇</button>
-      <button class="btn-call" onclick="openVoiceCall()" title="Llamada de voz con Zyra">📞 Llamada</button>
+      <button class="btn-call" id="btn-voice-call" onclick="openVoiceCall()" title="Llamada de voz con Zyra (Premium)">📞 Llamada 🔒</button>
     </div>
     <div class="messages" id="messages">
       <div class="typing" id="typing-indicator">
@@ -1170,6 +1203,7 @@
         <button class="btn-send" id="btn-send" onclick="sendMsg()">➤</button>
       </div>
       <div id="voice-status" style="font-size:11px;color:var(--sky);text-align:center;height:16px;margin-bottom:2px"></div>
+      <div id="chat-msgs-remaining" style="font-size:11px;text-align:right;height:14px;margin-bottom:2px;padding-right:4px"></div>
       <div class="disclaimer">Zyra es un acompañamiento emocional con IA. No reemplaza atención psicológica profesional.</div>
     </div>
   </div>
@@ -1295,7 +1329,7 @@
     <div class="card-header"><span class="card-title">📦 Mis datos</span></div>
     <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.6">Descarga toda tu información o bórrala permanentemente.</p>
     <div style="display:flex;gap:10px">
-      <button class="btn-primary" style="padding:12px;font-size:13px;flex:1;background:linear-gradient(135deg,#0ea5e9,#06b6d4)" onclick="exportMyData()">⬇️ Exportar mis datos</button>
+      <button class="btn-primary" style="padding:12px;font-size:13px;flex:1;background:linear-gradient(135deg,#0ea5e9,#06b6d4)" onclick="exportMyData(event)">⬇️ Exportar mis datos</button>
       <button class="btn-sm" style="padding:12px;font-size:13px;color:var(--red);border-color:#fecaca" onclick="deleteMyData()">🗑️ Borrar todo</button>
     </div>
   </div>
@@ -1335,8 +1369,8 @@
         <div class="vc-ring" style="--s:1.7;--d:.8s"></div>
       </div>
       <div class="vc-avatar" id="vc-avatar">
-        <!-- Avatar mujer animada de Zyra -->
-        <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">
+        <!-- Avatar 3D Zyra — reemplazado por canvas en JS -->
+        <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%" id="vc-avatar-svg-fallback">
           <defs>
             <radialGradient id="skinGrad" cx="50%" cy="40%">
               <stop offset="0%" stop-color="#f5c5a3"/>
@@ -1535,7 +1569,12 @@ async function api(path, method="GET", body=null) {
   if(body)  opts.body = JSON.stringify(body);
   const r = await fetch("/api" + path, opts);
   const d = await r.json();
-  if(!r.ok) throw new Error(d.message || "Error");
+  if(!r.ok) {
+    const err = new Error(d.message || "Error");
+    err.status = r.status;
+    err.data = d;
+    throw err;
+  }
   return d;
 }
 
@@ -1620,9 +1659,25 @@ function showPage(name) {
     });
   }
 
-  // ── URL hash para deep link desde celular ──
-  if(history.replaceState) history.replaceState(null, '', name !== 'login' ? '/?p=' + name : '/');
+  // ── URL history para navegación con botón atrás ──
+  if (!window._zyraPopstateNav) {  // no pushear si venimos de popstate
+    const url = (name !== 'login' && name !== 'register' && name !== 'verify-login' && name !== 'verify-register') ? '/?p=' + name : '/';
+    if (!window._zyraNavInit) {
+      window._zyraNavInit = true;
+      if (history.replaceState) history.replaceState({page: name}, '', url);
+    } else {
+      if (history.pushState) history.pushState({page: name}, '', url);
+    }
+  }
 }
+
+// ── Botón atrás del navegador ──
+window.addEventListener('popstate', (e) => {
+  const page = e.state?.page || new URLSearchParams(window.location.search).get('p') || (user ? 'dashboard' : 'login');
+  window._zyraPopstateNav = true;
+  showPage(page);
+  window._zyraPopstateNav = false;
+});
 
 /* ── AUTH ── */
 async function doLoginRequest() {
@@ -1653,9 +1708,6 @@ async function doLoginVerify() {
     token = d.token; user = d.user;
     localStorage.setItem("zyra_token", token);
     localStorage.setItem("zyra_user", JSON.stringify(user));
-    token = d.token; user = d.user;
-    localStorage.setItem("zyra_token", token);
-    localStorage.setItem("zyra_user", JSON.stringify(user));
     clearForms();
     updateNav();
     // Cargar datos de perfil (foto, emoji, color, tema)
@@ -1668,6 +1720,7 @@ async function doLoginVerify() {
       if (p.theme)       applyColorTheme(p.theme);
       applyAvatarEverywhere(p.photoUrl, p.avatarEmoji, p.avatarColor);
     } catch(e) {}
+    loadPlanStatus();
     showPage("dashboard");
   } catch(e) { showError("vl-error", e.message); shakeCode("vl"); }
   finally { btn.disabled = false; btn.textContent = "Verificar y Entrar →"; }
@@ -1705,8 +1758,6 @@ async function doRegisterVerify() {
     localStorage.setItem("zyra_token", token);
     localStorage.setItem("zyra_user", JSON.stringify(user));
     clearForms();
-    user = d.user;
-    localStorage.setItem("zyra_user", JSON.stringify(user));
     updateNav();
     // Guardar nombre inmediatamente en el perfil
     if (user?.name) {
@@ -1733,7 +1784,7 @@ function applyAvatarEverywhere(photoUrl, emoji, color) {
   const colorAv = color    || localStorage.getItem("zyra_avatar_color") || "var(--grad)";
   const init    = user ? user.name.charAt(0).toUpperCase() : "?";
 
-  ["nav-avatar","nav-avatar2","nav-avatar3","nav-avatar4","nav-avatarw","nav-avatarp"].forEach(id => {
+  ["nav-avatar","nav-avatar2","nav-avatar3","nav-avatar4","nav-avatarw","nav-avatarp","nav-avatar-planes"].forEach(id => {
     const el = document.getElementById(id);
     if(!el) return;
     if(photo) {
@@ -2044,7 +2095,10 @@ async function addGoal() {
     document.getElementById("goal-date").value = "";
     document.getElementById("add-goal-form").classList.remove("show");
     loadGoals();
-  } catch(e) { zyraToast(e.message, "error"); }
+  } catch(e) {
+    if (e.status === 403 && e.data?.limitReached) { showUpgradePrompt('goals', 'basic'); }
+    else zyraToast(e.message, "error");
+  }
 }
 async function toggleGoal(id) { try { await api("/goals/"+id+"/toggle","PUT"); loadGoals(); } catch(e) {} }
 async function deleteGoal(id) { if(!await zyraConfirm("¿Eliminar meta?", {danger:true, okText:"Eliminar"})) return; try { await api("/goals/"+id,"DELETE"); loadGoals(); } catch(e) {} }
@@ -2082,7 +2136,10 @@ async function addJournalEntry() {
     document.getElementById("journal-emotion").value = "";
     document.getElementById("add-journal-form").classList.remove("show");
     loadJournal();
-  } catch(e) { zyraToast(e.message, "error"); }
+  } catch(e) {
+    if (e.status === 403 && e.data?.limitReached) { showUpgradePrompt('journal', 'basic'); }
+    else zyraToast(e.message, "error");
+  }
 }
 async function deleteJournal(id) { if(!await zyraConfirm("¿Eliminar entrada?", {danger:true, okText:"Eliminar"})) return; try { await api("/journal/"+id,"DELETE"); loadJournal(); } catch(e) {} }
 
@@ -2914,6 +2971,7 @@ function onKey(e) { if(e.key === "Enter" && !e.shiftKey) { e.preventDefault(); s
 /* ════ PERFIL — CONTACTO DE EMERGENCIA, PIN, TEMA Y DATOS ════ */
 
 async function saveEmergencyContact() {
+  if (!checkPlanAccess('emergencyContact')) { showUpgradePrompt('emergencyContact', 'basic'); return; }
   const name     = document.getElementById("ec-name")?.value?.trim();
   const phone    = document.getElementById("ec-phone")?.value?.trim();
   const relation = document.getElementById("ec-relation")?.value?.trim();
@@ -2970,7 +3028,8 @@ async function changeThemeFromProfile(theme) {
   } catch(e) { zyraToast(e.message, "error"); }
 }
 
-async function exportMyData() {
+async function exportMyData(event) {
+  if (!checkPlanAccess('export')) { showUpgradePrompt('export', 'basic'); return; }
   try {
     const btn = event.target;
     btn.textContent = "Exportando...";
@@ -3123,7 +3182,7 @@ function obSelectTheme(btn, theme) {
   document.querySelectorAll(".ob-theme").forEach(b => b.classList.remove("selected"));
   btn.classList.add("selected");
   obTheme = theme;
-  applyTheme(theme);
+  applyColorTheme(theme);
 }
 
 async function obFinish() {
@@ -3250,17 +3309,31 @@ async function sendMsg() {
     chatHistory.push({role:"assistant",content:d.response});
     if(chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
     if(!currentConvId) { currentConvId = d.conversationId; loadHistory(); }
-  } catch(e) { showTyping(false); addBotMsg("Ups, tuve un problema técnico. Intenta de nuevo en un momento."); }
+    if (d.messagesRemaining !== undefined && d.messagesRemaining !== null) {
+      _zyraMessagesRemaining = d.messagesRemaining;
+      updateMsgsRemainingUI();
+    }
+  } catch(e) {
+    showTyping(false);
+    if (e.status === 429 && e.data?.limitReached) {
+      addBotMsg("Has alcanzado tu límite de mensajes para hoy. Mejora tu plan para seguir hablando conmigo.");
+      showUpgradePrompt('messages', 'basic');
+      _zyraMessagesRemaining = 0;
+      updateMsgsRemainingUI();
+    } else {
+      addBotMsg("Ups, tuve un problema técnico. Intenta de nuevo en un momento.");
+    }
+  }
 }
 
 /* ── VOZ MEJORADA ── */
 let voiceMode = false;
 window.addEventListener("load", () => {
   if(token){
-    fetch("/api/config", { headers: { "Authorization": "Bearer " + token } })
-      .then(r=>r.json())
+    api("/config")
       .then(d=>{ if(d.ytKey) window.YT_API_KEY = d.ytKey; })
       .catch(()=>{});
+    loadPlanStatus();
   }
   loadTTSVoice();
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -3294,7 +3367,11 @@ window.addEventListener("load", () => {
     updateNav();
     checkPinOnLoad();
     loadAndApplyTheme();
-    showPage("dashboard");
+    // Respetar deep link (?p=) o ir al dashboard
+    const urlPage = new URLSearchParams(window.location.search).get('p');
+    const authPages = ['login','register','verify-login','verify-register'];
+    const startPage = (urlPage && !authPages.includes(urlPage)) ? urlPage : 'dashboard';
+    showPage(startPage);
     setTimeout(() => checkOnboarding(), 1000);
   }
 });
@@ -3334,6 +3411,7 @@ let vcCurrentSong = null;
 let vcSpeaking  = false;
 
 function openVoiceCall() {
+  if (!checkPlanAccess('voice')) { showUpgradePrompt('voice', 'premium'); return; }
   vcConvId  = currentConvId || null;
   vcHistory = (chatHistory || []).slice(-10);
   vcSeconds = 0; vcListening = false; vcMuted = false; vcSpeaking = false; vcCurrentSong = null;
@@ -3892,7 +3970,7 @@ if(_origShowPage) {
     const fab=document.getElementById('ambient-fab');
     if(fab) fab.style.display=logged.includes(name)?'flex':'none';
     if(name==='dashboard' && user) showQuickEmotion();
-    if(name==='planes') setTimeout(function(){ if(typeof loadPlanesPage==='function') loadPlanesPage(); }, 150);
+    // loadPlanesPage already called by the original showPage at line 1642
   };
 }
 
@@ -4276,7 +4354,7 @@ function shareProgress() {
 
 function onboardNext(step) {
   for(let i=0;i<3;i++){const el=document.getElementById(`ob-step-${i}`);if(el)el.style.display='none';}
-  for(let i=0;i<3;i++){const el=document.getElementById(`ob-dot-${i}`);if(el)el.classList.toggle('active',i===step);}
+  for(let i=0;i<3;i++){const el=document.getElementById(`tour-dot-${i}`);if(el)el.classList.toggle('active',i===step);}
   const s=document.getElementById(`ob-step-${step}`); if(s) s.style.display='block';
 }
 function finishOnboarding() {
@@ -4285,215 +4363,614 @@ function finishOnboarding() {
 }
 
 /* ════════════════════════════════════════
-   ZYRA WOMAN AVATAR — SVG Generator
+   ZYRA 3D AVATAR — Canvas WebGL-style renderer
+   Rotación real en eje Y con iluminación Phong
 ════════════════════════════════════════ */
+const _zyra3dAnimFrames = new Map();
+
+function buildZyra3DCanvas(container, size) {
+  if (!container) return;
+  if (container.querySelector('canvas')) return;
+  container.innerHTML = '';
+
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const canvas = document.createElement('canvas');
+  const S = size * dpr;
+  canvas.width  = S;
+  canvas.height = S;
+  canvas.style.cssText = `width:${size}px;height:${size}px;border-radius:50%;display:block`;
+  container.appendChild(canvas);
+
+  const ctx = canvas.getContext('2d');
+
+  let blinkC = 0;
+  let rafId;
+
+  function draw() {
+    // Face shifted down so hair has room at top
+    const CY = S * 0.54;   // face center Y
+    const r  = S * 0.362;  // face oval height-radius
+    const fw = r * 0.86;   // face oval width-radius (oval = feminine)
+    const t  = Date.now() / 1000;
+
+    // Head turns slightly left-right, never fully frontal
+    const angle = 0.16 + Math.sin(t * 0.38) * 0.26;
+    const cosA  = Math.cos(angle);
+    const sinA  = Math.sin(angle);
+    const bob   = Math.sin(t * 0.58) * S * 0.012;
+
+    ctx.clearRect(0, 0, S, S);
+
+    // Project face-space (fx,fy ∈ -1..1) to canvas pixels
+    const px = (fx) => S/2 + fx * cosA * fw;
+    const py = (fy) => CY  + fy * r + bob;
+    const sc = (fx) => 1   + sinA * fx * 0.14;
+
+    // ── COSMIC AURA ──
+    const auraG = ctx.createRadialGradient(S/2, CY+bob, r*0.5, S/2, CY+bob, r*2.0);
+    auraG.addColorStop(0,   'rgba(167,139,250,0.44)');
+    auraG.addColorStop(0.45,'rgba(99,102,241,0.12)');
+    auraG.addColorStop(1,   'rgba(79,70,229,0)');
+    ctx.fillStyle = auraG;
+    ctx.beginPath();
+    ctx.arc(S/2, CY+bob, r*2.0, 0, Math.PI*2);
+    ctx.fill();
+
+    // ── HAIR BACK MASS ──
+    const hairX  = S/2 + sinA * r * 0.14;
+    const hairCY = CY - r * 0.36 + bob;
+    const hairG  = ctx.createRadialGradient(hairX - r*0.22, hairCY - r*0.28, 0, hairX, hairCY, r*1.38);
+    hairG.addColorStop(0,    '#f5e9ff');
+    hairG.addColorStop(0.25, '#d946ef');
+    hairG.addColorStop(0.55, '#7c3aed');
+    hairG.addColorStop(0.85, '#4c1d95');
+    hairG.addColorStop(1,    '#1e0a50');
+    ctx.fillStyle = hairG;
+    ctx.beginPath();
+    ctx.ellipse(hairX, hairCY, r*1.20, r*0.98, 0, Math.PI, 0);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(233,213,255,0.65)';
+    ctx.lineWidth   = r*0.04;
+    ctx.beginPath();
+    ctx.ellipse(hairX, hairCY, r*1.20, r*0.98, 0, Math.PI, 0);
+    ctx.stroke();
+
+    // Side hair strands
+    for (const side of [-1, 1]) {
+      ctx.fillStyle = hairG;
+      ctx.beginPath();
+      ctx.moveTo(px(side*0.82), py(-0.10));
+      ctx.bezierCurveTo(px(side*1.22), py(0.22), px(side*1.20), py(0.84), px(side*0.72), py(0.80));
+      ctx.bezierCurveTo(px(side*0.58), py(0.54), px(side*0.78), py(0.22), px(side*0.76), py(0.04));
+      ctx.fill();
+    }
+
+    // ── NECK ──
+    const nkG = ctx.createLinearGradient(S/2-fw*0.16, CY+bob, S/2+fw*0.16, CY+r*1.1+bob);
+    nkG.addColorStop(0,'#f8c895'); nkG.addColorStop(1,'#e09050');
+    ctx.fillStyle = nkG;
+    ctx.beginPath();
+    ctx.moveTo(px(-0.16), py(0.90));
+    ctx.bezierCurveTo(px(-0.20), py(1.12), px(-0.14), py(1.25), px(0), py(1.25));
+    ctx.bezierCurveTo(px(0.14), py(1.25), px(0.20), py(1.12), px(0.16), py(0.90));
+    ctx.fill();
+
+    // ── FACE OVAL — Phong from top-left ──
+    const lx = S/2 - fw*0.28 - sinA*fw*0.22, ly = CY - r*0.30 + bob;
+    const faceG = ctx.createRadialGradient(lx, ly, 0, S/2, CY+bob, r);
+    faceG.addColorStop(0,    '#fff9f4');
+    faceG.addColorStop(0.16, '#fde8d4');
+    faceG.addColorStop(0.48, '#f8c490');
+    faceG.addColorStop(0.80, '#e89055');
+    faceG.addColorStop(1,    '#c06832');
+    ctx.fillStyle = faceG;
+    ctx.beginPath();
+    ctx.ellipse(S/2, CY+bob, fw, r, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    const specG = ctx.createRadialGradient(lx, ly, 0, lx, ly, r*0.46);
+    specG.addColorStop(0,'rgba(255,255,255,0.75)'); specG.addColorStop(0.45,'rgba(255,255,255,0.18)'); specG.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle = specG;
+    ctx.beginPath(); ctx.ellipse(S/2, CY+bob, fw, r, 0, 0, Math.PI*2); ctx.fill();
+
+    const shCx = S/2+fw*0.50;
+    const shdG = ctx.createRadialGradient(shCx, CY+bob, fw*0.08, shCx+fw*0.38, CY+bob, fw);
+    shdG.addColorStop(0,'rgba(8,3,35,0)'); shdG.addColorStop(0.5,'rgba(8,3,35,0.20)'); shdG.addColorStop(1,'rgba(8,3,35,0.54)');
+    ctx.fillStyle = shdG;
+    ctx.beginPath(); ctx.ellipse(S/2, CY+bob, fw, r, 0, 0, Math.PI*2); ctx.fill();
+
+    const rimG = ctx.createRadialGradient(S/2+fw, CY+bob, 0, S/2+fw*0.52, CY+bob, fw*1.1);
+    rimG.addColorStop(0,'rgba(216,180,254,0.62)'); rimG.addColorStop(0.5,'rgba(139,92,246,0.14)'); rimG.addColorStop(1,'rgba(99,102,241,0)');
+    ctx.fillStyle = rimG;
+    ctx.beginPath(); ctx.ellipse(S/2, CY+bob, fw, r, 0, 0, Math.PI*2); ctx.fill();
+
+    // ── BLINK ──
+    blinkC++;
+    const bphase = blinkC % 260;
+    const blink  = bphase < 14 ? Math.sin(bphase/14*Math.PI) : 1;
+
+    // ── EYE SHADOW ──
+    const eOx = 0.265, eOy = -0.09;
+    for (const fx of [-eOx, eOx]) {
+      const shx = px(fx), shy = py(eOy-0.13);
+      const shw = fw * 0.38 * sc(fx);
+      const eshG = ctx.createRadialGradient(shx, shy, 0, shx, shy, shw);
+      eshG.addColorStop(0,'rgba(139,92,246,0.34)'); eshG.addColorStop(1,'rgba(139,92,246,0)');
+      ctx.fillStyle = eshG;
+      ctx.beginPath(); ctx.ellipse(shx, shy, shw, shw*0.52, 0, 0, Math.PI*2); ctx.fill();
+    }
+
+    // ── EYES ──
+    for (const fx of [-eOx, eOx]) {
+      const ex  = px(fx), ey = py(eOy);
+      const psc = sc(fx);
+      const ew  = fw * 0.270 * Math.max(0.14, Math.abs(cosA)*0.82+0.18) * psc;
+      const eh  = r  * 0.295 * blink;
+      if (ew < 2 || eh < 1) continue;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(ex, ey, ew*1.12, eh*1.10, 0, 0, Math.PI*2);
+      ctx.clip();
+
+      ctx.fillStyle = '#fffef9';
+      ctx.fillRect(ex-ew*2, ey-eh*2, ew*4, eh*4);
+
+      const iG = ctx.createRadialGradient(ex-ew*0.18, ey-eh*0.24, 0, ex, ey, ew);
+      iG.addColorStop(0,'#f0e6ff'); iG.addColorStop(0.20,'#c084fc'); iG.addColorStop(0.52,'#6366f1'); iG.addColorStop(0.80,'#312e81'); iG.addColorStop(1,'#1e1b4b');
+      ctx.fillStyle = iG;
+      ctx.beginPath(); ctx.ellipse(ex, ey-eh*0.05, ew*0.80, eh*0.84, 0, 0, Math.PI*2); ctx.fill();
+
+      ctx.beginPath(); ctx.ellipse(ex, ey-eh*0.05, ew*0.37, eh*0.41, 0, 0, Math.PI*2);
+      ctx.fillStyle = '#040212'; ctx.fill();
+
+      ctx.beginPath(); ctx.ellipse(ex+ew*0.25, ey-eh*0.40, ew*0.28, eh*0.32, 0, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,255,0.97)'; ctx.fill();
+      ctx.beginPath(); ctx.ellipse(ex-ew*0.20, ey+eh*0.10, ew*0.14, eh*0.16, 0, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,255,0.58)'; ctx.fill();
+
+      ctx.fillStyle = 'rgba(50,15,100,0.38)';
+      ctx.beginPath(); ctx.ellipse(ex, ey-eh*0.55, ew*1.3, eh*0.70, 0, 0, Math.PI*2); ctx.fill();
+
+      ctx.restore();
+
+      ctx.beginPath();
+      ctx.ellipse(ex, ey-eh*0.52, ew*1.10, eh*0.55, 0, Math.PI, 0);
+      ctx.strokeStyle = '#18063c'; ctx.lineWidth = r*0.062; ctx.lineCap = 'round'; ctx.stroke();
+
+      if (eh > 4) {
+        for (const di of [-1,0,1]) {
+          ctx.beginPath(); ctx.arc(ex+di*ew*0.28, ey+eh*0.80, r*0.018, 0, Math.PI*2);
+          ctx.fillStyle = 'rgba(24,6,60,0.42)'; ctx.fill();
+        }
+      }
+    }
+
+    // ── EYEBROWS ──
+    for (const [fx, tilt] of [[-eOx,0.18],[eOx,-0.18]]) {
+      const bx = px(fx), by = py(-0.40);
+      const bew = fw * 0.235 * Math.max(0.28, Math.abs(cosA)) * sc(fx);
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.rotate(tilt);
+      ctx.beginPath(); ctx.ellipse(r*0.02, 0, bew, r*0.054, 0, 0, Math.PI*2);
+      ctx.fillStyle = '#2d0957'; ctx.fill();
+      ctx.beginPath(); ctx.ellipse(r*0.04, -r*0.020, bew*0.68, r*0.024, 0, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(192,132,252,0.52)'; ctx.fill();
+      ctx.restore();
+    }
+
+    // ── BLUSH ──
+    for (const fx of [-0.50, 0.50]) {
+      const bx = px(fx), by = py(0.16);
+      const bw = fw * 0.27 * Math.max(0.18, Math.abs(cosA)*0.82+0.18) * sc(fx);
+      const blG = ctx.createRadialGradient(bx, by, 0, bx, by, bw);
+      blG.addColorStop(0,'rgba(255,100,150,0.52)'); blG.addColorStop(0.7,'rgba(255,100,150,0.10)'); blG.addColorStop(1,'rgba(255,100,150,0)');
+      ctx.fillStyle = blG;
+      ctx.beginPath(); ctx.ellipse(bx, by, bw, bw*0.50, 0, 0, Math.PI*2); ctx.fill();
+    }
+
+    // ── NOSE ──
+    ctx.beginPath();
+    ctx.arc(px(0), py(0.15)+r*0.04, r*0.06, Math.PI*0.10, Math.PI*0.90);
+    ctx.strokeStyle = 'rgba(185,90,40,0.52)'; ctx.lineWidth = r*0.034; ctx.lineCap = 'round'; ctx.stroke();
+
+    // ── LIPS ──
+    const smP = (Math.sin(t*0.22)+1)*0.5;
+    const smD = 0.41 + smP*0.05;
+    // Upper lip
+    ctx.beginPath();
+    ctx.moveTo(px(-0.20), py(0.28));
+    ctx.quadraticCurveTo(px(-0.06), py(0.24), px(0), py(0.26));
+    ctx.quadraticCurveTo(px(0.06), py(0.24), px(0.20), py(0.28));
+    ctx.strokeStyle = 'rgba(185,75,35,0.60)'; ctx.lineWidth = r*0.040; ctx.stroke();
+    // Smile
+    ctx.beginPath();
+    ctx.moveTo(px(-0.20), py(0.30));
+    ctx.quadraticCurveTo(px(0), py(smD), px(0.20), py(0.30));
+    ctx.strokeStyle = '#b84820'; ctx.lineWidth = r*0.078; ctx.stroke();
+    // Gloss
+    ctx.beginPath();
+    ctx.moveTo(px(-0.10), py(0.34));
+    ctx.quadraticCurveTo(px(0), py(smD+0.04), px(0.10), py(0.34));
+    ctx.strokeStyle = 'rgba(255,210,175,0.45)'; ctx.lineWidth = r*0.030; ctx.stroke();
+
+    // ── FRONT HAIR BANGS ──
+    const bangG = ctx.createLinearGradient(0, CY-r*1.02+bob, 0, CY-r*0.04+bob);
+    bangG.addColorStop(0,'rgba(245,233,255,0.98)'); bangG.addColorStop(0.50,'rgba(192,132,252,0.80)'); bangG.addColorStop(1,'rgba(109,40,217,0.05)');
+    ctx.fillStyle = bangG;
+    ctx.beginPath();
+    ctx.moveTo(px(-0.04), py(-1.05));
+    ctx.bezierCurveTo(px(-0.20), py(-0.52), px(-0.32), py(-0.14), px(-0.22), py(0.08));
+    ctx.bezierCurveTo(px(-0.35), py(0.06), px(-0.46), py(-0.14), px(-0.28), py(-1.05));
+    ctx.fill();
+    ctx.fillStyle = 'rgba(216,180,254,0.82)';
+    ctx.beginPath();
+    ctx.moveTo(px(0.12), py(-1.02));
+    ctx.bezierCurveTo(px(0.26), py(-0.50), px(0.28), py(-0.20), px(0.18), py(0.04));
+    ctx.bezierCurveTo(px(0.10), py(0.04), px(0.04), py(-0.20), px(0.06), py(-1.02));
+    ctx.fill();
+
+    // ── HAIR ACCESSORY (spinning star pin) ──
+    const starX = px(0.70), starY = py(-0.64);
+    const sR    = r * 0.095;
+    const sP    = 0.84 + Math.sin(t*2.2)*0.16;
+    ctx.save();
+    ctx.translate(starX, starY);
+    ctx.rotate(t*0.55);
+    ctx.scale(sP, sP);
+    for (let i = 0; i < 4; i++) {
+      ctx.save(); ctx.rotate(i*Math.PI/2);
+      ctx.beginPath();
+      ctx.moveTo(0,-sR); ctx.quadraticCurveTo(sR*0.24,-sR*0.24,0,0); ctx.quadraticCurveTo(-sR*0.24,-sR*0.24,0,-sR);
+      ctx.fillStyle = i%2===0?'#f0abfc':'#e9d5ff'; ctx.fill();
+      ctx.restore();
+    }
+    ctx.beginPath(); ctx.arc(0,0,sR*0.32,0,Math.PI*2); ctx.fillStyle='#ffffff'; ctx.fill();
+    ctx.restore();
+
+    // ── SPARKLES ──
+    const sparks = [
+      {fx:-1.52,fy:-0.70,ph:0,   c:'#f3e8ff'},
+      {fx: 1.48,fy:-0.64,ph:1.9, c:'#bfdbfe'},
+      {fx:-1.42,fy: 0.78,ph:0.9, c:'#e9d5ff'},
+      {fx: 1.46,fy: 0.80,ph:2.6, c:'#fae8ff'},
+    ];
+    for (const s of sparks) {
+      const v   = (Math.sin(t*2.5+s.ph)+1)*0.5;
+      const sr2 = r*0.056*v;
+      if (sr2 < 0.5) continue;
+      ctx.globalAlpha = v*0.92;
+      ctx.fillStyle   = s.c;
+      ctx.beginPath();
+      ctx.arc(S/2+s.fx*r, CY+s.fy*r+bob, sr2, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    rafId = requestAnimationFrame(draw);
+  }
+
+  _zyra3dAnimFrames.set(container, () => cancelAnimationFrame(rafId));
+  draw();
+}
+
+// Compatibility wrapper — for code that still calls buildZyraSVG
 function buildZyraSVG(size) {
   const uid = 'z' + Math.random().toString(36).substr(2,6);
-  return `<svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" style="overflow:visible">
+  return `<svg viewBox="0 0 180 190" xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" style="overflow:visible">
   <defs>
-    <radialGradient id="${uid}bg" cx="50%" cy="50%" r="50%">
+    <!-- Gradientes de fondo cosmos -->
+    <radialGradient id="${uid}bg" cx="42%" cy="38%" r="60%">
       <stop offset="0%" stop-color="#2d1b69"/>
-      <stop offset="100%" stop-color="#0a0a1f"/>
+      <stop offset="55%" stop-color="#1a0f4e"/>
+      <stop offset="100%" stop-color="#050412"/>
     </radialGradient>
-    <radialGradient id="${uid}skin" cx="45%" cy="35%" r="65%">
-      <stop offset="0%" stop-color="#fde3c8"/>
-      <stop offset="60%" stop-color="#f5c5a3"/>
-      <stop offset="100%" stop-color="#e8a882"/>
+    <!-- Piel 3D con iluminación superior-izquierda -->
+    <radialGradient id="${uid}skin" cx="38%" cy="28%" r="70%">
+      <stop offset="0%"   stop-color="#ffe8d0"/>
+      <stop offset="35%"  stop-color="#f8c9a6"/>
+      <stop offset="75%"  stop-color="#e8a878"/>
+      <stop offset="100%" stop-color="#c8804e"/>
     </radialGradient>
-    <linearGradient id="${uid}hair" x1="20%" y1="0%" x2="80%" y2="100%">
-      <stop offset="0%" stop-color="#4f46e5"/>
-      <stop offset="40%" stop-color="#7c3aed"/>
+    <!-- Piel sombra lado derecho -->
+    <radialGradient id="${uid}skinsh" cx="75%" cy="60%" r="55%">
+      <stop offset="0%"   stop-color="#c07848" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#c07848" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Cabello degradado volumétrico -->
+    <linearGradient id="${uid}hair" x1="15%" y1="0%" x2="85%" y2="100%">
+      <stop offset="0%"   stop-color="#5b4ef5"/>
+      <stop offset="30%"  stop-color="#7c3aed"/>
+      <stop offset="70%"  stop-color="#4338ca"/>
       <stop offset="100%" stop-color="#1e1b4b"/>
     </linearGradient>
-    <linearGradient id="${uid}hairsh" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#6366f1" stop-opacity="0.6"/>
-      <stop offset="50%" stop-color="#a78bfa" stop-opacity="0.9"/>
-      <stop offset="100%" stop-color="#6366f1" stop-opacity="0.4"/>
-    </linearGradient>
-    <linearGradient id="${uid}dress" x1="0%" y1="0%" x2="60%" y2="100%">
-      <stop offset="0%" stop-color="#818cf8"/>
-      <stop offset="40%" stop-color="#6366f1"/>
-      <stop offset="100%" stop-color="#4338ca"/>
-    </linearGradient>
-    <linearGradient id="${uid}dressl" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.5"/>
+    <!-- Specular highlight cabello (luz) -->
+    <linearGradient id="${uid}hairhl" x1="20%" y1="0%" x2="60%" y2="60%">
+      <stop offset="0%"   stop-color="#a78bfa" stop-opacity="0.85"/>
+      <stop offset="40%"  stop-color="#818cf8" stop-opacity="0.4"/>
       <stop offset="100%" stop-color="#6366f1" stop-opacity="0"/>
     </linearGradient>
-    <radialGradient id="${uid}glow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#818cf8" stop-opacity="0.35"/>
-      <stop offset="70%" stop-color="#6366f1" stop-opacity="0.12"/>
+    <!-- Vestido 3D con pliegues -->
+    <linearGradient id="${uid}dress" x1="0%" y1="0%" x2="70%" y2="100%">
+      <stop offset="0%"   stop-color="#818cf8"/>
+      <stop offset="25%"  stop-color="#6366f1"/>
+      <stop offset="70%"  stop-color="#4338ca"/>
+      <stop offset="100%" stop-color="#312e81"/>
+    </linearGradient>
+    <!-- Brillo vestido izquierda -->
+    <linearGradient id="${uid}dresshl" x1="0%" y1="0%" x2="40%" y2="80%">
+      <stop offset="0%"   stop-color="#c4b5fd" stop-opacity="0.6"/>
+      <stop offset="60%"  stop-color="#a78bfa" stop-opacity="0.2"/>
       <stop offset="100%" stop-color="#6366f1" stop-opacity="0"/>
+    </linearGradient>
+    <!-- Sombra vestido derecha -->
+    <linearGradient id="${uid}dresssh" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#1e1b4b" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#1e1b4b" stop-opacity="0"/>
+    </linearGradient>
+    <!-- Aura mágica exterior -->
+    <radialGradient id="${uid}aura" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#818cf8" stop-opacity="0.4"/>
+      <stop offset="55%"  stop-color="#6366f1" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#4f46e5" stop-opacity="0"/>
     </radialGradient>
-    <filter id="${uid}blur">
-      <feGaussianBlur stdDeviation="2.5"/>
+    <!-- Segundo aura color rosa-índigo -->
+    <radialGradient id="${uid}aura2" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#e879f9" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#e879f9" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Filtro suave para mejillas y brillos -->
+    <filter id="${uid}soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.8"/>
     </filter>
-    <filter id="${uid}gf">
-      <feGaussianBlur stdDeviation="4"/>
+    <filter id="${uid}glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5"/>
     </filter>
+    <!-- Sombra drop para el cuerpo -->
+    <filter id="${uid}shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="3" dy="6" stdDeviation="5" flood-color="#1e1b4b" flood-opacity="0.6"/>
+    </filter>
+    <!-- Iris gradiente 3D -->
+    <radialGradient id="${uid}iris" cx="35%" cy="30%" r="70%">
+      <stop offset="0%"   stop-color="#6366f1"/>
+      <stop offset="50%"  stop-color="#3730a3"/>
+      <stop offset="100%" stop-color="#1e1b4b"/>
+    </radialGradient>
+    <!-- Piel brazos (más oscura que cara = perspectiva) -->
+    <linearGradient id="${uid}arm" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#f5c5a0"/>
+      <stop offset="100%" stop-color="#d4906a"/>
+    </linearGradient>
   </defs>
 
-  <!-- Aura exterior -->
-  <circle cx="80" cy="80" r="78" fill="url(#${uid}glow)" filter="url(#${uid}gf)"/>
-  <!-- Fondo círculo -->
-  <circle cx="80" cy="80" r="74" fill="url(#${uid}bg)"/>
-  <!-- Anillo decorativo -->
-  <circle cx="80" cy="80" r="73" fill="none" stroke="url(#${uid}hair)" stroke-width="1.5" opacity="0.4"/>
+  <!-- ═══ AURAS EXTERIORES ANIMADAS ═══ -->
+  <ellipse cx="90" cy="95" rx="85" ry="88" fill="url(#${uid}aura)"  filter="url(#${uid}glow)"/>
+  <ellipse cx="90" cy="85" rx="65" ry="60" fill="url(#${uid}aura2)" filter="url(#${uid}glow)"/>
 
-  <!-- Estrellas de fondo -->
-  <g opacity="0.7">
-    <circle cx="20" cy="28" r="1.2" fill="#a78bfa"/><circle cx="140" cy="32" r="1" fill="#818cf8"/>
-    <circle cx="15" cy="110" r="0.9" fill="#c4b5fd"/><circle cx="145" cy="115" r="1.1" fill="#a78bfa"/>
-    <circle cx="35" cy="145" r="0.8" fill="#818cf8"/><circle cx="128" cy="142" r="1" fill="#c4b5fd"/>
-    <circle cx="25" cy="68" r="0.7" fill="#a78bfa"/><circle cx="136" cy="70" r="0.8" fill="#818cf8"/>
+  <!-- ═══ FONDO CÍRCULO COSMOS ═══ -->
+  <circle cx="90" cy="90" r="83" fill="url(#${uid}bg)"/>
+  <!-- Anillo borde degradado -->
+  <circle cx="90" cy="90" r="82" fill="none" stroke="url(#${uid}hair)" stroke-width="1.8" opacity="0.5"/>
+  <!-- Anillo interior delgado -->
+  <circle cx="90" cy="90" r="79" fill="none" stroke="#a78bfa" stroke-width="0.5" opacity="0.25"/>
+
+  <!-- ═══ ESTRELLAS COSMOS FONDO ═══ -->
+  <g opacity="0.8">
+    <circle cx="18" cy="25" r="1.4" fill="#c4b5fd"/><circle cx="162" cy="30" r="1.1" fill="#818cf8"/>
+    <circle cx="14" cy="118" r="1" fill="#a78bfa"/><circle cx="166" cy="120" r="1.2" fill="#c4b5fd"/>
+    <circle cx="30" cy="155" r="0.9" fill="#818cf8"/><circle cx="148" cy="150" r="1" fill="#a78bfa"/>
+    <circle cx="22" cy="70" r="0.8" fill="#c4b5fd"/><circle cx="158" cy="75" r="0.9" fill="#818cf8"/>
+    <circle cx="50" cy="15" r="0.7" fill="#a78bfa"/><circle cx="128" cy="12" r="0.8" fill="#c4b5fd"/>
+    <circle cx="8"  cy="95" r="0.6" fill="#818cf8"/><circle cx="172" cy="95" r="0.6" fill="#a78bfa"/>
   </g>
 
-  <!-- ═══ CABELLO TRASERO (volumen) ═══ -->
-  <ellipse cx="80" cy="54" rx="30" ry="38" fill="url(#${uid}hair)"/>
-  <!-- Mechas traseras largas -->
-  <path d="M52 70 Q38 95 40 120 Q44 115 48 108 Q50 95 54 82Z" fill="url(#${uid}hair)"/>
-  <path d="M108 70 Q122 95 120 120 Q116 115 112 108 Q110 95 106 82Z" fill="url(#${uid}hair)"/>
-  <!-- Reflejos cabello -->
-  <path d="M60 22 Q72 18 85 24 Q78 20 80 22 Q72 18 60 22Z" fill="url(#${uid}hairsh)" opacity="0.6"/>
+  <!-- ═══ CABELLO TRASERO (profundidad) ═══ -->
+  <ellipse cx="90" cy="62" rx="34" ry="42" fill="url(#${uid}hair)" filter="url(#${uid}shadow)" opacity="0.95"/>
+  <!-- Mechas traseras largas con volumen -->
+  <path d="M57 78 Q40 105 42 133 Q47 126 52 116 Q56 103 60 90Z" fill="url(#${uid}hair)" opacity="0.9"/>
+  <path d="M123 78 Q140 105 138 133 Q133 126 128 116 Q124 103 120 90Z" fill="url(#${uid}hair)" opacity="0.9"/>
+  <!-- Mecha trasera central para profundidad -->
+  <path d="M80 102 Q78 120 80 138 Q84 130 88 138 Q90 120 88 102Z" fill="#3730a3" opacity="0.6"/>
 
-  <!-- ═══ CUELLO ═══ -->
-  <rect x="71" y="80" width="18" height="20" rx="5" fill="url(#${uid}skin)"/>
+  <!-- ═══ CUELLO CON SOMBRA ═══ -->
+  <rect x="79" y="90" width="22" height="22" rx="6" fill="url(#${uid}skin)"/>
+  <!-- Sombra cuello derecha (volumen 3D) -->
+  <rect x="92" y="90" width="9"  height="22" rx="4" fill="#c07848" opacity="0.3"/>
 
-  <!-- ═══ CARA ═══ -->
-  <ellipse cx="80" cy="60" rx="26" ry="28" fill="url(#${uid}skin)"/>
-  <!-- Sombra sutil mejilla derecha -->
-  <ellipse cx="94" cy="70" rx="10" ry="7" fill="#d4956a" opacity="0.08"/>
-  <ellipse cx="66" cy="70" rx="10" ry="7" fill="#d4956a" opacity="0.08"/>
+  <!-- ═══ CARA — FORMA 3D ═══ -->
+  <!-- Sombra suave detrás de la cara para profundidad -->
+  <ellipse cx="93" cy="70" rx="26" ry="30" fill="#c07848" opacity="0.12" filter="url(#${uid}soft)"/>
+  <!-- Cara principal -->
+  <ellipse cx="90" cy="68" rx="29" ry="31" fill="url(#${uid}skin)"/>
+  <!-- Specular highlight superior-izquierdo (efecto 3D) -->
+  <ellipse cx="78" cy="55" rx="12" ry="9" fill="#ffe8d0" opacity="0.35" filter="url(#${uid}soft)"/>
+  <!-- Sombra lado derecho de la cara (profundidad) -->
+  <ellipse cx="107" cy="72" rx="10" ry="18" fill="url(#${uid}skinsh)"/>
+  <!-- Sombra mandíbula inferior -->
+  <ellipse cx="90" cy="94" rx="20" ry="8" fill="#c07848" opacity="0.15" filter="url(#${uid}soft)"/>
 
-  <!-- ═══ CABELLO FRONTAL ═══ -->
-  <path d="M54 44 Q56 28 80 26 Q104 28 106 44 Q100 34 80 36 Q60 34 54 44Z" fill="url(#${uid}hair)"/>
-  <!-- Flequillo ondulado izquierda -->
-  <path d="M54 44 Q50 36 52 30 Q56 38 58 46Z" fill="url(#${uid}hair)"/>
-  <!-- Mechón central elegante -->
-  <path d="M72 28 Q80 22 88 28 Q84 24 80 25 Q76 24 72 28Z" fill="#a78bfa" opacity="0.7"/>
-  <!-- Cabello lateral derecho -->
-  <path d="M106 44 Q110 36 108 30 Q104 38 102 46Z" fill="url(#${uid}hair)"/>
+  <!-- ═══ CABELLO FRONTAL CON VOLUMEN ═══ -->
+  <path d="M61 50 Q64 30 90 28 Q116 30 119 50 Q111 38 90 40 Q69 38 61 50Z" fill="url(#${uid}hair)"/>
+  <!-- Flequillo lateral izquierdo (varios mechones) -->
+  <path d="M61 50 Q56 40 58 32 Q63 42 65 52Z" fill="url(#${uid}hair)"/>
+  <path d="M65 48 Q62 36 65 28 Q68 40 70 50Z" fill="#4338ca" opacity="0.8"/>
+  <!-- Mechón central con degradado especial -->
+  <path d="M80 30 Q90 23 100 30 Q95 26 90 27 Q85 26 80 30Z" fill="#a78bfa" opacity="0.8"/>
+  <!-- Flequillo lateral derecho -->
+  <path d="M119 50 Q124 40 122 32 Q117 42 115 52Z" fill="url(#${uid}hair)"/>
+  <!-- Specular highlight cabello (brillo 3D) -->
+  <path d="M68 30 Q82 24 96 30 Q85 26 90 28 Q80 25 68 30Z" fill="url(#${uid}hairhl)" opacity="0.7"/>
+  <!-- Mechón que cae sobre la frente izquierda -->
+  <path d="M63 48 Q60 56 62 65 Q65 58 66 52Z" fill="#5b4ef5" opacity="0.9"/>
 
-  <!-- ═══ OJOS ═══ -->
-  <!-- Ojo izquierdo -->
-  <ellipse cx="70" cy="58" rx="6" ry="5.5" fill="white"/>
-  <ellipse cx="70" cy="59" rx="4.5" ry="4" fill="#3730a3"/>
-  <circle cx="70" cy="59" r="2.8" fill="#1e1b4b"/>
-  <circle cx="68.5" cy="57.5" r="1.3" fill="white"/>
-  <circle cx="71.5" cy="60.5" r="0.7" fill="white" opacity="0.5"/>
-  <!-- Pestañas ojo izquierdo -->
-  <path d="M64 55 Q66 52 68 54" stroke="#1e1b4b" stroke-width="1.2" fill="none" stroke-linecap="round"/>
-  <path d="M66 53 Q68 51 70 53" stroke="#1e1b4b" stroke-width="1.2" fill="none" stroke-linecap="round"/>
-  <path d="M69 52.5 Q71 51 72 53" stroke="#1e1b4b" stroke-width="1" fill="none" stroke-linecap="round"/>
-  <path d="M72 53.5 Q74 52 75 54" stroke="#1e1b4b" stroke-width="1" fill="none" stroke-linecap="round"/>
+  <!-- ═══ CEJAS EXPRESIVAS ═══ -->
+  <path d="M70 58 Q76 54 82 57" stroke="#312e81" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <path d="M98 57 Q104 54 110 58" stroke="#312e81" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <!-- Highlight de ceja (3D) -->
+  <path d="M70 57.5 Q76 53.5 82 56.5" stroke="#6366f1" stroke-width="1" stroke-linecap="round" fill="none" opacity="0.5"/>
+
+  <!-- ═══ OJOS 3D CON IRIS VOLUMÉTRICO ═══ -->
+  <!-- Ojo izquierdo — sombra párpado superior -->
+  <ellipse cx="78" cy="65" rx="7.5" ry="6.5" fill="white"/>
+  <ellipse cx="78" cy="65.5" rx="6" ry="5.2" fill="url(#${uid}iris)"/>
+  <circle  cx="78" cy="65.5" r="3.5" fill="#0f0c29"/>
+  <!-- Reflejo especular principal (luz superior-izquierda) -->
+  <ellipse cx="75.8" cy="63" rx="1.8" ry="1.4" fill="white" opacity="0.95"/>
+  <!-- Segundo reflejo pequeño -->
+  <circle  cx="80" cy="67.5" r="0.8" fill="white" opacity="0.45"/>
+  <!-- Sombra párpado superior ojo izquierdo -->
+  <path d="M71 61 Q78 58 85 61" fill="#1e1b4b" opacity="0.12"/>
+  <!-- Pestañas superiores ojo izquierdo -->
+  <path d="M71 61 Q73 58 75 60"   stroke="#0f0c29" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+  <path d="M73 59.5 Q75.5 57 78 59" stroke="#0f0c29" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+  <path d="M76 58.5 Q78.5 56.5 81 58.5" stroke="#0f0c29" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <path d="M79.5 59 Q82 57.5 84 59.5" stroke="#0f0c29" stroke-width="1" fill="none" stroke-linecap="round"/>
 
   <!-- Ojo derecho -->
-  <ellipse cx="90" cy="58" rx="6" ry="5.5" fill="white"/>
-  <ellipse cx="90" cy="59" rx="4.5" ry="4" fill="#3730a3"/>
-  <circle cx="90" cy="59" r="2.8" fill="#1e1b4b"/>
-  <circle cx="88.5" cy="57.5" r="1.3" fill="white"/>
-  <circle cx="91.5" cy="60.5" r="0.7" fill="white" opacity="0.5"/>
+  <ellipse cx="102" cy="65" rx="7.5" ry="6.5" fill="white"/>
+  <ellipse cx="102" cy="65.5" rx="6" ry="5.2" fill="url(#${uid}iris)"/>
+  <circle  cx="102" cy="65.5" r="3.5" fill="#0f0c29"/>
+  <ellipse cx="99.8" cy="63" rx="1.8" ry="1.4" fill="white" opacity="0.95"/>
+  <circle  cx="104" cy="67.5" r="0.8" fill="white" opacity="0.45"/>
+  <path d="M109 61 Q102 58 95 61" fill="#1e1b4b" opacity="0.12"/>
   <!-- Pestañas ojo derecho -->
-  <path d="M96 55 Q94 52 92 54" stroke="#1e1b4b" stroke-width="1.2" fill="none" stroke-linecap="round"/>
-  <path d="M94 53 Q92 51 90 53" stroke="#1e1b4b" stroke-width="1.2" fill="none" stroke-linecap="round"/>
-  <path d="M91 52.5 Q89 51 88 53" stroke="#1e1b4b" stroke-width="1" fill="none" stroke-linecap="round"/>
-  <path d="M88 53.5 Q86 52 85 54" stroke="#1e1b4b" stroke-width="1" fill="none" stroke-linecap="round"/>
+  <path d="M109 61 Q107 58 105 60"    stroke="#0f0c29" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+  <path d="M107 59.5 Q104.5 57 102 59" stroke="#0f0c29" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+  <path d="M104 58.5 Q101.5 56.5 99 58.5" stroke="#0f0c29" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <path d="M100.5 59 Q98 57.5 96 59.5" stroke="#0f0c29" stroke-width="1" fill="none" stroke-linecap="round"/>
 
-  <!-- ═══ CEJAS ═══ -->
-  <path d="M63 51 Q68 48.5 73 50" stroke="#3730a3" stroke-width="2" stroke-linecap="round" fill="none"/>
-  <path d="M87 50 Q92 48.5 97 51" stroke="#3730a3" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <!-- ═══ NARIZ SUTIL 3D ═══ -->
+  <path d="M88 72 Q86 78 87 81 Q90 83 93 81 Q94 78 92 72" stroke="#c8906a" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+  <!-- Fosa nasal sombra -->
+  <ellipse cx="87.5" cy="81" rx="2.2" ry="1" fill="#c07848" opacity="0.35"/>
+  <ellipse cx="92.5" cy="81" rx="2.2" ry="1" fill="#c07848" opacity="0.35"/>
 
-  <!-- ═══ NARIZ ═══ -->
-  <path d="M79 63 Q77 68 78 70 Q80 71.5 82 70 Q83 68 81 63" stroke="#c8956e" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+  <!-- ═══ BOCA EXPRESIVA 3D ═══ -->
+  <!-- Labio superior con arco de cupido -->
+  <path d="M80 86 Q84 82.5 90 85 Q96 82.5 100 86" stroke="#d46e68" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <!-- Labio inferior sonrisa (clase animada) -->
+  <path d="M81 87 Q90 94.5 99 87" stroke="#c4635a" stroke-width="2.8" fill="none" stroke-linecap="round" class="zyra-mouth"/>
+  <!-- Relleno labio inferior -->
+  <path d="M81 87 Q90 93 99 87 Q90 91 81 87Z" fill="#e07870" opacity="0.3"/>
+  <!-- Brillo labio superior (especular) -->
+  <ellipse cx="90" cy="86" rx="4.5" ry="1.2" fill="#ffccc8" opacity="0.45"/>
 
-  <!-- ═══ BOCA ═══ -->
-  <!-- Labio superior -->
-  <path d="M72 76 Q76 73.5 80 75 Q84 73.5 88 76" stroke="#d4756e" stroke-width="1.8" fill="none" stroke-linecap="round"/>
-  <!-- Labio inferior / sonrisa -->
-  <path d="M73 76.5 Q80 82 87 76.5" stroke="#c4635a" stroke-width="2.2" fill="none" stroke-linecap="round" class="zyra-mouth"/>
-  <!-- Brillo labio -->
-  <ellipse cx="80" cy="77" rx="3" ry="1" fill="#ffb3a7" opacity="0.35"/>
+  <!-- ═══ MEJILLAS 3D ═══ -->
+  <ellipse cx="70" cy="77" rx="9" ry="5.5" fill="#f9a8d4" opacity="0.35" filter="url(#${uid}soft)"/>
+  <ellipse cx="110" cy="77" rx="9" ry="5.5" fill="#f9a8d4" opacity="0.35" filter="url(#${uid}soft)"/>
 
-  <!-- ═══ MEJILLAS ROSADAS ═══ -->
-  <ellipse cx="62" cy="68" rx="7" ry="4.5" fill="#f9a8d4" opacity="0.3" filter="url(#${uid}blur)"/>
-  <ellipse cx="98" cy="68" rx="7" ry="4.5" fill="#f9a8d4" opacity="0.3" filter="url(#${uid}blur)"/>
+  <!-- ═══ ARETES JOYA 3D ═══ -->
+  <!-- Arete izquierdo -->
+  <ellipse cx="60" cy="72" rx="4.5" ry="5.5" fill="#7c3aed" opacity="0.9"/>
+  <ellipse cx="60" cy="72" rx="2.8" ry="3.5" fill="#a78bfa"/>
+  <ellipse cx="60" cy="72" rx="1.5" ry="1.8" fill="#c4b5fd"/>
+  <ellipse cx="59" cy="70.5" rx="0.8" ry="0.6" fill="white" opacity="0.8"/>
+  <circle  cx="60" cy="68" r="2.5" fill="#818cf8"/>
+  <circle  cx="59.3" cy="67.3" r="0.8" fill="white" opacity="0.7"/>
+  <!-- Arete derecho -->
+  <ellipse cx="120" cy="72" rx="4.5" ry="5.5" fill="#7c3aed" opacity="0.9"/>
+  <ellipse cx="120" cy="72" rx="2.8" ry="3.5" fill="#a78bfa"/>
+  <ellipse cx="120" cy="72" rx="1.5" ry="1.8" fill="#c4b5fd"/>
+  <ellipse cx="119" cy="70.5" rx="0.8" ry="0.6" fill="white" opacity="0.8"/>
+  <circle  cx="120" cy="68" r="2.5" fill="#818cf8"/>
+  <circle  cx="119.3" cy="67.3" r="0.8" fill="white" opacity="0.7"/>
 
-  <!-- ═══ ARETES CRISTAL ═══ -->
-  <ellipse cx="54" cy="63" rx="3.5" ry="4" fill="#a78bfa" opacity="0.9"/>
-  <ellipse cx="54" cy="63" rx="2" ry="2.3" fill="#c4b5fd" opacity="0.7"/>
-  <circle cx="54" cy="60.5" r="2" fill="#818cf8"/>
-  <ellipse cx="106" cy="63" rx="3.5" ry="4" fill="#a78bfa" opacity="0.9"/>
-  <ellipse cx="106" cy="63" rx="2" ry="2.3" fill="#c4b5fd" opacity="0.7"/>
-  <circle cx="106" cy="60.5" r="2" fill="#818cf8"/>
+  <!-- ═══ CUERPO / VESTIDO 3D ═══ -->
+  <path d="M58 108 Q55 98 65 94 L76 90 Q80 102 90 105 Q100 102 104 90 L115 94 Q125 98 122 108 L126 172 Q90 180 54 172Z"
+    fill="url(#${uid}dress)" filter="url(#${uid}shadow)"/>
+  <!-- Highlight vestido izquierdo (luz entra desde la izquierda) -->
+  <path d="M65 94 Q60 105 62 125 Q65 112 68 100Z" fill="url(#${uid}dresshl)" opacity="0.8"/>
+  <!-- Pliegue central del vestido (sombra) -->
+  <path d="M86 106 Q88 125 88 148 Q92 140 92 120 Q91 108 88 104Z" fill="#312e81" opacity="0.4"/>
+  <!-- Sombra lado derecho vestido (3D) -->
+  <path d="M115 94 Q120 108 120 130 L122 172 Q115 168 115 148 Q115 120 110 100Z" fill="url(#${uid}dresssh)" opacity="0.5"/>
+  <!-- Detalle cuello vestido (V-neck) -->
+  <path d="M80 93 Q90 100 100 93" stroke="#c4b5fd" stroke-width="2.2" fill="none" stroke-linecap="round" opacity="0.9"/>
+  <!-- Estrella decorativa en vestido -->
+  <text x="90" y="130" text-anchor="middle" font-size="12" fill="#c4b5fd" opacity="0.7">✦</text>
+  <text x="76" y="148" text-anchor="middle" font-size="8"  fill="#a78bfa" opacity="0.45">✦</text>
+  <text x="104" y="145" text-anchor="middle" font-size="8" fill="#a78bfa" opacity="0.45">✦</text>
 
-  <!-- ═══ CUERPO / VESTIDO ═══ -->
-  <path d="M52 96 Q50 88 58 85 L68 82 Q72 92 80 94 Q88 92 92 82 L102 85 Q110 88 108 96 L112 155 Q80 162 48 155Z" fill="url(#${uid}dress)"/>
-  <!-- Brillo vestido -->
-  <path d="M58 85 Q60 92 65 96 Q60 100 58 108" stroke="url(#${uid}dressl)" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.6"/>
-  <!-- Lazo/detalle cuello vestido -->
-  <path d="M72 84 Q80 88 88 84" stroke="#c4b5fd" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.8"/>
-  <!-- Estrella en vestido -->
-  <text x="80" y="115" text-anchor="middle" font-size="10" fill="#c4b5fd" opacity="0.6">✦</text>
-
-  <!-- ═══ BRAZOS ═══ -->
-  <path d="M56 90 Q42 104 44 118" stroke="url(#${uid}skin)" stroke-width="11" stroke-linecap="round" fill="none"/>
-  <path d="M104 90 Q118 104 116 118" stroke="url(#${uid}skin)" stroke-width="11" stroke-linecap="round" fill="none"/>
+  <!-- ═══ BRAZOS CON PROFUNDIDAD ═══ -->
+  <path d="M62 100 Q46 116 48 132" stroke="url(#${uid}arm)" stroke-width="13" stroke-linecap="round" fill="none"/>
+  <!-- Sombra brazo izquierdo -->
+  <path d="M64 102 Q48 118 50 132" stroke="#c07848" stroke-width="5" stroke-linecap="round" fill="none" opacity="0.25"/>
+  <path d="M118 100 Q134 116 132 132" stroke="url(#${uid}arm)" stroke-width="13" stroke-linecap="round" fill="none"/>
   <!-- Manos -->
-  <ellipse cx="44.5" cy="120" rx="8" ry="7" fill="url(#${uid}skin)"/>
-  <ellipse cx="115.5" cy="120" rx="8" ry="7" fill="url(#${uid}skin)"/>
+  <ellipse cx="48.5" cy="134" rx="9.5" ry="8.5" fill="url(#${uid}skin)"/>
+  <ellipse cx="131.5" cy="134" rx="9.5" ry="8.5" fill="url(#${uid}skin)"/>
+  <!-- Highlight manos -->
+  <ellipse cx="46" cy="131" rx="3.5" ry="2.5" fill="#ffe8d0" opacity="0.5"/>
+  <ellipse cx="129" cy="131" rx="3.5" ry="2.5" fill="#ffe8d0" opacity="0.5"/>
 
-  <!-- ═══ MAGIA EN MANOS ═══ -->
-  <circle cx="44.5" cy="120" r="11" fill="none" stroke="#818cf8" stroke-width="1.5" opacity="0.5" class="zyra-magic-left"/>
-  <circle cx="115.5" cy="120" r="11" fill="none" stroke="#a78bfa" stroke-width="1.5" opacity="0.5" class="zyra-magic-right"/>
-  <!-- Partículas mágicas mano izquierda -->
-  <circle cx="36" cy="110" r="1.5" fill="#818cf8" opacity="0.8"/>
-  <circle cx="34" cy="118" r="1" fill="#c4b5fd" opacity="0.6"/>
-  <circle cx="38" cy="128" r="1.2" fill="#a78bfa" opacity="0.7"/>
-  <!-- Partículas mágicas mano derecha -->
-  <circle cx="124" cy="110" r="1.5" fill="#a78bfa" opacity="0.8"/>
-  <circle cx="126" cy="118" r="1" fill="#c4b5fd" opacity="0.6"/>
-  <circle cx="122" cy="128" r="1.2" fill="#818cf8" opacity="0.7"/>
+  <!-- ═══ ANILLOS MÁGICOS 3D ═══ -->
+  <circle cx="48.5" cy="134" r="13" fill="none" stroke="#818cf8" stroke-width="1.8" opacity="0.55" class="zyra-magic-left"/>
+  <circle cx="48.5" cy="134" r="16" fill="none" stroke="#a78bfa" stroke-width="1" opacity="0.3"  class="zyra-magic-right"/>
+  <circle cx="131.5" cy="134" r="13" fill="none" stroke="#a78bfa" stroke-width="1.8" opacity="0.55" class="zyra-magic-right"/>
+  <circle cx="131.5" cy="134" r="16" fill="none" stroke="#818cf8" stroke-width="1" opacity="0.3"  class="zyra-magic-left"/>
+  <!-- Partículas mano izquierda -->
+  <circle cx="37" cy="122" r="2" fill="#818cf8" opacity="0.9"/><circle cx="34" cy="132" r="1.3" fill="#c4b5fd" opacity="0.7"/>
+  <circle cx="39" cy="144" r="1.5" fill="#a78bfa" opacity="0.8"/><circle cx="32" cy="140" r="1" fill="#6366f1" opacity="0.6"/>
+  <!-- Partículas mano derecha -->
+  <circle cx="143" cy="122" r="2" fill="#a78bfa" opacity="0.9"/><circle cx="146" cy="132" r="1.3" fill="#c4b5fd" opacity="0.7"/>
+  <circle cx="141" cy="144" r="1.5" fill="#818cf8" opacity="0.8"/><circle cx="148" cy="140" r="1" fill="#6366f1" opacity="0.6"/>
 
-  <!-- ═══ CORONA / DIADEMA ═══ -->
-  <path d="M66 32 L68 25 L72 30 L80 23 L88 30 L92 25 L94 32" stroke="#f59e0b" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="80" cy="22" r="3" fill="#fbbf24"/>
-  <circle cx="68" cy="25" r="2" fill="#f59e0b"/>
-  <circle cx="92" cy="25" r="2" fill="#f59e0b"/>
-  <!-- Gema corona -->
-  <ellipse cx="80" cy="22" rx="2" ry="2" fill="#e879f9"/>
-  <circle cx="80.8" cy="21.2" r="0.7" fill="white" opacity="0.8"/>
+  <!-- ═══ CORONA JOYA 3D ═══ -->
+  <!-- Base de la corona -->
+  <path d="M72 36 L75 28 L80 34 L90 26 L100 34 L105 28 L108 36 Q90 34 72 36Z" fill="#f59e0b"/>
+  <!-- Highlight corona izquierda -->
+  <path d="M72 36 L75 28 L80 34 L90 26" stroke="#fde68a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <!-- Perlas en picos -->
+  <circle cx="90" cy="25" r="4"   fill="#fbbf24"/><circle cx="88.5" cy="23.5" r="1.4" fill="white" opacity="0.7"/>
+  <circle cx="75" cy="27" r="2.8" fill="#f59e0b"/><circle cx="74" cy="26" r="1" fill="white" opacity="0.6"/>
+  <circle cx="105" cy="27" r="2.8" fill="#f59e0b"/><circle cx="104" cy="26" r="1" fill="white" opacity="0.6"/>
+  <!-- Gema central -->
+  <ellipse cx="90" cy="25" rx="3" ry="3" fill="#e879f9"/>
+  <ellipse cx="89" cy="23.8" rx="1.2" ry="0.9" fill="white" opacity="0.85"/>
+  <!-- Gemas laterales -->
+  <ellipse cx="75" cy="27" rx="1.8" ry="1.8" fill="#38bdf8"/><ellipse cx="74.4" cy="26.4" rx="0.7" ry="0.5" fill="white" opacity="0.8"/>
+  <ellipse cx="105" cy="27" rx="1.8" ry="1.8" fill="#38bdf8"/><ellipse cx="104.4" cy="26.4" rx="0.7" ry="0.5" fill="white" opacity="0.8"/>
 
-  <!-- ═══ SPARKLES flotantes ═══ -->
+  <!-- ═══ SPARKLES ANIMADOS ═══ -->
   <g class="zyra-sparkle-1">
-    <path d="M22 48 L24 42 L26 48 L24 54Z" fill="#a78bfa" opacity="0.8"/>
-    <path d="M18 48 L24 46 L30 48 L24 50Z" fill="#c4b5fd" opacity="0.6"/>
+    <path d="M24 52 L27 44 L30 52 L27 60Z" fill="#a78bfa" opacity="0.9"/>
+    <path d="M19 52 L27 49.5 L35 52 L27 54.5Z" fill="#c4b5fd" opacity="0.6"/>
   </g>
   <g class="zyra-sparkle-2">
-    <path d="M138 45 L140 40 L142 45 L140 50Z" fill="#818cf8" opacity="0.8"/>
-    <path d="M134 45 L140 43.5 L146 45 L140 46.5Z" fill="#a78bfa" opacity="0.6"/>
+    <path d="M153 48 L156 41 L159 48 L156 55Z" fill="#818cf8" opacity="0.9"/>
+    <path d="M148 48 L156 46 L164 48 L156 50Z" fill="#a78bfa" opacity="0.6"/>
   </g>
   <g class="zyra-sparkle-3">
-    <path d="M28 88 L30 84 L32 88 L30 92Z" fill="#c4b5fd" opacity="0.6"/>
+    <path d="M30 98 L33 92 L36 98 L33 104Z" fill="#c4b5fd" opacity="0.7"/>
   </g>
   <g class="zyra-sparkle-4">
-    <path d="M130 90 L132 86 L134 90 L132 94Z" fill="#818cf8" opacity="0.6"/>
+    <path d="M145 96 L148 90 L151 96 L148 102Z" fill="#818cf8" opacity="0.7"/>
+  </g>
+  <!-- Micro estrella extra -->
+  <g class="zyra-sparkle-1" style="animation-delay:.8s">
+    <path d="M52 22 L54 17 L56 22 L54 27Z" fill="#e879f9" opacity="0.6"/>
+    <path d="M49 22 L54 20 L59 22 L54 24Z" fill="#f0abfc" opacity="0.4"/>
+  </g>
+  <g class="zyra-sparkle-2" style="animation-delay:1.4s">
+    <path d="M128 20 L130 15 L132 20 L130 25Z" fill="#38bdf8" opacity="0.6"/>
+    <path d="M125 20 L130 18 L135 20 L130 22Z" fill="#7dd3fc" opacity="0.4"/>
   </g>
 </svg>`;
 }
 
-/* Inyectar avatar en todos los lugares */
+/* Inyectar avatar 3D en todos los lugares */
 function injectZyraAvatars() {
-  // Widget del dashboard
-  const dashAvatar = document.getElementById('zyra-main-avatar');
-  if (dashAvatar) dashAvatar.innerHTML = buildZyraSVG(72);
+  // Widget del dashboard — canvas 3D
+  buildZyra3DCanvas(document.getElementById('zyra-main-avatar'), 88);
 
-  // Llamada de voz — reemplazar SVG inline existente con el generado
+  // Llamada de voz — canvas 3D más grande
   const vcAv = document.getElementById('vc-avatar');
   if (vcAv) {
-    const existingSVG = vcAv.querySelector('svg');
-    if (!existingSVG) vcAv.insertAdjacentHTML('afterbegin', buildZyraSVG(128));
+    const fallback = document.getElementById('vc-avatar-svg-fallback');
+    if (fallback) fallback.style.display = 'none';
+    buildZyra3DCanvas(vcAv, 128);
   }
-
-  // Chat (avatar de Zyra en mensajes) — usa el logo, no se reemplaza
 }
 
 document.addEventListener('DOMContentLoaded', injectZyraAvatars);
@@ -4568,27 +5045,151 @@ window.addEventListener('appinstalled', () => {
 
 // ══ PLANS LOGIC ══
 const PLANS = {
-  free:    { name: 'Gratis',   price: 0,    color: '#6b7280' },
-  basic:   { name: 'Básico',   price: 4.99, color: '#6366f1' },
-  premium: { name: 'Premium ✦', price: 9.99, color: '#f59e0b' }
+  free:    { name: 'Gratis',    priceCOP: 0,     priceYearCOP: 0,      color: '#6b7280' },
+  basic:   { name: 'Básico',    priceCOP: 9900,  priceYearCOP: 99000,  color: '#6366f1' },
+  premium: { name: 'Premium ✦', priceCOP: 24900, priceYearCOP: 249000, color: '#f59e0b' }
 };
 
-function getCurrentPlan() {
-  return localStorage.getItem('zyra_plan') || 'free';
+// Billing period state (shared between plans page and payment modal)
+let _billingAnnual = false;
+
+// Plan state — synced from server on load/login
+let _zyraCurrentPlan = localStorage.getItem('zyra_plan') || 'free';
+let _zyraMessagesRemaining = null;
+let _zyraLimits = null;
+
+function getCurrentPlan() { return _zyraCurrentPlan; }
+
+async function loadPlanStatus() {
+  if (!token) return;
+  try {
+    const d = await api('/profile/plan');
+    _zyraCurrentPlan = d.plan;
+    _zyraLimits = d.limits;
+    _zyraMessagesRemaining = d.messagesRemaining;
+    localStorage.setItem('zyra_plan', d.plan);
+    updateMsgsRemainingUI();
+    // Update voice call button lock indicator
+    const vcBtn = document.getElementById('btn-voice-call');
+    if (vcBtn) {
+      const hasVoice = d.limits?.voice === true;
+      vcBtn.textContent = hasVoice ? '📞 Llamada' : '📞 Llamada 🔒';
+      vcBtn.title = hasVoice ? 'Llamada de voz con Zyra' : 'Llamada de voz con Zyra (Premium)';
+    }
+    const pp = document.getElementById('page-planes');
+    if (pp && pp.classList.contains('active') && typeof loadPlanesPage === 'function') loadPlanesPage();
+  } catch(e) {}
+}
+
+function updateMsgsRemainingUI() {
+  const el = document.getElementById('chat-msgs-remaining');
+  if (!el) return;
+  if (_zyraMessagesRemaining === null || _zyraMessagesRemaining === undefined) { el.textContent = ''; return; }
+  el.textContent = _zyraMessagesRemaining + ' mensajes restantes hoy';
+  el.style.color = _zyraMessagesRemaining <= 3 ? '#ef4444' : 'var(--text3)';
+}
+
+function checkPlanAccess(feature) {
+  const limits = _zyraLimits;
+  if (!limits) {
+    const tier = { free: 0, basic: 1, premium: 2 };
+    const t = tier[_zyraCurrentPlan] || 0;
+    if (feature === 'voice') return t >= 2;
+    if (feature === 'emergencyContact' || feature === 'export') return t >= 1;
+    return true;
+  }
+  if (feature in limits) return limits[feature] === true;
+  return true;
+}
+
+function showUpgradePrompt(feature, requiredPlan) {
+  const planNames = { basic: 'Básico', premium: 'Premium ✦' };
+  const featureNames = {
+    voice: 'Llamadas de voz con Zyra',
+    emergencyContact: 'Contacto de emergencia',
+    export: 'Exportar tus datos',
+    messages: 'Mensajes ilimitados',
+    report: 'Reportes en PDF',
+    goals: 'Más metas activas',
+    journal: 'Más entradas de diario',
+  };
+  const fname = featureNames[feature] || feature;
+  const pname = planNames[requiredPlan] || requiredPlan;
+  // Show upgrade modal
+  const existing = document.getElementById('zyra-upgrade-modal');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'zyra-upgrade-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:20px;padding:32px;max-width:360px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+      <div style="font-size:40px;margin-bottom:12px">🔒</div>
+      <h3 style="margin:0 0 8px;font-size:18px;color:var(--text)">Función bloqueada</h3>
+      <p style="color:var(--text3);font-size:14px;line-height:1.6;margin-bottom:24px">
+        <strong style="color:var(--text)">${fname}</strong> está disponible desde el plan <strong style="color:var(--accent)">${pname}</strong>.
+      </p>
+      <div style="display:flex;gap:10px">
+        <button onclick="document.getElementById('zyra-upgrade-modal').remove()" style="flex:1;padding:12px;border:1px solid var(--border);border-radius:10px;background:transparent;color:var(--text3);cursor:pointer;font-size:14px">Cancelar</button>
+        <button onclick="document.getElementById('zyra-upgrade-modal').remove();showPage('planes')" style="flex:1;padding:12px;border:none;border-radius:10px;background:var(--accent);color:#fff;cursor:pointer;font-size:14px;font-weight:600">Ver planes →</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+function toggleBilling() {
+  _billingAnnual = !_billingAnnual;
+  const dot = document.getElementById('billing-toggle-dot');
+  const lm  = document.getElementById('billing-label-m');
+  const ly  = document.getElementById('billing-label-y');
+  if (dot) dot.style.transform = _billingAnnual ? 'translateX(24px)' : 'translateX(0)';
+  if (lm)  { lm.style.color = _billingAnnual ? 'var(--text3)' : 'var(--text)'; lm.style.fontWeight = _billingAnnual ? '500' : '700'; }
+  if (ly)  { ly.style.color = _billingAnnual ? 'var(--text)' : 'var(--text3)'; ly.style.fontWeight = _billingAnnual ? '700' : '500'; }
+
+  // Update displayed prices on cards
+  const basicAmt  = document.getElementById('price-basic-amount');
+  const basicPer  = document.getElementById('price-basic-period');
+  const basicAlt  = document.getElementById('price-basic-alt');
+  const premAmt   = document.getElementById('price-premium-amount');
+  const premPer   = document.getElementById('price-premium-period');
+  const premAlt   = document.getElementById('price-premium-alt');
+  if (_billingAnnual) {
+    if (basicAmt) basicAmt.textContent = '$99.000';
+    if (basicPer) basicPer.textContent = ' COP/año';
+    if (basicAlt) basicAlt.textContent = 'o $9.900 COP/mes';
+    if (premAmt)  premAmt.textContent  = '$249.000';
+    if (premPer)  premPer.textContent  = ' COP/año';
+    if (premAlt)  premAlt.textContent  = 'o $24.900 COP/mes';
+  } else {
+    if (basicAmt) basicAmt.textContent = '$9.900';
+    if (basicPer) basicPer.textContent = ' COP/mes';
+    if (basicAlt) basicAlt.textContent = 'o $99.000 COP/año';
+    if (premAmt)  premAmt.textContent  = '$24.900';
+    if (premPer)  premPer.textContent  = ' COP/mes';
+    if (premAlt)  premAlt.textContent  = 'o $249.000 COP/año (ahorra 17%)';
+  }
 }
 
 function loadPlanesPage() {
   const current = getCurrentPlan();
   const planName = document.getElementById('plan-actual-nombre');
   if (planName) planName.textContent = PLANS[current]?.name || 'Gratis';
-  // Highlight current plan card
   ['free','basic','premium'].forEach(p => {
     const card = document.getElementById('plan-'+p);
     const btn  = document.getElementById('btn-plan-'+p);
     if (!card) return;
     card.classList.toggle('selected', p === current);
-    if (p === current && btn) { btn.textContent = '✓ Plan actual'; btn.style.opacity = '0.7'; btn.disabled = true; }
-    else if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+    if (p === current && btn) {
+      btn.textContent = '✓ Plan actual';
+      btn.style.opacity = '0.7';
+      btn.disabled = true;
+    } else if (btn) {
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      if (p === 'free')    btn.textContent = 'Conservar Gratis';
+      if (p === 'basic')   btn.textContent = 'Elegir Básico →';
+      if (p === 'premium') btn.textContent = 'Elegir Premium ✦';
+    }
   });
 }
 
@@ -4600,18 +5201,11 @@ function selectPlan(plan) {
 }
 
 function upgradePlan(plan) {
-  const p = PLANS[plan];
-  if (!p) return;
-  zyraConfirm(
-    `¿Activar plan ${p.name} por $${p.price}/mes?`,
-    '💳',
-    () => {
-      localStorage.setItem('zyra_plan', plan);
-      zyraToast(`¡Plan ${p.name} activado! ✦`, 'success');
-      loadPlanesPage();
-      // Aquí iría la integración real de pago (Stripe, PayU, etc.)
-    }
-  );
+  if (typeof openPaymentModal === 'function') {
+    openPaymentModal(plan);
+  } else {
+    zyraToast('Procesando tu solicitud...', 'info');
+  }
 }
 
 function toggleFaq(idx) {
@@ -4627,23 +5221,27 @@ document.addEventListener('DOMContentLoaded', () => {
   // Avatar animation CSS
   const style = document.createElement('style');
   style.textContent = `
-    @keyframes zyraSparkle { 0%,100%{opacity:.8;transform:scale(1) rotate(0deg)} 50%{opacity:.3;transform:scale(1.3) rotate(45deg)} }
-    @keyframes zyraMagic   { 0%,100%{transform:scale(1);opacity:.5} 50%{transform:scale(1.25);opacity:.9} }
-    @keyframes zyraFloat   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
-    @keyframes zyraBlink   { 0%,90%,100%{transform:scaleY(1)} 95%{transform:scaleY(.05)} }
+    @keyframes zyraSparkle { 0%,100%{opacity:.85;transform:scale(1) rotate(0deg)} 50%{opacity:.25;transform:scale(1.4) rotate(50deg)} }
+    @keyframes zyraMagic   { 0%,100%{transform:scale(1);opacity:.45} 50%{transform:scale(1.3);opacity:.95} }
+    @keyframes zyraFloat   { 0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-7px) rotate(1deg)} }
+    @keyframes zyraBlink   { 0%,88%,100%{transform:scaleY(1)} 93%{transform:scaleY(.04)} }
+    @keyframes zyraBreath  { 0%,100%{transform:scale(1)} 50%{transform:scale(1.018)} }
+    @keyframes zyraGlow    { 0%,100%{opacity:.7;transform:scale(1)} 50%{opacity:1;transform:scale(1.08)} }
+    @keyframes zyraMouthSmile { 0%,70%,100%{d:path("M81 87 Q90 94.5 99 87")} 85%{d:path("M81 87 Q90 97 99 87")} }
 
-    .zyra-sparkle-1 { animation: zyraSparkle 2.1s ease-in-out infinite; transform-origin:24px 48px; }
-    .zyra-sparkle-2 { animation: zyraSparkle 2.5s ease-in-out infinite .6s; transform-origin:140px 45px; }
-    .zyra-sparkle-3 { animation: zyraSparkle 3s ease-in-out infinite 1.2s; transform-origin:30px 88px; }
-    .zyra-sparkle-4 { animation: zyraSparkle 2.8s ease-in-out infinite .3s; transform-origin:132px 90px; }
-    .zyra-magic-left  { animation: zyraMagic 2s ease-in-out infinite; transform-origin:44.5px 120px; }
-    .zyra-magic-right { animation: zyraMagic 2s ease-in-out infinite .4s; transform-origin:115.5px 120px; }
-    .zyra-eye-left, .zyra-eye-right { animation: zyraBlink 4s ease-in-out infinite; }
-    .zyra-eye-right { animation-delay: .1s; }
+    .zyra-sparkle-1 { animation: zyraSparkle 2.1s ease-in-out infinite; transform-origin:27px 52px; }
+    .zyra-sparkle-2 { animation: zyraSparkle 2.5s ease-in-out infinite .6s; transform-origin:156px 48px; }
+    .zyra-sparkle-3 { animation: zyraSparkle 3s ease-in-out infinite 1.2s; transform-origin:33px 98px; }
+    .zyra-sparkle-4 { animation: zyraSparkle 2.8s ease-in-out infinite .3s; transform-origin:148px 96px; }
+    .zyra-magic-left  { animation: zyraMagic 2.2s ease-in-out infinite; }
+    .zyra-magic-right { animation: zyraMagic 2.2s ease-in-out infinite .5s; }
+    .zyra-eye-left, .zyra-eye-right { animation: zyraBlink 5s ease-in-out infinite; transform-box:fill-box; transform-origin:center; }
+    .zyra-eye-right { animation-delay: .15s; }
     .zyra-mouth { animation: none; }
 
-    .zyra-rec-card { animation: zyraFloat 4s ease-in-out infinite; }
-    .zyra-avatar-svg svg { filter: drop-shadow(0 4px 16px rgba(99,102,241,.35)); }
+    .zyra-rec-card { animation: zyraFloat 4.5s ease-in-out infinite; }
+    .zyra-avatar-svg { animation: zyraBreath 5s ease-in-out infinite; }
+    .zyra-avatar-svg svg { filter: drop-shadow(0 6px 24px rgba(99,102,241,.45)) drop-shadow(0 2px 8px rgba(99,102,241,.3)); }
 
     /* PWA install banner */
     #pwa-install-banner {
@@ -4714,6 +5312,339 @@ document.addEventListener('DOMContentLoaded', () => {
     <p style="color:var(--text3);font-size:11px;text-align:center;margin:10px 0 0;line-height:1.5">El botón automático solo funciona en Chrome Android.<br>Para iOS usa los pasos de Safari de arriba.</p>
   </div>
 </div>
+
+<!-- ══ MODAL DE PAGO ZYRA ══ -->
+<div id="zyra-payment-modal" style="display:none;position:fixed;inset:0;z-index:9600;background:rgba(0,0,0,.75);backdrop-filter:blur(12px);align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closePaymentModal()">
+  <div style="background:var(--bg2,#141624);border:1px solid rgba(99,102,241,.25);border-radius:28px;padding:0;max-width:460px;width:100%;max-height:92vh;overflow-y:auto;position:relative;box-shadow:0 40px 100px rgba(0,0,0,.6);animation:zsw-in .35s ease">
+
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#1e1b4b,#312e81);border-radius:28px 28px 0 0;padding:28px 32px 24px;position:relative;overflow:hidden">
+      <div style="position:absolute;inset:0;background:radial-gradient(circle at 80% 20%,rgba(99,102,241,.4),transparent 60%);pointer-events:none"></div>
+      <button onclick="closePaymentModal()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;z-index:1">✕</button>
+      <div style="position:relative;z-index:1">
+        <div id="pm-plan-icon" style="font-size:36px;margin-bottom:8px">⚡</div>
+        <h2 id="pm-plan-name" style="font-family:'Playfair Display',serif;font-size:22px;font-weight:800;color:white;margin:0 0 4px">Plan Básico</h2>
+        <div style="display:flex;align-items:baseline;gap:6px">
+          <span id="pm-plan-price" style="font-family:'Playfair Display',serif;font-size:32px;font-weight:800;color:white">$9.900</span>
+          <span id="pm-plan-period" style="font-size:13px;color:rgba(255,255,255,.6)">COP/mes</span>
+        </div>
+        <p id="pm-plan-desc" style="color:rgba(255,255,255,.6);font-size:12px;margin:6px 0 0">Música real, análisis IA y más entradas diarias</p>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:24px 32px 32px">
+
+      <!-- Periodo facturación -->
+      <div style="margin-bottom:20px">
+        <label style="font-size:11px;font-weight:800;color:var(--text3,#7880a0);text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:10px">Periodo de facturación</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button id="pm-period-m" onclick="selectPayPeriod('monthly')" class="pm-period-btn pm-period-active">
+            <div style="font-weight:700;font-size:14px">Mensual</div>
+            <div id="pm-price-m-label" style="font-size:12px;color:inherit;opacity:.8">$9.900 COP/mes</div>
+          </button>
+          <button id="pm-period-y" onclick="selectPayPeriod('annual')" class="pm-period-btn">
+            <div style="display:flex;align-items:center;gap:6px;justify-content:center;font-weight:700;font-size:14px">Anual <span style="background:#10b981;color:white;font-size:9px;padding:1px 6px;border-radius:99px">Ahorra 17%</span></div>
+            <div id="pm-price-y-label" style="font-size:12px;color:inherit;opacity:.8">$99.000 COP/año</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Método de pago -->
+      <div style="margin-bottom:20px">
+        <label style="font-size:11px;font-weight:800;color:var(--text3,#7880a0);text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:10px">Método de pago</label>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button id="pm-method-card" onclick="selectPayMethod('card')" class="pm-method-btn pm-method-active">
+            <span style="font-size:20px">💳</span>
+            <div style="text-align:left;flex:1">
+              <div style="font-weight:700;font-size:13px">Tarjeta de crédito / débito</div>
+              <div style="font-size:11px;opacity:.7">Visa, Mastercard, American Express</div>
+            </div>
+            <span class="pm-method-check">✓</span>
+          </button>
+          <button id="pm-method-pse" onclick="selectPayMethod('pse')" class="pm-method-btn">
+            <span style="font-size:20px">🏦</span>
+            <div style="text-align:left;flex:1">
+              <div style="font-weight:700;font-size:13px">PSE — Débito bancario</div>
+              <div style="font-size:11px;opacity:.7">Transferencia directa desde tu banco</div>
+            </div>
+            <span class="pm-method-check">✓</span>
+          </button>
+          <button id="pm-method-nequi" onclick="selectPayMethod('nequi')" class="pm-method-btn">
+            <span style="font-size:20px">📱</span>
+            <div style="text-align:left;flex:1">
+              <div style="font-weight:700;font-size:13px">Nequi / Daviplata</div>
+              <div style="font-size:11px;opacity:.7">Pago instantáneo con tu app</div>
+            </div>
+            <span class="pm-method-check">✓</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Formulario tarjeta -->
+      <div id="pm-form-card" style="margin-bottom:20px">
+        <div style="margin-bottom:12px">
+          <label style="font-size:11px;font-weight:700;color:var(--text3,#7880a0);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">Número de tarjeta</label>
+          <input id="pm-card-num" type="text" maxlength="19" placeholder="1234 5678 9012 3456" oninput="fmtCard(this)"
+            style="width:100%;padding:12px 14px;background:var(--surface,#1e2235);border:1.5px solid var(--border,#2a2f45);border-radius:12px;color:var(--text,#e8eaf6);font-size:15px;font-weight:600;outline:none;box-sizing:border-box;letter-spacing:1px;font-family:'Plus Jakarta Sans',sans-serif"/>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--text3,#7880a0);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">Vencimiento</label>
+            <input id="pm-card-exp" type="text" maxlength="5" placeholder="MM/AA" oninput="fmtExp(this)"
+              style="width:100%;padding:12px 14px;background:var(--surface,#1e2235);border:1.5px solid var(--border,#2a2f45);border-radius:12px;color:var(--text,#e8eaf6);font-size:15px;font-weight:600;outline:none;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif"/>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--text3,#7880a0);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">CVV</label>
+            <input id="pm-card-cvv" type="password" maxlength="4" placeholder="•••"
+              style="width:100%;padding:12px 14px;background:var(--surface,#1e2235);border:1.5px solid var(--border,#2a2f45);border-radius:12px;color:var(--text,#e8eaf6);font-size:15px;font-weight:600;outline:none;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif"/>
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <label style="font-size:11px;font-weight:700;color:var(--text3,#7880a0);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">Nombre en la tarjeta</label>
+          <input id="pm-card-name" type="text" placeholder="Como aparece en la tarjeta"
+            style="width:100%;padding:12px 14px;background:var(--surface,#1e2235);border:1.5px solid var(--border,#2a2f45);border-radius:12px;color:var(--text,#e8eaf6);font-size:14px;outline:none;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif"/>
+        </div>
+      </div>
+
+      <!-- Formulario PSE -->
+      <div id="pm-form-pse" style="margin-bottom:20px;display:none">
+        <div style="margin-bottom:12px">
+          <label style="font-size:11px;font-weight:700;color:var(--text3,#7880a0);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">Banco</label>
+          <select id="pm-pse-bank" style="width:100%;padding:12px 14px;background:var(--surface,#1e2235);border:1.5px solid var(--border,#2a2f45);border-radius:12px;color:var(--text,#e8eaf6);font-size:14px;outline:none;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif">
+            <option value="">Selecciona tu banco</option>
+            <option>Bancolombia</option><option>Banco de Bogotá</option><option>Davivienda</option>
+            <option>BBVA Colombia</option><option>Banco Popular</option><option>Banco de Occidente</option>
+            <option>Banco AV Villas</option><option>Scotiabank Colpatria</option><option>Banco Caja Social</option>
+          </select>
+        </div>
+        <div style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:12px;padding:14px;font-size:12px;color:var(--text3,#7880a0);line-height:1.6">
+          🔒 Serás redirigido a tu banco para completar el pago de forma segura. Este proceso puede tomar unos segundos.
+        </div>
+      </div>
+
+      <!-- Formulario Nequi -->
+      <div id="pm-form-nequi" style="margin-bottom:20px;display:none">
+        <div style="margin-bottom:12px">
+          <label style="font-size:11px;font-weight:700;color:var(--text3,#7880a0);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">Número de celular Nequi / Daviplata</label>
+          <input id="pm-nequi-phone" type="tel" maxlength="10" placeholder="310 000 0000"
+            style="width:100%;padding:12px 14px;background:var(--surface,#1e2235);border:1.5px solid var(--border,#2a2f45);border-radius:12px;color:var(--text,#e8eaf6);font-size:15px;font-weight:600;outline:none;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif"/>
+        </div>
+        <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:12px;padding:14px;font-size:12px;color:var(--text3,#7880a0);line-height:1.6">
+          📱 Recibirás una notificación push en tu app Nequi o Daviplata para aprobar el pago. Asegúrate de tener la app activa.
+        </div>
+      </div>
+
+      <!-- Resumen + botón pagar -->
+      <div style="background:var(--surface,#1e2235);border-radius:14px;padding:16px;margin-bottom:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:13px;color:var(--text3,#7880a0)">Plan <span id="pm-summary-name">Básico</span></span>
+          <span id="pm-summary-price" style="font-size:13px;font-weight:700;color:var(--text,#e8eaf6)">$9.900 COP</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border,#2a2f45);padding-top:10px;margin-top:6px">
+          <span style="font-size:14px;font-weight:800;color:var(--text,#e8eaf6)">Total</span>
+          <span id="pm-summary-total" style="font-size:16px;font-weight:800;color:#6366f1">$9.900 COP</span>
+        </div>
+      </div>
+
+      <button id="pm-pay-btn" onclick="processPayment()" style="width:100%;padding:15px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:14px;color:white;font-size:15px;font-weight:800;cursor:pointer;transition:all .25s;box-shadow:0 8px 28px rgba(99,102,241,.4);letter-spacing:.3px;font-family:'Plus Jakarta Sans',sans-serif">
+        🔒 Pagar ahora
+      </button>
+
+      <p style="text-align:center;color:var(--text3,#7880a0);font-size:11px;margin:12px 0 0;line-height:1.6">
+        Garantía de 7 días sin preguntas · Cancela cuando quieras<br>
+        Facturado a través de App Store / Google Play en producción
+      </p>
+    </div>
+  </div>
+</div>
+
+<style>
+/* ══ PAYMENT MODAL STYLES ══ */
+.pm-period-btn {
+  background: var(--surface,#1e2235);
+  border: 2px solid var(--border,#2a2f45);
+  border-radius: 12px; padding: 12px 10px; cursor: pointer;
+  color: var(--text,#e8eaf6); text-align: center;
+  transition: all .2s; font-family:'Plus Jakarta Sans',sans-serif;
+}
+.pm-period-btn:hover { border-color: #6366f1; }
+.pm-period-active { border-color: #6366f1 !important; background: rgba(99,102,241,.15) !important; color: #818cf8 !important; }
+
+.pm-method-btn {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface,#1e2235);
+  border: 2px solid var(--border,#2a2f45);
+  border-radius: 14px; padding: 14px 16px; cursor: pointer;
+  color: var(--text,#e8eaf6); width: 100%;
+  transition: all .2s; font-family:'Plus Jakarta Sans',sans-serif;
+}
+.pm-method-btn:hover { border-color: #6366f1; }
+.pm-method-active { border-color: #6366f1 !important; background: rgba(99,102,241,.12) !important; }
+.pm-method-check { color: #6366f1; font-size: 16px; font-weight: 800; opacity: 0; transition: opacity .2s; }
+.pm-method-active .pm-method-check { opacity: 1; }
+
+#pm-pay-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 44px rgba(99,102,241,.5); }
+#pm-pay-btn:active { transform: none; }
+
+/* Input focus light */
+#zyra-payment-modal input:focus,
+#zyra-payment-modal select:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99,102,241,.2) !important;
+}
+</style>
+
+<script>
+/* ══ PAYMENT MODAL JS ══ */
+let _pmPlan = 'basic';
+let _pmPeriod = 'monthly';
+let _pmMethod = 'card';
+
+const PM_DATA = {
+  basic:   { icon:'⚡', name:'Básico',    desc:'Música real, análisis IA y más entradas diarias',    monthly:9900,   annual:99000,  color:'#6366f1' },
+  premium: { icon:'👑', name:'Premium ✦', desc:'La experiencia Zyra completa, sin límites',          monthly:24900,  annual:249000, color:'#f59e0b' }
+};
+
+function fmtCOP(n) {
+  return '$' + n.toLocaleString('es-CO') + ' COP';
+}
+
+function openPaymentModal(plan) {
+  _pmPlan = plan;
+  _pmPeriod = (typeof _billingAnnual !== 'undefined' && _billingAnnual) ? 'annual' : 'monthly';
+  _pmMethod = 'card';
+  const d = PM_DATA[plan];
+  if (!d) return;
+
+  document.getElementById('pm-plan-icon').textContent  = d.icon;
+  document.getElementById('pm-plan-name').textContent  = 'Plan ' + d.name;
+  document.getElementById('pm-plan-desc').textContent  = d.desc;
+  document.getElementById('pm-summary-name').textContent = d.name;
+
+  updatePMPrices();
+  selectPayPeriod(_pmPeriod);
+  selectPayMethod('card');
+
+  // Clear form
+  ['pm-card-num','pm-card-exp','pm-card-cvv','pm-card-name','pm-nequi-phone'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const bankSel = document.getElementById('pm-pse-bank'); if (bankSel) bankSel.selectedIndex = 0;
+
+  const modal = document.getElementById('zyra-payment-modal');
+  if (modal) { modal.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+}
+
+function closePaymentModal() {
+  const modal = document.getElementById('zyra-payment-modal');
+  if (modal) { modal.style.display = 'none'; document.body.style.overflow = ''; }
+}
+
+function updatePMPrices() {
+  const d = PM_DATA[_pmPlan];
+  const price = _pmPeriod === 'annual' ? d.annual : d.monthly;
+  const periodLabel = _pmPeriod === 'annual' ? 'COP/año' : 'COP/mes';
+  const priceLabel = fmtCOP(price);
+
+  document.getElementById('pm-plan-price').textContent  = '$' + price.toLocaleString('es-CO');
+  document.getElementById('pm-plan-period').textContent = ' ' + periodLabel;
+  document.getElementById('pm-summary-price').textContent = priceLabel;
+  document.getElementById('pm-summary-total').textContent = priceLabel;
+}
+
+function selectPayPeriod(p) {
+  _pmPeriod = p;
+  ['monthly','annual'].forEach(v => {
+    const btn = document.getElementById('pm-period-' + (v === 'monthly' ? 'm' : 'y'));
+    if (btn) btn.classList.toggle('pm-period-active', v === p);
+  });
+  updatePMPrices();
+}
+
+function selectPayMethod(m) {
+  _pmMethod = m;
+  ['card','pse','nequi'].forEach(v => {
+    const btn = document.getElementById('pm-method-' + v);
+    if (btn) btn.classList.toggle('pm-method-active', v === m);
+    const form = document.getElementById('pm-form-' + v);
+    if (form) form.style.display = v === m ? 'block' : 'none';
+  });
+}
+
+function fmtCard(el) {
+  let v = el.value.replace(/\D/g,'').slice(0,16);
+  el.value = v.replace(/(.{4})/g,'$1 ').trim();
+}
+function fmtExp(el) {
+  let v = el.value.replace(/\D/g,'').slice(0,4);
+  if (v.length >= 2) v = v.slice(0,2) + '/' + v.slice(2);
+  el.value = v;
+}
+
+function processPayment() {
+  const d = PM_DATA[_pmPlan]; if (!d) return;
+  const btn = document.getElementById('pm-pay-btn');
+
+  if (_pmMethod === 'card') {
+    const num  = (document.getElementById('pm-card-num')?.value||'').replace(/\s/g,'');
+    const exp  = document.getElementById('pm-card-exp')?.value||'';
+    const cvv  = document.getElementById('pm-card-cvv')?.value||'';
+    const name = document.getElementById('pm-card-name')?.value?.trim()||'';
+    if (num.length < 16) { zyraToast('Ingresa el número completo de la tarjeta', 'error'); return; }
+    if (exp.length < 5)  { zyraToast('Ingresa la fecha de vencimiento', 'error'); return; }
+    if (cvv.length < 3)  { zyraToast('Ingresa el CVV de tu tarjeta', 'error'); return; }
+    if (!name)           { zyraToast('Ingresa el nombre en la tarjeta', 'error'); return; }
+  } else if (_pmMethod === 'pse') {
+    const bank = document.getElementById('pm-pse-bank')?.value||'';
+    if (!bank) { zyraToast('Selecciona tu banco', 'error'); return; }
+  } else if (_pmMethod === 'nequi') {
+    const phone = (document.getElementById('pm-nequi-phone')?.value||'').replace(/\D/g,'');
+    if (phone.length < 10) { zyraToast('Ingresa tu número celular completo', 'error'); return; }
+  }
+
+  // Simulate payment processing
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Procesando pago...'; }
+  setTimeout(async () => {
+    try {
+      await api('/profile/upgrade', 'POST', { plan: _pmPlan, paymentRef: 'simulated-' + Date.now() });
+    } catch(e) {}
+    localStorage.setItem('zyra_plan', _pmPlan);
+    localStorage.setItem('zyra_plan_period', _pmPeriod);
+    _zyraCurrentPlan = _pmPlan;
+    closePaymentModal();
+    if (btn) { btn.disabled = false; btn.textContent = '🔒 Pagar ahora'; }
+    zyraToast('¡Plan ' + d.name + ' activado exitosamente! ✦ Bienvenido.', 'success', 4000);
+    await loadPlanStatus();
+    if (typeof loadPlanesPage === 'function') loadPlanesPage();
+    // Confetti effect
+    for (let i = 0; i < 20; i++) setTimeout(() => launchConfetti(), i * 80);
+  }, 1800);
+}
+
+function launchConfetti() {
+  const el = document.createElement('div');
+  const colors = ['#6366f1','#8b5cf6','#f59e0b','#10b981','#ec4899','#06b6d4'];
+  const color = colors[Math.floor(Math.random() * colors.length)];
+  const size = 6 + Math.random() * 8;
+  Object.assign(el.style, {
+    position:'fixed', left: Math.random()*100+'vw', top:'-10px',
+    width: size+'px', height: size+'px',
+    background: color, borderRadius: Math.random()>.5 ? '50%' : '2px',
+    zIndex:'9999', pointerEvents:'none',
+    animation: 'confettiFall '+(1.5+Math.random()*.8)+'s ease-in forwards'
+  });
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2500);
+}
+</script>
+
+<style>
+@keyframes confettiFall {
+  0%   { transform: translateY(0) rotate(0deg); opacity:1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity:0; }
+}
+</style>
 
 </body>
 </html>
