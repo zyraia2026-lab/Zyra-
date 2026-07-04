@@ -167,3 +167,57 @@ exports.deleteAllData = async (req, res) => {
     res.json({ success: true, message: "Todos tus datos han sido eliminados" });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
+
+// ── Plan status ──
+exports.getPlanStatus = async (req, res) => {
+  try {
+    const User = require("../models/User");
+    const { getPlan, LIMITS } = require("../middleware/planGate");
+    const user = await User.findById(req.user._id);
+    const { plan, limits, expired } = getPlan(user);
+
+    const now   = new Date();
+    const reset = user.messagesResetAt ? new Date(user.messagesResetAt) : null;
+    const sameDay = reset && reset.toDateString() === now.toDateString();
+    const messagesUsedToday = sameDay ? (user.messagesUsedToday || 0) : 0;
+
+    res.json({
+      success: true,
+      plan,
+      expired,
+      planExpiresAt:     user.planExpiresAt || null,
+      planActivatedAt:   user.planActivatedAt || null,
+      limits,
+      messagesUsedToday,
+      messagesRemaining: limits.messagesPerDay === Infinity ? null : Math.max(0, limits.messagesPerDay - messagesUsedToday),
+    });
+  } catch(e) { res.status(500).json({ message: e.message }); }
+};
+
+// ── Activar/actualizar plan (simulado — en prod se haría vía webhook de pago) ──
+exports.upgradePlan = async (req, res) => {
+  try {
+    const User = require("../models/User");
+    const { plan, paymentRef } = req.body;
+
+    const VALID = ["free","basic","premium"];
+    if (!VALID.includes(plan)) return res.status(400).json({ message: "Plan inválido" });
+
+    const now     = new Date();
+    const expires = plan === "free" ? null : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 días
+
+    await User.findByIdAndUpdate(req.user._id, {
+      plan,
+      planActivatedAt: now,
+      planExpiresAt:   expires,
+    });
+
+    res.json({
+      success: true,
+      plan,
+      planActivatedAt: now,
+      planExpiresAt:   expires,
+      message: plan === "free" ? "Has vuelto al plan Gratis" : `Plan ${plan === "basic" ? "Básico" : "Premium"} activado correctamente`,
+    });
+  } catch(e) { res.status(500).json({ message: e.message }); }
+};

@@ -1,86 +1,96 @@
-// ══ ZYRA SERVICE WORKER v2.0 ══
-const CACHE_NAME = 'zyra-cache-v2';
-const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/styles.css',
-  'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;0,800;1,700&display=swap'
-];
+// ══ ZYRA SERVICE WORKER v3.0 ══
+const CACHE_NAME = 'zyra-v3';
+const STATIC_ASSETS = ['/', '/index.html', '/styles.css', '/manifest.json'];
 
-// Instalar y cachear assets estáticos
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS.filter(url => !url.startsWith('http') || url.includes('fonts')));
-    }).catch(err => console.warn('Cache install error:', err))
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(c => c.addAll(STATIC_ASSETS))
+      .catch(err => console.warn('SW install cache error:', err))
   );
   self.skipWaiting();
 });
 
-// Limpiar caches viejos
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.filter(name => name !== CACHE_NAME).map(name => caches.delete(name))
-      );
-    })
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(names =>
+      Promise.all(names.filter(n => n !== CACHE_NAME).map(n => caches.delete(n)))
+    )
   );
   self.clients.claim();
 });
 
-// Estrategia: Network first para API, Cache first para assets
-self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-  
-  // API calls: siempre red (no cachear)
+self.addEventListener('fetch', e => {
+  const { request } = e;
+  const url = new URL(request.url);
+
+  // API calls — always network, no cache
   if (url.pathname.startsWith('/api/')) {
-    event.respondWith(
-      fetch(event.request).catch(() => {
-        return new Response(JSON.stringify({ error: 'Sin conexión', offline: true }), {
+    e.respondWith(
+      fetch(request).catch(() =>
+        new Response(JSON.stringify({ error: 'Sin conexión', offline: true }), {
+          status: 503,
           headers: { 'Content-Type': 'application/json' }
-        });
-      })
+        })
+      )
     );
     return;
   }
 
-  // Assets estáticos: cache first, red como fallback
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request).then((response) => {
-        if (response.ok && event.request.method === 'GET') {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-        }
-        return response;
-      }).catch(() => {
-        // Fallback offline para páginas HTML
-        if (event.request.headers.get('accept')?.includes('text/html')) {
-          return caches.match('/index.html');
-        }
-      });
-    })
+  // Fonts — cache first
+  if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
+    e.respondWith(
+      caches.match(request).then(cached => cached || fetch(request).then(res => {
+        const clone = res.clone();
+        caches.open(CACHE_NAME).then(c => c.put(request, clone));
+        return res;
+      }))
+    );
+    return;
+  }
+
+  // Static assets — stale-while-revalidate
+  e.respondWith(
+    caches.open(CACHE_NAME).then(cache =>
+      cache.match(request).then(cached => {
+        const network = fetch(request).then(res => {
+          if (res.ok && request.method === 'GET') {
+            cache.put(request, res.clone());
+          }
+          return res;
+        }).catch(() => null);
+
+        return cached || network || caches.match('/index.html');
+      })
+    )
   );
 });
 
-// Push notifications (para recordatorios)
-self.addEventListener('push', (event) => {
-  const data = event.data?.json() || {};
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'Zyra', {
+// ── Push notifications ──
+self.addEventListener('push', e => {
+  const data = e.data?.json() || {};
+  e.waitUntil(
+    self.registration.showNotification(data.title || 'Zyra ✦', {
       body: data.body || 'Tienes un mensaje de Zyra',
       icon: '/Imagenes/1000154669.png',
       badge: '/Imagenes/1000154669.png',
       tag: 'zyra-notification',
-      requireInteraction: false,
+      vibrate: [100, 50, 100],
       data: { url: data.url || '/' }
     })
   );
 });
 
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  event.waitUntil(clients.openWindow(event.notification.data.url || '/'));
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      return clients.openWindow(e.notification.data?.url || '/');
+    })
+  );
 });
