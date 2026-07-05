@@ -2,7 +2,7 @@ const User    = require("../models/User");
 const Profile = require("../models/Profile");
 const OTP     = require("../models/OTPCode");
 const jwt     = require("jsonwebtoken");
-const { sendVerificationCode } = require("../utils/emailService");
+const { sendVerificationCode, sendWelcomeEmail, sendPasswordResetCode } = require("../utils/emailService");
 
 const tk = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || "7d" });
 const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
@@ -31,8 +31,8 @@ exports.registerRequest = async (req, res) => {
     const { name, email, password } = req.body;
     if (!name || !email || !password)
       return res.status(400).json({ message: "Todos los campos son requeridos" });
-    if (password.length < 6)
-      return res.status(400).json({ message: "Mínimo 6 caracteres en la contraseña" });
+    if (password.length < 8)
+      return res.status(400).json({ message: "La contraseña debe tener al menos 8 caracteres" });
     if (await User.findOne({ email }))
       return res.status(400).json({ message: "Este correo ya está registrado" });
 
@@ -59,6 +59,9 @@ exports.registerVerify = async (req, res) => {
 
     const user = await User.create({ name, email, password });
     await Profile.create({ user: user._id });
+
+    // Email de bienvenida (fire-and-forget)
+    sendWelcomeEmail(email, name).catch(() => {});
 
     res.status(201).json({
       success: true,
@@ -187,7 +190,7 @@ exports.forgotPasswordRequest = async (req, res) => {
     if (user) {
       const code = generateCode();
       await saveOTP(`reset_${email}`, code, { email, userId: user._id.toString() });
-      await sendVerificationCode(email, code, user.name);
+      await sendPasswordResetCode(email, code, user.name);
     }
     res.json({ success: true, message: "Si ese correo existe, recibirás un código" });
   } catch(e) {
