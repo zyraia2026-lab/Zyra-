@@ -29,8 +29,15 @@ app.use("/api/journal",       require("./routes/journal"));
 app.use("/api/report",        require("./routes/report"));
 app.use("/api/gamification",  require("./routes/gamification"));
 app.use("/api/payments",      require("./routes/payments"));
+app.use("/api/tts",           require("./routes/tts"));
+app.use("/api/push",          require("./routes/push"));
 
 app.get("/api/health", (req, res) => res.json({ status: "OK", ai: "Zyra/Groq", version: "5.0" }));
+
+// Cron cada minuto — enviar push reminders
+setInterval(() => {
+  require("./controllers/pushController").sendDailyReminders().catch(() => {});
+}, 60_000);
 app.get("/api/config", auth, (req, res) => res.json({ ytKey: process.env.YT_API_KEY || "" }));
 app.get("*", (req, res) => res.sendFile(path.join(__dirname, "../client/index.html")));
 app.use((err, req, res, next) => { console.error(err.stack); res.status(500).json({ message: "Error interno" }); });

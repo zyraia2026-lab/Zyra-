@@ -12,7 +12,6 @@ const {
   exportData,
   deleteAllData,
   getPlanStatus,
-  upgradePlan,
 } = require("../controllers/profileController");
 const { protect }      = require("../middleware/auth");
 const { requirePlan }  = require("../middleware/planGate");
@@ -39,7 +38,6 @@ r.get("/export",  protect, requirePlan("basic"), exportData);
 r.delete("/data", protect, deleteAllData);
 
 // ── Plan ──
-r.get("/plan",    protect, getPlanStatus);
-r.post("/upgrade",protect, upgradePlan);
+r.get("/plan", protect, getPlanStatus);
 
 module.exports = r;

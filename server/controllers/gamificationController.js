@@ -48,7 +48,7 @@ function isMissionsReset(p) {
   return reset.toDateString() !== new Date().toDateString();
 }
 
-function checkAchievements(p, newStreak, newCoins, completedMissions) {
+function checkAchievements(p, newStreak, newCoins, completedMissions, journalCount) {
   const earned = [...(p.achievements || [])];
   const fresh = [];
   const award = (id) => { if (!earned.includes(id)) { earned.push(id); fresh.push(id); } };
@@ -58,9 +58,10 @@ function checkAchievements(p, newStreak, newCoins, completedMissions) {
   if (newStreak >= 7)  award("streak_7");
   if (newStreak >= 14) award("streak_14");
   if (newStreak >= 30) award("streak_30");
-  if (newCoins  >= 50) award("coins_50");
-  if (newCoins  >= 200)award("coins_200");
+  if (newCoins  >= 50)  award("coins_50");
+  if (newCoins  >= 200) award("coins_200");
   if (completedMissions && completedMissions.length === DAILY_MISSIONS.length) award("all_missions");
+  if (journalCount >= 10) award("journal_10");
 
   return { earned, fresh };
 }
@@ -177,7 +178,10 @@ exports.completeMission = async (req, res) => {
     // Bonus misión completa
     if (fresh.includes("all_missions")) coinsEarned += 30;
 
-    const finalCoins = (p.coins || 0) + coinsEarned + (fresh.includes("coins_50") || fresh.includes("coins_200") ? 0 : 0);
+    let achCoinBonus = 0;
+    if (fresh.includes("coins_50"))  achCoinBonus += 10;
+    if (fresh.includes("coins_200")) achCoinBonus += 25;
+    const finalCoins = (p.coins || 0) + coinsEarned + achCoinBonus;
 
     const update = {
       coins:                  finalCoins,
