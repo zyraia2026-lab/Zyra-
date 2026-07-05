@@ -1532,8 +1532,7 @@
         <div class="vc-ring" style="--s:1.7;--d:.8s"></div>
       </div>
       <div class="vc-avatar" id="vc-avatar">
-        <img src="/Imagenes/zyra-avatar.png" alt="Zyra" id="vc-avatar-img"
-          style="width:100%;height:100%;object-fit:cover;object-position:50% 4%;border-radius:50%;animation:zyraIdle 4s ease-in-out infinite"/>
+        <img src="/Imagenes/zyra-avatar.png" alt="Zyra" id="vc-avatar-img"/>
         <div class="vc-avatar-glow"></div>
       </div>
     </div>
@@ -5161,6 +5160,40 @@ document.addEventListener('DOMContentLoaded',()=>{
 </script>
 
 
+<!-- ══ STRIPE RETURN URL HANDLER ══ -->
+<script>
+(async function handleStripeReturn() {
+  const params = new URLSearchParams(window.location.search);
+  const sessionId  = params.get('session_id');
+  const plan       = params.get('plan');
+  const cancelled  = params.get('cancelled');
+
+  if (cancelled === '1') {
+    history.replaceState({}, '', '/');
+    setTimeout(() => zyraToast('Pago cancelado. Puedes intentarlo cuando quieras.', 'info', 4000), 800);
+    return;
+  }
+  if (!sessionId) return;
+
+  // Clean URL so reload doesn't re-trigger
+  history.replaceState({}, '', '/');
+
+  try {
+    const result = await api('/payments/verify?session_id=' + encodeURIComponent(sessionId) + '&plan=' + encodeURIComponent(plan || ''), 'GET');
+    if (result.success) {
+      localStorage.setItem('zyra_plan', result.plan);
+      _zyraCurrentPlan = result.plan;
+      await loadPlanStatus();
+      if (typeof loadPlanesPage === 'function') loadPlanesPage();
+      zyraToast('¡Pago confirmado! Plan activado correctamente ✦', 'success', 5000);
+      for (let i = 0; i < 20; i++) setTimeout(() => launchConfetti(), i * 80);
+    }
+  } catch(e) {
+    zyraToast('No pudimos verificar tu pago. Contacta soporte.', 'error', 6000);
+  }
+})();
+</script>
+
 <!-- ══ PWA + PLANS JAVASCRIPT ══ -->
 <script>
 function showInstallGuide() {
@@ -5747,7 +5780,7 @@ function fmtExp(el) {
   el.value = v;
 }
 
-function processPayment() {
+async function processPayment() {
   const d = PM_DATA[_pmPlan]; if (!d) return;
   const btn = document.getElementById('pm-pay-btn');
 
@@ -5768,23 +5801,26 @@ function processPayment() {
     if (phone.length < 10) { zyraToast('Ingresa tu número celular completo', 'error'); return; }
   }
 
-  // Simulate payment processing
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Procesando pago...'; }
-  setTimeout(async () => {
-    try {
-      await api('/profile/upgrade', 'POST', { plan: _pmPlan, paymentRef: 'simulated-' + Date.now() });
-    } catch(e) {}
-    localStorage.setItem('zyra_plan', _pmPlan);
-    localStorage.setItem('zyra_plan_period', _pmPeriod);
-    _zyraCurrentPlan = _pmPlan;
-    closePaymentModal();
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Redirigiendo a pago...'; }
+  try {
+    const result = await api('/payments/checkout', 'POST', { plan: _pmPlan });
+    if (result.demo) {
+      // Modo demo (sin Stripe configurado) — plan ya actualizado en servidor
+      localStorage.setItem('zyra_plan', result.plan);
+      _zyraCurrentPlan = result.plan;
+      closePaymentModal();
+      if (btn) { btn.disabled = false; btn.textContent = '🔒 Pagar ahora'; }
+      zyraToast('¡Plan ' + d.name + ' activado! ✦ Bienvenido.', 'success', 4000);
+      await loadPlanStatus();
+      if (typeof loadPlanesPage === 'function') loadPlanesPage();
+      for (let i = 0; i < 20; i++) setTimeout(() => launchConfetti(), i * 80);
+    } else if (result.url) {
+      window.location.href = result.url;
+    }
+  } catch(e) {
     if (btn) { btn.disabled = false; btn.textContent = '🔒 Pagar ahora'; }
-    zyraToast('¡Plan ' + d.name + ' activado exitosamente! ✦ Bienvenido.', 'success', 4000);
-    await loadPlanStatus();
-    if (typeof loadPlanesPage === 'function') loadPlanesPage();
-    // Confetti effect
-    for (let i = 0; i < 20; i++) setTimeout(() => launchConfetti(), i * 80);
-  }, 1800);
+    zyraToast('Error al procesar pago. Intenta de nuevo.', 'error');
+  }
 }
 
 function launchConfetti() {

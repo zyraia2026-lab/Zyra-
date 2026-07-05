@@ -13,6 +13,10 @@ const app = express();
 connectDB();
 
 app.use(cors({ origin: "*", credentials: true }));
+
+// Webhook de Stripe necesita body RAW — debe ir ANTES de express.json()
+app.post("/api/payments/webhook", express.raw({ type: "application/json" }), require("./controllers/paymentController").webhook);
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "../client")));
 
@@ -24,6 +28,7 @@ app.use("/api/goals",         require("./routes/goals"));
 app.use("/api/journal",       require("./routes/journal"));
 app.use("/api/report",        require("./routes/report"));
 app.use("/api/gamification",  require("./routes/gamification"));
+app.use("/api/payments",      require("./routes/payments"));
 
 app.get("/api/health", (req, res) => res.json({ status: "OK", ai: "Zyra/Groq", version: "5.0" }));
 app.get("/api/config", auth, (req, res) => res.json({ ytKey: process.env.YT_API_KEY || "" }));

@@ -1786,22 +1786,26 @@ textarea.chat-ta::placeholder{color:var(--placeholder);-webkit-text-fill-color:v
 
 .vc-avatar {
   position: relative;
-  width: 128px; height: 128px;
+  width: 160px; height: 160px;
   border-radius: 50%;
-  overflow: visible;
-  border: none;
-  box-shadow: 0 0 40px rgba(99,102,241,.4);
+  overflow: hidden;
+  border: 3px solid rgba(167,139,250,.5);
+  box-shadow: 0 0 40px rgba(99,102,241,.5), 0 0 0 1px rgba(99,102,241,.2);
   transition: box-shadow .4s;
   z-index: 3;
-  display: flex; align-items: center; justify-content: center;
-}
-.vc-avatar canvas {
-  border-radius: 50%;
-  border: 3px solid rgba(167,139,250,.4);
-  box-shadow: 0 0 40px rgba(99,102,241,.5), 0 0 0 1px rgba(99,102,241,.2);
+  background: #0f0a2e;
 }
 .vc-wrap.speaking .vc-avatar {
-  box-shadow: 0 0 60px rgba(99,102,241,.8), 0 0 0 12px rgba(99,102,241,.15);
+  box-shadow: 0 0 60px rgba(99,102,241,.9), 0 0 0 14px rgba(99,102,241,.2);
+}
+#vc-avatar-img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: 50% 8%;
+  transform: scale(1.15);
+  transform-origin: 50% 12%;
+  border-radius: 0;
+  animation: zyraIdle 4s ease-in-out infinite;
 }
 .vc-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .vc-avatar-glow {
