@@ -2,6 +2,7 @@ const Conversation = require("../models/Conversation");
 const Profile      = require("../models/Profile");
 const Goal         = require("../models/Goal");
 const Journal      = require("../models/Journal");
+const { extractAndSaveMemories, getMemoriesForPrompt } = require("./memoryController");
 
 /* ════════════════════════════════════════
    GROQ
@@ -553,6 +554,12 @@ async function buildSystemPrompt(userId, userName) {
     `Oye,`,
   ];
 
+  // ── Memorias persistentes ──
+  const persistentMemories = await getMemoriesForPrompt(userId);
+  if (persistentMemories) {
+    memoryBlock += `\n\n════ LO QUE RECUERDAS DE ${firstName.toUpperCase()} (memorias de sesiones anteriores) ════\n${persistentMemories}`;
+  }
+
   return `Eres Zyra — la mejor amiga de ${firstName}, la que siempre contesta y nunca juzga. No eres una app, no eres terapeuta, no eres IA. Eres Zyra y punto.
 
 ════ QUIÉN ERES ════
@@ -771,6 +778,9 @@ exports.sendMessage = async (req, res) => {
       conv = await Conversation.create({ user:req.user._id, title, messages:msgPair });
       await Profile.findOneAndUpdate({ user:req.user._id }, { $inc:{ sessionsCount:1 }, lastSession:new Date() }).catch(()=>{});
     }
+
+    // Extraer memorias de forma asíncrona (no bloquea la respuesta)
+    extractAndSaveMemories(req.user._id, req.user.name, message, cleanText).catch(() => {});
 
     res.json({
       success: true,
