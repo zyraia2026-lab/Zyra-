@@ -5025,6 +5025,7 @@ function playNotifSound() {
 /* ════════════════════════════════════════
    SHARE PROGRESS
 ════════════════════════════════════════ */
+let _shareData = null;
 async function openShareProgress() {
   const o=document.getElementById('share-overlay'); if(!o) return;
   o.style.display='flex';
@@ -5037,19 +5038,92 @@ async function openShareProgress() {
     if(bar&&hist.length){
       bar.innerHTML=hist.map(e=>`<div style="flex:1;height:${20+Math.random()*20}px;background:${colorMap[e.emotion]||'#6366f1'};border-radius:4px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:2px;font-size:14px">${emojiMap[e.emotion]||'😌'}</div>`).join('');
     }
-    const sessions=document.getElementById('share-sessions'); if(sessions) sessions.textContent=d.profile?.sessionsCount||0;
+    const sessionsCount = d.profile?.sessionsCount||0;
+    const sessions=document.getElementById('share-sessions'); if(sessions) sessions.textContent=sessionsCount;
     const top=document.getElementById('share-top-emotion');
-    if(top&&hist.length){
+    let topEmotion='😌';
+    if(hist.length){
       const freq={};hist.forEach(e=>{freq[e.emotion]=(freq[e.emotion]||0)+1;});
       const best=Object.entries(freq).sort((a,b)=>b[1]-a[1])[0];
-      top.textContent=emojiMap[best?.[0]]||'😌';
+      topEmotion=emojiMap[best?.[0]]||'😌';
     }
+    if(top) top.textContent=topEmotion;
+    _shareData = { hist, emojiMap, colorMap, sessionsCount, topEmotion };
   } catch(e){}
 }
-function shareProgress() {
-  const card=document.getElementById('share-card-preview');
-  if(!card){zyraToast('Captura la pantalla manualmente para compartir.', "info");return;}
-  zyraToast('📸 Toma una captura de pantalla para compartir tu progreso. Próximamente: exportar como imagen automáticamente.', "info", 4500);
+async function shareProgress() {
+  if(!_shareData) return zyraToast('Cargando datos...', 'info');
+  const { hist, colorMap, sessionsCount, topEmotion } = _shareData;
+  const W=400, H=220;
+  const canvas=document.createElement('canvas');
+  canvas.width=W*2; canvas.height=H*2; // retina
+  const ctx=canvas.getContext('2d');
+  ctx.scale(2,2);
+
+  // Background gradient
+  const bg=ctx.createLinearGradient(0,0,W,H);
+  bg.addColorStop(0,'#1e1b4b'); bg.addColorStop(1,'#0f0c29');
+  ctx.fillStyle=bg; ctx.roundRect(0,0,W,H,18); ctx.fill();
+
+  // Subtle star dots
+  ctx.fillStyle='rgba(255,255,255,0.06)';
+  for(let i=0;i<40;i++){ctx.beginPath();ctx.arc(Math.random()*W,Math.random()*H,Math.random()*1.5,0,Math.PI*2);ctx.fill();}
+
+  // Logo circle
+  ctx.fillStyle='rgba(99,102,241,0.25)'; ctx.beginPath(); ctx.arc(32,32,18,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='white'; ctx.font='bold 22px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('Z',32,32);
+
+  // Brand name
+  ctx.fillStyle='white'; ctx.font='bold 17px serif'; ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.fillText('Zyra',56,32);
+
+  // Label
+  ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.font='11px sans-serif'; ctx.textBaseline='top';
+  ctx.fillText('Mi semana emocional', 20, 60);
+
+  // Emotion bars
+  const barY=105, barH=40, barW=Math.min(28, (W-40)/Math.max(hist.length,1));
+  const barsTotal = barW*hist.length + (hist.length-1)*4;
+  let bx=20;
+  hist.forEach(e=>{
+    const h=(0.5+0.5*Math.random())*barH; // simple random height (same as preview)
+    ctx.fillStyle=colorMap[e.emotion]||'#6366f1';
+    ctx.roundRect(bx, barY-h, barW, h, 4); ctx.fill();
+    bx+=barW+4;
+  });
+  if(!hist.length){
+    ctx.fillStyle='rgba(255,255,255,0.1)'; ctx.roundRect(20,barY-barH,W-40,barH,4); ctx.fill();
+  }
+
+  // Stats
+  ctx.fillStyle='white'; ctx.font='bold 26px serif'; ctx.textBaseline='top'; ctx.textAlign='left';
+  ctx.fillText(sessionsCount, 20, 122);
+  ctx.fillStyle='rgba(255,255,255,0.45)'; ctx.font='10px sans-serif';
+  ctx.fillText('SESIONES', 20, 153);
+
+  ctx.fillStyle='white'; ctx.font='26px sans-serif'; ctx.textBaseline='top'; ctx.textAlign='left';
+  ctx.fillText(topEmotion, 120, 119);
+  ctx.fillStyle='rgba(255,255,255,0.45)'; ctx.font='10px sans-serif';
+  ctx.fillText('EMOCIÓN', 120, 153);
+
+  // Footer
+  ctx.fillStyle='rgba(255,255,255,0.25)'; ctx.font='10px sans-serif'; ctx.textBaseline='bottom'; ctx.textAlign='center';
+  ctx.fillText('zyra.app • Tu bienestar emocional', W/2, H-10);
+
+  // Export
+  canvas.toBlob(async blob=>{
+    if(!blob) return zyraToast('No se pudo generar la imagen','error');
+    const file=new File([blob],'zyra-progreso.png',{type:'image/png'});
+    if(navigator.canShare?.({files:[file]})){
+      try { await navigator.share({files:[file],title:'Mi progreso en Zyra'}); return; } catch(e){}
+    }
+    // Fallback: descarga directa
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download='zyra-progreso.png'; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+    zyraToast('Imagen descargada ✅','success');
+  },'image/png');
 }
 
 /* ════════════════════════════════════════
