@@ -10,10 +10,14 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: 10000
       - key: MONGODB_URI
         sync: false
       - key: JWT_SECRET
         sync: false
+      - key: JWT_EXPIRE
+        value: 7d
       - key: GROQ_API_KEY
         sync: false
       - key: EMAIL_USER
@@ -27,4 +31,26 @@ services:
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
       - key: APP_URL
+        sync: false
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: ELEVENLABS_VOICE_ID
+        sync: false
+      - key: DID_API_KEY
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_EMAIL
+        sync: false
+      - key: PYTHON_SERVICE
+        sync: false
+      - key: STRIPE_PRICE_BASIC_M
+        sync: false
+      - key: STRIPE_PRICE_BASIC_Y
+        sync: false
+      - key: STRIPE_PRICE_PREMIUM_M
+        sync: false
+      - key: STRIPE_PRICE_PREMIUM_Y
         sync: false

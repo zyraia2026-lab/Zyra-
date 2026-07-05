@@ -1453,6 +1453,27 @@
     <button class="btn-primary" style="padding:12px;font-size:13px;background:linear-gradient(135deg,#7c3aed,#4f46e5)" onclick="saveProfilePassword()">Cambiar contraseña</button>
   </div>
 
+  <!-- ══ NOTIFICACIONES PUSH ══ -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-header"><span class="card-title">🔔 Recordatorios diarios</span></div>
+    <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.6">Zyra te enviará una notificación a la hora que elijas para recordarte revisar tu bienestar.</p>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <label class="toggle-switch">
+        <input type="checkbox" id="reminder-toggle" onchange="toggleReminder(this.checked)"/>
+        <span class="toggle-slider"></span>
+      </label>
+      <span style="font-size:14px;color:var(--text2)" id="reminder-label">Recordatorios desactivados</span>
+    </div>
+    <div id="reminder-time-row" style="display:none;gap:12px;align-items:center">
+      <div class="form-group" style="margin:0;flex:1">
+        <label>Hora del recordatorio</label>
+        <input type="time" id="reminder-time" value="21:00" style="width:100%;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text1);font-size:14px"/>
+      </div>
+      <button class="btn-primary" style="padding:10px 20px;font-size:13px;margin-top:20px" onclick="saveReminderSettings()">Guardar</button>
+    </div>
+    <div id="reminder-status" style="font-size:12px;margin-top:8px;display:none"></div>
+  </div>
+
   <!-- ══ CONTACTO DE EMERGENCIA ══ -->
   <div class="card" style="margin-bottom:20px">
     <div class="card-header"><span class="card-title">🚨 Contacto de emergencia</span></div>
@@ -2082,6 +2103,88 @@ function handleProfilePhoto(event) {
   reader.readAsDataURL(file);
 }
 
+/* ── PUSH NOTIFICATIONS / REMINDERS ── */
+async function initPushUI(profile) {
+  const toggle  = document.getElementById("reminder-toggle");
+  const label   = document.getElementById("reminder-label");
+  const timeRow = document.getElementById("reminder-time-row");
+  const timeEl  = document.getElementById("reminder-time");
+  if (!toggle) return;
+
+  const enabled = profile?.reminderEnabled || false;
+  const hour    = profile?.reminderHour ?? 21;
+  const min     = profile?.reminderMinute ?? 0;
+
+  toggle.checked = enabled;
+  label.textContent = enabled ? "Recordatorios activados" : "Recordatorios desactivados";
+  timeRow.style.display = enabled ? "flex" : "none";
+  timeEl.value = `${String(hour).padStart(2,"0")}:${String(min).padStart(2,"0")}`;
+}
+
+async function toggleReminder(enabled) {
+  const label   = document.getElementById("reminder-label");
+  const timeRow = document.getElementById("reminder-time-row");
+  const status  = document.getElementById("reminder-status");
+  label.textContent = enabled ? "Recordatorios activados" : "Recordatorios desactivados";
+  timeRow.style.display = enabled ? "flex" : "none";
+
+  if (enabled) {
+    await requestPushPermission();
+  } else {
+    await api("/profile","PUT",{ reminderEnabled: false }).catch(()=>{});
+    await unsubscribePush();
+    if (status) { status.textContent = "Recordatorios desactivados"; status.style.color="var(--text3)"; status.style.display="block"; setTimeout(()=>status.style.display="none",2000); }
+  }
+}
+
+async function saveReminderSettings() {
+  const timeEl = document.getElementById("reminder-time");
+  const status = document.getElementById("reminder-status");
+  const [h, m] = (timeEl?.value || "21:00").split(":").map(Number);
+  try {
+    await requestPushPermission();
+    await api("/profile","PUT",{ reminderEnabled: true, reminderHour: h, reminderMinute: m });
+    if (status) { status.textContent = `✅ Recordatorio guardado a las ${timeEl.value}`; status.style.color="var(--green)"; status.style.display="block"; setTimeout(()=>status.style.display="none",3000); }
+  } catch(e) {
+    if (status) { status.textContent = e.message||"Error al guardar"; status.style.color="var(--red)"; status.style.display="block"; }
+  }
+}
+
+async function requestPushPermission() {
+  if (!("Notification" in window) || !("serviceWorker" in navigator)) return;
+  const perm = await Notification.requestPermission();
+  if (perm !== "granted") throw new Error("Permiso de notificaciones denegado");
+
+  const keyRes = await apiPublic("/push/key").catch(()=>null);
+  if (!keyRes?.publicKey) return;
+
+  const reg = await navigator.serviceWorker.ready;
+  const existing = await reg.pushManager.getSubscription();
+  if (existing) { await api("/push/subscribe","POST",{ subscription: existing }); return; }
+
+  const sub = await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(keyRes.publicKey),
+  });
+  await api("/push/subscribe","POST",{ subscription: sub });
+}
+
+async function unsubscribePush() {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) await sub.unsubscribe();
+    await api("/push/subscribe","DELETE").catch(()=>{});
+  } catch(e) { /* silencioso */ }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
+  const base64  = (base64String + padding).replace(/-/g,"+").replace(/_/g,"/");
+  const raw     = atob(base64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
 async function loadProfile() {
   try {
     const [ud, pd, gd, jd, gs] = await Promise.all([
@@ -2152,6 +2255,7 @@ async function loadProfile() {
 
     renderAvatarPicker(p.avatarEmoji, p.avatarColor);
     loadEmergencyContact();
+    initPushUI(p);
     const pinMsg = document.getElementById("pin-status-msg");
     if(pinMsg) pinMsg.textContent = p.pinEnabled ? "🔐 PIN activo" : "Sin PIN configurado";
   } catch(e) { console.error("loadProfile error:", e); }
@@ -6137,7 +6241,7 @@ async function processPayment() {
 
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Redirigiendo a pago...'; }
   try {
-    const result = await api('/payments/checkout', 'POST', { plan: _pmPlan });
+    const result = await api('/payments/checkout', 'POST', { plan: _pmPlan, period: _pmPeriod });
     if (result.demo) {
       // Modo demo (sin Stripe configurado) — plan ya actualizado en servidor
       localStorage.setItem('zyra_plan', result.plan);
