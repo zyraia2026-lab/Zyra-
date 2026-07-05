@@ -148,6 +148,20 @@ exports.verifySession = async (req, res) => {
   }
 };
 
+/* ── Cancelar plan ── */
+exports.cancelPlan = async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.user._id, {
+      plan: "free",
+      planExpiresAt: null,
+      planActivatedAt: null,
+    });
+    res.json({ success: true, message: "Plan cancelado correctamente" });
+  } catch(e) {
+    res.status(500).json({ message: e.message });
+  }
+};
+
 /* ── Webhook de Stripe (sin auth — usa firma del webhook) ── */
 exports.webhook = async (req, res) => {
   if (!stripe) return res.status(200).json({ received: true });

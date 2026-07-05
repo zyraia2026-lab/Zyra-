@@ -170,8 +170,8 @@ exports.updatePassword = async (req, res) => {
     const { currentPassword, password } = req.body;
     if (!currentPassword || !password)
       return res.status(400).json({ message: "Se requieren la contraseña actual y la nueva" });
-    if (password.length < 6)
-      return res.status(400).json({ message: "La nueva contraseña debe tener mínimo 6 caracteres" });
+    if (password.length < 8)
+      return res.status(400).json({ message: "La nueva contraseña debe tener mínimo 8 caracteres" });
     const user = await User.findById(req.user._id).select("+password");
     if (!(await user.matchPassword(currentPassword)))
       return res.status(401).json({ message: "Contraseña actual incorrecta" });
@@ -205,8 +205,8 @@ exports.forgotPasswordReset = async (req, res) => {
     const { email, code, password } = req.body;
     if (!email || !code || !password)
       return res.status(400).json({ message: "Todos los campos son requeridos" });
-    if (password.length < 6)
-      return res.status(400).json({ message: "Mínimo 6 caracteres en la contraseña" });
+    if (password.length < 8)
+      return res.status(400).json({ message: "Mínimo 8 caracteres en la contraseña" });
 
     const result = await verifyOTP(`reset_${email}`, code);
     if (result.error) return res.status(400).json({ message: result.error });
