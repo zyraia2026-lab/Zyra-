@@ -18,7 +18,28 @@
 <meta name="application-name" content="Zyra"/>
 <meta name="theme-color" content="#6366f1"/>
 <meta name="msapplication-TileColor" content="#1e1b4b"/>
-<meta name="description" content="Tu acompañante emocional con IA. Habla, siente, crece."/>
+<meta name="description" content="Tu acompañante emocional con IA. Habla, siente, crece con Zyra."/>
+<meta name="keywords" content="bienestar emocional, salud mental, IA, diario emocional, meditación, ansiedad, app bienestar"/>
+<meta name="author" content="Zyra"/>
+<link rel="canonical" href="https://zyra-app.onrender.com/"/>
+
+<!-- Open Graph (Facebook, WhatsApp, LinkedIn) -->
+<meta property="og:type" content="website"/>
+<meta property="og:url" content="https://zyra-app.onrender.com/"/>
+<meta property="og:title" content="Zyra — Bienestar Emocional con IA"/>
+<meta property="og:description" content="Tu acompañante emocional inteligente. Chat terapéutico, diario emocional, metas y más. Pruébalo gratis."/>
+<meta property="og:image" content="https://zyra-app.onrender.com/Imagenes/zyra-avatar.png"/>
+<meta property="og:image:width" content="512"/>
+<meta property="og:image:height" content="512"/>
+<meta property="og:site_name" content="Zyra"/>
+<meta property="og:locale" content="es_CO"/>
+
+<!-- Twitter / X Card -->
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Zyra — Bienestar Emocional con IA"/>
+<meta name="twitter:description" content="Tu acompañante emocional inteligente. Habla, siente, crece."/>
+<meta name="twitter:image" content="https://zyra-app.onrender.com/Imagenes/zyra-avatar.png"/>
+
 <!-- iOS touch icon fallback -->
 <link rel="apple-touch-icon" href="/Imagenes/1000154669.png"/>
 <!-- Three.js para avatar 3D -->
@@ -723,6 +744,9 @@
       </div>
       <div class="auth-divider">o</div>
       <div class="auth-link" style="margin-bottom:8px">¿Olvidaste tu contraseña? <a onclick="showPage('forgot-password')">Recupérala aquí</a></div>
+      <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--text3)">
+        Al continuar aceptas nuestros <a onclick="showLegal('terms')" style="color:#818cf8;cursor:pointer">Términos</a> y <a onclick="showLegal('privacy')" style="color:#818cf8;cursor:pointer">Privacidad</a>
+      </div>
       <div class="auth-link">¿No tienes cuenta? <a onclick="showPage('register')">Regístrate gratis aquí</a></div>
     </div>
   </div>
@@ -804,7 +828,16 @@
         <label>Contraseña</label>
         <div class="input-wrap">
           <span class="input-icon">🔑</span>
-          <input type="password" id="reg-pass" placeholder="Mínimo 6 caracteres" autocomplete="new-password"/>
+          <input type="password" id="reg-pass" placeholder="Mínimo 8 caracteres" autocomplete="new-password" oninput="updatePasswordStrength(this.value)"/>
+        </div>
+        <div id="pass-strength-bar" style="margin-top:6px;display:none">
+          <div style="display:flex;gap:4px;margin-bottom:3px">
+            <div id="ps-1" style="flex:1;height:3px;border-radius:2px;background:var(--border)"></div>
+            <div id="ps-2" style="flex:1;height:3px;border-radius:2px;background:var(--border)"></div>
+            <div id="ps-3" style="flex:1;height:3px;border-radius:2px;background:var(--border)"></div>
+            <div id="ps-4" style="flex:1;height:3px;border-radius:2px;background:var(--border)"></div>
+          </div>
+          <div id="ps-label" style="font-size:11px;color:var(--text3)"></div>
         </div>
       </div>
       <div class="form-group">
@@ -814,6 +847,13 @@
           <input type="password" id="reg-pass2" placeholder="Repite tu contraseña" autocomplete="new-password"/>
         </div>
       </div>
+      <div style="background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.18);border-radius:10px;padding:12px 14px;font-size:12px;color:#f87171;line-height:1.6;margin-bottom:12px">
+        ⚕️ <strong>Aviso de salud:</strong> Zyra es una herramienta de apoyo emocional. No reemplaza la atención de un profesional de salud mental. En caso de crisis, contacta una línea de ayuda.
+      </div>
+      <label style="display:flex;align-items:flex-start;gap:10px;font-size:12px;color:var(--text3);cursor:pointer;margin-bottom:14px">
+        <input type="checkbox" id="reg-age-check" style="margin-top:2px;flex-shrink:0;accent-color:#6366f1;width:15px;height:15px"/>
+        <span>Confirmo que tengo 13 años o más, y acepto los <a onclick="showLegal('terms')" style="color:#818cf8;cursor:pointer;text-decoration:underline">Términos de Uso</a> y la <a onclick="showLegal('privacy')" style="color:#818cf8;cursor:pointer;text-decoration:underline">Política de Privacidad</a> de Zyra.</span>
+      </label>
       <button class="btn-primary" id="btn-reg" onclick="doRegisterRequest()">Crear Mi Cuenta →</button>
       <div class="auth-security">
         <span class="auth-security-icon">🔒</span>
@@ -1510,14 +1550,35 @@
     </div>
   </div>
 
+  <!-- ══ SUSCRIPCIÓN ══ -->
+  <div class="card" style="margin-bottom:20px" id="subscription-card">
+    <div class="card-header">
+      <span class="card-title">💳 Mi suscripción</span>
+      <span id="sub-plan-badge" class="badge purple">Cargando...</span>
+    </div>
+    <p id="sub-plan-desc" style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.6"></p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn-sm accent" onclick="showPage('planes')" id="btn-upgrade-plan">⬆ Ver planes</button>
+      <button class="btn-sm" id="btn-cancel-plan" style="display:none;color:var(--text3)" onclick="cancelSubscription()">Cancelar plan</button>
+    </div>
+  </div>
+
   <!-- ══ MIS DATOS ══ -->
   <div class="card" style="margin-bottom:20px">
-    <div class="card-header"><span class="card-title">📦 Mis datos</span></div>
-    <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.6">Descarga toda tu información o bórrala permanentemente.</p>
+    <div class="card-header"><span class="card-title">📦 Mis datos (GDPR)</span></div>
+    <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.6">Tienes derecho a acceder, exportar y eliminar tus datos en cualquier momento.</p>
     <div style="display:flex;gap:10px">
       <button class="btn-primary" style="padding:12px;font-size:13px;flex:1;background:linear-gradient(135deg,#0ea5e9,#06b6d4)" onclick="exportMyData(event)">⬇️ Exportar mis datos</button>
       <button class="btn-sm" style="padding:12px;font-size:13px;color:var(--red);border-color:#fecaca" onclick="deleteMyData()">🗑️ Borrar todo</button>
     </div>
+  </div>
+
+  <!-- ══ LEGAL ══ -->
+  <div style="text-align:center;padding:16px 0 8px;font-size:12px;color:var(--text3)">
+    <a onclick="showLegal('terms')" style="color:#818cf8;cursor:pointer;text-decoration:underline;margin:0 8px">Términos de Uso</a>
+    <a onclick="showLegal('privacy')" style="color:#818cf8;cursor:pointer;text-decoration:underline;margin:0 8px">Política de Privacidad</a>
+    <span style="margin:0 8px">·</span>
+    <a href="mailto:zyra.ia.2026@gmail.com" style="color:var(--text3)">Soporte</a>
   </div>
 
   <!-- ══ ZONA DE PELIGRO ══ -->
@@ -1598,6 +1659,145 @@
       <button class="btn-primary" id="btn-reset" onclick="doResetPassword()">Cambiar contraseña →</button>
       <div class="auth-divider">o</div>
       <div class="auth-link">¿No recibiste el código? <a onclick="doForgotRequest(true)">Reenviar</a></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══════ TÉRMINOS Y PRIVACIDAD ══════ -->
+<div id="page-legal" class="page">
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo" onclick="history.back()"><span style="font-size:18px">←</span> <span class="nav-brand">Zyra</span></div>
+  </div>
+</nav>
+<div class="page-content" style="max-width:720px;margin:0 auto;padding:24px 20px 100px">
+  <div id="legal-tabs" style="display:flex;gap:8px;margin-bottom:24px">
+    <button id="tab-terms" class="btn-sm accent" onclick="showLegalTab('terms')">Términos de Uso</button>
+    <button id="tab-privacy" class="btn-sm" onclick="showLegalTab('privacy')">Política de Privacidad</button>
+  </div>
+
+  <!-- TÉRMINOS DE USO -->
+  <div id="legal-terms">
+    <h1 style="font-size:22px;font-weight:800;margin-bottom:4px">Términos y Condiciones de Uso</h1>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:24px">Última actualización: julio 2026</p>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">1. Aceptación</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Al crear una cuenta en Zyra, aceptas estos Términos y Condiciones. Si no estás de acuerdo, no uses la aplicación. Zyra se reserva el derecho de modificar estos términos con previo aviso de 15 días.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">2. Descripción del servicio</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Zyra es una aplicación de apoyo emocional que utiliza inteligencia artificial para ofrecer conversaciones de bienestar, seguimiento de emociones, diario personal y herramientas de mindfulness. Zyra <strong>no es un servicio médico ni terapéutico</strong> y no reemplaza la atención profesional de salud mental.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;border-color:#fecaca">
+      <div class="card-header"><span class="card-title" style="color:var(--red)">3. Aviso de salud mental</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Zyra NO es un sustituto de la terapia psicológica, psiquiatría ni ningún tratamiento médico. Si experimentas pensamientos de hacerte daño a ti mismo o a otros, por favor contacta inmediatamente una línea de crisis:<br/><br/>
+      🇨🇴 <strong>Colombia:</strong> Línea 106 (salud mental) · 123 (emergencias)<br/>
+      🇪🇸 <strong>España:</strong> Teléfono de la Esperanza 717 003 717<br/>
+      🌎 <strong>Internacional:</strong> findahelpline.com</p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">4. Edad mínima</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Para usar Zyra debes tener al menos 13 años de edad. Si eres menor de 18 años, debes contar con el consentimiento de tus padres o tutores legales. Zyra no recopila intencionalmente información de menores de 13 años.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">5. Uso aceptable</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Está prohibido usar Zyra para: compartir contenido ilegal, acosar a otros usuarios, intentar hackear o comprometer la seguridad del servicio, usar la IA para generar contenido dañino, o intentar evadir los límites del plan. Nos reservamos el derecho de cancelar cuentas que violen estas normas.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">6. Pagos y suscripciones</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Los planes de pago se procesan de forma segura a través de Stripe. Las suscripciones se renuevan automáticamente. Puedes cancelar en cualquier momento desde tu perfil. No se realizan reembolsos por períodos ya facturados, salvo que la ley aplicable lo exija.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">7. Propiedad intelectual</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">El diseño, código, nombre "Zyra", el personaje y todos los elementos gráficos son propiedad exclusiva de Zyra. Está prohibida su reproducción total o parcial sin autorización escrita.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">8. Limitación de responsabilidad</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Zyra se proporciona "tal como está". No garantizamos disponibilidad 24/7 ni precisión absoluta de las respuestas de IA. En ningún caso seremos responsables de daños directos, indirectos o consecuentes derivados del uso del servicio.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">9. Contacto legal</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Para consultas legales: <a href="mailto:zyra.ia.2026@gmail.com" style="color:#818cf8">zyra.ia.2026@gmail.com</a></p>
+    </div>
+  </div>
+
+  <!-- POLÍTICA DE PRIVACIDAD -->
+  <div id="legal-privacy" style="display:none">
+    <h1 style="font-size:22px;font-weight:800;margin-bottom:4px">Política de Privacidad</h1>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:24px">Última actualización: julio 2026</p>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">1. Datos que recopilamos</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">
+        <strong>Datos de cuenta:</strong> nombre, correo electrónico y contraseña (cifrada con bcrypt).<br/>
+        <strong>Datos de uso:</strong> historial de emociones, entradas del diario, metas, conversaciones con la IA y logros.<br/>
+        <strong>Datos técnicos:</strong> dirección IP, tipo de navegador (solo para seguridad y rate limiting).<br/>
+        <strong>Pagos:</strong> Procesados por Stripe — Zyra no almacena datos de tarjetas.
+      </p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">2. Cómo usamos tus datos</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">
+        • Proveer y mejorar el servicio de IA personalizada<br/>
+        • Enviarte códigos de verificación y emails de bienvenida<br/>
+        • Proteger la seguridad de tu cuenta<br/>
+        • Cumplir con obligaciones legales<br/><br/>
+        <strong>No vendemos tus datos a terceros bajo ninguna circunstancia.</strong>
+      </p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">3. Almacenamiento y seguridad</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Tus datos se almacenan en MongoDB Atlas (nube cifrada). Las conexiones usan HTTPS/TLS. Las contraseñas se cifran con bcrypt antes de guardarse. Los tokens de sesión (JWT) expiran en 7 días.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">4. Tus derechos (GDPR / Ley 1581 Colombia)</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">
+        Tienes derecho a:<br/>
+        • <strong>Acceder</strong> a tus datos (Perfil → Exportar mis datos)<br/>
+        • <strong>Rectificar</strong> información incorrecta (Perfil → Editar)<br/>
+        • <strong>Eliminar</strong> tu cuenta y todos tus datos (Perfil → Zona de peligro)<br/>
+        • <strong>Portabilidad</strong> de datos en formato JSON<br/>
+        • <strong>Oposición</strong> al procesamiento: escríbenos a zyra.ia.2026@gmail.com
+      </p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">5. Cookies y almacenamiento local</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Zyra usa <strong>localStorage</strong> del navegador para guardar tu sesión (token JWT), preferencias de tema y configuración del avatar. No usamos cookies de seguimiento ni publicidad.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">6. Retención de datos</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Conservamos tus datos mientras tengas una cuenta activa. Al eliminar tu cuenta, todos tus datos se borran permanentemente en un plazo de 30 días. Los registros de facturación se retienen 5 años por obligación legal.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">7. Servicios de terceros</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">
+        • <strong>Groq/Meta Llama:</strong> Procesa mensajes para generar respuestas de IA (no almacena historial)<br/>
+        • <strong>Stripe:</strong> Procesamiento de pagos (PCI DSS compliant)<br/>
+        • <strong>ElevenLabs:</strong> Síntesis de voz (texto a audio)<br/>
+        • <strong>Google Fonts:</strong> Tipografías (puede registrar IP)<br/>
+        • <strong>MongoDB Atlas:</strong> Almacenamiento de datos (cifrado en reposo)
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">8. Contacto DPO</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Para ejercer tus derechos o cualquier consulta sobre privacidad: <a href="mailto:zyra.ia.2026@gmail.com" style="color:#818cf8">zyra.ia.2026@gmail.com</a></p>
     </div>
   </div>
 </div>
@@ -1987,9 +2187,11 @@ async function doRegisterRequest() {
   const email = document.getElementById("reg-email").value.trim();
   const password = document.getElementById("reg-pass").value;
   const pass2 = document.getElementById("reg-pass2").value;
+  const ageCheck = document.getElementById("reg-age-check");
   if(!name || !email || !password) return showError("reg-error", "Completa todos los campos");
   if(password !== pass2) return showError("reg-error", "Las contraseñas no coinciden");
-  if(password.length < 6) return showError("reg-error", "Mínimo 6 caracteres");
+  if(password.length < 8) return showError("reg-error", "La contraseña debe tener al menos 8 caracteres");
+  if(ageCheck && !ageCheck.checked) return showError("reg-error", "Debes aceptar los Términos y confirmar tu edad para continuar");
   const btn = document.getElementById("btn-reg");
   btn.disabled = true; btn.textContent = "Enviando código...";
   try {
@@ -2263,6 +2465,7 @@ async function loadProfile() {
     renderAvatarPicker(p.avatarEmoji, p.avatarColor);
     loadEmergencyContact();
     initPushUI(p);
+    loadSubscriptionInfo();
     const pinMsg = document.getElementById("pin-status-msg");
     if(pinMsg) pinMsg.textContent = p.pinEnabled ? "🔐 PIN activo" : "Sin PIN configurado";
   } catch(e) { console.error("loadProfile error:", e); }
@@ -2353,6 +2556,70 @@ async function confirmResetData() {
     zyraToast(e.message || "Error al borrar datos", "error");
   }
 }
+/* ── LEGAL PAGES ── */
+function showLegal(tab) {
+  showPage("legal");
+  showLegalTab(tab || "terms");
+}
+function showLegalTab(tab) {
+  document.getElementById("legal-terms").style.display   = tab === "terms"   ? "block" : "none";
+  document.getElementById("legal-privacy").style.display = tab === "privacy" ? "block" : "none";
+  const t1 = document.getElementById("tab-terms");
+  const t2 = document.getElementById("tab-privacy");
+  if(t1) { t1.classList.toggle("accent", tab === "terms"); }
+  if(t2) { t2.classList.toggle("accent", tab === "privacy"); }
+}
+
+/* ── PASSWORD STRENGTH ── */
+function updatePasswordStrength(pass) {
+  const bar = document.getElementById("pass-strength-bar");
+  if(!bar) return;
+  if(!pass) { bar.style.display = "none"; return; }
+  bar.style.display = "block";
+  let score = 0;
+  if(pass.length >= 8)  score++;
+  if(pass.length >= 12) score++;
+  if(/[A-Z]/.test(pass) && /[a-z]/.test(pass)) score++;
+  if(/[0-9]/.test(pass)) score++;
+  if(/[^A-Za-z0-9]/.test(pass)) score++;
+  score = Math.min(4, score);
+  const colors  = ["#ef4444","#f97316","#eab308","#22c55e"];
+  const labels  = ["Muy débil","Débil","Buena","Fuerte"];
+  for(let i=1;i<=4;i++) {
+    const s = document.getElementById("ps-"+i);
+    if(s) s.style.background = i <= score ? colors[score-1] : "var(--border)";
+  }
+  const lbl = document.getElementById("ps-label");
+  if(lbl) { lbl.textContent = labels[score-1] || ""; lbl.style.color = colors[score-1] || "var(--text3)"; }
+}
+
+/* ── SUBSCRIPTION MANAGEMENT ── */
+async function loadSubscriptionInfo() {
+  try {
+    const d = await api("/profile/plan");
+    const planMap = { free: { label: "Plan Gratis", desc: "20 mensajes/día · 3 metas · 5 entradas de diario", color: "#6b7280" }, basic: { label: "Plan Básico", desc: "100 mensajes/día · 10 metas · 30 entradas", color: "#6366f1" }, premium: { label: "Plan Premium", desc: "Mensajes ilimitados · Todo desbloqueado", color: "#f59e0b" } };
+    const info = planMap[d.plan] || planMap.free;
+    const badge = document.getElementById("sub-plan-badge");
+    const desc  = document.getElementById("sub-plan-desc");
+    const cancelBtn = document.getElementById("btn-cancel-plan");
+    const upgradeBtn = document.getElementById("btn-upgrade-plan");
+    if(badge) { badge.textContent = info.label; badge.style.background = info.color + "22"; badge.style.color = info.color; badge.style.border = "1px solid " + info.color + "44"; }
+    if(desc) desc.textContent = info.desc;
+    if(cancelBtn) cancelBtn.style.display = d.plan !== "free" ? "inline-flex" : "none";
+    if(upgradeBtn) upgradeBtn.style.display = d.plan === "premium" ? "none" : "inline-flex";
+  } catch(e) {}
+}
+async function cancelSubscription() {
+  const ok = await zyraConfirm("¿Cancelar tu plan? Volverás al plan gratuito al final del período actual.", { danger: true, okText: "Sí, cancelar" });
+  if(!ok) return;
+  try {
+    await api("/profile", "PUT", { plan: "free" });
+    zyraToast("Plan cancelado. Quedarás en el plan gratuito.", "info");
+    loadSubscriptionInfo();
+    loadPlanStatus();
+  } catch(e) { zyraToast(e.message, "error"); }
+}
+
 async function saveProfilePassword() {
   const cur = document.getElementById("prof-pass-current").value;
   const p1  = document.getElementById("prof-pass-new").value;
