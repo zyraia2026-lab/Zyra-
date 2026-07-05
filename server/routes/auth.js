@@ -6,6 +6,7 @@ const {
   resendCode,      getMe, updateSettings,
   updateProfile,   updatePassword,
   forgotPasswordRequest, forgotPasswordReset,
+  acceptTerms,
 } = require("../controllers/authController");
 const { protect } = require("../middleware/auth");
 
@@ -28,5 +29,6 @@ r.put("/update-profile",    protect, updateProfile);
 r.put("/update-password",   protect, updatePassword);
 r.post("/forgot-password/request", authLimiter, forgotPasswordRequest);
 r.post("/forgot-password/reset",   authLimiter, forgotPasswordReset);
+r.post("/accept-terms",            protect, acceptTerms);
 
 module.exports = r;

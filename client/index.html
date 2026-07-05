@@ -47,6 +47,92 @@
 </head>
 <body>
 
+<!-- ══ TERMS ACCEPTANCE — FIRST TIME ══ -->
+<div id="zyra-terms-overlay" style="display:none;position:fixed;inset:0;z-index:9700;background:rgba(0,0,0,.92);backdrop-filter:blur(16px);align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--bg2,#141624);border:1px solid rgba(99,102,241,.3);border-radius:28px;max-width:520px;width:100%;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 40px 100px rgba(0,0,0,.7)">
+
+    <!-- Header -->
+    <div style="padding:28px 28px 0;flex-shrink:0">
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:28px">🌊</div>
+        <h2 style="font-size:20px;font-weight:800;margin:0 0 6px;color:var(--text,#e8eaf6)">Antes de continuar</h2>
+        <p style="font-size:13px;color:var(--text3,#7880a0);margin:0;line-height:1.5">Por favor lee y acepta nuestros términos para usar Zyra</p>
+      </div>
+    </div>
+
+    <!-- Scrollable content -->
+    <div id="terms-scroll-area" style="flex:1;overflow-y:auto;padding:0 28px;min-height:0" onscroll="onTermsScroll(this)">
+
+      <!-- Puntos clave -->
+      <div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:16px;padding:18px;margin-bottom:16px">
+        <div style="font-size:12px;font-weight:700;color:#818cf8;text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px">Resumen de lo que aceptas</div>
+        <div style="font-size:13px;color:var(--text2,#c0c4d8);line-height:2.1">
+          ✅ Usarás Zyra solo para apoyo emocional personal<br/>
+          ✅ Eres mayor de 13 años<br/>
+          ✅ Entiendes que Zyra <strong>no reemplaza</strong> atención médica o terapia<br/>
+          ✅ Tus datos están protegidos y nunca los vendemos<br/>
+          ✅ Puedes exportar o eliminar tus datos cuando quieras<br/>
+          ✅ Las suscripciones se renuevan automáticamente y puedes cancelar
+        </div>
+      </div>
+
+      <!-- Aviso salud mental destacado -->
+      <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.25);border-radius:14px;padding:16px;margin-bottom:16px">
+        <div style="font-size:13px;color:#f87171;font-weight:700;margin-bottom:6px">⚕️ Aviso importante de salud</div>
+        <div style="font-size:12px;color:var(--text2,#c0c4d8);line-height:1.7">
+          Zyra es una herramienta de bienestar emocional con IA. <strong>No es un servicio médico, psicológico ni de emergencias.</strong> Si estás en crisis, llama a la Línea 106 (Colombia) o al 112.
+        </div>
+      </div>
+
+      <!-- Links a documentos completos -->
+      <div style="display:flex;gap:10px;margin-bottom:16px">
+        <button onclick="showLegal('terms')" style="flex:1;padding:11px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:var(--text2,#c0c4d8);font-size:12px;cursor:pointer;font-weight:600">📄 Leer Términos completos</button>
+        <button onclick="showLegal('privacy')" style="flex:1;padding:11px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:var(--text2,#c0c4d8);font-size:12px;cursor:pointer;font-weight:600">🔒 Leer Privacidad completa</button>
+      </div>
+
+      <!-- Checkboxes -->
+      <div style="padding-bottom:4px">
+        <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);border-radius:12px;margin-bottom:10px" onclick="updateTermsBtn()">
+          <input type="checkbox" id="tc-check-1" style="margin-top:2px;flex-shrink:0;accent-color:#6366f1;width:17px;height:17px"/>
+          <span style="font-size:13px;color:var(--text,#e8eaf6);line-height:1.5">He leído y acepto los <strong><a onclick="showLegal('terms');event.stopPropagation()" style="color:#818cf8;cursor:pointer">Términos de Uso</a></strong> y la <strong><a onclick="showLegal('privacy');event.stopPropagation()" style="color:#818cf8;cursor:pointer">Política de Privacidad</a></strong> de Zyra.</span>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.15);border-radius:12px" onclick="updateTermsBtn()">
+          <input type="checkbox" id="tc-check-2" style="margin-top:2px;flex-shrink:0;accent-color:#6366f1;width:17px;height:17px"/>
+          <span style="font-size:13px;color:var(--text,#e8eaf6);line-height:1.5">Entiendo que Zyra <strong>no reemplaza</strong> la atención de un profesional de salud mental.</span>
+        </label>
+      </div>
+
+      <div style="height:8px"></div>
+    </div>
+
+    <!-- Footer con botón -->
+    <div style="padding:20px 28px;border-top:1px solid rgba(255,255,255,.07);flex-shrink:0">
+      <button id="btn-accept-terms" onclick="acceptTermsAndContinue()" disabled
+        style="width:100%;padding:15px;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;transition:all .3s;background:rgba(99,102,241,.3);color:rgba(255,255,255,.4)">
+        Acepta los dos puntos para continuar
+      </button>
+      <p style="text-align:center;font-size:11px;color:var(--text3,#7880a0);margin:10px 0 0">
+        Versión de términos: v1.0 — Julio 2026 · <a href="mailto:zyra.ia.2026@gmail.com" style="color:#818cf8">Contacto</a>
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ GDPR COOKIE BANNER ══ -->
+<div id="zyra-gdpr-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9600;background:rgba(14,14,26,.97);border-top:1px solid rgba(99,102,241,.25);backdrop-filter:blur(12px);padding:14px 20px">
+  <div style="max-width:700px;margin:0 auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+    <div style="flex:1;min-width:240px">
+      <div style="font-size:13px;color:var(--text,#e8eaf6);font-weight:600;margin-bottom:3px">🍪 Uso de almacenamiento local</div>
+      <div style="font-size:12px;color:var(--text3,#7880a0);line-height:1.5">Zyra guarda tu sesión y preferencias en el almacenamiento local de tu navegador (no cookies de seguimiento). Sin esto la app no funciona. <a onclick="showLegal('privacy')" style="color:#818cf8;cursor:pointer">Ver política</a></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-shrink:0">
+      <button onclick="rejectGdpr()" style="padding:9px 16px;background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--text3,#7880a0);font-size:12px;cursor:pointer">Solo esenciales</button>
+      <button onclick="acceptGdpr()" style="padding:9px 18px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:10px;color:white;font-size:12px;font-weight:700;cursor:pointer">Entendido</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ ZYRA PIN — PANTALLA DE BLOQUEO ══ -->
 <div id="zyra-pin-overlay" style="display:none;position:fixed;inset:0;z-index:8999;background:#0a0a0f;align-items:center;justify-content:center;flex-direction:column;gap:24px">
   <div style="text-align:center">
@@ -1974,6 +2060,13 @@ async function api(path, method="GET", body=null) {
   const r = await fetch("/api" + path, opts);
   const d = await r.json();
   if(!r.ok) {
+    if(r.status === 401 && token) {
+      token = null; user = null;
+      localStorage.removeItem("zyra_token");
+      localStorage.removeItem("zyra_user");
+      zyraToast("Tu sesión expiró. Inicia sesión de nuevo.", "error");
+      showPage("login");
+    }
     const err = new Error(d.message || "Error");
     err.status = r.status;
     err.data = d;
@@ -2177,7 +2270,12 @@ async function doLoginVerify() {
     } catch(e) {}
     loadPlanStatus();
     loadGamification();
-    showPage("dashboard");
+    if (!d.user.termsAcceptedAt && !localStorage.getItem("zyra_terms_accepted")) {
+      _termsNextAction = "dashboard";
+      showTermsOverlay();
+    } else {
+      showPage("dashboard");
+    }
   } catch(e) { showError("vl-error", e.message); shakeCode("vl"); }
   finally { btn.disabled = false; btn.textContent = "Verificar y Entrar →"; }
 }
@@ -2221,7 +2319,12 @@ async function doRegisterVerify() {
     if (user?.name) {
       api("/auth/update-profile", "PUT", { name: user.name }).catch(() => {});
     }
-    startTest(true);
+    if (!d.user.termsAcceptedAt && !localStorage.getItem("zyra_terms_accepted")) {
+      _termsNextAction = "test";
+      showTermsOverlay();
+    } else {
+      startTest(true);
+    }
   } catch(e) { showError("vr-error", e.message); shakeCode("vr"); }
   finally { btn.disabled = false; btn.textContent = "Confirmar y Crear Cuenta →"; }
 }
@@ -2233,6 +2336,62 @@ function doLogout() {
   localStorage.removeItem("zyra_avatar_emoji");
   localStorage.removeItem("zyra_avatar_color");
   clearForms(); showPage("login");
+}
+
+/* ── TERMS & GDPR ── */
+let _termsNextAction = "dashboard";
+
+function showTermsOverlay() {
+  const overlay = document.getElementById("zyra-terms-overlay");
+  if(overlay) { overlay.style.display = "flex"; document.body.style.overflow = "hidden"; }
+}
+function onTermsScroll(el) { /* reserved for future scroll-tracking */ }
+function updateTermsBtn() {
+  const c1 = document.getElementById("tc-check-1")?.checked;
+  const c2 = document.getElementById("tc-check-2")?.checked;
+  const btn = document.getElementById("btn-accept-terms");
+  if(!btn) return;
+  btn.disabled = !(c1 && c2);
+  btn.style.background = (c1 && c2) ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "rgba(99,102,241,.3)";
+  btn.style.color = (c1 && c2) ? "white" : "rgba(255,255,255,.4)";
+  btn.textContent = (c1 && c2) ? "Acepto y quiero continuar →" : "Acepta los dos puntos para continuar";
+}
+async function acceptTermsAndContinue() {
+  try { await api("/auth/accept-terms", "POST"); } catch(e) {}
+  localStorage.setItem("zyra_terms_accepted", "v1.0-2026-07");
+  const overlay = document.getElementById("zyra-terms-overlay");
+  if(overlay) overlay.style.display = "none";
+  document.body.style.overflow = "";
+  if(_termsNextAction === "test") { startTest(true); } else { showPage("dashboard"); }
+}
+function acceptGdpr() {
+  localStorage.setItem("zyra_gdpr", "1");
+  const b = document.getElementById("zyra-gdpr-banner");
+  if(b) b.style.display = "none";
+}
+function rejectGdpr() {
+  localStorage.setItem("zyra_gdpr", "essential");
+  const b = document.getElementById("zyra-gdpr-banner");
+  if(b) b.style.display = "none";
+}
+function initGdprBanner() {
+  if(!localStorage.getItem("zyra_gdpr")) {
+    const b = document.getElementById("zyra-gdpr-banner");
+    if(b) b.style.display = "flex";
+  }
+}
+function initPasswordToggles() {
+  document.querySelectorAll(".input-wrap input[type='password']").forEach(inp => {
+    if(inp.parentNode.querySelector(".pw-toggle")) return;
+    const btn = document.createElement("button");
+    btn.type = "button"; btn.className = "pw-toggle"; btn.textContent = "👁";
+    btn.setAttribute("aria-label", "Mostrar/ocultar contraseña");
+    btn.onclick = () => {
+      inp.type = inp.type === "password" ? "text" : "password";
+      btn.textContent = inp.type === "password" ? "👁" : "🙈";
+    };
+    inp.parentNode.appendChild(btn);
+  });
 }
 
 /* ── AVATAR ── */
@@ -2681,6 +2840,8 @@ function toggleEmotionForm() {
 document.addEventListener("DOMContentLoaded", () => {
   const slider = document.getElementById("emotion-intensity");
   if(slider) slider.oninput = () => { document.getElementById("intensity-val").textContent = slider.value; };
+  initGdprBanner();
+  initPasswordToggles();
 });
 async function saveEmotion() {
   if(!selectedEmotion) return zyraToast("Selecciona una emoción primero", "error");

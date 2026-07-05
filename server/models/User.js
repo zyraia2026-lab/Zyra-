@@ -16,6 +16,10 @@ const S = new mongoose.Schema({
   // ── Uso diario de mensajes ──
   messagesUsedToday: { type: Number, default: 0 },
   messagesResetAt:   { type: Date, default: null },
+
+  // ── Consentimiento legal ──
+  termsAcceptedAt:      { type: Date, default: null },
+  termsAcceptedVersion: { type: String, default: null },
 });
 
 S.pre("save", async function(next) {

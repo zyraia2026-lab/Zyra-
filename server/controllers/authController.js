@@ -66,7 +66,7 @@ exports.registerVerify = async (req, res) => {
     res.status(201).json({
       success: true,
       token: tk(user._id),
-      user: { id: user._id, name: user.name, email: user.email, darkMode: user.darkMode }
+      user: { id: user._id, name: user.name, email: user.email, darkMode: user.darkMode, termsAcceptedAt: user.termsAcceptedAt }
     });
   } catch (e) {
     console.error("registerVerify:", e.message);
@@ -111,7 +111,7 @@ exports.loginVerify = async (req, res) => {
     res.json({
       success: true,
       token: tk(user._id),
-      user: { id: user._id, name: user.name, email: user.email, darkMode: user.darkMode }
+      user: { id: user._id, name: user.name, email: user.email, darkMode: user.darkMode, termsAcceptedAt: user.termsAcceptedAt }
     });
   } catch (e) {
     console.error("loginVerify:", e.message);
@@ -218,6 +218,20 @@ exports.forgotPasswordReset = async (req, res) => {
     res.json({ success: true, message: "Contraseña actualizada correctamente" });
   } catch(e) {
     console.error("forgotPasswordReset:", e.message);
+    res.status(500).json({ message: e.message });
+  }
+};
+
+// ── ACEPTAR TÉRMINOS Y CONDICIONES ──
+exports.acceptTerms = async (req, res) => {
+  try {
+    const TERMS_VERSION = "v1.0-2026-07";
+    await User.findByIdAndUpdate(req.user._id, {
+      termsAcceptedAt: new Date(),
+      termsAcceptedVersion: TERMS_VERSION,
+    });
+    res.json({ success: true, termsAcceptedAt: new Date(), version: TERMS_VERSION });
+  } catch(e) {
     res.status(500).json({ message: e.message });
   }
 };
