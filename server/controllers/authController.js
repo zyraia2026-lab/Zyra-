@@ -190,9 +190,70 @@ exports.updateProfile = async (req, res) => {
 // ── UPDATE PASSWORD ──
 exports.updatePassword = async (req, res) => {
   try {
+    const { currentPassword, password } = req.body;
+    if (!currentPassword || !password)
+      return res.status(400).json({ message: "Se requieren la contraseña actual y la nueva" });
+    if (password.length < 6)
+      return res.status(400).json({ message: "La nueva contraseña debe tener mínimo 6 caracteres" });
     const user = await User.findById(req.user._id).select("+password");
-    user.password = req.body.password;
+    if (!(await user.matchPassword(currentPassword)))
+      return res.status(401).json({ message: "Contraseña actual incorrecta" });
+    user.password = password;
     await user.save();
     res.json({ success: true });
   } catch(e) { res.status(500).json({ message: e.message }); }
+};
+
+// ── OLVIDÉ MI CONTRASEÑA — Paso 1: enviar código ──
+exports.forgotPasswordRequest = async (req, res) => {
+  try {
+    cleanupPendingCodes();
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email requerido" });
+    const user = await User.findOne({ email });
+    // Responder igual aunque no exista (evitar user enumeration)
+    if (user) {
+      const code    = generateCode();
+      const expires = Date.now() + 10 * 60 * 1000;
+      pendingCodes[`reset_${email}`] = { code, expires, userId: user._id };
+      await sendVerificationCode(email, code, user.name, "reset");
+    }
+    res.json({ success: true, message: "Si ese correo existe, recibirás un código" });
+  } catch(e) {
+    console.error("forgotPasswordRequest:", e.message);
+    res.status(500).json({ message: "Error al enviar código" });
+  }
+};
+
+// ── OLVIDÉ MI CONTRASEÑA — Paso 2: verificar código y cambiar contraseña ──
+exports.forgotPasswordReset = async (req, res) => {
+  try {
+    cleanupPendingCodes();
+    const { email, code, password } = req.body;
+    if (!email || !code || !password)
+      return res.status(400).json({ message: "Todos los campos son requeridos" });
+    if (password.length < 6)
+      return res.status(400).json({ message: "Mínimo 6 caracteres en la contraseña" });
+
+    const key     = `reset_${email}`;
+    const pending = pendingCodes[key];
+    if (!pending)
+      return res.status(400).json({ message: "No hay un código pendiente para este correo" });
+    if (Date.now() > pending.expires) {
+      delete pendingCodes[key];
+      return res.status(400).json({ message: "El código expiró. Solicita uno nuevo" });
+    }
+    if (pending.code !== code.trim())
+      return res.status(400).json({ message: "Código incorrecto" });
+
+    delete pendingCodes[key];
+    const user = await User.findById(pending.userId).select("+password");
+    if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
+    user.password = password;
+    await user.save();
+    res.json({ success: true, message: "Contraseña actualizada correctamente" });
+  } catch(e) {
+    console.error("forgotPasswordReset:", e.message);
+    res.status(500).json({ message: e.message });
+  }
 };

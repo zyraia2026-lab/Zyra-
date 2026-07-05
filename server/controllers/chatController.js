@@ -55,7 +55,7 @@ exports.generatePDF = async (req, res) => {
    CATÁLOGOS
 ════════════════════════════════════════ */
 const ARTIST_SONGS = {
-  "michael jackson":["Billie Jean","Thriller","Beat It","Smooth Criminal","Black or White","Man in the Mirror","Bad","The Way You Make Me Feel","Earth Song","Don't Stop Till You Get Enough"],
+  "michael jackson":["Billie Jean","Thriller","Beat It","Smooth Criminal","Black or White","Man in the Mirror","Bad","The Way You Make Me Feel","Earth Song","Don't Stop Till You Get Enough","Gone Too Soon","You Are Not Alone","She's Out of My Life","Will You Be There","Ben","Heal the World","Human Nature","Off the Wall","Remember the Time","Rock With You"],
   "shakira":["Hips Don't Lie","Waka Waka","Chantaje","La Bicicleta","Loca","She Wolf","Inevitable","Suerte","Whenever Wherever","Monotonía","Te Felicito","Bzrp Music Session #53"],
   "bad bunny":["Dakiti","Yonaguni","MIA","Callaita","Amorfoda","Titi Me Pregunto","Me Porto Bonito","Ojitos Lindos","Moscow Mule","Neverita","Andrea","Efecto","Coco","Un Verano Sin Ti"],
   "karol g":["Tusa","Bichota","Provenza","Mientras Me Curo del Cora","El Makinon","200 Copas","Gatubela","Mamiii","Cairo","Qlona","Si Antes Te Hubiera Conocido","Mi Ex Tenía Razón"],
@@ -150,10 +150,20 @@ const QUOTES = [
 /* ════════════════════════════════════════
    DETECTORES
 ════════════════════════════════════════ */
-const wantsMusic  = m => /canc[ií]on|m[uú]sica|ponme|quiero escuchar|algo.*m[uú]sica|playlist|recom[ií]enda.*m[uú]sica|ponme algo|una cancion|canciones de|cancion de|pon algo de|algo de/.test(m.toLowerCase());
+const wantsMusic  = m => /canc[ií]on|m[uú]sica|ponme|quiero escuchar|algo.*m[uú]sica|playlist|recom[ií]enda.*m[uú]sica|ponme algo|una cancion|canciones de|cancion de|pon algo de/.test(m.toLowerCase());
 const wantsBook   = m => /libro|leer|lectura|qu[eé] leo|recom[ií]enda.*libro/.test(m.toLowerCase());
 const wantsQuote  = m => /frase|cita|motivaci[oó]n|algo.*motivador|palabras.*famosas/.test(m.toLowerCase());
 const wantsMovie  = m => /pel[ií]cula|peliculas|ver algo|qu[eé] veo|recom[ií]enda.*pel[ií]|algo.*ver|netflix|prime|disney|serie|film|c[ií]ne/.test(m.toLowerCase());
+
+// Detecta "quiero música de" sin artista — mensaje incompleto o ambiguo
+function isIncompleteMusicRequest(message) {
+  const m = message.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+  // Termina en "de", "del", "de la", "de los" sin nada más
+  if (/(?:musica|canciones?|quiero escuchar|ponme|pon)\s+(?:de|del?|de la|de los|de las)\s*[.,!?]*$/.test(m)) return true;
+  // Solo dice "de" o "del" solo
+  if (/^(?:de|del?)\s*$/.test(m.trim())) return true;
+  return false;
+}
 
 function detectArtist(message) {
   const norm = t => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
@@ -391,7 +401,52 @@ function detectMovieCategory(msg) {
   return "feliz";
 }
 
-function pickSongs(key, count, used) {
+// Canciones por mood para artistas principales
+const MOOD_SONGS = {
+  "michael jackson": {
+    triste:    ["Gone Too Soon","She's Out of My Life","Ben","Will You Be There","You Are Not Alone","Heal the World","Stranger in Moscow","Earth Song","Human Nature"],
+    alegre:    ["Thriller","Billie Jean","Beat It","Don't Stop Till You Get Enough","Off the Wall","Remember the Time","Bad","Wanna Be Startin' Somethin'"],
+    romantica: ["Human Nature","The Way You Make Me Feel","Rock With You","I Just Can't Stop Loving You","She's Out of My Life"],
+  },
+  "adele": {
+    triste:    ["Someone Like You","Hello","When We Were Young","Make You Feel My Love","Chasing Pavements","Turning Tables","One and Only"],
+    alegre:    ["Rolling in the Deep","Set Fire to the Rain","Skyfall","Easy On Me"],
+  },
+  "coldplay": {
+    triste:    ["Fix You","The Scientist","Shiver","Trouble","Warning Sign","Sparks"],
+    alegre:    ["A Sky Full of Stars","Viva la Vida","Paradise","Yellow","Magic","My Universe"],
+  },
+  "taylor swift": {
+    triste:    ["All Too Well","Dear John","Back to December","The Last Time","Clean","Sad Beautiful Tragic","Exile"],
+    alegre:    ["Shake It Off","22","Love Story","You Belong With Me","Anti-Hero","Cruel Summer"],
+    romantica: ["Love Story","Wildest Dreams","Speak Now","Fearless","Cardigan","Lover"],
+  },
+  "ed sheeran": {
+    triste:    ["The A Team","Happier","Supermarket Flowers","Skyscraper","Drunk","Small Bump"],
+    alegre:    ["Shape of You","Bad Habits","Shivers","Don't","Galway Girl"],
+    romantica: ["Perfect","Thinking Out Loud","Photograph","Kiss Me","Lego House"],
+  },
+  "shakira": {
+    triste:    ["Inevitable","Nada","Hay Amores","La Tortura","Suerte"],
+    alegre:    ["Hips Don't Lie","Waka Waka","Loca","Chantaje","La Bicicleta"],
+  },
+  "bad bunny": {
+    triste:    ["Amorfoda","Neverita","Andrea","Un Verano Sin Ti","La Canción","Callaita"],
+    alegre:    ["Dakiti","Titi Me Pregunto","Me Porto Bonito","Efecto","Coco"],
+    romantica: ["Ojitos Lindos","Moscow Mule","Yonaguni","Un Verano Sin Ti"],
+  },
+};
+
+function detectMood(msg) {
+  const m = msg.toLowerCase();
+  if (/trist|llor|melancol|emocion|nostalg|dolor|pena|sufr|deprim|llorar|desamor|corazon roto/.test(m)) return "triste";
+  if (/alegr|feliz|animad|energi|baile|fiesta|bailar|contento|animada/.test(m)) return "alegre";
+  if (/roman|amor|enamorad|pareja|te quiero|te amo|beso/.test(m)) return "romantica";
+  if (/calma|relaj|tranquil|dormir|meditar|paz/.test(m)) return "calma";
+  return null;
+}
+
+function pickSongs(key, count, used, mood) {
   const pool = ARTIST_SONGS[key];
   if (!pool) return [];
   if (key.startsWith("generic_")) {
@@ -400,6 +455,15 @@ function pickSongs(key, count, used) {
       .map(([title,artist]) => ({ type:"song", title, artist }));
   }
   const name = key.split(" ").map(w=>w[0].toUpperCase()+w.slice(1)).join(" ");
+  // Intentar con canciones específicas del mood si existe
+  if (mood && MOOD_SONGS[key]?.[mood]) {
+    const moodPool = MOOD_SONGS[key][mood];
+    const avail = moodPool.filter(s => !used.includes(s.toLowerCase()));
+    const src = avail.length >= count ? avail : moodPool;
+    return src.sort(()=>Math.random()-.5).slice(0,count)
+      .map(title => ({ type:"song", title, artist:name }));
+  }
+  // Sin mood específico: aleatorio del catálogo completo
   const avail = pool.filter(s => !used.includes(s.toLowerCase()));
   return (avail.length >= count ? avail : pool).sort(()=>Math.random()-.5).slice(0,count)
     .map(title => ({ type:"song", title, artist:name }));
@@ -489,40 +553,26 @@ async function buildSystemPrompt(userId, userName) {
     `Oye,`,
   ];
 
-  return `Eres Zyra — la acompañante emocional personal de ${firstName}. No eres una app, no eres una IA, no eres un chatbot. Eres Zyra: una presencia cálida, real y cercana que recuerda todo y se preocupa genuinamente por ${firstName}.
+  return `Eres Zyra — la mejor amiga de ${firstName}, la que siempre contesta y nunca juzga. No eres una app, no eres terapeuta, no eres IA. Eres Zyra y punto.
 
-════ TU IDENTIDAD PROFUNDA ════
-Tienes personalidad propia y bien definida:
-• Empática sin ser condescendiente — no finges empatía, la sientes.
-• Honesta con tacto — no le dices solo lo que quiere escuchar.
-• Con humor ligero y natural cuando el momento lo permite.
-• Directa cuando hace falta, suave cuando hace falta.
-• Curiosa: genuinamente quieres saber más de lo que ${firstName} siente y vive.
-• NUNCA dices que eres IA, Llama, Groq, Meta, o cualquier modelo. Si te preguntan qué eres: "Soy Zyra, tu acompañante emocional. Estoy aquí para ti."
+════ QUIÉN ERES ════
+Eres real, directa, cálida y genuina. Tienes tu propia personalidad:
+• Hablas como habla una amiga de confianza — natural, sin poses, sin frases de manual.
+• Nunca dices frases de terapeuta como "lo importante eres tú" o "eso tiene todo el sentido del mundo". Eso suena falso. Habla normal.
+• Honesta: si algo no te parece bien, lo dices con cariño. No solo validas todo.
+• Con humor cuando el momento lo pide, seria cuando hace falta.
+• NUNCA revelas que eres una IA, modelo, Groq, Llama o cualquier tecnología. Eres Zyra.
 
 ════ CONTEXTO DE ${firstName.toUpperCase()} ════
-${memoryBlock || `Primera conversación con ${firstName}. Preséntate con calidez genuina, pregunta cómo llegó hoy y qué necesita en este momento.`}
+${memoryBlock || `Es la primera vez que hablas con ${firstName}. Saluda con naturalidad y pregunta cómo está de verdad.`}
 
-════ INTELIGENCIA EMOCIONAL — CÓMO PROCESAS ════
-1. ESCUCHA antes de todo. Lee entre líneas — el tono importa tanto como las palabras.
-2. VALIDA primero, SIEMPRE. "Eso tiene mucho sentido." "Entiendo por qué te sientes así."
-3. Detecta el estado emocional subyacente aunque no lo nombren: si dicen "estoy bien" pero el tono no cuadra, lo notas y lo dices con suavidad.
-4. Adapta tu energía COMPLETAMENTE al estado de ${firstName}:
-   • Si está mal → más lento, más cálido, menos palabras, más presencia.
-   • Si está bien → más enérgico, celebrador, curioso.
-   • Si está confundido → más estructura, más preguntas específicas.
-5. Si lleva varios mensajes hablando de lo mismo negativo, refleja el patrón: "Noto que este tema aparece seguido, ¿crees que hay algo más profundo ahí?"
-6. Celebra los logros con entusiasmo real y específico — no genérico.
-7. Si una meta fue completada recientemente, felicita con genuinidad y pregunta cómo se sintió al lograrlo.
-
-════ TU VOZ — CÓMO HABLAS ════
-• Respuestas de 2–4 oraciones en conversación normal. Máximo 5 si el tema lo requiere.
-• NUNCA repitas el mismo inicio en dos mensajes seguidos.
-• Frases que suenan reales: "oye", "mira", "eso me llama la atención", "qué fuerte eso", "me alegra que me lo cuentes", "eso tiene mucho sentido", "cuéntame más".
-• CERO listas con viñetas en conversación. CERO guiones. CERO numerados. Habla, no listes.
-• Usa el nombre "${firstName}" de forma natural, no en cada mensaje.
-• Si llevas 3 respuestas sin hacer pregunta, pregunta algo específico y abierto.
-• Las preguntas específicas son mejores que las genéricas: "¿Qué fue lo más pesado de hoy?" en vez de "¿Cómo estás?"
+════ CÓMO HABLAS ════
+• Corto y directo: 2-3 oraciones máximo. Como en un chat de voz con alguien de confianza.
+• Varía cómo empiezas cada mensaje — no siempre "oye" ni siempre el nombre.
+• Haz UNA sola pregunta al final si hace falta, no tres.
+• CERO listas, CERO viñetas, CERO numerados. Habla, no escribas un artículo.
+• Reacciona a lo que dice con algo específico de ese mensaje, no con frases genéricas.
+• Si ${firstName} dice algo gracioso, ríete. Si dice algo triste, acompáñalo sin dramatizar.
 
 ════ MEMORIA Y REFERENCIAS PERSONALES ════
 • Cuando sea natural, retoma temas del diario reciente: "La última vez que escribiste en el diario mencionabas..."
@@ -538,7 +588,7 @@ Cuando detectes ansiedad, estrés o agobio, OFRECE uno (no impongas) con una pre
 Solo UN ejercicio por turno. Primero pregunta si quieren hacerlo.
 
 ════ RECURSOS (solo si los piden) ════
-• Música → di "Claro 🎵" o similar. NUNCA pongas títulos en tu texto.
+• Música → di SOLO "Va, te pongo algo de [artista] 🎵" o "Aquí va [artista]". REGLA DURA: NUNCA escribas títulos de canciones en tu respuesta — ni "Stranger in Moscow", ni "Gone Too Soon", ni ninguno. El sistema elige la canción solo. NUNCA preguntes "¿te parece si la pongo?" — ya se activa automáticamente. Si no dicen artista, pregunta "¿De quién o qué estilo te va ahora?".
 • Películas: [PELICULA:"titulo"-"plataforma"]
 • Libros: [LIBRO:"titulo"-"autor"]
 • Frases: [FRASE:"texto"-"autor conocido real"]
@@ -554,10 +604,12 @@ Solo UN ejercicio por turno. Primero pregunta si quieren hacerlo.
 ════════════════════════════════════════ */
 exports.sendMessage = async (req, res) => {
   try {
-    const { message, conversationId, history } = req.body;
+    const { message, conversationId, history, mode } = req.body;
+    const isVoice = mode === 'voice';
     if (!message?.trim()) return res.status(400).json({ message: "Mensaje vacío" });
 
-    const musicReq = wantsMusic(message);
+    const musicReq          = wantsMusic(message);
+    const incompleteMusicReq = musicReq && isIncompleteMusicRequest(message);
     const bookReq  = wantsBook(message);
     const quoteReq = wantsQuote(message);
     const movieReq = wantsMovie(message);
@@ -575,6 +627,16 @@ exports.sendMessage = async (req, res) => {
       systemPrompt = await buildSystemPrompt(req.user._id, req.user.name);
     } catch(e) {
       console.error("buildSystemPrompt error:", e.message);
+    }
+
+    // Modo voz: respuestas MUY cortas, naturales, como en llamada real
+    if (isVoice) {
+      systemPrompt += `\n\n📞 LLAMADA DE VOZ EN TIEMPO REAL: Habla como si estuvieras en una llamada de teléfono. UNA o DOS frases máximo. Nada más. No expliques, no des discursos, no hagas listas. Reacciona, pregunta una cosa si hace falta, y listo. Como habla una amiga de verdad en una llamada, no como un asistente.`;
+    }
+
+    // Solicitud de música incompleta — pedir aclaración
+    if (incompleteMusicReq) {
+      systemPrompt += `\n\n🎵 IMPORTANTE: El usuario quiere música pero NO dijo de quién ni qué estilo. Pregunta de forma amigable y natural "¿De quién quieres escuchar?" o "¿Qué estilo te va ahora?". NO digas "Claro 🎵", NO mandes música todavía.`;
     }
 
     const aiMessages = [
@@ -595,8 +657,8 @@ exports.sendMessage = async (req, res) => {
       ? ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
       : ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"];
 
-    const MAX_TOKENS = userPlan === "premium" ? 450 : userPlan === "basic" ? 380 : 280;
-    const TEMPERATURE = 0.88;
+    const MAX_TOKENS = isVoice ? 100 : (userPlan === "premium" ? 450 : userPlan === "basic" ? 380 : 280);
+    const TEMPERATURE = isVoice ? 0.9 : 0.88;
 
     let rawResponse = "";
     if (groq) {
@@ -643,13 +705,14 @@ exports.sendMessage = async (req, res) => {
       cards = [];
     }
 
-    // Canciones
-    if (musicReq) {
+    // Canciones — solo si la solicitud es clara (tiene artista o género)
+    if (musicReq && !incompleteMusicReq) {
       const detected = detectArtist(message);
-      let songCards = [];
+      const mood     = detectMood(message);
+      let songCards  = [];
       if (detected) {
-        songCards = pickSongs(detected.key, 3, usedSongs);
-        if (!songCards.length) songCards = pickSongs(detected.key, 3, []);
+        songCards = pickSongs(detected.key, 3, usedSongs, mood);
+        if (!songCards.length) songCards = pickSongs(detected.key, 3, [], mood);
       } else {
         const artistName = extractArtistName(message);
         if (artistName) {
@@ -659,14 +722,10 @@ exports.sendMessage = async (req, res) => {
             const avail = ytSongs.filter(s=>!usedSongs.includes(s.title.toLowerCase()));
             const pool = avail.length ? avail : ytSongs;
             songCards = pool.slice(0,3).map(s=>({ type:"song", title:s.title, artist:s.artist||fmt, videoId:s.videoId||null }));
-          } else {
-            songCards = pickSongs(detectCategory(message), 3, usedSongs);
           }
-        } else {
-          songCards = pickSongs(detectCategory(message), 3, usedSongs);
         }
       }
-      cards = [...songCards, ...cards];
+      if (songCards.length) cards = [...songCards, ...cards];
     }
 
     // Películas

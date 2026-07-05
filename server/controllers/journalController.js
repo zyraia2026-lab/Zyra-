@@ -31,6 +31,21 @@ exports.createEntry = async (req, res) => {
     }
 
     const entry = await Journal.create({ user: req.user._id, title, content, emotion, tags });
+
+    // Verificar logro journal_10 en background
+    Journal.countDocuments({ user: req.user._id }).then(async (total) => {
+      if (total >= 10) {
+        const Profile = require("../models/Profile");
+        const p = await Profile.findOne({ user: req.user._id });
+        if (p && !(p.achievements || []).includes("journal_10")) {
+          await Profile.findOneAndUpdate(
+            { user: req.user._id },
+            { $addToSet: { achievements: "journal_10" }, $inc: { coins: 20 } }
+          );
+        }
+      }
+    }).catch(() => {});
+
     res.status(201).json({ success: true, entry });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };

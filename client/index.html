@@ -722,6 +722,7 @@
         Tus datos están cifrados y son 100% privados
       </div>
       <div class="auth-divider">o</div>
+      <div class="auth-link" style="margin-bottom:8px">¿Olvidaste tu contraseña? <a onclick="showPage('forgot-password')">Recupérala aquí</a></div>
       <div class="auth-link">¿No tienes cuenta? <a onclick="showPage('register')">Regístrate gratis aquí</a></div>
     </div>
   </div>
@@ -1446,8 +1447,9 @@
 
   <div class="card" style="margin-bottom:20px">
     <div class="card-header"><span class="card-title">🔒 Cambiar contraseña</span></div>
+    <div class="form-group"><label>Contraseña actual</label><input type="password" id="prof-pass-current" placeholder="Tu contrase��a actual"/></div>
     <div class="form-group"><label>Nueva contraseña</label><input type="password" id="prof-pass-new" placeholder="Mínimo 6 caracteres"/></div>
-    <div class="form-group"><label>Confirmar contraseña</label><input type="password" id="prof-pass-confirm" placeholder="Repite la contraseña"/></div>
+    <div class="form-group"><label>Confirmar nueva contraseña</label><input type="password" id="prof-pass-confirm" placeholder="Repite la contraseña"/></div>
     <button class="btn-primary" style="padding:12px;font-size:13px;background:linear-gradient(135deg,#7c3aed,#4f46e5)" onclick="saveProfilePassword()">Cambiar contraseña</button>
   </div>
 
@@ -1506,6 +1508,78 @@
 
 </div>
 </div>
+<!-- ══════ FORGOT PASSWORD ══════ -->
+<div id="page-forgot-password" class="page">
+<div class="auth-wrap">
+  <div class="auth-right" style="width:100%;max-width:480px;margin:auto">
+    <div class="auth-card">
+      <div class="auth-logo-wrap">
+        <img src="Imagenes/1000154669.png" class="auth-logo-img" alt="Zyra"/>
+        <span class="auth-brand">Zyra</span>
+      </div>
+      <h1>¿Olvidaste tu contraseña?</h1>
+      <p class="auth-sub">Te enviaremos un código de verificación a tu correo</p>
+      <div class="error-box" id="forgot-error"></div>
+      <div class="form-group">
+        <label>Correo electrónico</label>
+        <div class="input-wrap">
+          <span class="input-icon">✉️</span>
+          <input type="email" id="forgot-email" placeholder="tu@email.com" autocomplete="email"
+            onkeydown="if(event.key==='Enter')doForgotRequest()"/>
+        </div>
+      </div>
+      <button class="btn-primary" id="btn-forgot" onclick="doForgotRequest()">Enviar código →</button>
+      <div class="auth-divider">o</div>
+      <div class="auth-link">¿Recordaste tu contraseña? <a onclick="showPage('login')">Inicia sesión</a></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══════ RESET PASSWORD ══════ -->
+<div id="page-reset-password" class="page">
+<div class="auth-wrap">
+  <div class="auth-right" style="width:100%;max-width:480px;margin:auto">
+    <div class="auth-card">
+      <div class="auth-logo-wrap">
+        <img src="Imagenes/1000154669.png" class="auth-logo-img" alt="Zyra"/>
+        <span class="auth-brand">Zyra</span>
+      </div>
+      <h1>Nueva contraseña</h1>
+      <p class="auth-sub" id="reset-sub">Ingresa el código que enviamos a tu correo y elige una nueva contraseña</p>
+      <div class="error-box" id="reset-error"></div>
+      <div class="form-group">
+        <label>Código de verificación</label>
+        <div class="input-wrap">
+          <span class="input-icon">🔢</span>
+          <input type="text" id="reset-code" placeholder="6 dígitos" maxlength="6" autocomplete="one-time-code"
+            onkeydown="if(event.key==='Enter')doResetPassword()"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Nueva contraseña</label>
+        <div class="input-wrap">
+          <span class="input-icon">🔑</span>
+          <input type="password" id="reset-pass" placeholder="Mínimo 6 caracteres"
+            onkeydown="if(event.key==='Enter')doResetPassword()"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Confirmar contraseña</label>
+        <div class="input-wrap">
+          <span class="input-icon">🔑</span>
+          <input type="password" id="reset-pass-confirm" placeholder="Repite la contraseña"
+            onkeydown="if(event.key==='Enter')doResetPassword()"/>
+        </div>
+      </div>
+      <button class="btn-primary" id="btn-reset" onclick="doResetPassword()">Cambiar contraseña →</button>
+      <div class="auth-divider">o</div>
+      <div class="auth-link">¿No recibiste el código? <a onclick="doForgotRequest(true)">Reenviar</a></div>
+    </div>
+  </div>
+</div>
+</div>
+
 <!-- ══════ VOICE CALL ══════ -->
 <div id="page-voice-call" class="page">
   <div class="vc-wrap">
@@ -1532,9 +1606,13 @@
         <div class="vc-ring" style="--s:1.7;--d:.8s"></div>
       </div>
       <div class="vc-avatar" id="vc-avatar">
+        <!-- Video D-ID (visible cuando Zyra habla) -->
+        <video id="vc-avatar-vid" playsinline muted style="display:none;width:100%;height:100%;object-fit:cover;object-position:50% 8%;border-radius:50%"></video>
+        <!-- Imagen estática (idle) -->
         <img src="/Imagenes/zyra-avatar.png" alt="Zyra" id="vc-avatar-img"/>
-        <div class="vc-avatar-glow"></div>
       </div>
+      <!-- Aura exterior — fuera de overflow:hidden para que no se recorte -->
+      <div class="vc-avatar-glow"></div>
     </div>
     <div class="vc-name">Zyra</div>
     <div class="vc-status" id="vc-status">Conectando...</div>
@@ -1675,6 +1753,14 @@ async function api(path, method="GET", body=null) {
   }
   return d;
 }
+async function apiPublic(path, method="GET", body=null) {
+  const opts = {method, headers:{"Content-Type":"application/json"}};
+  if(body) opts.body = JSON.stringify(body);
+  const r = await fetch("/api" + path, opts);
+  const d = await r.json();
+  if(!r.ok) { const err = new Error(d.message || "Error"); err.status = r.status; throw err; }
+  return d;
+}
 
 /* ── CODE INPUTS ── */
 function clearForms() {
@@ -1749,7 +1835,7 @@ function showPage(name) {
   if(name === "games")     setTimeout(()=>{ if(typeof openGame==="function") openGame('breath'); }, 100);
 
   // ── Tabbar móvil: mostrar/ocultar y marcar activo ──
-  const noTabPages = ['login','register','verify-login','verify-register','voice-call'];
+  const noTabPages = ['login','register','verify-login','verify-register','voice-call','forgot-password','reset-password'];
   const tabbar = document.getElementById('mobile-tabbar');
   if(tabbar) {
     tabbar.style.display = noTabPages.includes(name) ? 'none' : '';
@@ -1777,6 +1863,48 @@ window.addEventListener('popstate', (e) => {
   showPage(page);
   window._zyraPopstateNav = false;
 });
+
+/* ── FORGOT / RESET PASSWORD ── */
+let _forgotEmail = "";
+
+async function doForgotRequest(resend = false) {
+  const email = resend ? _forgotEmail : document.getElementById("forgot-email")?.value?.trim();
+  if (!email) return showError("forgot-error", "Ingresa tu correo");
+  _forgotEmail = email;
+  const btn = document.getElementById("btn-forgot");
+  if (btn) { btn.disabled = true; btn.textContent = "Enviando..."; }
+  try {
+    await apiPublic("/auth/forgot-password/request", "POST", { email });
+    const sub = document.getElementById("reset-sub");
+    if (sub) sub.textContent = `Ingresa el código que enviamos a ${email} y elige una nueva contraseña`;
+    showPage("reset-password");
+  } catch(e) {
+    showError("forgot-error", e.message || "Error al enviar código");
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = "Enviar código →"; }
+  }
+}
+
+async function doResetPassword() {
+  hideError("reset-error");
+  const code = document.getElementById("reset-code")?.value?.trim();
+  const pass  = document.getElementById("reset-pass")?.value;
+  const conf  = document.getElementById("reset-pass-confirm")?.value;
+  if (!code || !pass || !conf) return showError("reset-error", "Completa todos los campos");
+  if (pass !== conf) return showError("reset-error", "Las contraseñas no coinciden");
+  if (pass.length < 6) return showError("reset-error", "Mínimo 6 caracteres");
+  const btn = document.getElementById("btn-reset");
+  if (btn) { btn.disabled = true; btn.textContent = "Cambiando..."; }
+  try {
+    await apiPublic("/auth/forgot-password/reset", "POST", { email: _forgotEmail, code, password: pass });
+    zyraToast("✅ Contraseña actualizada. Inicia sesión.", "success");
+    showPage("login");
+  } catch(e) {
+    showError("reset-error", e.message || "Código incorrecto o expirado");
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = "Cambiar contraseña →"; }
+  }
+}
 
 /* ── AUTH ── */
 async function doLoginRequest() {
@@ -2089,13 +2217,15 @@ async function confirmDeleteAccount() {
   if (ok) zyraToast("Contacta al soporte para eliminar tu cuenta.", "info");
 }
 async function saveProfilePassword() {
-  const p1 = document.getElementById("prof-pass-new").value;
-  const p2 = document.getElementById("prof-pass-confirm").value;
-  if(!p1 || !p2) return zyraToast("Completa ambos campos", "error");
+  const cur = document.getElementById("prof-pass-current").value;
+  const p1  = document.getElementById("prof-pass-new").value;
+  const p2  = document.getElementById("prof-pass-confirm").value;
+  if(!cur || !p1 || !p2) return zyraToast("Completa todos los campos", "error");
   if(p1 !== p2) return zyraToast("Las contraseñas no coinciden", "error");
   if(p1.length < 6) return zyraToast("Mínimo 6 caracteres", "error");
   try {
-    await api("/auth/update-password","PUT",{password:p1});
+    await api("/auth/update-password","PUT",{ currentPassword: cur, password: p1 });
+    document.getElementById("prof-pass-current").value = "";
     document.getElementById("prof-pass-new").value = "";
     document.getElementById("prof-pass-confirm").value = "";
     zyraToast("✅ Contraseña actualizada", "success");
@@ -3448,9 +3578,10 @@ async function sendMsg() {
     }
 
     addBotMsg(d.response, null, d.cards||[]);
+    zyraChatSpeak(d.response);
     chatHistory.push({role:"assistant",content:d.response});
     if(chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
-    if(!currentConvId) { currentConvId = d.conversationId; loadHistory(); }
+    if(!currentConvId || currentConvId !== String(d.conversationId)) { currentConvId = String(d.conversationId); loadHistory(); }
     // Trigger mission after 5 messages in a session
     const userMsgs = chatHistory.filter(m => m.role === 'user').length;
     if (userMsgs === 5) triggerMission('chat_zyra');
@@ -3562,6 +3693,10 @@ function openVoiceCall() {
   vcHistory = (chatHistory || []).slice(-10);
   vcSeconds = 0; vcListening = false; vcMuted = false; vcSpeaking = false; vcCurrentSong = null;
 
+  // Ocultar banner PWA durante llamada
+  const _pwaBanner = document.getElementById('pwa-install-banner');
+  if (_pwaBanner) _pwaBanner.style.display = 'none';
+
   showPage('voice-call');
 
   if(vcTimer) clearInterval(vcTimer);
@@ -3605,6 +3740,8 @@ function openVoiceCall() {
 }
 
 /* Crear nueva instancia SR cada vez que se necesite */
+let _vcSRTimer = null;
+
 function vcCreateSR() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SR) return null;
@@ -3612,32 +3749,58 @@ function vcCreateSR() {
   sr.lang = 'es-ES';
   sr.continuous = false;
   sr.interimResults = true;
+
+  // Auto-timeout: si no habla en 12 segundos, detiene el micrófono
+  const startTimeout = () => {
+    if (_vcSRTimer) clearTimeout(_vcSRTimer);
+    _vcSRTimer = setTimeout(() => {
+      if (vcListening && vcSR) {
+        try { vcSR.abort(); } catch(e) {}
+        vcSR = null;
+        vcSetListening(false);
+        vcSetWaveLabel('Toca el micrófono para hablar');
+      }
+    }, 12000);
+  };
+
+  sr.onstart = () => startTimeout();
+
   sr.onresult = (e) => {
+    if (_vcSRTimer) { clearTimeout(_vcSRTimer); _vcSRTimer = null; }
     const transcript = Array.from(e.results).map(r=>r[0].transcript).join('');
     vcSetWaveLabel('🎤 '+transcript.substring(0,60)+(transcript.length>60?'...':''));
     if(e.results[e.results.length-1].isFinal && transcript.trim()) {
       vcSetListening(false);
-      vcSendMessage(transcript.trim());
+      if (_vcAudioPlaying) { try { _vcAudioPlaying.pause(); } catch(e){} _vcAudioPlaying = null; }
+      vcSpeaking = false; vcSetBodyClass(false);
+      // Corregir errores comunes de reconocimiento de voz
+      const normalized = transcript.trim()
+        .replace(/\b(Siri|Sira|Cira|Sierra|Syra|Zira|Zyra)\b/gi, 'Zyra');
+      vcSendMessage(normalized);
     }
   };
   sr.onerror = (e) => {
+    if (_vcSRTimer) { clearTimeout(_vcSRTimer); _vcSRTimer = null; }
     vcSetListening(false);
     if(e.error === 'not-allowed') {
       vcSetWaveLabel('❌ Permite el micrófono en tu navegador');
     } else if(e.error === 'no-speech') {
       vcSetWaveLabel('No te escuché, toca de nuevo para hablar');
-    } else {
+    } else if(e.error !== 'aborted') {
       vcSetWaveLabel('⚠️ Error: '+e.error);
     }
     setTimeout(()=>vcSetWaveLabel('Toca el micrófono para hablar'), 3000);
   };
   sr.onend = () => {
+    if (_vcSRTimer) { clearTimeout(_vcSRTimer); _vcSRTimer = null; }
     vcSetListening(false);
   };
   return sr;
 }
 
 function endVoiceCall() {
+  vcDIDToken++; // cancel any pending D-ID request
+  vcAvatarReset();
   destroyZyra3DAvatar();
   if(vcTimer) { clearInterval(vcTimer); vcTimer = null; }
   if(vcSR) { try { vcSR.abort(); } catch(e){} vcSR = null; }
@@ -3662,10 +3825,13 @@ function vcToggleListen() {
     return;
   }
 
-  // Detener TTS si está hablando
+  // Detener audio de Zyra si estaba hablando
+  if (_vcAudioPlaying) { try { _vcAudioPlaying.pause(); } catch(e){} _vcAudioPlaying = null; }
   window.speechSynthesis.cancel();
+  vcDIDToken++; // cancelar peticiones/polling pendientes
   vcSpeaking = false;
   vcSetBodyClass(false);
+  vcAvatarReset(); // ocultar video D-ID si estaba visible
 
   // SIEMPRE crear una nueva instancia — soluciona el error "already started"
   vcSR = vcCreateSR();
@@ -3689,7 +3855,7 @@ function vcToggleMute() {
   const label = document.getElementById('vc-mute-label');
   if(icon)  icon.textContent  = vcMuted ? '🔇' : '🔊';
   if(label) label.textContent = vcMuted ? 'Con sonido' : 'Silencio';
-  if(vcMuted) { window.speechSynthesis.cancel(); vcSpeaking = false; vcSetBodyClass(false); }
+  if(vcMuted) { window.speechSynthesis.cancel(); vcDIDToken++; vcAvatarReset(); vcSpeaking = false; vcSetBodyClass(false); }
 }
 
 async function vcSendMessage(text) {
@@ -3700,7 +3866,7 @@ async function vcSendMessage(text) {
   vcHistory.push({role:'user',content:text});
   vcSetStatus('Zyra está pensando...');
   try {
-    const d = await api('/chat','POST',{message:text,conversationId:vcConvId,history:vcHistory.slice(-20)});
+    const d = await api('/chat','POST',{message:text,conversationId:vcConvId,history:vcHistory.slice(-20),mode:'voice'});
 
     // Crisis detectada durante llamada de voz
     if (d.crisis) {
@@ -3715,7 +3881,7 @@ async function vcSendMessage(text) {
     vcAddMessage('bot', response);
     vcHistory.push({role:'assistant',content:response});
     if(vcHistory.length>20) vcHistory = vcHistory.slice(-20);
-    if(!vcConvId && d.conversationId) { vcConvId = d.conversationId; currentConvId = vcConvId; }
+    if(!vcConvId && d.conversationId) { vcConvId = d.conversationId; currentConvId = vcConvId; try { loadHistory(); } catch(e){} }
     const songs = (d.cards||[]).filter(c=>c.type==='song');
     if(songs.length>0) vcShowPlayer(songs[0]);
     vcSpeak(response, false);
@@ -3725,31 +3891,174 @@ async function vcSendMessage(text) {
   }
 }
 
-function vcSpeak(text, isGreeting) {
-  if(vcMuted) { vcSetStatus('En llamada'); return; }
+let vcDIDToken = 0;
+
+async function vcSpeak(text, isGreeting) {
+  if (vcMuted) { vcSetStatus('En llamada'); return; }
   window.speechSynthesis.cancel();
-  if(!ttsVoice) loadTTSVoice();
-  const clean = cleanTTS(text); if(!clean) return;
+  const clean = cleanTTS(text);
+  if (!clean) return;
+
+  vcSpeaking = true;
+  vcSetBodyClass(true);
+  vcSetStatus('Zyra está hablando...');
+  vcSetWaveLabel('Escucha a Zyra...');
+  vcSetWaveActive(true, true);
+
+  // ElevenLabs directo — rápido (~1s) con animación CSS del avatar
+  await vcElevenLabsFallback(clean, isGreeting);
+}
+
+function vcAvatarReset() {
+  const vid  = document.getElementById('vc-avatar-vid');
+  const img  = document.getElementById('vc-avatar-img');
+  const load = document.getElementById('vc-avatar-loading');
+  if (vid)  { vid.pause(); vid.src = ''; vid.style.display = 'none'; }
+  if (img)  { img.style.display = ''; img.style.opacity = '1'; }
+  if (load) load.style.display = 'none';
+}
+
+function vcOnSpeakEnd(isGreeting) {
+  vcSpeaking = false;
+  vcSetBodyClass(false);
+  vcSetStatus('En llamada');
+  vcSetWaveLabel('Toca el micrófono para hablar');
+  vcSetWaveActive(false, false);
+  if (!vcMuted && !vcListening) {
+    setTimeout(() => { if (!vcListening && !vcSpeaking) vcStartListening(); }, 400);
+  }
+}
+
+function vcStartListening() {
+  if (vcListening || vcSpeaking) return;
+  vcSR = vcCreateSR();
+  if (!vcSR) return;
+  try {
+    vcSR.start();
+    vcSetListening(true);
+    vcSetStatus('Escuchándote...');
+    vcSetWaveLabel('Habla ahora...');
+  } catch(e) { console.warn('vcStartListening:', e.message); }
+}
+
+let _vcAudioPlaying = null; // referencia al audio activo de Zyra
+
+async function vcElevenLabsFallback(clean, isGreeting) {
+  const load = document.getElementById('vc-avatar-loading');
+  const img  = document.getElementById('vc-avatar-img');
+  if (load) load.style.display = 'none';
+  if (img)  { img.style.display = ''; img.style.opacity = '1'; }
+
+  if (_vcAudioPlaying) { try { _vcAudioPlaying.pause(); } catch(e){} _vcAudioPlaying = null; }
+
+  const myToken = vcDIDToken;
+  try {
+    // /speak devuelve JSON: { audioBase64, audioMime, talkId }
+    const r = await fetch('/api/tts/speak', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+      body:    JSON.stringify({ text: clean }),
+    });
+    if (vcDIDToken !== myToken) return;
+    if (!r.ok) throw new Error('speak ' + r.status);
+
+    const data  = await r.json();
+    const bytes = Uint8Array.from(atob(data.audioBase64), c => c.charCodeAt(0));
+    const blob  = new Blob([bytes], { type: data.audioMime || 'audio/mpeg' });
+    const url   = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    _vcAudioPlaying = audio;
+
+    // Polling D-ID en paralelo mientras el audio suena
+    if (data.talkId) vcStartDIDPolling(data.talkId, myToken, audio);
+
+    audio.play().catch(() => { _vcAudioPlaying = null; vcUseBrowserTTS(clean, isGreeting); });
+    audio.onended = () => { URL.revokeObjectURL(url); if(_vcAudioPlaying===audio) _vcAudioPlaying=null; vcOnSpeakEnd(isGreeting); };
+    audio.onerror = () => { URL.revokeObjectURL(url); if(_vcAudioPlaying===audio) _vcAudioPlaying=null; vcOnSpeakEnd(isGreeting); };
+  } catch(e) {
+    if (vcDIDToken !== myToken) return;
+    vcUseBrowserTTS(clean, isGreeting);
+  }
+}
+
+// Polling periódico para obtener el video D-ID cuando esté listo
+function vcStartDIDPolling(talkId, myToken, audio) {
+  let attempts = 0;
+  const MAX = 40; // máx ~48s
+  const interval = setInterval(async () => {
+    if (vcDIDToken !== myToken || attempts++ > MAX) { clearInterval(interval); return; }
+    try {
+      const r = await fetch('/api/tts/video/' + talkId, {
+        headers: token ? { Authorization: 'Bearer ' + token } : {}
+      });
+      const d = await r.json();
+      if (d.status === 'done' && d.videoUrl) {
+        clearInterval(interval);
+        vcShowDIDVideo(d.videoUrl, myToken);
+      } else if (d.status === 'error' || d.status === 'not_found') {
+        clearInterval(interval);
+      }
+    } catch(e) { /* ignorar errores de red */ }
+  }, 1200);
+}
+
+// Muestra el video D-ID (muted, solo visual lip sync) — solo si Zyra aún habla
+function vcShowDIDVideo(videoUrl, myToken) {
+  if (vcDIDToken !== myToken) return; // llamada cancelada
+  if (!vcSpeaking) return;            // audio ya terminó, no vale la pena mostrar
+  const vid = document.getElementById('vc-avatar-vid');
+  const img = document.getElementById('vc-avatar-img');
+  if (!vid) return;
+  vid.src   = videoUrl;
+  vid.muted = true;
+  vid.style.display = '';
+  if (img) img.style.display = 'none';
+  vid.play().catch(() => {
+    vid.style.display = 'none';
+    if (img) img.style.display = '';
+  });
+  vid.onended = () => {
+    vid.style.display = 'none';
+    vid.src = '';
+    if (img) img.style.display = '';
+  };
+}
+
+function vcUseBrowserTTS(clean, isGreeting) {
+  if (!ttsVoice) loadTTSVoice();
   const utt = new SpeechSynthesisUtterance(clean);
   utt.lang = 'es-ES';
-  utt.rate  = isGreeting ? 0.86 : 0.88;   // un poco más lento, más natural
-  utt.pitch = 1.18;                         // más femenino y cálido
+  utt.rate  = isGreeting ? 0.86 : 0.88;
+  utt.pitch = 1.18;
   utt.volume = 1;
-  if(ttsVoice) utt.voice = ttsVoice;
-  vcSpeaking = true; vcSetBodyClass(true);
-  vcSetStatus('Zyra está hablando...'); vcSetWaveLabel('Escucha a Zyra...');
-  vcSetWaveActive(true, true);
-  utt.onend = ()=>{
-    vcSpeaking = false; vcSetBodyClass(false);
-    vcSetStatus('En llamada'); vcSetWaveLabel('Toca el micrófono para hablar');
-    vcSetWaveActive(false,false);
-    // Auto-start listening after Zyra speaks (hands-free mode)
-    if (!vcMuted && !vcListening) {
-      setTimeout(() => { if (!vcListening && !vcSpeaking) vcStartListening(); }, 400);
-    }
-  };
-  utt.onerror = ()=>{ vcSpeaking=false; vcSetBodyClass(false); vcSetStatus('En llamada'); vcSetWaveActive(false,false); vcSetWaveLabel('Toca el micrófono para hablar'); };
+  if (ttsVoice) utt.voice = ttsVoice;
+  utt.onend  = () => vcOnSpeakEnd(isGreeting);
+  utt.onerror = () => vcOnSpeakEnd(isGreeting);
   window.speechSynthesis.speak(utt);
+}
+
+/* ── ElevenLabs audio para el chat ── */
+let _chatAudio = null;
+
+async function zyraChatSpeak(text) {
+  if (!text) return;
+  const clean = cleanTTS(text);
+  if (!clean || clean.length < 3) return;
+  if (_chatAudio) { try { _chatAudio.pause(); } catch(e){} _chatAudio = null; }
+  try {
+    const r = await fetch('/api/tts/audio', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+      body:    JSON.stringify({ text: clean }),
+    });
+    if (!r.ok) return;
+    const blob  = await r.blob();
+    const url   = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    _chatAudio  = audio;
+    audio.play().catch(() => {});
+    audio.onended = () => { URL.revokeObjectURL(url); if (_chatAudio === audio) _chatAudio = null; };
+  } catch(e) { /* chat sigue funcionando sin audio */ }
 }
 
 function vcAddMessage(role, text) {
@@ -4262,12 +4571,27 @@ function openMorning() {
     const el=document.getElementById('morning-aff');
     if(el) el.textContent=aff||'Hoy es un buen día para ser la mejor versión de ti mismo.';
   });
-  // Cargar canción del día
-  api('/chat','POST',{message:'Recomiéndame una canción para empezar el día con energía. Solo el nombre de la canción y el artista, sin más texto.',history:[]})
-    .then(d=>{
-      const el=document.getElementById('morning-song');
-      if(el&&d.response) el.innerHTML=`🎵 <strong>${d.response.replace(/^["']/,'').replace(/["']$/,'')}</strong>`;
-    }).catch(()=>{});
+  // Canción del día — lista local de canciones energizantes
+  const morningSongs = [
+    { title: "Good as Hell", artist: "Lizzo" },
+    { title: "Happy", artist: "Pharrell Williams" },
+    { title: "Can't Stop the Feeling!", artist: "Justin Timberlake" },
+    { title: "Shake It Off", artist: "Taylor Swift" },
+    { title: "Uptown Funk", artist: "Mark Ronson ft. Bruno Mars" },
+    { title: "On Top of the World", artist: "Imagine Dragons" },
+    { title: "Best Day of My Life", artist: "American Authors" },
+    { title: "Walking on Sunshine", artist: "Katrina & The Waves" },
+    { title: "Don't Stop Me Now", artist: "Queen" },
+    { title: "Here Comes the Sun", artist: "The Beatles" },
+    { title: "Beautiful Day", artist: "U2" },
+    { title: "Levitating", artist: "Dua Lipa" },
+    { title: "Good Morning", artist: "Kanye West" },
+    { title: "Volare", artist: "Gipsy Kings" },
+    { title: "La Vie En Rose", artist: "Édith Piaf" },
+  ];
+  const ms = morningSongs[Math.floor(Math.random() * morningSongs.length)];
+  const mEl = document.getElementById('morning-song');
+  if (mEl) mEl.innerHTML = `🎵 <strong>${ms.title}</strong> — ${ms.artist}`;
 }
 
 function closeMorning() {
@@ -5135,8 +5459,13 @@ function buildZyraSVG(size) {
 </svg>`;
 }
 
-/* Imagen Zyra en todos los lugares — ya integrada en HTML */
-function injectZyraAvatars() { /* imagen zyra-avatar.png en vc-avatar y zyra-main-avatar */ }
+/* Imagen Zyra en el avatar del voice call */
+function injectZyraAvatars() {
+  const img = document.getElementById("vc-avatar-img");
+  if (img && !img.src) img.src = "Imagenes/zyra-avatar.png";
+  const main = document.getElementById("zyra-main-avatar");
+  if (main && !main.src) main.src = "Imagenes/zyra-avatar.png";
+}
 document.addEventListener('DOMContentLoaded', injectZyraAvatars);
 const _baseLoadDashboard = loadDashboard;
 loadDashboard = async function() {
@@ -5215,8 +5544,13 @@ let deferredPrompt = null;
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
-  const banner = document.getElementById('pwa-install-banner');
-  if (banner) { banner.style.display = 'flex'; }
+  // No mostrar durante llamada de voz ni al inicio — solo si el usuario lo solicita
+  const vcPage = document.getElementById('page-voice-call');
+  const isInCall = vcPage && vcPage.classList.contains('page') && getComputedStyle(vcPage).display !== 'none';
+  if (!isInCall) {
+    const banner = document.getElementById('pwa-install-banner');
+    if (banner) { banner.style.display = 'flex'; }
+  }
 });
 
 function installPWA() {
@@ -6386,8 +6720,8 @@ function initZyra3DAvatar() {
   _3d.active = true;
   _3d.animId = setInterval(() => {
     if (!_3d.active) return;
-    img.style.animation = window.vcSpeaking
-      ? 'zyraSpeaking 0.28s ease-in-out infinite'
+    img.style.animation = vcSpeaking
+      ? 'zyraSpeaking 0.35s ease-in-out infinite'
       : 'zyraIdle 4s ease-in-out infinite';
   }, 120);
   return; /* ── Three.js renderer kept as dead code ── */
@@ -6654,6 +6988,19 @@ function destroyZyra3DAvatar() {
 @keyframes confettiFall {
   0%   { transform: translateY(0) rotate(0deg); opacity:1; }
   100% { transform: translateY(100vh) rotate(720deg); opacity:0; }
+}
+@keyframes spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes zyraIdle {
+  0%,100% { transform: translateY(0) scale(1); filter: brightness(1); }
+  50%     { transform: translateY(-6px) scale(1.01); filter: brightness(1.06); }
+}
+@keyframes zyraSpeaking {
+  0%,100% { transform: scale(1) translateY(0); filter: brightness(1) drop-shadow(0 0 8px #a78bfa88); }
+  25%     { transform: scale(1.02) translateY(-4px); filter: brightness(1.1) drop-shadow(0 0 18px #a78bfacc); }
+  75%     { transform: scale(0.99) translateY(2px); filter: brightness(0.95) drop-shadow(0 0 6px #a78bfa66); }
 }
 </style>
 
