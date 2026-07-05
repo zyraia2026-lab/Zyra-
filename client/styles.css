@@ -3224,3 +3224,9 @@ body {
 .toggle-slider:before { content:""; position:absolute; height:18px; width:18px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.3s; }
 .toggle-switch input:checked + .toggle-slider { background:var(--accent,#7c3aed); }
 .toggle-switch input:checked + .toggle-slider:before { transform:translateX(20px); }
+
+/* ── Password toggle button ── */
+.pw-toggle { position:absolute; right:14px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:17px; color:var(--text3,#7880a0); padding:4px; line-height:1; z-index:2; transition:color .2s; }
+.pw-toggle:hover { color:var(--text,#e8eaf6); }
+.form-group .input-wrap input[type="password"],
+.form-group .input-wrap input[type="text"] { padding-right:44px; }
