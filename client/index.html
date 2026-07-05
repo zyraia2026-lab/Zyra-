@@ -3080,7 +3080,7 @@ function newChat() {
     <div class="msg-av bot"><img src="${LOGO}" alt="Zyra"/></div>
     <div class="typing-bubble"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
   </div>`;
-  const name = user ? user.name.split(" ")[0] : "";
+  const name = user ? safeHtml(user.name.split(" ")[0]) : "";
   addBotMsg(`Hola ${name}, soy Zyra 💙 Este es tu espacio seguro, sin juicios. ¿Cómo estás hoy?`);
   loadHistory();
 }
@@ -5056,9 +5056,11 @@ async function shareProgress() {
   const { hist, colorMap, sessionsCount, topEmotion } = _shareData;
   const W=400, H=220;
   const canvas=document.createElement('canvas');
-  canvas.width=W*2; canvas.height=H*2; // retina
+  canvas.width=W*2; canvas.height=H*2;
   const ctx=canvas.getContext('2d');
   ctx.scale(2,2);
+  // roundRect polyfill for older browsers
+  if(!ctx.roundRect) ctx.roundRect=function(x,y,w,h,r){this.beginPath();this.moveTo(x+r,y);this.lineTo(x+w-r,y);this.quadraticCurveTo(x+w,y,x+w,y+r);this.lineTo(x+w,y+h-r);this.quadraticCurveTo(x+w,y+h,x+w-r,y+h);this.lineTo(x+r,y+h);this.quadraticCurveTo(x,y+h,x,y+h-r);this.lineTo(x,y+r);this.quadraticCurveTo(x,y,x+r,y);this.closePath();};
 
   // Background gradient
   const bg=ctx.createLinearGradient(0,0,W,H);
