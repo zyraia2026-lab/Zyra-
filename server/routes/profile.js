@@ -11,6 +11,7 @@ const {
   disablePin,
   exportData,
   deleteAllData,
+  deleteAccount,
   getPlanStatus,
 } = require("../controllers/profileController");
 const { protect }      = require("../middleware/auth");
@@ -33,9 +34,10 @@ r.post("/pin",         protect, setPin);
 r.post("/pin/verify",  protect, verifyPin);
 r.delete("/pin",       protect, disablePin);
 
-// ── Datos (plan básico+) ──
-r.get("/export",  protect, requirePlan("basic"), exportData);
-r.delete("/data", protect, deleteAllData);
+// ── Datos ──
+r.get("/export",    protect, requirePlan("basic"), exportData);
+r.delete("/data",   protect, deleteAllData);
+r.delete("/account",protect, deleteAccount);
 
 // ── Plan ──
 r.get("/plan", protect, getPlanStatus);
