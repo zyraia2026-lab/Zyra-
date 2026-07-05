@@ -29,14 +29,23 @@ exports.addEmotionRecord = async (req, res) => {
   try {
     const { emotion, note, intensity } = req.body;
 
-    // Calcular racha negativa
+    // Calcular racha negativa por DÍAS (no por registros)
     const NEGATIVE = ["ansioso","triste","enojado","agotado","confundido"];
     const isNegative = NEGATIVE.includes(emotion);
 
     const current = await Profile.findOne({ user: req.user._id });
-    const negativeStreak = isNegative
-      ? (current?.negativeStreakCount || 0) + 1
-      : 0;
+    let negativeStreak = 0;
+    if (isNegative) {
+      const lastRecord = current?.emotionHistory?.slice(-1)[0];
+      const lastDate   = lastRecord ? new Date(lastRecord.date) : null;
+      const today      = new Date().toDateString();
+      const lastDay    = lastDate ? lastDate.toDateString() : null;
+      // Si ya hubo registro negativo hoy, mantener la racha; si es un día nuevo, incrementar
+      const alreadyNegativeToday = lastDate && lastDay === today && NEGATIVE.includes(lastRecord.emotion);
+      negativeStreak = alreadyNegativeToday
+        ? (current?.negativeStreakCount || 1)
+        : (current?.negativeStreakCount || 0) + 1;
+    }
 
     const p = await Profile.findOneAndUpdate(
       { user: req.user._id },
@@ -145,26 +154,55 @@ exports.exportData = async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
 
-// ── Borrar todos los datos ──
+// ── Borrar todos los datos (reset de perfil, no elimina la cuenta) ──
 exports.deleteAllData = async (req, res) => {
   try {
     const Goal         = require("../models/Goal");
     const Journal      = require("../models/Journal");
     const Conversation = require("../models/Conversation");
+    const PushSub      = require("../models/PushSubscription");
 
     await Promise.all([
       Profile.findOneAndUpdate({ user: req.user._id }, {
         bio: "", photoUrl: "", emotionHistory: [], crisisEvents: [],
         sessionsCount: 0, streakDays: 0, negativeStreakCount: 0,
+        coins: 0, achievements: [], unlockedItems: [], equippedBadge: "",
+        missionsCompletedToday: [], lastActiveDate: null,
         emergencyContact: { name: "", phone: "", relation: "" },
-        pin: "", pinEnabled: false, onboardingDone: false, updatedAt: Date.now()
+        pin: "", pinEnabled: false, onboardingDone: false,
+        reminderEnabled: false, updatedAt: Date.now()
       }),
       Goal.deleteMany({ user: req.user._id }),
       Journal.deleteMany({ user: req.user._id }),
       Conversation.deleteMany({ user: req.user._id }),
+      PushSub.deleteOne({ user: req.user._id }),
     ]);
 
-    res.json({ success: true, message: "Todos tus datos han sido eliminados" });
+    res.json({ success: true, logout: true, message: "Todos tus datos han sido eliminados" });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+};
+
+// ── Eliminar cuenta completa ──
+exports.deleteAccount = async (req, res) => {
+  try {
+    const User         = require("../models/User");
+    const Goal         = require("../models/Goal");
+    const Journal      = require("../models/Journal");
+    const Conversation = require("../models/Conversation");
+    const OTP          = require("../models/OTPCode");
+    const PushSub      = require("../models/PushSubscription");
+
+    await Promise.all([
+      Profile.deleteOne({ user: req.user._id }),
+      Goal.deleteMany({ user: req.user._id }),
+      Journal.deleteMany({ user: req.user._id }),
+      Conversation.deleteMany({ user: req.user._id }),
+      OTP.deleteMany({ email: req.user.email }),
+      PushSub.deleteOne({ user: req.user._id }),
+      User.deleteOne({ _id: req.user._id }),
+    ]);
+
+    res.json({ success: true, logout: true, message: "Tu cuenta ha sido eliminada" });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
 

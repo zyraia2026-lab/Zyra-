@@ -517,7 +517,7 @@ def index():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    debug = os.environ.get("DEBUG", "true").lower() == "true"
+    debug = os.environ.get("DEBUG", "false").lower() == "true"
     print(f"🐍 Zyra Python Microservice iniciando en puerto {port}")
     print(f"✦ Análisis emocional: activo")
     print(f"✦ Spotify: {'activo' if os.environ.get('SPOTIFY_CLIENT_ID') else 'sin configurar'}")

@@ -338,7 +338,7 @@
     </div>
     <div class="plan-faq-item" onclick="toggleFaq(1)">
       <div class="plan-faq-q" id="faq-q1">¿Qué métodos de pago aceptan? <span>▾</span></div>
-      <div class="plan-faq-a" id="faq-a1" style="display:none">Aceptamos tarjetas de crédito/débito (Visa, Mastercard, American Express), PayPal y transferencias bancarias en Colombia.</div>
+      <div class="plan-faq-a" id="faq-a1" style="display:none">Aceptamos tarjetas de crédito y débito (Visa, Mastercard, American Express) procesadas de forma segura a través de Stripe. El pago es 100% seguro y encriptado.</div>
     </div>
     <div class="plan-faq-item" onclick="toggleFaq(2)">
       <div class="plan-faq-q" id="faq-q2">¿Es segura mi información personal? <span>▾</span></div>
@@ -1523,7 +1523,9 @@
   <!-- ══ ZONA DE PELIGRO ══ -->
   <div class="card" style="border-color:#fecaca">
     <div class="card-header"><span class="card-title" style="color:var(--red)">⚠️ Zona de peligro</span></div>
-    <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.6">Eliminar tu cuenta borrará permanentemente todos tus datos. Esta acción no se puede deshacer.</p>
+    <p style="font-size:13px;color:var(--text3);margin-bottom:8px;line-height:1.6">Reinicia todos tus datos (metas, diario, historial) pero conserva tu cuenta.</p>
+    <button class="btn-sm" style="background:#fff7ed;border-color:#fed7aa;color:#c2410c;margin-bottom:16px" onclick="confirmResetData()">Borrar todos mis datos</button>
+    <p style="font-size:13px;color:var(--text3);margin-bottom:8px;line-height:1.6">Elimina permanentemente tu cuenta y todos los datos. No se puede deshacer.</p>
     <button class="btn-sm" style="background:#fef2f2;border-color:#fecaca;color:var(--red)" onclick="confirmDeleteAccount()">Eliminar mi cuenta</button>
   </div>
 
@@ -1684,7 +1686,7 @@
 /* ══════════════════════════════════════════
    ZYRA v6.0 — Core JavaScript
 ══════════════════════════════════════════ */
-window.YT_API_KEY = "";
+window.YT_ENABLED = false;
 const LOGO = "/Imagenes/zyra-avatar.png";
 let token = localStorage.getItem("zyra_token");
 let user  = JSON.parse(localStorage.getItem("zyra_user") || "null");
@@ -1696,6 +1698,11 @@ let pendingEmail = "";
 let resendTimers = {};
 let ytPlayerCount = 0;
 let activeYTId = null;
+
+function safeHtml(str) {
+  if (str == null) return "";
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
 
 /* ══ TOASTS & CONFIRM (reemplazo de alert/confirm) ══ */
 function zyraToast(msg, type = "info", duration = 3200) {
@@ -2317,8 +2324,34 @@ async function saveProfileInfo() {
 }
 
 async function confirmDeleteAccount() {
-  const ok = await zyraConfirm("¿Seguro? Esta acción es irreversible.", {danger:true, okText:"Sí, continuar"});
-  if (ok) zyraToast("Contacta al soporte para eliminar tu cuenta.", "info");
+  const ok = await zyraConfirm(
+    "¿Seguro? Esto eliminará tu cuenta y todos tus datos de forma permanente. Esta acción NO se puede deshacer.",
+    { danger: true, okText: "Eliminar mi cuenta" }
+  );
+  if (!ok) return;
+  const ok2 = await zyraConfirm("Última confirmación: ¿eliminar todo?", { danger: true, okText: "Sí, eliminar" });
+  if (!ok2) return;
+  try {
+    const d = await api("/profile/account", "DELETE");
+    zyraToast(d.message || "Cuenta eliminada", "success");
+    setTimeout(() => logout(), 1500);
+  } catch(e) {
+    zyraToast(e.message || "Error al eliminar la cuenta", "error");
+  }
+}
+async function confirmResetData() {
+  const ok = await zyraConfirm(
+    "¿Borrar todos tus datos? Se eliminarán metas, diario, historial de chat y progreso. Tu cuenta se conservará.",
+    { danger: true, okText: "Borrar datos" }
+  );
+  if (!ok) return;
+  try {
+    const d = await api("/profile/data", "DELETE");
+    zyraToast(d.message || "Datos eliminados", "success");
+    if (d.logout) { setTimeout(() => logout(), 1500); }
+  } catch(e) {
+    zyraToast(e.message || "Error al borrar datos", "error");
+  }
 }
 async function saveProfilePassword() {
   const cur = document.getElementById("prof-pass-current").value;
@@ -2417,7 +2450,7 @@ function renderDashConvs(convs) {
   if(!convs.length) { el.innerHTML = '<div class="empty"><span class="empty-icon">💬</span>Aún no hay sesiones</div>'; return; }
   el.innerHTML = convs.slice(0,4).map(c => `
     <div class="conv-item" onclick="openConvFromDash('${c._id}')">
-      <div class="conv-title">${c.title}</div>
+      <div class="conv-title">${safeHtml(c.title)}</div>
       <div class="conv-date">${new Date(c.updatedAt).toLocaleDateString("es",{day:"numeric",month:"short",year:"numeric"})}</div>
     </div>`).join("");
 }
@@ -2429,15 +2462,20 @@ function renderDashGoals(goals) {
   el.innerHTML = pending.map(g => `
     <div class="goal-item">
       <div class="goal-check ${g.completed?"checked":""}" onclick="toggleGoalDash('${g._id}')">✓</div>
-      <div style="flex:1"><div class="goal-text">${g.title}</div></div>
-      <span class="goal-cat">${CAT[g.category]||g.category}</span>
+      <div style="flex:1"><div class="goal-text">${safeHtml(g.title)}</div></div>
+      <span class="goal-cat">${safeHtml(CAT[g.category]||g.category)}</span>
     </div>`).join("");
 }
 async function toggleGoalDash(id) { try { await api("/goals/"+id+"/toggle","PUT"); loadDashboard(); } catch(e) {} }
 
 /* ── GOALS ── */
 function toggleGoalForm() { document.getElementById("add-goal-form").classList.toggle("show"); }
-async function loadGoals() { try { const d = await api("/goals"); renderGoals(d.goals || d); } catch(e) { console.error(e); } }
+async function loadGoals() {
+  const el = document.getElementById("goals-list");
+  if(el) el.innerHTML = '<div class="empty" style="opacity:.5">Cargando metas...</div>';
+  try { const d = await api("/goals"); renderGoals(d.goals || d); }
+  catch(e) { if(el) el.innerHTML = `<div class="empty" style="color:var(--danger)">⚠ ${safeHtml(e.message||"Error al cargar metas")}</div>`; }
+}
 function renderGoals(goals) {
   const el = document.getElementById("goals-list");
   if(!goals.length) { el.innerHTML = '<div class="empty"><span class="empty-icon">🎯</span>Agrega tu primera meta</div>'; return; }
@@ -2445,14 +2483,15 @@ function renderGoals(goals) {
     <div class="goal-item ${g.completed?"done":""}">
       <div class="goal-check ${g.completed?"checked":""}" onclick="toggleGoal('${g._id}')">✓</div>
       <div style="flex:1">
-        <div class="goal-text">${g.title}</div>
-        ${g.reminder?`<div style="font-size:11px;color:var(--text3);margin-top:2px">⏰ ${g.reminder}</div>`:""}
+        <div class="goal-text">${safeHtml(g.title)}</div>
+        ${g.reminder?`<div style="font-size:11px;color:var(--text3);margin-top:2px">⏰ ${safeHtml(g.reminder)}</div>`:""}
         ${g.dueDate?`<div style="font-size:11px;color:var(--text3)">📅 ${new Date(g.dueDate).toLocaleDateString("es")}</div>`:""}
       </div>
       <div class="goal-meta">
-        <span class="goal-cat">${CAT[g.category]||g.category}</span>
-        <span class="goal-priority-${g.priority}">● ${g.priority}</span>
+        <span class="goal-cat">${safeHtml(CAT[g.category]||g.category)}</span>
+        <span class="goal-priority-${safeHtml(g.priority)}">● ${safeHtml(g.priority)}</span>
       </div>
+      <button class="btn-xs" style="margin-right:4px" onclick="openEditGoal(${JSON.stringify(g)})">✏</button>
       <button class="goal-del" onclick="deleteGoal('${g._id}')">×</button>
     </div>`).join("");
 }
@@ -2478,9 +2517,44 @@ async function addGoal() {
 async function toggleGoal(id) { try { await api("/goals/"+id+"/toggle","PUT"); loadGoals(); } catch(e) {} }
 async function deleteGoal(id) { if(!await zyraConfirm("¿Eliminar meta?", {danger:true, okText:"Eliminar"})) return; try { await api("/goals/"+id,"DELETE"); loadGoals(); } catch(e) {} }
 
+function openEditGoal(g) {
+  document.getElementById("edit-goal-id").value = g._id;
+  document.getElementById("edit-goal-title").value = g.title || "";
+  document.getElementById("edit-goal-cat").value = g.category || "bienestar";
+  document.getElementById("edit-goal-priority").value = g.priority || "media";
+  document.getElementById("edit-goal-reminder").value = g.reminder || "";
+  document.getElementById("edit-goal-date").value = g.dueDate ? g.dueDate.substring(0,10) : "";
+  const m = document.getElementById("edit-goal-modal");
+  if(m) { m.style.display = "flex"; document.body.style.overflow = "hidden"; }
+}
+function closeEditGoal() {
+  const m = document.getElementById("edit-goal-modal");
+  if(m) { m.style.display = "none"; document.body.style.overflow = ""; }
+}
+async function saveEditGoal() {
+  const id = document.getElementById("edit-goal-id").value;
+  const title = document.getElementById("edit-goal-title").value.trim();
+  const category = document.getElementById("edit-goal-cat").value;
+  const priority = document.getElementById("edit-goal-priority").value;
+  const reminder = document.getElementById("edit-goal-reminder").value.trim();
+  const dueDate = document.getElementById("edit-goal-date").value;
+  if(!title) return zyraToast("Escribe un título para la meta", "error");
+  try {
+    await api("/goals/"+id, "PUT", { title, category, priority, reminder, dueDate: dueDate||undefined });
+    closeEditGoal();
+    loadGoals();
+    zyraToast("Meta actualizada", "success");
+  } catch(e) { zyraToast(e.message, "error"); }
+}
+
 /* ── JOURNAL ── */
 function toggleJournalForm() { document.getElementById("add-journal-form").classList.toggle("show"); }
-async function loadJournal() { try { const d = await api("/journal"); renderJournal(d.entries || d); } catch(e) { console.error(e); } }
+async function loadJournal() {
+  const el = document.getElementById("journal-list");
+  if(el) el.innerHTML = '<div class="empty" style="opacity:.5">Cargando diario...</div>';
+  try { const d = await api("/journal"); renderJournal(d.entries || d); }
+  catch(e) { if(el) el.innerHTML = `<div class="empty" style="color:var(--danger)">⚠ ${safeHtml(e.message||"Error al cargar el diario")}</div>`; }
+}
 function renderJournal(entries) {
   const el = document.getElementById("journal-list");
   if(!entries.length) { el.innerHTML = '<div class="empty"><span class="empty-icon">📔</span>Tu diario está vacío.</div>'; return; }
@@ -2488,10 +2562,13 @@ function renderJournal(entries) {
     const em = EMOTIONS.find(x => x.key === e.emotion);
     return `<div class="journal-item">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div class="journal-title">${em?em.emoji+" ":""}${e.title||"Entrada sin título"}</div>
-        <button class="btn-xs" onclick="deleteJournal('${e._id}')">×</button>
+        <div class="journal-title">${em?em.emoji+" ":""}${safeHtml(e.title||"Entrada sin título")}</div>
+        <div style="display:flex;gap:6px">
+          <button class="btn-xs" onclick="openEditJournal(${JSON.stringify(e)})">✏</button>
+          <button class="btn-xs" onclick="deleteJournal('${e._id}')">×</button>
+        </div>
       </div>
-      <div class="journal-preview">${e.content}</div>
+      <div class="journal-preview">${safeHtml(e.content)}</div>
       <div class="journal-meta">
         <span class="journal-date">${new Date(e.createdAt).toLocaleDateString("es",{weekday:"long",day:"numeric",month:"long"})}</span>
         ${em?`<span class="badge purple">${em.emoji} ${em.label}</span>`:""}
@@ -2518,6 +2595,32 @@ async function addJournalEntry() {
   }
 }
 async function deleteJournal(id) { if(!await zyraConfirm("¿Eliminar entrada?", {danger:true, okText:"Eliminar"})) return; try { await api("/journal/"+id,"DELETE"); loadJournal(); } catch(e) {} }
+
+function openEditJournal(e) {
+  document.getElementById("edit-journal-id").value = e._id;
+  document.getElementById("edit-journal-title").value = e.title || "";
+  document.getElementById("edit-journal-emotion").value = e.emotion || "";
+  document.getElementById("edit-journal-content").value = e.content || "";
+  const m = document.getElementById("edit-journal-modal");
+  if(m) { m.style.display = "flex"; document.body.style.overflow = "hidden"; }
+}
+function closeEditJournal() {
+  const m = document.getElementById("edit-journal-modal");
+  if(m) { m.style.display = "none"; document.body.style.overflow = ""; }
+}
+async function saveEditJournal() {
+  const id = document.getElementById("edit-journal-id").value;
+  const title = document.getElementById("edit-journal-title").value.trim();
+  const emotion = document.getElementById("edit-journal-emotion").value;
+  const content = document.getElementById("edit-journal-content").value.trim();
+  if(!content) return zyraToast("El contenido no puede estar vacío", "error");
+  try {
+    await api("/journal/"+id, "PUT", { title, emotion: emotion||undefined, content });
+    closeEditJournal();
+    loadJournal();
+    zyraToast("Entrada actualizada", "success");
+  } catch(e) { zyraToast(e.message, "error"); }
+}
 
 /* ════════════════════════════════════════
    TEST EMOCIONAL
@@ -2851,9 +2954,9 @@ function playWellnessSong(title, artist, playerId) {
   }
 
   // En desktop: embed normal
-  if(window.YT_API_KEY) {
+  if(window.YT_ENABLED) {
     player.innerHTML = `<div style="background:#000;border-radius:10px;overflow:hidden;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center"><div style="color:#fff;font-size:12px;opacity:.6">Cargando...</div></div>`;
-    fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${q}&type=video&maxResults=1&key=${window.YT_API_KEY}`)
+    fetch(`/api/yt/search?q=${q}&maxResults=1`,{headers:{"Authorization":"Bearer "+token}})
       .then(r=>r.json()).then(data=>{
         const videoId = data.items?.[0]?.id?.videoId;
         if(videoId) {
@@ -2889,8 +2992,8 @@ function playMedia(query, title, playerId) {
       <div style="color:#fff;font-size:13px;opacity:.6">Cargando...</div>
     </div>
   </div>`;
-  if(window.YT_API_KEY) {
-    fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${q}&type=video&maxResults=1&key=${window.YT_API_KEY}`)
+  if(window.YT_ENABLED) {
+    fetch(`/api/yt/search?q=${encodeURIComponent(q)}&maxResults=1`,{headers:{"Authorization":"Bearer "+token}})
       .then(r=>r.json()).then(data=>{
         const videoId = data.items?.[0]?.id?.videoId;
         const frameDiv = document.getElementById(pid);
@@ -2900,7 +3003,7 @@ function playMedia(query, title, playerId) {
             frameborder="0" allow="autoplay;encrypted-media" allowfullscreen
             style="aspect-ratio:16/9;width:100%;display:block"></iframe>`;
         } else if(frameDiv) {
-          frameDiv.innerHTML = `<div style="padding:24px;text-align:center"><a href="https://www.youtube.com/results?search_query=${q}" target="_blank" style="background:#ff0000;color:white;padding:10px 20px;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none">▶ Ver en YouTube</a></div>`;
+          frameDiv.innerHTML = `<div style="padding:24px;text-align:center"><a href="https://www.youtube.com/results?search_query=${encodeURIComponent(q)}" target="_blank" style="background:#ff0000;color:white;padding:10px 20px;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none">▶ Ver en YouTube</a></div>`;
         }
       });
   } else {
@@ -2955,13 +3058,18 @@ function setAffirmation(text) {
    ASSISTANT
 ════════════════════════════════════════ */
 async function loadAssistant() { await loadHistory(); if(currentConvId) await openConv(currentConvId); else newChat(); zyraMaybeShowWelcome(); }
-async function loadHistory() { try { const d = await api("/conversations"); renderHistory(d.conversations || []); } catch(e) {} }
+async function loadHistory() {
+  const el = document.getElementById("hist-list");
+  if(el) el.innerHTML = '<div class="empty" style="font-size:12px;padding:16px 0;opacity:.5">Cargando...</div>';
+  try { const d = await api("/conversations"); renderHistory(d.conversations || []); }
+  catch(e) { if(el) el.innerHTML = `<div class="empty" style="font-size:12px;color:var(--danger)">⚠ ${safeHtml(e.message||"Error")}</div>`; }
+}
 function renderHistory(convs) {
   const el = document.getElementById("hist-list");
   if(!convs.length) { el.innerHTML = '<div class="empty" style="font-size:12px;padding:16px 0">Sin sesiones aún</div>'; return; }
   el.innerHTML = convs.map(c => `
     <div class="hist-item ${c._id===currentConvId?"active":""}" onclick="openConv('${c._id}')">
-      <span class="hist-title">${c.title}</span>
+      <span class="hist-title">${safeHtml(c.title)}</span>
       <button class="hist-del" onclick="delConv(event,'${c._id}')">×</button>
     </div>`).join("");
 }
@@ -3041,41 +3149,33 @@ function speakText(btn, text) {
 ════════════════════════════════════════ */
 
 /* Buscar videoId embeddable para una canción */
-async function findPlayableVideoId(title, artist, apiKey) {
-  if (!apiKey) return null;
+async function findPlayableVideoId(title, artist) {
+  if (!window.YT_ENABLED) return null;
+  const authHeader = { "Authorization": "Bearer " + token };
 
-  // Intentar queries en orden de probabilidad de ser embeddable
   const queries = [
-    `${title} ${artist} - topic`,          // Canales "Topic" → siempre embeddable
-    `${title} ${artist} audio`,            // Audio sin video → embeddable
-    `${title} ${artist} lyric video`,      // Lyric videos → casi siempre embeddable
-    `${title} ${artist}`,                  // Búsqueda general
+    `${title} ${artist} - topic`,
+    `${title} ${artist} audio`,
+    `${title} ${artist} lyric video`,
+    `${title} ${artist}`,
   ];
 
   for (const q of queries) {
     try {
-      const searchRes = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&maxResults=5&key=${apiKey}`
-      );
+      const searchRes = await fetch(`/api/yt/search?q=${encodeURIComponent(q)}&maxResults=5`, { headers: authHeader });
       const searchData = await searchRes.json();
       if (searchData.error) continue;
 
       const videoIds = (searchData.items || []).map(i => i.id?.videoId).filter(Boolean);
       if (!videoIds.length) continue;
 
-      // Verificar cuáles son embeddables
-      const statusRes = await fetch(
-        `https://www.googleapis.com/youtube/v3/videos?part=status,snippet&id=${videoIds.join(',')}&key=${apiKey}`
-      );
+      const statusRes = await fetch(`/api/yt/videos?ids=${videoIds.join(',')}`, { headers: authHeader });
       const statusData = await statusRes.json();
 
       for (const item of (statusData.items || [])) {
         const embeddable = item.status?.embeddable;
         const isLiveBroadcast = item.snippet?.liveBroadcastContent === 'live';
-        // Topic channels tienen "- Topic" en el nombre del canal
         const isTopicChannel = item.snippet?.channelTitle?.endsWith('- Topic');
-
-        // Priorizar Topic channels (100% embeddable) o cualquier embeddable
         if (embeddable !== false && !isLiveBroadcast) {
           return { videoId: item.id, isTopicChannel };
         }
@@ -3094,13 +3194,13 @@ function buildYTPlayer(card, id) {
     : `https://www.youtube.com/results?search_query=${q}`;
 
   // Si tenemos API key, intentar embed
-  if (window.YT_API_KEY) {
+  if (window.YT_ENABLED) {
     // Mostrar skeleton de carga inmediatamente
     setTimeout(async () => {
       const wrap = document.getElementById(id);
       if (!wrap) return;
       try {
-        const result = await findPlayableVideoId(card.title, card.artist, window.YT_API_KEY);
+        const result = await findPlayableVideoId(card.title, card.artist);
         if (result?.videoId) {
           wrap.innerHTML = ytEmbedHTML(card, id, result.videoId);
         } else {
@@ -3336,7 +3436,7 @@ function addUserMsg(text, ts) {
   else if(emoji) { avInner = emoji; avStyle = `background:${color}`; }
   else { avInner = init; avStyle = `background:${color}`; }
   div.innerHTML = `<div class="msg-av user" style="${avStyle}">${avInner}</div>
-    <div class="msg-bubble">${text}<div class="msg-time">${time}</div></div>`;
+    <div class="msg-bubble">${safeHtml(text)}<div class="msg-time">${time}</div></div>`;
   msgs.insertBefore(div, typing); msgs.scrollTop = msgs.scrollHeight;
 }
 
@@ -3711,7 +3811,7 @@ let voiceMode = false;
 window.addEventListener("load", () => {
   if(token){
     api("/config")
-      .then(d=>{ if(d.ytKey) window.YT_API_KEY = d.ytKey; })
+      .then(d=>{ window.YT_ENABLED = !!d.ytEnabled; })
       .catch(()=>{});
     loadPlanStatus();
     loadGamification();
@@ -4221,9 +4321,9 @@ function vcPlayCurrentSong() {
   frame.style.display='block';
   if(player) player.classList.add('playing');
   if(playBtn) playBtn.textContent='⏹';
-  if(window.YT_API_KEY) {
+  if(window.YT_ENABLED) {
     const q = encodeURIComponent(vcCurrentSong.title+' '+vcCurrentSong.artist+' official audio');
-    fetch('https://www.googleapis.com/youtube/v3/search?part=snippet&q='+q+'&type=video&maxResults=1&key='+window.YT_API_KEY)
+    fetch('/api/yt/search?q='+q+'&maxResults=1',{headers:{"Authorization":"Bearer "+token}})
       .then(r=>r.json()).then(data=>{
         const videoId = data.items?.[0]?.id?.videoId;
         if(videoId&&frame) {
@@ -5949,6 +6049,61 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </div>
 
+<!-- ══ MODAL EDITAR META ══ -->
+<div id="edit-goal-modal" style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.65);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeEditGoal()">
+  <div style="background:var(--bg2,#141624);border:1px solid rgba(99,102,241,.3);border-radius:22px;padding:28px;max-width:440px;width:100%;position:relative;box-shadow:0 30px 80px rgba(0,0,0,.5)">
+    <button onclick="closeEditGoal()" style="position:absolute;top:16px;right:16px;background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;line-height:1">×</button>
+    <div style="font-weight:800;font-size:18px;margin-bottom:20px">✏️ Editar Meta</div>
+    <input type="hidden" id="edit-goal-id"/>
+    <div class="form-row" style="margin-bottom:12px">
+      <input type="text" id="edit-goal-title" placeholder="¿Cuál es tu meta?" style="width:100%"/>
+    </div>
+    <div class="form-row" style="margin-bottom:12px">
+      <select id="edit-goal-cat">
+        <option value="bienestar">🧘 Bienestar</option>
+        <option value="habitos">⚡ Hábitos</option>
+        <option value="relaciones">💛 Relaciones</option>
+        <option value="trabajo">💼 Trabajo</option>
+        <option value="mindfulness">🌊 Mindfulness</option>
+        <option value="personal">⭐ Personal</option>
+      </select>
+      <select id="edit-goal-priority">
+        <option value="alta">🔴 Alta</option>
+        <option value="media">🟡 Media</option>
+        <option value="baja">🟢 Baja</option>
+      </select>
+    </div>
+    <div class="form-row" style="margin-bottom:20px">
+      <input type="text" id="edit-goal-reminder" placeholder="Recordatorio"/>
+      <input type="date" id="edit-goal-date"/>
+    </div>
+    <button class="btn-primary" style="width:100%;padding:13px" onclick="saveEditGoal()">Guardar cambios</button>
+  </div>
+</div>
+
+<!-- ══ MODAL EDITAR DIARIO ══ -->
+<div id="edit-journal-modal" style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.65);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeEditJournal()">
+  <div style="background:var(--bg2,#141624);border:1px solid rgba(99,102,241,.3);border-radius:22px;padding:28px;max-width:480px;width:100%;position:relative;box-shadow:0 30px 80px rgba(0,0,0,.5)">
+    <button onclick="closeEditJournal()" style="position:absolute;top:16px;right:16px;background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;line-height:1">×</button>
+    <div style="font-weight:800;font-size:18px;margin-bottom:20px">📝 Editar entrada</div>
+    <input type="hidden" id="edit-journal-id"/>
+    <input type="text" id="edit-journal-title" placeholder="Título (opcional)" style="width:100%;margin-bottom:12px;padding:11px 14px;background:var(--surface,#1e2235);border:1.5px solid var(--border,#2a2f45);border-radius:12px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box"/>
+    <select id="edit-journal-emotion" style="width:100%;margin-bottom:12px;padding:11px 14px;background:var(--surface,#1e2235);border:1.5px solid var(--border,#2a2f45);border-radius:12px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box">
+      <option value="">— Emoción —</option>
+      <option value="alegre">😄 Alegre</option>
+      <option value="tranquilo">😌 Tranquilo</option>
+      <option value="ansioso">😰 Ansioso</option>
+      <option value="triste">😢 Triste</option>
+      <option value="enojado">😠 Enojado</option>
+      <option value="esperanzado">🌟 Esperanzado</option>
+      <option value="cansado">😴 Cansado</option>
+      <option value="agradecido">🙏 Agradecido</option>
+    </select>
+    <textarea id="edit-journal-content" placeholder="¿Qué quieres escribir?" rows="5" style="width:100%;margin-bottom:20px;padding:11px 14px;background:var(--surface,#1e2235);border:1.5px solid var(--border,#2a2f45);border-radius:12px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea>
+    <button class="btn-primary" style="width:100%;padding:13px" onclick="saveEditJournal()">Guardar cambios</button>
+  </div>
+</div>
+
 <!-- ══ MODAL DE PAGO ZYRA ══ -->
 <div id="zyra-payment-modal" style="display:none;position:fixed;inset:0;z-index:9600;background:rgba(0,0,0,.75);backdrop-filter:blur(12px);align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closePaymentModal()">
   <div style="background:var(--bg2,#141624);border:1px solid rgba(99,102,241,.25);border-radius:28px;padding:0;max-width:460px;width:100%;max-height:92vh;overflow-y:auto;position:relative;box-shadow:0 40px 100px rgba(0,0,0,.6);animation:zsw-in .35s ease">
@@ -5998,22 +6153,6 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <span class="pm-method-check">✓</span>
           </button>
-          <button id="pm-method-pse" onclick="selectPayMethod('pse')" class="pm-method-btn">
-            <span style="font-size:20px">🏦</span>
-            <div style="text-align:left;flex:1">
-              <div style="font-weight:700;font-size:13px">PSE — Débito bancario</div>
-              <div style="font-size:11px;opacity:.7">Transferencia directa desde tu banco</div>
-            </div>
-            <span class="pm-method-check">✓</span>
-          </button>
-          <button id="pm-method-nequi" onclick="selectPayMethod('nequi')" class="pm-method-btn">
-            <span style="font-size:20px">📱</span>
-            <div style="text-align:left;flex:1">
-              <div style="font-weight:700;font-size:13px">Nequi / Daviplata</div>
-              <div style="font-size:11px;opacity:.7">Pago instantáneo con tu app</div>
-            </div>
-            <span class="pm-method-check">✓</span>
-          </button>
         </div>
       </div>
 
@@ -6043,33 +6182,6 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
 
-      <!-- Formulario PSE -->
-      <div id="pm-form-pse" style="margin-bottom:20px;display:none">
-        <div style="margin-bottom:12px">
-          <label style="font-size:11px;font-weight:700;color:var(--text3,#7880a0);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">Banco</label>
-          <select id="pm-pse-bank" style="width:100%;padding:12px 14px;background:var(--surface,#1e2235);border:1.5px solid var(--border,#2a2f45);border-radius:12px;color:var(--text,#e8eaf6);font-size:14px;outline:none;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif">
-            <option value="">Selecciona tu banco</option>
-            <option>Bancolombia</option><option>Banco de Bogotá</option><option>Davivienda</option>
-            <option>BBVA Colombia</option><option>Banco Popular</option><option>Banco de Occidente</option>
-            <option>Banco AV Villas</option><option>Scotiabank Colpatria</option><option>Banco Caja Social</option>
-          </select>
-        </div>
-        <div style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:12px;padding:14px;font-size:12px;color:var(--text3,#7880a0);line-height:1.6">
-          🔒 Serás redirigido a tu banco para completar el pago de forma segura. Este proceso puede tomar unos segundos.
-        </div>
-      </div>
-
-      <!-- Formulario Nequi -->
-      <div id="pm-form-nequi" style="margin-bottom:20px;display:none">
-        <div style="margin-bottom:12px">
-          <label style="font-size:11px;font-weight:700;color:var(--text3,#7880a0);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">Número de celular Nequi / Daviplata</label>
-          <input id="pm-nequi-phone" type="tel" maxlength="10" placeholder="310 000 0000"
-            style="width:100%;padding:12px 14px;background:var(--surface,#1e2235);border:1.5px solid var(--border,#2a2f45);border-radius:12px;color:var(--text,#e8eaf6);font-size:15px;font-weight:600;outline:none;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif"/>
-        </div>
-        <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:12px;padding:14px;font-size:12px;color:var(--text3,#7880a0);line-height:1.6">
-          📱 Recibirás una notificación push en tu app Nequi o Daviplata para aprobar el pago. Asegúrate de tener la app activa.
-        </div>
-      </div>
 
       <!-- Resumen + botón pagar -->
       <div style="background:var(--surface,#1e2235);border-radius:14px;padding:16px;margin-bottom:20px">
@@ -6162,11 +6274,9 @@ function openPaymentModal(plan) {
   selectPayPeriod(_pmPeriod);
   selectPayMethod('card');
 
-  // Clear form
-  ['pm-card-num','pm-card-exp','pm-card-cvv','pm-card-name','pm-nequi-phone'].forEach(id => {
+  ['pm-card-num','pm-card-exp','pm-card-cvv','pm-card-name'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
-  const bankSel = document.getElementById('pm-pse-bank'); if (bankSel) bankSel.selectedIndex = 0;
 
   const modal = document.getElementById('zyra-payment-modal');
   if (modal) { modal.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
@@ -6199,13 +6309,11 @@ function selectPayPeriod(p) {
 }
 
 function selectPayMethod(m) {
-  _pmMethod = m;
-  ['card','pse','nequi'].forEach(v => {
-    const btn = document.getElementById('pm-method-' + v);
-    if (btn) btn.classList.toggle('pm-method-active', v === m);
-    const form = document.getElementById('pm-form-' + v);
-    if (form) form.style.display = v === m ? 'block' : 'none';
-  });
+  _pmMethod = 'card';
+  const btn = document.getElementById('pm-method-card');
+  if (btn) btn.classList.add('pm-method-active');
+  const form = document.getElementById('pm-form-card');
+  if (form) form.style.display = 'block';
 }
 
 function fmtCard(el) {

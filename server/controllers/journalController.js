@@ -50,6 +50,20 @@ exports.createEntry = async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
 
+exports.updateEntry = async (req, res) => {
+  try {
+    const { title, content, emotion, tags } = req.body;
+    if (!content?.trim()) return res.status(400).json({ message: "El contenido es requerido" });
+    const entry = await Journal.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id },
+      { title: title?.trim(), content: content.trim(), emotion, tags, updatedAt: new Date() },
+      { new: true }
+    );
+    if (!entry) return res.status(404).json({ message: "Entrada no encontrada" });
+    res.json({ success: true, entry });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+};
+
 exports.deleteEntry = async (req, res) => {
   try {
     await Journal.findOneAndDelete({ _id: req.params.id, user: req.user._id });

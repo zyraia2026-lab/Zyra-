@@ -41,6 +41,20 @@ exports.toggleGoal = async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
 
+exports.updateGoal = async (req, res) => {
+  try {
+    const { title, category, reminder, dueDate, priority } = req.body;
+    if (!title?.trim()) return res.status(400).json({ message: "El título es requerido" });
+    const goal = await Goal.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id },
+      { title: title.trim(), category, reminder, dueDate: dueDate || null, priority, updatedAt: new Date() },
+      { new: true }
+    );
+    if (!goal) return res.status(404).json({ message: "Meta no encontrada" });
+    res.json({ success: true, goal });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+};
+
 exports.deleteGoal = async (req, res) => {
   try {
     await Goal.findOneAndDelete({ _id: req.params.id, user: req.user._id });

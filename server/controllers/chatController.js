@@ -762,7 +762,7 @@ exports.sendMessage = async (req, res) => {
     if (conversationId) {
       conv = await Conversation.findOneAndUpdate(
         { _id:conversationId, user:req.user._id },
-        { $push:{ messages:{ $each:msgPair } }, updatedAt:Date.now() },
+        { $push:{ messages:{ $each:msgPair, $slice:-200 } }, updatedAt:Date.now() },
         { new:true }
       ).catch(()=>null);
     }
