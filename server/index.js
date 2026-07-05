@@ -64,6 +64,9 @@ app.use("/api/payments",      require("./routes/payments"));
 app.use("/api/tts",           require("./routes/tts"));
 app.use("/api/push",          require("./routes/push"));
 app.use("/api/yt",            require("./routes/yt"));
+app.use("/api/memory",        require("./routes/memory"));
+app.use("/api/analytics",     require("./routes/analytics"));
+app.use("/api/weekly-report", require("./routes/weeklyReport"));
 
 app.get("/api/health", (req, res) => res.json({ status: "OK", ai: "Zyra/Groq", version: "5.0" }));
 app.get("/api/config", auth, (req, res) => res.json({ ytEnabled: !!process.env.YT_API_KEY }));
@@ -71,6 +74,14 @@ app.get("/api/config", auth, (req, res) => res.json({ ytEnabled: !!process.env.Y
 // ── Cron: push reminders cada minuto
 setInterval(() => {
   require("./controllers/pushController").sendDailyReminders().catch(() => {});
+}, 60_000);
+
+// ── Cron: reportes semanales cada lunes a las 9am (verificar cada hora)
+setInterval(() => {
+  const now = new Date();
+  if (now.getDay() === 1 && now.getHours() === 9 && now.getMinutes() < 2) {
+    require("./controllers/weeklyReportController").cronGenerateAll().catch(() => {});
+  }
 }, 60_000);
 
 // ── SPA fallback

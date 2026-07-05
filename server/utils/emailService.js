@@ -105,4 +105,69 @@ const sendPasswordResetCode = async (toEmail, code, userName = "") => {
   });
 };
 
-module.exports = { sendVerificationCode, sendWelcomeEmail, sendPasswordResetCode };
+const sendWeeklyReport = async (toEmail, userName, html, data) => {
+  const EMOTION_EMOJI = { feliz:"😊", tranquilo:"😌", ansioso:"😰", triste:"😢", enojado:"😤", confundido:"🤔", esperanzado:"🌟", agotado:"😮‍💨", motivado:"💪", nostalgico:"🌅" };
+  const topEmoji = EMOTION_EMOJI[data.topEmotion] || "💙";
+  await transporter.sendMail({
+    from: `"Zyra 🌊" <${process.env.EMAIL_USER}>`,
+    to: toEmail,
+    subject: `Tu reporte semanal Zyra ${topEmoji} — ${new Date(data.weekStart).toLocaleDateString("es-CO")}`,
+    html: wrap(`
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="font-size:40px;margin-bottom:8px;">${topEmoji}</div>
+        <h2 style="color:#f0f0ff;margin:0;font-size:20px;">Reporte de la semana, ${userName}</h2>
+        <p style="color:#7a7a9a;font-size:13px;margin:8px 0 0;">
+          ${new Date(data.weekStart).toLocaleDateString("es-CO")} – ${new Date(data.weekEnd).toLocaleDateString("es-CO")}
+        </p>
+      </div>
+      <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+        <div style="flex:1;min-width:110px;background:rgba(99,102,241,.1);border-radius:12px;padding:14px;text-align:center">
+          <div style="font-size:24px;font-weight:800;color:#818cf8">${data.positivity}%</div>
+          <div style="font-size:11px;color:#7a7a9a;margin-top:4px">Positividad</div>
+        </div>
+        <div style="flex:1;min-width:110px;background:rgba(16,185,129,.1);border-radius:12px;padding:14px;text-align:center">
+          <div style="font-size:24px;font-weight:800;color:#34d399">${data.history.length}</div>
+          <div style="font-size:11px;color:#7a7a9a;margin-top:4px">Registros</div>
+        </div>
+        <div style="flex:1;min-width:110px;background:rgba(251,191,36,.1);border-radius:12px;padding:14px;text-align:center">
+          <div style="font-size:24px;font-weight:800;color:#fbbf24">${data.completedGoals.length}</div>
+          <div style="font-size:11px;color:#7a7a9a;margin-top:4px">Metas logradas</div>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:20px;margin-bottom:20px;color:#c8c8e8;font-size:14px;line-height:1.8">
+        ${html}
+      </div>
+      <div style="text-align:center;margin-top:20px">
+        <a href="https://zyra-app.onrender.com" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:700;font-size:14px;display:inline-block">Ver mi progreso en Zyra →</a>
+      </div>
+    `),
+  });
+};
+
+const sendCrisisAlert = async (toEmail, contactName, userName, message) => {
+  try {
+    await transporter.sendMail({
+      from: `"Zyra — Alerta de Bienestar" <${process.env.EMAIL_USER}>`,
+      to: toEmail,
+      subject: `⚠️ Alerta de bienestar — ${userName} podría necesitar apoyo`,
+      html: wrap(`
+        <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:16px;padding:24px;margin-bottom:20px">
+          <h2 style="color:#f87171;margin:0 0 8px;font-size:18px">⚠️ Alerta de bienestar emocional</h2>
+          <p style="color:#fca5a5;font-size:13px;margin:0">Zyra ha detectado que <strong>${userName}</strong> podría estar pasando por un momento difícil.</p>
+        </div>
+        <p style="color:#c8c8e8;font-size:14px;line-height:1.7">Hola ${contactName},</p>
+        <p style="color:#a8a8c8;font-size:14px;line-height:1.7">${userName} te registró como contacto de emergencia en Zyra. Hemos detectado una posible situación de crisis y te notificamos para que puedas estar disponible si te necesita.</p>
+        <p style="color:#a8a8c8;font-size:14px;line-height:1.7">Por favor intenta ponerte en contacto con ${userName} pronto. Si crees que está en peligro inmediato, contacta los servicios de emergencia.</p>
+        <div style="background:rgba(99,102,241,.08);border-radius:12px;padding:16px;margin:20px 0">
+          <p style="color:#818cf8;font-size:13px;margin:0;font-weight:700">Líneas de crisis:</p>
+          <p style="color:#a8a8c8;font-size:13px;margin:8px 0 0;line-height:1.8">🇨🇴 Colombia: Línea 106 (Salud Mental) · 123 (Emergencias)<br/>🇪🇸 España: 024 (Suicidio) · 112 (Emergencias)<br/>🌎 Internacional: befrienders.org</p>
+        </div>
+        <p style="color:#5a5a7a;font-size:12px">Este mensaje fue enviado automáticamente por Zyra como parte de su sistema de apoyo a usuarios.</p>
+      `),
+    });
+  } catch(e) {
+    console.error("Crisis alert email error:", e.message);
+  }
+};
+
+module.exports = { sendVerificationCode, sendWelcomeEmail, sendPasswordResetCode, sendWeeklyReport, sendCrisisAlert };
