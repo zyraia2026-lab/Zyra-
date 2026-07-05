@@ -42,8 +42,6 @@
 
 <!-- iOS touch icon fallback -->
 <link rel="apple-touch-icon" href="/Imagenes/1000154669.png"/>
-<!-- Three.js para avatar 3D -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
@@ -2057,8 +2055,11 @@ async function api(path, method="GET", body=null) {
   const opts = {method, headers:{"Content-Type":"application/json"}};
   if(token) opts.headers["Authorization"] = "Bearer " + token;
   if(body)  opts.body = JSON.stringify(body);
-  const r = await fetch("/api" + path, opts);
-  const d = await r.json();
+  let r;
+  try { r = await fetch("/api" + path, opts); }
+  catch(netErr) { throw Object.assign(new Error("Sin conexión a internet. Verifica tu red."), { status: 0 }); }
+  let d;
+  try { d = await r.json(); } catch(e) { d = {}; }
   if(!r.ok) {
     if(r.status === 401 && token) {
       token = null; user = null;
@@ -2088,6 +2089,7 @@ function clearForms() {
   ["login-email","login-pass","reg-name","reg-email","reg-pass","reg-pass2"].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = "";
   });
+  updatePasswordStrength("");
   clearCodeInputs("vl"); clearCodeInputs("vr");
   ["login-error","reg-error","vl-error","vr-error"].forEach(id => hideError(id));
 }
@@ -2335,6 +2337,7 @@ function doLogout() {
   localStorage.removeItem("zyra_photo");
   localStorage.removeItem("zyra_avatar_emoji");
   localStorage.removeItem("zyra_avatar_color");
+  localStorage.removeItem("zyra_terms_accepted");
   clearForms(); showPage("login");
 }
 
@@ -2696,7 +2699,7 @@ async function confirmDeleteAccount() {
   try {
     const d = await api("/profile/account", "DELETE");
     zyraToast(d.message || "Cuenta eliminada", "success");
-    setTimeout(() => logout(), 1500);
+    setTimeout(() => doLogout(), 1500);
   } catch(e) {
     zyraToast(e.message || "Error al eliminar la cuenta", "error");
   }
@@ -2710,7 +2713,7 @@ async function confirmResetData() {
   try {
     const d = await api("/profile/data", "DELETE");
     zyraToast(d.message || "Datos eliminados", "success");
-    if (d.logout) { setTimeout(() => logout(), 1500); }
+    if (d.logout) { setTimeout(() => doLogout(), 1500); }
   } catch(e) {
     zyraToast(e.message || "Error al borrar datos", "error");
   }
@@ -2769,11 +2772,11 @@ async function loadSubscriptionInfo() {
   } catch(e) {}
 }
 async function cancelSubscription() {
-  const ok = await zyraConfirm("¿Cancelar tu plan? Volverás al plan gratuito al final del período actual.", { danger: true, okText: "Sí, cancelar" });
+  const ok = await zyraConfirm("¿Cancelar tu plan? Volverás al plan gratuito.", { danger: true, okText: "Sí, cancelar" });
   if(!ok) return;
   try {
-    await api("/profile", "PUT", { plan: "free" });
-    zyraToast("Plan cancelado. Quedarás en el plan gratuito.", "info");
+    await api("/payments/cancel", "POST");
+    zyraToast("Plan cancelado. Ya estás en el plan gratuito.", "info");
     loadSubscriptionInfo();
     loadPlanStatus();
   } catch(e) { zyraToast(e.message, "error"); }
@@ -2785,7 +2788,7 @@ async function saveProfilePassword() {
   const p2  = document.getElementById("prof-pass-confirm").value;
   if(!cur || !p1 || !p2) return zyraToast("Completa todos los campos", "error");
   if(p1 !== p2) return zyraToast("Las contraseñas no coinciden", "error");
-  if(p1.length < 6) return zyraToast("Mínimo 6 caracteres", "error");
+  if(p1.length < 8) return zyraToast("Mínimo 8 caracteres", "error");
   try {
     await api("/auth/update-password","PUT",{ currentPassword: cur, password: p1 });
     document.getElementById("prof-pass-current").value = "";
@@ -4237,6 +4240,29 @@ async function sendMsg() {
 /* ── VOZ MEJORADA ── */
 let voiceMode = false;
 window.addEventListener("load", () => {
+  // Manejar redirect de Stripe después de pago
+  const urlParams = new URLSearchParams(window.location.search);
+  const sessionId = urlParams.get("session_id");
+  const cancelled = urlParams.get("cancelled");
+  if (sessionId && token) {
+    const plan = urlParams.get("plan") || "";
+    history.replaceState({}, "", "/");
+    api(`/payments/verify?session_id=${sessionId}&plan=${plan}`)
+      .then(d => {
+        zyraToast(`¡Pago exitoso! Plan ${d.plan || plan} activado.`, "success", 5000);
+        loadPlanStatus();
+        loadSubscriptionInfo();
+        showPage("dashboard");
+      })
+      .catch(e => {
+        zyraToast(e.message || "Error verificando el pago. Contacta soporte.", "error", 6000);
+        showPage("dashboard");
+      });
+  } else if (cancelled === "1") {
+    history.replaceState({}, "", "/");
+    zyraToast("Pago cancelado. Puedes intentarlo de nuevo cuando quieras.", "info");
+  }
+
   if(token){
     api("/config")
       .then(d=>{ window.YT_ENABLED = !!d.ytEnabled; })
@@ -6705,7 +6731,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       <p style="text-align:center;color:var(--text3,#7880a0);font-size:11px;margin:12px 0 0;line-height:1.6">
         Garantía de 7 días sin preguntas · Cancela cuando quieras<br>
-        Facturado a través de App Store / Google Play en producción
+        Pago seguro procesado por Stripe · Datos cifrados
       </p>
     </div>
   </div>
