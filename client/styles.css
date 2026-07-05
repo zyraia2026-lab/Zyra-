@@ -3216,3 +3216,11 @@ body {
 .zyra-rec-card:hover .zyra-char-img {
   transform: scale(1.05);
 }
+
+/* ── Toggle switch (reminders, settings) ── */
+.toggle-switch { position:relative; display:inline-block; width:44px; height:24px; flex-shrink:0; }
+.toggle-switch input { opacity:0; width:0; height:0; }
+.toggle-slider { position:absolute; cursor:pointer; inset:0; background:var(--border,#334155); border-radius:24px; transition:.3s; }
+.toggle-slider:before { content:""; position:absolute; height:18px; width:18px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.3s; }
+.toggle-switch input:checked + .toggle-slider { background:var(--accent,#7c3aed); }
+.toggle-switch input:checked + .toggle-slider:before { transform:translateX(20px); }

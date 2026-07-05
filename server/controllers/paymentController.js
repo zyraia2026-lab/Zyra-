@@ -15,31 +15,37 @@ const PLANS = {
   basic: {
     name:        "Zyra Plan Básico",
     description: "100 mensajes/día · 10 metas · Diario ilimitado · Contacto emergencia",
-    amount:      990000, // $9,900 COP en centavos
+    monthly:     990000,   // $9,900 COP
+    annual:      9900000,  // $99,000 COP (ahorra 17%)
     currency:    "cop",
-    duration:    30,     // días
+    durationMonthly: 30,
+    durationAnnual:  365,
   },
   premium: {
     name:        "Zyra Plan Premium",
     description: "Mensajes ilimitados · Todo incluido · Llamadas de voz IA · Reportes PDF",
-    amount:      2490000, // $24,900 COP en centavos
+    monthly:     2490000,  // $24,900 COP
+    annual:      24900000, // $249,000 COP (ahorra 17%)
     currency:    "cop",
-    duration:    30,
+    durationMonthly: 30,
+    durationAnnual:  365,
   },
 };
 
 /* ── Crear sesión de pago ── */
 exports.createCheckout = async (req, res) => {
   try {
-    const { plan } = req.body;
+    const { plan, period = "monthly" } = req.body;
     if (!["basic", "premium"].includes(plan)) {
       return res.status(400).json({ message: "Plan inválido" });
     }
+    const isAnnual = period === "annual";
 
     if (!stripe) {
       // Modo demo: actualizar plan directamente (para pruebas sin Stripe)
+      const duration = isAnnual ? PLANS[plan].durationAnnual : PLANS[plan].durationMonthly;
       const expires = new Date();
-      expires.setDate(expires.getDate() + 30);
+      expires.setDate(expires.getDate() + duration);
       await User.findByIdAndUpdate(req.user._id, {
         plan,
         planExpiresAt:   expires,
@@ -49,27 +55,49 @@ exports.createCheckout = async (req, res) => {
     }
 
     const appUrl = process.env.APP_URL || "http://localhost:438";
-    const p = PLANS[plan];
+    const p      = PLANS[plan];
+    const amount = isAnnual ? p.annual : p.monthly;
+    const label  = isAnnual ? `${p.name} — Anual` : `${p.name} — Mensual`;
 
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items: [{
-        price_data: {
-          currency:     p.currency,
-          product_data: { name: p.name, description: p.description },
-          unit_amount:  p.amount,
-        },
-        quantity: 1,
-      }],
-      mode: "payment",
-      success_url: `${appUrl}/pago-exitoso?session_id={CHECKOUT_SESSION_ID}&plan=${plan}`,
-      cancel_url:  `${appUrl}/?cancelled=1`,
-      metadata: {
-        userId: req.user._id.toString(),
-        plan,
-      },
-      customer_email: req.user.email,
-    });
+    // Stripe Price IDs para suscripciones recurrentes (crear en dashboard.stripe.com → Products)
+    // Agregar al .env: STRIPE_PRICE_BASIC_M, STRIPE_PRICE_BASIC_Y, STRIPE_PRICE_PREMIUM_M, STRIPE_PRICE_PREMIUM_Y
+    const priceKey = `STRIPE_PRICE_${plan.toUpperCase()}_${isAnnual ? "Y" : "M"}`;
+    const priceId  = process.env[priceKey];
+
+    let sessionConfig;
+    if (priceId) {
+      // Modo suscripción recurrente
+      sessionConfig = {
+        payment_method_types: ["card"],
+        line_items: [{ price: priceId, quantity: 1 }],
+        mode: "subscription",
+        subscription_data: { metadata: { userId: req.user._id.toString(), plan, period } },
+        success_url: `${appUrl}/pago-exitoso?session_id={CHECKOUT_SESSION_ID}&plan=${plan}`,
+        cancel_url:  `${appUrl}/?cancelled=1`,
+        metadata:    { userId: req.user._id.toString(), plan, period },
+        customer_email: req.user.email,
+      };
+    } else {
+      // Fallback: pago único (hasta configurar Price IDs)
+      sessionConfig = {
+        payment_method_types: ["card"],
+        line_items: [{
+          price_data: {
+            currency:     p.currency,
+            product_data: { name: label, description: p.description },
+            unit_amount:  amount,
+          },
+          quantity: 1,
+        }],
+        mode: "payment",
+        success_url: `${appUrl}/pago-exitoso?session_id={CHECKOUT_SESSION_ID}&plan=${plan}`,
+        cancel_url:  `${appUrl}/?cancelled=1`,
+        metadata:    { userId: req.user._id.toString(), plan, period },
+        customer_email: req.user.email,
+      };
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionConfig);
 
     res.json({ url: session.url, sessionId: session.id });
   } catch(e) {
@@ -102,8 +130,10 @@ exports.verifySession = async (req, res) => {
       return res.status(400).json({ message: "Plan inválido en metadata" });
     }
 
+    const isAnnual = session.metadata?.period === "annual";
+    const duration = isAnnual ? PLANS[planName].durationAnnual : PLANS[planName].durationMonthly;
     const expires = new Date();
-    expires.setDate(expires.getDate() + PLANS[planName].duration);
+    expires.setDate(expires.getDate() + duration);
 
     await User.findByIdAndUpdate(req.user._id, {
       plan:            planName,
@@ -139,8 +169,10 @@ exports.webhook = async (req, res) => {
       const { userId, plan } = session.metadata || {};
       if (userId && plan && PLANS[plan]) {
         try {
+          const isAnnualWh = session.metadata?.period === "annual";
+          const durationWh = isAnnualWh ? PLANS[plan].durationAnnual : PLANS[plan].durationMonthly;
           const expires = new Date();
-          expires.setDate(expires.getDate() + PLANS[plan].duration);
+          expires.setDate(expires.getDate() + durationWh);
           await User.findByIdAndUpdate(userId, {
             plan,
             planExpiresAt:   expires,

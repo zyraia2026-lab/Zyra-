@@ -1,25 +1,33 @@
 const User    = require("../models/User");
 const Profile = require("../models/Profile");
+const OTP     = require("../models/OTPCode");
 const jwt     = require("jsonwebtoken");
 const { sendVerificationCode } = require("../utils/emailService");
 
-// En memoria (local/dev). Mejor limpiarlo para evitar acumulación y estados rotos.
-const pendingCodes = {};
-
 const tk = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || "7d" });
 const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
+const expiresAt = () => new Date(Date.now() + 10 * 60 * 1000);
 
-function cleanupPendingCodes() {
-  const now = Date.now();
-  for (const [email, pending] of Object.entries(pendingCodes)) {
-    if (!pending?.expires || now > pending.expires) delete pendingCodes[email];
-  }
+async function saveOTP(key, code, data = {}) {
+  await OTP.findOneAndUpdate(
+    { key },
+    { key, email: data.email || key.replace("reset_",""), code, expires: expiresAt(), data },
+    { upsert: true, new: true }
+  );
+}
+
+async function verifyOTP(key, code) {
+  const otp = await OTP.findOne({ key });
+  if (!otp)                      return { error: "No hay un código pendiente para este correo" };
+  if (new Date() > otp.expires)  { await OTP.deleteOne({ key }); return { error: "El código expiró. Intenta de nuevo" }; }
+  if (otp.code !== code.trim())  return { error: "Código incorrecto. Inténtalo de nuevo" };
+  await OTP.deleteOne({ key });
+  return { data: otp.data };
 }
 
 // ── PASO 1 REGISTRO ──
 exports.registerRequest = async (req, res) => {
   try {
-    cleanupPendingCodes();
     const { name, email, password } = req.body;
     if (!name || !email || !password)
       return res.status(400).json({ message: "Todos los campos son requeridos" });
@@ -28,14 +36,12 @@ exports.registerRequest = async (req, res) => {
     if (await User.findOne({ email }))
       return res.status(400).json({ message: "Este correo ya está registrado" });
 
-    const code    = generateCode();
-    const expires = Date.now() + 10 * 60 * 1000;
-    pendingCodes[email] = { code, expires, userData: { name, email, password } };
-
+    const code = generateCode();
+    await saveOTP(email, code, { email, name, password });
     await sendVerificationCode(email, code, name);
     res.json({ success: true, message: "Código enviado a tu correo" });
   } catch (e) {
-    console.error("Error registerRequest:", e.message);
+    console.error("registerRequest:", e.message);
     res.status(500).json({ message: "Error al enviar el código: " + e.message });
   }
 };
@@ -43,22 +49,11 @@ exports.registerRequest = async (req, res) => {
 // ── PASO 2 REGISTRO ──
 exports.registerVerify = async (req, res) => {
   try {
-    cleanupPendingCodes();
     const { email, code } = req.body;
-    const pending = pendingCodes[email];
+    const result = await verifyOTP(email, code);
+    if (result.error) return res.status(400).json({ message: result.error });
 
-    if (!pending)
-      return res.status(400).json({ message: "No hay un código pendiente para este correo" });
-    if (Date.now() > pending.expires) {
-      delete pendingCodes[email];
-      return res.status(400).json({ message: "El código expiró. Intenta registrarte de nuevo" });
-    }
-    if (pending.code !== code.trim())
-      return res.status(400).json({ message: "Código incorrecto. Inténtalo de nuevo" });
-
-    delete pendingCodes[email];
-    const { name, password } = pending.userData;
-
+    const { name, password } = result.data;
     if (await User.findOne({ email }))
       return res.status(400).json({ message: "Este correo ya está registrado" });
 
@@ -71,7 +66,7 @@ exports.registerVerify = async (req, res) => {
       user: { id: user._id, name: user.name, email: user.email, darkMode: user.darkMode }
     });
   } catch (e) {
-    console.error("Error registerVerify:", e.message);
+    console.error("registerVerify:", e.message);
     res.status(500).json({ message: e.message });
   }
 };
@@ -79,7 +74,6 @@ exports.registerVerify = async (req, res) => {
 // ── PASO 1 LOGIN ──
 exports.loginRequest = async (req, res) => {
   try {
-    cleanupPendingCodes();
     const { email, password } = req.body;
     if (!email || !password)
       return res.status(400).json({ message: "Email y contraseña requeridos" });
@@ -88,14 +82,12 @@ exports.loginRequest = async (req, res) => {
     if (!user || !(await user.matchPassword(password)))
       return res.status(401).json({ message: "Credenciales incorrectas" });
 
-    const code    = generateCode();
-    const expires = Date.now() + 10 * 60 * 1000;
-    pendingCodes[email] = { code, expires, userId: user._id };
-
+    const code = generateCode();
+    await saveOTP(`login_${email}`, code, { email, userId: user._id.toString() });
     await sendVerificationCode(email, code, user.name);
     res.json({ success: true, message: "Código enviado a tu correo" });
   } catch (e) {
-    console.error("Error loginRequest:", e.message);
+    console.error("loginRequest:", e.message);
     res.status(500).json({ message: "Error al enviar el código: " + e.message });
   }
 };
@@ -103,27 +95,15 @@ exports.loginRequest = async (req, res) => {
 // ── PASO 2 LOGIN ──
 exports.loginVerify = async (req, res) => {
   try {
-    cleanupPendingCodes();
     const { email, code } = req.body;
-    const pending = pendingCodes[email];
+    const result = await verifyOTP(`login_${email}`, code);
+    if (result.error) return res.status(400).json({ message: result.error });
 
-    if (!pending)
-      return res.status(400).json({ message: "No hay un código pendiente para este correo" });
-    if (Date.now() > pending.expires) {
-      delete pendingCodes[email];
-      return res.status(400).json({ message: "El código expiró. Intenta iniciar sesión de nuevo" });
-    }
-    if (pending.code !== code.trim())
-      return res.status(400).json({ message: "Código incorrecto. Inténtalo de nuevo" });
+    const { userId } = result.data;
+    if (!userId) return res.status(400).json({ message: "Proceso de login inválido. Intenta de nuevo" });
 
-    delete pendingCodes[email];
-
-    if (!pending.userId)
-      return res.status(400).json({ message: "Proceso de login inválido. Intenta iniciar sesión de nuevo" });
-
-    const user = await User.findById(pending.userId);
-    if (!user)
-      return res.status(401).json({ message: "Usuario no encontrado. Inicia sesión nuevamente" });
+    const user = await User.findById(userId);
+    if (!user) return res.status(401).json({ message: "Usuario no encontrado" });
 
     res.json({
       success: true,
@@ -131,7 +111,7 @@ exports.loginVerify = async (req, res) => {
       user: { id: user._id, name: user.name, email: user.email, darkMode: user.darkMode }
     });
   } catch (e) {
-    console.error("Error loginVerify:", e);
+    console.error("loginVerify:", e.message);
     res.status(500).json({ message: "Error loginVerify: " + (e?.message || "desconocido") });
   }
 };
@@ -139,20 +119,14 @@ exports.loginVerify = async (req, res) => {
 // ── REENVIAR CÓDIGO ──
 exports.resendCode = async (req, res) => {
   try {
-    cleanupPendingCodes();
     const { email } = req.body;
-    const pending   = pendingCodes[email];
+    // Buscar OTP existente (registro o login)
+    const existing = await OTP.findOne({ email, key: { $in: [email, `login_${email}`] } });
+    if (!existing) return res.status(400).json({ message: "No hay un proceso pendiente para este correo" });
 
-    if (!pending)
-      return res.status(400).json({ message: "No hay un proceso pendiente para este correo" });
-
-    const code    = generateCode();
-    const expires = Date.now() + 10 * 60 * 1000;
-    pending.code    = code;
-    pending.expires = expires;
-
-    const name = pending.userData?.name || "";
-    await sendVerificationCode(email, code, name);
+    const code = generateCode();
+    await OTP.findOneAndUpdate({ key: existing.key }, { code, expires: expiresAt() });
+    await sendVerificationCode(email, code, existing.data?.name || "");
     res.json({ success: true, message: "Código reenviado" });
   } catch (e) {
     res.status(500).json({ message: "Error al reenviar: " + e.message });
@@ -187,7 +161,7 @@ exports.updateProfile = async (req, res) => {
   } catch(e) { res.status(500).json({ message: e.message }); }
 };
 
-// ── UPDATE PASSWORD ──
+// ── UPDATE PASSWORD (requiere contraseña actual) ──
 exports.updatePassword = async (req, res) => {
   try {
     const { currentPassword, password } = req.body;
@@ -204,19 +178,16 @@ exports.updatePassword = async (req, res) => {
   } catch(e) { res.status(500).json({ message: e.message }); }
 };
 
-// ── OLVIDÉ MI CONTRASEÑA — Paso 1: enviar código ──
+// ── OLVIDÉ MI CONTRASEÑA — Paso 1 ──
 exports.forgotPasswordRequest = async (req, res) => {
   try {
-    cleanupPendingCodes();
     const { email } = req.body;
     if (!email) return res.status(400).json({ message: "Email requerido" });
     const user = await User.findOne({ email });
-    // Responder igual aunque no exista (evitar user enumeration)
     if (user) {
-      const code    = generateCode();
-      const expires = Date.now() + 10 * 60 * 1000;
-      pendingCodes[`reset_${email}`] = { code, expires, userId: user._id };
-      await sendVerificationCode(email, code, user.name, "reset");
+      const code = generateCode();
+      await saveOTP(`reset_${email}`, code, { email, userId: user._id.toString() });
+      await sendVerificationCode(email, code, user.name);
     }
     res.json({ success: true, message: "Si ese correo existe, recibirás un código" });
   } catch(e) {
@@ -225,29 +196,19 @@ exports.forgotPasswordRequest = async (req, res) => {
   }
 };
 
-// ── OLVIDÉ MI CONTRASEÑA — Paso 2: verificar código y cambiar contraseña ──
+// ── OLVIDÉ MI CONTRASEÑA — Paso 2 ──
 exports.forgotPasswordReset = async (req, res) => {
   try {
-    cleanupPendingCodes();
     const { email, code, password } = req.body;
     if (!email || !code || !password)
       return res.status(400).json({ message: "Todos los campos son requeridos" });
     if (password.length < 6)
       return res.status(400).json({ message: "Mínimo 6 caracteres en la contraseña" });
 
-    const key     = `reset_${email}`;
-    const pending = pendingCodes[key];
-    if (!pending)
-      return res.status(400).json({ message: "No hay un código pendiente para este correo" });
-    if (Date.now() > pending.expires) {
-      delete pendingCodes[key];
-      return res.status(400).json({ message: "El código expiró. Solicita uno nuevo" });
-    }
-    if (pending.code !== code.trim())
-      return res.status(400).json({ message: "Código incorrecto" });
+    const result = await verifyOTP(`reset_${email}`, code);
+    if (result.error) return res.status(400).json({ message: result.error });
 
-    delete pendingCodes[key];
-    const user = await User.findById(pending.userId).select("+password");
+    const user = await User.findById(result.data.userId).select("+password");
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
     user.password = password;
     await user.save();

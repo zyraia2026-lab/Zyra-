@@ -43,7 +43,7 @@ exports.addEmotionRecord = async (req, res) => {
       {
         currentEmotion: emotion,
         negativeStreakCount: negativeStreak,
-        $push: { emotionHistory: { emotion, note, intensity: intensity||5, date: new Date() } },
+        $push: { emotionHistory: { $each: [{ emotion, note, intensity: intensity||5, date: new Date() }], $slice: -90 } },
         updatedAt: Date.now()
       },
       { new: true, upsert: true }
