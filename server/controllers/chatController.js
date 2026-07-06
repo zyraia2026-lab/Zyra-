@@ -611,7 +611,7 @@ Solo UN ejercicio por turno. Primero pregunta si quieren hacerlo.
 ════════════════════════════════════════ */
 exports.sendMessage = async (req, res) => {
   try {
-    const { message, conversationId, history, mode } = req.body;
+    const { message, conversationId, history, mode, noSave } = req.body;
     const isVoice = mode === 'voice';
     if (!message?.trim()) return res.status(400).json({ message: "Mensaje vacío" });
 
@@ -766,27 +766,28 @@ exports.sendMessage = async (req, res) => {
     ];
 
     let conv;
-    if (conversationId) {
-      conv = await Conversation.findOneAndUpdate(
-        { _id:conversationId, user:req.user._id },
-        { $push:{ messages:{ $each:msgPair, $slice:-200 } }, updatedAt:Date.now() },
-        { new:true }
-      ).catch(()=>null);
+    if (!noSave) {
+      if (conversationId) {
+        conv = await Conversation.findOneAndUpdate(
+          { _id:conversationId, user:req.user._id },
+          { $push:{ messages:{ $each:msgPair, $slice:-200 } }, updatedAt:Date.now() },
+          { new:true }
+        ).catch(()=>null);
+      }
+      if (!conv) {
+        const title = message.length > 60 ? message.substring(0,57)+"..." : message;
+        conv = await Conversation.create({ user:req.user._id, title, messages:msgPair });
+        await Profile.findOneAndUpdate({ user:req.user._id }, { $inc:{ sessionsCount:1 }, lastSession:new Date() }).catch(()=>{});
+      }
+      // Extraer memorias de forma asíncrona (no bloquea la respuesta)
+      extractAndSaveMemories(req.user._id, req.user.name, message, cleanText).catch(() => {});
     }
-    if (!conv) {
-      const title = message.length > 60 ? message.substring(0,57)+"..." : message;
-      conv = await Conversation.create({ user:req.user._id, title, messages:msgPair });
-      await Profile.findOneAndUpdate({ user:req.user._id }, { $inc:{ sessionsCount:1 }, lastSession:new Date() }).catch(()=>{});
-    }
-
-    // Extraer memorias de forma asíncrona (no bloquea la respuesta)
-    extractAndSaveMemories(req.user._id, req.user.name, message, cleanText).catch(() => {});
 
     res.json({
       success: true,
       response: cleanText,
       cards,
-      conversationId: conv._id,
+      conversationId: conv?._id,
       plan: userPlan,
       messagesRemaining: req.messagesRemaining ?? null,
     });

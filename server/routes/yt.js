@@ -1,11 +1,11 @@
 const r = require("express").Router();
 const { protect } = require("../middleware/auth");
-const rateLimit = require("express-rate-limit");
+const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 
 const ytLimiter = rateLimit({
   windowMs: 60_000,
   max: 20,
-  keyGenerator: (req) => req.user?._id?.toString() || req.ip,
+  keyGenerator: (req) => req.user?._id?.toString() || ipKeyGenerator(req),
   message: { message: "Demasiadas búsquedas. Espera un momento." },
   standardHeaders: true, legacyHeaders: false,
 });
