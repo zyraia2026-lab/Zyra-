@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8"/>
@@ -40,10 +40,37 @@
 <meta name="twitter:description" content="Tu acompañante emocional inteligente. Habla, siente, crece."/>
 <meta name="twitter:image" content="https://zyra-app.onrender.com/Imagenes/zyra-avatar.png"/>
 
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="/Imagenes/1000154669.png"/>
+<link rel="shortcut icon" href="/Imagenes/1000154669.png"/>
 <!-- iOS touch icon fallback -->
 <link rel="apple-touch-icon" href="/Imagenes/1000154669.png"/>
 </head>
 <body>
+
+<!-- ══ SPLASH SCREEN ══ -->
+<div id="zyra-splash" style="position:fixed;inset:0;z-index:99999;background:#0d0f1a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .45s ease,visibility .45s ease">
+  <div style="position:relative;width:88px;height:88px">
+    <div style="width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:40px;animation:splash-pulse 1.8s ease-in-out infinite">🌊</div>
+    <div style="position:absolute;inset:-6px;border-radius:50%;border:3px solid transparent;border-top-color:#6366f1;animation:splash-spin 1s linear infinite"></div>
+  </div>
+  <div style="text-align:center">
+    <div style="font-family:'Playfair Display',serif;font-size:28px;font-weight:800;color:#e8eaf6;letter-spacing:.5px">Zyra</div>
+    <div style="font-size:13px;color:#7880a0;margin-top:4px">Bienestar Emocional con IA</div>
+  </div>
+  <div style="display:flex;gap:6px;margin-top:8px">
+    <div class="splash-dot" style="animation-delay:0s"></div>
+    <div class="splash-dot" style="animation-delay:.2s"></div>
+    <div class="splash-dot" style="animation-delay:.4s"></div>
+  </div>
+</div>
+<style>
+.splash-dot{width:7px;height:7px;border-radius:50%;background:#6366f1;animation:splash-bounce .9s ease-in-out infinite}
+@keyframes splash-bounce{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-7px)}}
+@keyframes splash-spin{to{transform:rotate(360deg)}}
+@keyframes splash-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+#zyra-splash.hidden{opacity:0;visibility:hidden;pointer-events:none}
+</style>
 
 <!-- ══ TERMS ACCEPTANCE — FIRST TIME ══ -->
 <div id="zyra-terms-overlay" style="display:none;position:fixed;inset:0;z-index:9700;background:rgba(0,0,0,.92);backdrop-filter:blur(16px);align-items:center;justify-content:center;padding:16px">
@@ -274,6 +301,7 @@
     <div class="nav-links">
       <button class="nav-btn" onclick="showPage('dashboard')">🏠 Inicio</button>
       <button class="nav-btn" onclick="showPage('wellness')">🧘 Bienestar</button>
+      <button class="nav-btn" onclick="showPage('games')">🎮 Juegos</button>
       <button class="nav-btn" onclick="showPage('goals')">🎯 Metas</button>
       <button class="nav-btn active" onclick="showPage('planes')">✦ Planes</button>
       <button class="nav-btn" onclick="showPage('journal')">📔 Diario</button>
@@ -637,35 +665,6 @@
   </div>
 </div>
 
-<!-- ══ ONBOARDING TOUR ══ -->
-<div class="onboard-overlay" id="onboard-overlay" style="display:none">
-  <div class="onboard-modal">
-    <div class="onboard-steps-bar">
-      <div class="onboard-step-dot active" id="tour-dot-0"></div>
-      <div class="onboard-step-dot" id="tour-dot-1"></div>
-      <div class="onboard-step-dot" id="tour-dot-2"></div>
-    </div>
-    <div class="onboard-step" id="ob-step-0">
-      <div style="font-size:56px;margin-bottom:16px">💙</div>
-      <h2>Bienvenido a Zyra</h2>
-      <p>Tu espacio seguro para el bienestar emocional. Zyra te acompaña 24/7 sin juicios.</p>
-      <button class="morning-btn" onclick="onboardNext(1)">Continuar →</button>
-    </div>
-    <div class="onboard-step" id="ob-step-1" style="display:none">
-      <div style="font-size:56px;margin-bottom:16px">🎯</div>
-      <h2>Todo en un lugar</h2>
-      <p>Chat con IA, música terapéutica, ejercicios de respiración, diario emocional y metas personales.</p>
-      <button class="morning-btn" onclick="onboardNext(2)">Continuar →</button>
-    </div>
-    <div class="onboard-step" id="ob-step-2" style="display:none">
-      <div style="font-size:56px;margin-bottom:16px">✨</div>
-      <h2>Zyra te conoce</h2>
-      <p>Cuanto más uses Zyra, más personalizada será tu experiencia. ¡Empieza hoy!</p>
-      <button class="morning-btn" onclick="finishOnboarding()">¡Empezar ahora!</button>
-    </div>
-  </div>
-</div>
-
 <!-- ══ LOGIN ══════ -->
 <div id="page-login" class="page active">
 
@@ -674,29 +673,17 @@
   <button class="mobile-nav-btn" onclick="showPage('dashboard')" data-page="dashboard">
     <span class="mnb-icon">🏠</span><span class="mnb-label">Inicio</span>
   </button>
-  <button class="mobile-nav-btn" onclick="showPage('wellness')" data-page="wellness">
-    <span class="mnb-icon">🧘</span><span class="mnb-label">Bienestar</span>
-  </button>
   <button class="mobile-nav-btn" onclick="showPage('assistant')" data-page="assistant">
     <span class="mnb-icon">💬</span><span class="mnb-label">Zyra IA</span>
-  </button>
-  <button class="mobile-nav-btn" onclick="showPage('games')" data-page="games">
-    <span class="mnb-icon">🎮</span><span class="mnb-label">Juegos</span>
   </button>
   <button class="mobile-nav-btn" onclick="showPage('journal')" data-page="journal">
     <span class="mnb-icon">📔</span><span class="mnb-label">Diario</span>
   </button>
-  <button class="mobile-nav-btn" onclick="showPage('profile')" data-page="profile">
-    <span class="mnb-icon">👤</span><span class="mnb-label">Perfil</span>
-  </button>
-  <button class="mobile-nav-btn" onclick="showPage('goals')" data-page="goals">
-    <span class="mnb-icon">🎯</span><span class="mnb-label">Metas</span>
-  </button>
   <button class="mobile-nav-btn" onclick="showPage('analytics')" data-page="analytics">
     <span class="mnb-icon">📊</span><span class="mnb-label">Análisis</span>
   </button>
-  <button class="mobile-nav-btn" onclick="showPage('planes')" data-page="planes">
-    <span class="mnb-icon">✦</span><span class="mnb-label">Planes</span>
+  <button class="mobile-nav-btn" onclick="showPage('profile')" data-page="profile">
+    <span class="mnb-icon">👤</span><span class="mnb-label">Perfil</span>
   </button>
 </div>
 <div class="auth-wrap">
@@ -1229,6 +1216,7 @@
     <div class="nav-links">
       <button class="nav-btn" onclick="showPage('dashboard')">🏠 Inicio</button>
       <button class="nav-btn active" onclick="showPage('wellness')">🧘 Bienestar</button>
+      <button class="nav-btn" onclick="showPage('games')">🎮 Juegos</button>
       <button class="nav-btn" onclick="showPage('goals')">🎯 Metas</button>
       <button class="nav-btn" onclick="showPage('planes')">✦ Planes</button>
       <button class="nav-btn" onclick="showPage('journal')">📔 Diario</button>
@@ -1260,6 +1248,7 @@
     <div class="nav-links">
       <button class="nav-btn" onclick="showPage('dashboard')">🏠 Inicio</button>
       <button class="nav-btn" onclick="showPage('wellness')">🧘 Bienestar</button>
+      <button class="nav-btn" onclick="showPage('games')">🎮 Juegos</button>
       <button class="nav-btn active" onclick="showPage('goals')">🎯 Metas</button>
       <button class="nav-btn" onclick="showPage('planes')">✦ Planes</button>
       <button class="nav-btn" onclick="showPage('journal')">📔 Diario</button>
@@ -1311,6 +1300,7 @@
     <div class="nav-links">
       <button class="nav-btn" onclick="showPage('dashboard')">🏠 Inicio</button>
       <button class="nav-btn" onclick="showPage('wellness')">🧘 Bienestar</button>
+      <button class="nav-btn" onclick="showPage('games')">🎮 Juegos</button>
       <button class="nav-btn" onclick="showPage('goals')">🎯 Metas</button>
       <button class="nav-btn" onclick="showPage('planes')">✦ Planes</button>
       <button class="nav-btn active" onclick="showPage('journal')">📔 Diario</button>
@@ -1324,29 +1314,93 @@
 </nav>
 <div class="container">
   <div class="section-title">📔 Mi Diario Emocional</div>
-  <div class="card">
-    <div class="card-header"><span class="card-title">Nueva entrada</span><button class="btn-sm accent" onclick="toggleJournalForm()">+ Escribir</button></div>
-    <div class="add-form" id="add-journal-form">
-      <div class="form-row">
-        <input type="text" id="journal-title" placeholder="Título de la entrada (opcional)"/>
-        <select id="journal-emotion">
-          <option value="">Sin emoción</option>
+
+  <!-- Tabs -->
+  <div style="display:flex;gap:8px;margin-bottom:18px">
+    <button id="journal-tab-list" class="btn-sm accent" onclick="showJournalTab('list')" style="flex:1;padding:10px">📋 Entradas</button>
+    <button id="journal-tab-calendar" class="btn-sm" onclick="showJournalTab('calendar')" style="flex:1;padding:10px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">📅 Calendario</button>
+  </div>
+
+  <!-- Vista: lista de entradas -->
+  <div id="journal-view-list">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Nueva entrada</span><button class="btn-sm accent" onclick="toggleJournalForm()">+ Escribir</button></div>
+      <div class="add-form" id="add-journal-form">
+        <div class="form-row">
+          <input type="text" id="journal-title" placeholder="Título de la entrada (opcional)"/>
+          <select id="journal-emotion">
+            <option value="">Sin emoción</option>
+            <option value="feliz">😊 Feliz</option>
+            <option value="tranquilo">😌 Tranquilo</option>
+            <option value="ansioso">😰 Ansioso</option>
+            <option value="triste">😢 Triste</option>
+            <option value="enojado">😤 Enojado</option>
+            <option value="confundido">🤔 Confundido</option>
+            <option value="esperanzado">🌟 Esperanzado</option>
+            <option value="agotado">😮‍💨 Agotado</option>
+            <option value="motivado">💪 Motivado</option>
+            <option value="nostalgico">🌅 Nostálgico</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <textarea id="journal-content" placeholder="Escribe libremente sobre tu día..." style="height:100px" maxlength="2000" oninput="updateJournalCharCount(this)"></textarea>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span id="journal-char-count" style="font-size:11px;color:var(--text3)">0 / 2000</span>
+        </div>
+        <button class="btn-primary" style="padding:12px;font-size:13px" onclick="addJournalEntry()">Guardar Entrada →</button>
+      </div>
+      <!-- Búsqueda, filtro y orden -->
+      <div style="display:flex;gap:8px;padding:12px 0 4px;border-top:1px solid var(--border);margin-top:12px;flex-wrap:wrap">
+        <input id="journal-search-input" type="search" placeholder="🔍 Buscar..." style="flex:1;min-width:120px;padding:9px 13px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:13px;outline:none" oninput="filterJournal()"/>
+        <select id="journal-filter-emotion" style="padding:9px 10px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:13px;outline:none" onchange="filterJournal()">
+          <option value="">Todas</option>
           <option value="feliz">😊 Feliz</option>
           <option value="tranquilo">😌 Tranquilo</option>
           <option value="ansioso">😰 Ansioso</option>
           <option value="triste">😢 Triste</option>
           <option value="enojado">😤 Enojado</option>
+          <option value="confundido">🤔 Confundido</option>
+          <option value="esperanzado">🌟 Esperanzado</option>
+          <option value="agotado">😮‍💨 Agotado</option>
           <option value="motivado">💪 Motivado</option>
           <option value="nostalgico">🌅 Nostálgico</option>
         </select>
+        <button id="journal-sort-btn" onclick="toggleJournalSort()" style="padding:9px 12px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;color:var(--text2);font-size:12px;cursor:pointer;white-space:nowrap">↓ Reciente</button>
       </div>
-      <div class="form-row">
-        <textarea id="journal-content" placeholder="Escribe libremente sobre tu día..." style="height:100px"></textarea>
-      </div>
-      <button class="btn-primary" style="padding:12px;font-size:13px" onclick="addJournalEntry()">Guardar Entrada →</button>
+      <div id="journal-list"></div>
     </div>
-    <div id="journal-list"></div>
   </div>
+
+  <!-- Vista: calendario de ánimo -->
+  <div id="journal-view-calendar" style="display:none">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:8px">
+        <button onclick="moodCalPrev()" style="background:var(--surface);border:1.5px solid var(--border);color:var(--text);border-radius:10px;padding:7px 14px;cursor:pointer;font-size:15px">‹</button>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div id="mood-cal-header" style="font-weight:700;font-size:16px;color:var(--text)"></div>
+          <button onclick="moodCalToday()" id="mood-cal-today-btn" style="display:none;font-size:11px;padding:3px 10px;background:var(--accent);color:#fff;border:none;border-radius:20px;cursor:pointer;font-weight:600">Hoy</button>
+        </div>
+        <button onclick="moodCalNext()" style="background:var(--surface);border:1.5px solid var(--border);color:var(--text);border-radius:10px;padding:7px 14px;cursor:pointer;font-size:15px">›</button>
+      </div>
+      <!-- Leyenda de emociones -->
+      <div id="mood-cal-legend" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px"></div>
+      <!-- Días de la semana -->
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;text-align:center">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);padding:4px">L</div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);padding:4px">M</div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);padding:4px">X</div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);padding:4px">J</div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);padding:4px">V</div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);padding:4px">S</div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);padding:4px">D</div>
+      </div>
+      <div id="mood-cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px"></div>
+      <!-- Detalle del día seleccionado -->
+      <div id="mood-cal-detail" style="display:none;margin-top:18px;padding:16px;background:var(--surface);border-radius:16px;border:1px solid var(--border)"></div>
+    </div>
+  </div>
+
 </div>
 </div>
 
@@ -1358,6 +1412,7 @@
     <div class="nav-links">
       <button class="nav-btn" onclick="showPage('dashboard')">🏠 Inicio</button>
       <button class="nav-btn" onclick="showPage('wellness')">🧘 Bienestar</button>
+      <button class="nav-btn" onclick="showPage('games')">🎮 Juegos</button>
       <button class="nav-btn" onclick="showPage('goals')">🎯 Metas</button>
       <button class="nav-btn" onclick="showPage('planes')">✦ Planes</button>
       <button class="nav-btn" onclick="showPage('journal')">📔 Diario</button>
@@ -1418,6 +1473,7 @@
     <div class="nav-links">
       <button class="nav-btn" onclick="showPage('dashboard')">🏠 Inicio</button>
       <button class="nav-btn" onclick="showPage('wellness')">🧘 Bienestar</button>
+      <button class="nav-btn" onclick="showPage('games')">🎮 Juegos</button>
       <button class="nav-btn" onclick="showPage('goals')">🎯 Metas</button>
       <button class="nav-btn" onclick="showPage('planes')">✦ Planes</button>
       <button class="nav-btn" onclick="showPage('journal')">📔 Diario</button>
@@ -1535,8 +1591,11 @@
 
   <div class="card" style="margin-bottom:20px">
     <div class="card-header"><span class="card-title">🔒 Cambiar contraseña</span></div>
-    <div class="form-group"><label>Contraseña actual</label><input type="password" id="prof-pass-current" placeholder="Tu contrase��a actual"/></div>
-    <div class="form-group"><label>Nueva contraseña</label><input type="password" id="prof-pass-new" placeholder="Mínimo 6 caracteres"/></div>
+    <div class="form-group"><label>Contraseña actual</label><input type="password" id="prof-pass-current" placeholder="Tu contraseña actual"/></div>
+    <div class="form-group"><label>Nueva contraseña</label><input type="password" id="prof-pass-new" placeholder="Mínimo 8 caracteres" oninput="updatePassStrength(this.value)"/>
+      <div id="prof-pass-strength-bar" style="height:4px;border-radius:4px;margin-top:6px;background:var(--border);overflow:hidden"><div id="prof-pass-strength-fill" style="height:100%;width:0;border-radius:4px;transition:width .3s,background .3s"></div></div>
+      <div id="prof-pass-strength-label" style="font-size:11px;color:var(--text3);margin-top:4px"></div>
+    </div>
     <div class="form-group"><label>Confirmar nueva contraseña</label><input type="password" id="prof-pass-confirm" placeholder="Repite la contraseña"/></div>
     <button class="btn-primary" style="padding:12px;font-size:13px;background:linear-gradient(135deg,#7c3aed,#4f46e5)" onclick="saveProfilePassword()">Cambiar contraseña</button>
   </div>
@@ -1565,7 +1624,7 @@
   <!-- ══ CONTACTO DE EMERGENCIA ══ -->
   <div class="card" style="margin-bottom:20px">
     <div class="card-header"><span class="card-title">🚨 Contacto de emergencia</span></div>
-    <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.6">Si Zyra detecta una crisis, este contacto recibirá un aviso por WhatsApp.</p>
+    <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.6">Si Zyra detecta una situación de crisis, este contacto aparecerá en la pantalla de emergencia para que puedas llamarle.</p>
     <div class="form-group"><label>Nombre</label><input type="text" id="ec-name" placeholder="Nombre del contacto"/></div>
     <div class="form-group"><label>Teléfono (con código de país)</label><input type="tel" id="ec-phone" placeholder="+57 300 000 0000"/></div>
     <div class="form-group"><label>Relación</label><input type="text" id="ec-relation" placeholder="Mamá, amigo, pareja…"/></div>
@@ -1621,14 +1680,6 @@
     </div>
   </div>
 
-  <!-- ══ LEGAL ══ -->
-  <div style="text-align:center;padding:16px 0 8px;font-size:12px;color:var(--text3)">
-    <a onclick="showLegal('terms')" style="color:#818cf8;cursor:pointer;text-decoration:underline;margin:0 8px">Términos de Uso</a>
-    <a onclick="showLegal('privacy')" style="color:#818cf8;cursor:pointer;text-decoration:underline;margin:0 8px">Política de Privacidad</a>
-    <span style="margin:0 8px">·</span>
-    <a href="mailto:zyra.ia.2026@gmail.com" style="color:var(--text3)">Soporte</a>
-  </div>
-
   <!-- ══ MEMORIAS DE ZYRA ══ -->
   <div class="card" style="margin-bottom:20px" id="memories-card">
     <div class="card-header">
@@ -1640,6 +1691,14 @@
     <div style="margin-top:12px;display:flex;gap:8px">
       <button class="btn-sm" style="color:var(--red);border-color:#fecaca;font-size:12px" onclick="clearAllMemories()">🗑 Borrar todas las memorias</button>
     </div>
+  </div>
+
+  <!-- ══ LEGAL ══ -->
+  <div style="text-align:center;padding:16px 0 8px;font-size:12px;color:var(--text3)">
+    <a onclick="showLegal('terms')" style="color:#818cf8;cursor:pointer;text-decoration:underline;margin:0 8px">Términos de Uso</a>
+    <a onclick="showLegal('privacy')" style="color:#818cf8;cursor:pointer;text-decoration:underline;margin:0 8px">Política de Privacidad</a>
+    <span style="margin:0 8px">·</span>
+    <a href="mailto:zyra.ia.2026@gmail.com" style="color:var(--text3)">Soporte</a>
   </div>
 
   <!-- ══ ZONA DE PELIGRO ══ -->
@@ -1656,13 +1715,15 @@
 <!-- ══════ ANALYTICS ══════ -->
 <div id="page-analytics" class="page">
 <nav>
-  <div class="nav-left">
-    <button class="back-btn" onclick="showPage('dashboard')">←</button>
-    <span class="nav-title">📊 Mi Progreso</span>
-  </div>
-  <div class="nav-right">
-    <div class="avatar" id="nav-avatar-analytics">?</div>
-    <button class="btn-logout" onclick="doLogout()">Salir</button>
+  <div class="nav-inner">
+    <div class="nav-left">
+      <button class="back-btn" onclick="showPage('dashboard')">←</button>
+      <span class="nav-title">📊 Mi Progreso</span>
+    </div>
+    <div class="nav-right">
+      <div class="avatar" id="nav-avatar-analytics">?</div>
+      <button class="btn-logout" onclick="doLogout()">Salir</button>
+    </div>
   </div>
 </nav>
 <div class="page-content" id="analytics-content">
@@ -1723,7 +1784,7 @@
 
       <div style="display:flex;flex-direction:column;gap:12px">
         <button onclick="closeCrisisOverlay()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;padding:14px;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer">Estoy bien, continuar con Zyra</button>
-        <button onclick="closeCrisisOverlay();showPage('assistant')" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#c7d2fe;padding:14px;border-radius:14px;font-size:14px;cursor:pointer">💬 Hablar con Zyra sobre esto</button>
+        <button onclick="closeCrisisOverlay();showPage('assistant');setTimeout(newChat,100)" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#c7d2fe;padding:14px;border-radius:14px;font-size:14px;cursor:pointer">💬 Hablar con Zyra (nueva sesión)</button>
       </div>
       <p style="color:#4b5563;font-size:11px;text-align:center;margin-top:16px;line-height:1.6">Zyra no reemplaza la atención profesional de salud mental. Si estás en peligro inmediato llama al número de emergencias de tu país.</p>
     </div>
@@ -1782,7 +1843,7 @@
         <label>Nueva contraseña</label>
         <div class="input-wrap">
           <span class="input-icon">🔑</span>
-          <input type="password" id="reset-pass" placeholder="Mínimo 6 caracteres"
+          <input type="password" id="reset-pass" placeholder="Mínimo 8 caracteres"
             onkeydown="if(event.key==='Enter')doResetPassword()"/>
         </div>
       </div>
@@ -2084,11 +2145,30 @@ function zyraConfirm(msg, opts = {}) {
       okBtn.onclick = null; cancelBtn.onclick = null;
       resolve(result);
     };
-    okBtn.onclick = () => cleanup(true);
-    cancelBtn.onclick = () => cleanup(false);
+    const escHandler = (ev) => { if(ev.key === "Escape") { document.removeEventListener("keydown", escHandler); cleanup(false); } };
+    document.addEventListener("keydown", escHandler);
+    okBtn.onclick = () => { document.removeEventListener("keydown", escHandler); cleanup(true); };
+    cancelBtn.onclick = () => { document.removeEventListener("keydown", escHandler); cleanup(false); };
     overlay.classList.add("show");
   });
 }
+
+document.addEventListener("keydown", function(e) {
+  if (e.key !== "Escape") return;
+  const modals = [
+    { id: "edit-goal-modal",      close: () => { const m=document.getElementById("edit-goal-modal"); if(m&&m.style.display!=="none"){ m.style.display="none"; document.body.style.overflow=""; } } },
+    { id: "edit-journal-modal",   close: () => { const m=document.getElementById("edit-journal-modal"); if(m&&m.style.display!=="none"){ m.style.display="none"; document.body.style.overflow=""; } } },
+    { id: "zyra-payment-modal",   close: () => { const m=document.getElementById("zyra-payment-modal"); if(m&&m.style.display!=="none") closePaymentModal(); } },
+    { id: "quick-emotion-modal",  close: () => { const m=document.getElementById("quick-emotion-modal"); if(m&&m.style.display!=="none") closeQuickEmotion(); } },
+    { id: "rewards-shop-modal",   close: () => { const m=document.getElementById("rewards-shop-modal"); if(m&&m.style.display!=="none") closeRewardsShop(); } },
+    { id: "achievements-modal",   close: () => { const m=document.getElementById("achievements-modal"); if(m&&m.style.display!=="none") closeAchievements(); } },
+    { id: "weekly-report-modal",  close: () => { const m=document.getElementById("weekly-report-modal"); if(m&&m.style.display!=="none") closeWeeklyReport(); } },
+  ];
+  for (const { id, close } of modals) {
+    const m = document.getElementById(id);
+    if (m && m.style.display !== "none") { close(); e.preventDefault(); return; }
+  }
+});
 
 const EMOTIONS = [
   {key:"feliz",      label:"Feliz",        emoji:"😊", color:"#f59e0b"},
@@ -2202,6 +2282,7 @@ function showPage(name) {
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
   const pg = document.getElementById("page-" + name);
   if(pg) pg.classList.add("active");
+  window.scrollTo({ top: 0, behavior: "instant" });
   if(name === "dashboard") { loadDashboard(); setTimeout(loadGamification, 300); }
   if(name === "assistant") loadAssistant();
   if(name === "goals")     { loadGoals(); setTimeout(()=>triggerMission('check_goals'), 500); }
@@ -2270,7 +2351,7 @@ async function doResetPassword() {
   const conf  = document.getElementById("reset-pass-confirm")?.value;
   if (!code || !pass || !conf) return showError("reset-error", "Completa todos los campos");
   if (pass !== conf) return showError("reset-error", "Las contraseñas no coinciden");
-  if (pass.length < 6) return showError("reset-error", "Mínimo 6 caracteres");
+  if (pass.length < 8) return showError("reset-error", "Mínimo 8 caracteres");
   const btn = document.getElementById("btn-reset");
   if (btn) { btn.disabled = true; btn.textContent = "Cambiando..."; }
   try {
@@ -2717,7 +2798,7 @@ function applyAvatarEverywhere(photoUrl, emoji, color) {
   const colorAv = color    || localStorage.getItem("zyra_avatar_color") || "var(--grad)";
   const init    = user ? user.name.charAt(0).toUpperCase() : "?";
 
-  ["nav-avatar","nav-avatar2","nav-avatar3","nav-avatar4","nav-avatarw","nav-avatarp","nav-avatar-planes","nav-avatar-games"].forEach(id => {
+  ["nav-avatar","nav-avatar2","nav-avatar3","nav-avatar4","nav-avatarw","nav-avatarp","nav-avatar-planes","nav-avatar-games","nav-avatar-analytics"].forEach(id => {
     const el = document.getElementById(id);
     if(!el) return;
     if(photo) {
@@ -3108,6 +3189,7 @@ async function saveProfilePassword() {
     document.getElementById("prof-pass-current").value = "";
     document.getElementById("prof-pass-new").value = "";
     document.getElementById("prof-pass-confirm").value = "";
+    updatePassStrength("");
     zyraToast("✅ Contraseña actualizada", "success");
   } catch(e) { zyraToast(e.message, "error"); }
 }
@@ -3218,12 +3300,12 @@ function toggleGoalForm() { document.getElementById("add-goal-form").classList.t
 async function loadGoals() {
   const el = document.getElementById("goals-list");
   if(el) el.innerHTML = '<div class="empty" style="opacity:.5">Cargando metas...</div>';
-  try { const d = await api("/goals"); renderGoals(d.goals || d); }
+  try { const d = await api("/goals"); _goalsAllItems = d.goals || d; renderGoals(_goalsAllItems); }
   catch(e) { if(el) el.innerHTML = `<div class="empty" style="color:var(--danger)">⚠ ${safeHtml(e.message||"Error al cargar metas")}</div>`; }
 }
 function renderGoals(goals) {
   const el = document.getElementById("goals-list");
-  if(!goals.length) { el.innerHTML = '<div class="empty"><span class="empty-icon">🎯</span>Agrega tu primera meta</div>'; return; }
+  if(!goals.length) { el.innerHTML = '<div class="empty"><span class="empty-icon">🎯</span>No tienes metas aún.<br><button class="btn-sm accent" style="margin-top:10px" onclick="document.getElementById(\'add-goal-form\').classList.add(\'show\')">+ Crear primera meta</button></div>'; return; }
   el.innerHTML = goals.map(g => `
     <div class="goal-item ${g.completed?"done":""}">
       <div class="goal-check ${g.completed?"checked":""}" onclick="toggleGoal('${g._id}')">✓</div>
@@ -3236,7 +3318,7 @@ function renderGoals(goals) {
         <span class="goal-cat">${safeHtml(CAT[g.category]||g.category)}</span>
         <span class="goal-priority-${safeHtml(g.priority)}">● ${safeHtml(g.priority)}</span>
       </div>
-      <button class="btn-xs" style="margin-right:4px" onclick="openEditGoal(${JSON.stringify(g)})">✏</button>
+      <button class="btn-xs" style="margin-right:4px" onclick="openEditGoal('${g._id}')">✏</button>
       <button class="goal-del" onclick="deleteGoal('${g._id}')">×</button>
     </div>`).join("");
 }
@@ -3262,7 +3344,8 @@ async function addGoal() {
 async function toggleGoal(id) { try { await api("/goals/"+id+"/toggle","PUT"); loadGoals(); } catch(e) {} }
 async function deleteGoal(id) { if(!await zyraConfirm("¿Eliminar meta?", {danger:true, okText:"Eliminar"})) return; try { await api("/goals/"+id,"DELETE"); loadGoals(); } catch(e) {} }
 
-function openEditGoal(g) {
+function openEditGoal(id) {
+  const g = _goalsAllItems.find(x => x._id === id); if(!g) return;
   document.getElementById("edit-goal-id").value = g._id;
   document.getElementById("edit-goal-title").value = g.title || "";
   document.getElementById("edit-goal-cat").value = g.category || "bienestar";
@@ -3293,23 +3376,122 @@ async function saveEditGoal() {
 }
 
 /* ── JOURNAL ── */
+let _journalAllEntries = [];
+let _goalsAllItems = [];
+
+function showJournalTab(tab) {
+  const isList = tab === 'list';
+  document.getElementById("journal-view-list").style.display = isList ? "" : "none";
+  document.getElementById("journal-view-calendar").style.display = isList ? "none" : "";
+  const btnList = document.getElementById("journal-tab-list");
+  const btnCal  = document.getElementById("journal-tab-calendar");
+  if (btnList) {
+    btnList.className = isList ? "btn-sm accent" : "btn-sm";
+    if (!isList) btnList.style.cssText = "flex:1;padding:10px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)";
+    else btnList.style.cssText = "flex:1;padding:10px";
+  }
+  if (btnCal) {
+    btnCal.className = isList ? "btn-sm" : "btn-sm accent";
+    if (isList) btnCal.style.cssText = "flex:1;padding:10px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)";
+    else btnCal.style.cssText = "flex:1;padding:10px";
+  }
+  if (!isList) renderMoodCalendar();
+}
+
+function filterJournal() {
+  const q = (document.getElementById("journal-search-input")?.value || "").toLowerCase();
+  const emo = document.getElementById("journal-filter-emotion")?.value || "";
+  let filtered = _journalAllEntries.filter(e => {
+    const matchText = !q || (e.title||"").toLowerCase().includes(q) || (e.content||"").toLowerCase().includes(q);
+    const matchEmo  = !emo || e.emotion === emo;
+    return matchText && matchEmo;
+  });
+  if (_journalSortAsc) filtered = [...filtered].reverse();
+  renderJournal(filtered, false);
+}
+
 function toggleJournalForm() { document.getElementById("add-journal-form").classList.toggle("show"); }
 async function loadJournal() {
   const el = document.getElementById("journal-list");
   if(el) el.innerHTML = '<div class="empty" style="opacity:.5">Cargando diario...</div>';
-  try { const d = await api("/journal"); renderJournal(d.entries || d); }
+  try {
+    const d = await api("/journal");
+    _journalAllEntries = d.entries || d;
+    _journalSortAsc = false;
+    const btn = document.getElementById("journal-sort-btn");
+    if (btn) btn.textContent = "↓ Reciente";
+    renderJournal(_journalAllEntries);
+  }
   catch(e) { if(el) el.innerHTML = `<div class="empty" style="color:var(--danger)">⚠ ${safeHtml(e.message||"Error al cargar el diario")}</div>`; }
 }
-function renderJournal(entries) {
+let _journalSortAsc = false;
+
+function updateJournalCharCount(textarea) {
+  const el = document.getElementById("journal-char-count");
+  if (!el) return;
+  const len = textarea.value.length;
+  const max = textarea.maxLength || 2000;
+  el.textContent = `${len} / ${max}`;
+  el.style.color = len > max * 0.9 ? "var(--danger)" : "var(--text3)";
+}
+
+function toggleJournalSort() {
+  _journalSortAsc = !_journalSortAsc;
+  const btn = document.getElementById("journal-sort-btn");
+  if (btn) btn.textContent = _journalSortAsc ? "↑ Antiguo" : "↓ Reciente";
+  const q   = (document.getElementById("journal-search-input")?.value || "").toLowerCase();
+  const emo = document.getElementById("journal-filter-emotion")?.value || "";
+  let list  = [..._journalAllEntries].filter(e => {
+    return (!q || (e.title||"").toLowerCase().includes(q) || (e.content||"").toLowerCase().includes(q)) &&
+           (!emo || e.emotion === emo);
+  });
+  if (_journalSortAsc) list.reverse();
+  renderJournal(list, false);
+}
+
+function updatePassStrength(val) {
+  const fill  = document.getElementById("prof-pass-strength-fill");
+  const label = document.getElementById("prof-pass-strength-label");
+  if (!fill || !label) return;
+  let score = 0;
+  if (val.length >= 8)  score++;
+  if (val.length >= 12) score++;
+  if (/[A-Z]/.test(val)) score++;
+  if (/[0-9]/.test(val)) score++;
+  if (/[^A-Za-z0-9]/.test(val)) score++;
+  const levels = [
+    {w:"0%",   c:"transparent", t:""},
+    {w:"25%",  c:"#ef4444",     t:"Muy débil"},
+    {w:"50%",  c:"#f97316",     t:"Débil"},
+    {w:"75%",  c:"#f59e0b",     t:"Buena"},
+    {w:"90%",  c:"#10b981",     t:"Fuerte"},
+    {w:"100%", c:"#6366f1",     t:"Muy fuerte"},
+  ];
+  const lv = levels[Math.min(score, 5)];
+  fill.style.width      = lv.w;
+  fill.style.background = lv.c;
+  label.textContent     = lv.t;
+  label.style.color     = lv.c;
+}
+
+function renderJournal(entries, updateCache = true) {
   const el = document.getElementById("journal-list");
-  if(!entries.length) { el.innerHTML = '<div class="empty"><span class="empty-icon">📔</span>Tu diario está vacío.</div>'; return; }
+  if (!el) return;
+  if (!entries.length) {
+    const hasFilter = (document.getElementById("journal-search-input")?.value || "") ||
+                      (document.getElementById("journal-filter-emotion")?.value || "");
+    el.innerHTML = hasFilter
+      ? `<div class="empty"><span class="empty-icon">🔍</span>Sin resultados para ese filtro.<br><button class="btn-sm" style="margin-top:10px" onclick="clearJournalFilter()">Limpiar filtro</button></div>`
+      : `<div class="empty"><span class="empty-icon">📔</span>Tu diario está vacío.<br><button class="btn-sm accent" style="margin-top:10px" onclick="toggleJournalForm()">Escribir primera entrada</button></div>`;
+    return;
+  }
   el.innerHTML = entries.map(e => {
     const em = EMOTIONS.find(x => x.key === e.emotion);
     return `<div class="journal-item">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div class="journal-title">${em?em.emoji+" ":""}${safeHtml(e.title||"Entrada sin título")}</div>
         <div style="display:flex;gap:6px">
-          <button class="btn-xs" onclick="openEditJournal(${JSON.stringify(e)})">✏</button>
+          <button class="btn-xs" onclick="openEditJournal('${e._id}')">✏</button>
           <button class="btn-xs" onclick="deleteJournal('${e._id}')">×</button>
         </div>
       </div>
@@ -3321,6 +3503,14 @@ function renderJournal(entries) {
     </div>`;
   }).join("");
 }
+function clearJournalFilter() {
+  const si = document.getElementById("journal-search-input");
+  const sf = document.getElementById("journal-filter-emotion");
+  if (si) si.value = "";
+  if (sf) sf.value = "";
+  renderJournal(_journalAllEntries);
+}
+
 async function addJournalEntry() {
   const title = document.getElementById("journal-title").value.trim();
   const content = document.getElementById("journal-content").value.trim();
@@ -3331,7 +3521,10 @@ async function addJournalEntry() {
     document.getElementById("journal-title").value = "";
     document.getElementById("journal-content").value = "";
     document.getElementById("journal-emotion").value = "";
+    const cc = document.getElementById("journal-char-count");
+    if (cc) cc.textContent = "0 / 2000";
     document.getElementById("add-journal-form").classList.remove("show");
+    clearJournalFilter();
     loadJournal();
     triggerMission('write_journal');
   } catch(e) {
@@ -3341,7 +3534,8 @@ async function addJournalEntry() {
 }
 async function deleteJournal(id) { if(!await zyraConfirm("¿Eliminar entrada?", {danger:true, okText:"Eliminar"})) return; try { await api("/journal/"+id,"DELETE"); loadJournal(); } catch(e) {} }
 
-function openEditJournal(e) {
+function openEditJournal(id) {
+  const e = _journalAllEntries.find(x => x._id === id); if(!e) return;
   document.getElementById("edit-journal-id").value = e._id;
   document.getElementById("edit-journal-title").value = e.title || "";
   document.getElementById("edit-journal-emotion").value = e.emotion || "";
@@ -3365,6 +3559,106 @@ async function saveEditJournal() {
     loadJournal();
     zyraToast("Entrada actualizada", "success");
   } catch(e) { zyraToast(e.message, "error"); }
+}
+
+/* ── MOOD CALENDAR ── */
+const EMOTION_COLORS = {
+  feliz:"#f59e0b", tranquilo:"#10b981", ansioso:"#f97316",
+  triste:"#3b82f6", enojado:"#ef4444", confundido:"#8b5cf6",
+  esperanzado:"#0ea5e9", agotado:"#64748b", motivado:"#7c3aed", nostalgico:"#d97706"
+};
+let _moodCalYear  = new Date().getFullYear();
+let _moodCalMonth = new Date().getMonth();
+
+function moodCalPrev() { _moodCalMonth--; if(_moodCalMonth<0){_moodCalMonth=11;_moodCalYear--;} renderMoodCalendar(); }
+function moodCalNext() { _moodCalMonth++; if(_moodCalMonth>11){_moodCalMonth=0;_moodCalYear++;} renderMoodCalendar(); }
+function moodCalToday() {
+  const now = new Date();
+  _moodCalYear  = now.getFullYear();
+  _moodCalMonth = now.getMonth();
+  renderMoodCalendar();
+}
+
+function renderMoodCalendar() {
+  const header = document.getElementById("mood-cal-header");
+  const grid   = document.getElementById("mood-cal-grid");
+  const legend = document.getElementById("mood-cal-legend");
+  const detail = document.getElementById("mood-cal-detail");
+  if (!grid) return;
+
+  const monthName = new Date(_moodCalYear, _moodCalMonth, 1)
+    .toLocaleDateString("es", {month:"long", year:"numeric"});
+  if (header) header.textContent = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+  if (detail) detail.style.display = "none";
+  const now = new Date();
+  const isCurrentMonth = _moodCalYear === now.getFullYear() && _moodCalMonth === now.getMonth();
+  const todayBtn = document.getElementById("mood-cal-today-btn");
+  if (todayBtn) todayBtn.style.display = isCurrentMonth ? "none" : "inline-block";
+
+  // Build a date→entries map from cached entries
+  const dayMap = {};
+  (_journalAllEntries || []).forEach(e => {
+    const d = new Date(e.createdAt);
+    if (d.getFullYear() !== _moodCalYear || d.getMonth() !== _moodCalMonth) return;
+    const key = d.getDate();
+    if (!dayMap[key]) dayMap[key] = [];
+    dayMap[key].push(e);
+  });
+
+  // First day of month (Mon=0 .. Sun=6)
+  const firstDay = new Date(_moodCalYear, _moodCalMonth, 1).getDay();
+  const offset   = (firstDay === 0) ? 6 : firstDay - 1;
+  const daysInMonth = new Date(_moodCalYear, _moodCalMonth + 1, 0).getDate();
+  const today = new Date();
+  const isThisMonth = today.getFullYear() === _moodCalYear && today.getMonth() === _moodCalMonth;
+
+  let cells = "";
+  for (let i = 0; i < offset; i++) cells += `<div></div>`;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const entries = dayMap[d] || [];
+    const isToday = isThisMonth && d === today.getDate();
+    const em = entries[0] ? EMOTIONS.find(x => x.key === entries[0].emotion) : null;
+    const color = em ? EMOTION_COLORS[em.key] : null;
+    const bg    = color ? color + "33" : "var(--surface)";
+    const border = isToday ? "2px solid var(--accent)" : (color ? `1.5px solid ${color}66` : "1.5px solid var(--border)");
+    const badge  = entries.length > 1 ? `<div style="position:absolute;top:3px;right:4px;font-size:9px;font-weight:700;color:${color||'var(--text3)'}">×${entries.length}</div>` : "";
+    cells += `<div onclick="moodCalSelectDay(${d})" style="position:relative;aspect-ratio:1;background:${bg};border:${border};border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:${entries.length?'pointer':'default'};transition:transform .15s" onmouseenter="this.style.transform='scale(1.06)'" onmouseleave="this.style.transform='scale(1)'">
+      <div style="font-size:12px;font-weight:${isToday?800:500};color:${isToday?'var(--accent)':'var(--text2)'}">${d}</div>
+      ${em ? `<div style="font-size:14px;line-height:1">${em.emoji}</div>` : ""}
+      ${badge}
+    </div>`;
+  }
+  if (grid) grid.innerHTML = cells;
+
+  // Legend — only emotions present this month
+  const usedEmotions = [...new Set((_journalAllEntries||[])
+    .filter(e => { const d=new Date(e.createdAt); return d.getFullYear()===_moodCalYear&&d.getMonth()===_moodCalMonth&&e.emotion; })
+    .map(e=>e.emotion))];
+  if (legend) legend.innerHTML = usedEmotions.map(key => {
+    const em = EMOTIONS.find(x=>x.key===key);
+    if (!em) return "";
+    return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 9px;border-radius:20px;background:${EMOTION_COLORS[key]||'#6366f1'}22;border:1px solid ${EMOTION_COLORS[key]||'#6366f1'}55;color:var(--text2)">${em.emoji} ${em.label}</span>`;
+  }).join("");
+}
+
+function moodCalSelectDay(day) {
+  const entries = (_journalAllEntries||[]).filter(e => {
+    const d = new Date(e.createdAt);
+    return d.getFullYear()===_moodCalYear && d.getMonth()===_moodCalMonth && d.getDate()===day;
+  });
+  const detail = document.getElementById("mood-cal-detail");
+  if (!detail || !entries.length) { if(detail) detail.style.display="none"; return; }
+  const dateLabel = new Date(_moodCalYear, _moodCalMonth, day)
+    .toLocaleDateString("es",{weekday:"long",day:"numeric",month:"long"});
+  detail.style.display = "block";
+  detail.innerHTML = `<div style="font-weight:700;font-size:14px;color:var(--text);margin-bottom:12px;text-transform:capitalize">${dateLabel}</div>` +
+    entries.map(e => {
+      const em = EMOTIONS.find(x=>x.key===e.emotion);
+      return `<div style="padding:10px 0;border-bottom:1px solid var(--border);last-child:border:none">
+        <div style="font-weight:600;font-size:13px;color:var(--text)">${em?em.emoji+" ":""}${safeHtml(e.title||"Entrada sin título")}</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px;line-height:1.5">${safeHtml(e.content.substring(0,120))}${e.content.length>120?"…":""}</div>
+      </div>`;
+    }).join("");
 }
 
 /* ════════════════════════════════════════
@@ -3868,7 +4162,11 @@ function toggleAutoSpeak() {
   autoSpeak = !autoSpeak;
   const b = document.getElementById("btn-tts-toggle");
   if(b) { b.textContent = autoSpeak ? "🔊" : "🔇"; b.title = autoSpeak ? "Desactivar voz" : "Activar voz"; }
-  if(!autoSpeak) window.speechSynthesis.cancel();
+  if(!autoSpeak) {
+    window.speechSynthesis.cancel();
+    if(_chatAudio) { try { _chatAudio.pause(); } catch(e){} _chatAudio = null; }
+    if(currentTTSBtn) { currentTTSBtn.classList.remove("speaking"); currentTTSBtn.textContent = "🔊"; currentTTSBtn = null; }
+  }
 }
 function cleanTTS(text) {
   return text.replace(/[\u{1F300}-\u{1FFFF}]/gu,"").replace(/[\u{2600}-\u{27BF}]/gu,"")
@@ -4160,11 +4458,10 @@ function addBotMsg(text, ts, cards) {
       ${cHTML}
       <div style="display:flex;align-items:center;gap:6px;margin-top:6px">
         <div class="msg-time">${time}</div>
-        <button class="btn-tts" onclick="speakText(this,decodeURIComponent(this.dataset.t))" data-t="${encodeURIComponent(text)}" title="Escuchar">🔊</button>
+        <button class="btn-tts" onclick="speakMsgEL(this,decodeURIComponent(this.dataset.t))" data-t="${encodeURIComponent(text)}" title="Escuchar">🔊</button>
       </div>
     </div>`;
   msgs.insertBefore(div, typing); msgs.scrollTop = msgs.scrollHeight;
-  if(autoSpeak) speakText(null, text);
 }
 
 function addUserMsg(text, ts) {
@@ -4526,7 +4823,7 @@ async function sendMsg() {
     }
 
     addBotMsg(d.response, null, d.cards||[]);
-    zyraChatSpeak(d.response);
+    if(autoSpeak) zyraChatSpeak(d.response);
     chatHistory.push({role:"assistant",content:d.response});
     if(chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
     if(!currentConvId || currentConvId !== String(d.conversationId)) { currentConvId = String(d.conversationId); loadHistory(); }
@@ -4621,7 +4918,13 @@ window.addEventListener("load", () => {
     const startPage = (urlPage && !authPages.includes(urlPage)) ? urlPage : 'dashboard';
     showPage(startPage);
     setTimeout(() => checkOnboarding(), 1000);
+  } else {
+    showPage("login");
   }
+  setTimeout(() => {
+    const s = document.getElementById("zyra-splash");
+    if (s) s.classList.add("hidden");
+  }, 700);
 });
 
 function toggleVoice() {
@@ -5015,7 +5318,9 @@ async function zyraChatSpeak(text) {
   if (!text) return;
   const clean = cleanTTS(text);
   if (!clean || clean.length < 3) return;
+  window.speechSynthesis.cancel();
   if (_chatAudio) { try { _chatAudio.pause(); } catch(e){} _chatAudio = null; }
+  if (currentTTSBtn) { currentTTSBtn.classList.remove("speaking"); currentTTSBtn.textContent = "🔊"; currentTTSBtn = null; }
   try {
     const r = await fetch('/api/tts/audio', {
       method:  'POST',
@@ -5023,13 +5328,50 @@ async function zyraChatSpeak(text) {
       body:    JSON.stringify({ text: clean }),
     });
     if (!r.ok) return;
+    if (!autoSpeak) return;
     const blob  = await r.blob();
     const url   = URL.createObjectURL(blob);
+    if (!autoSpeak) { URL.revokeObjectURL(url); return; }
     const audio = new Audio(url);
     _chatAudio  = audio;
     audio.play().catch(() => {});
     audio.onended = () => { URL.revokeObjectURL(url); if (_chatAudio === audio) _chatAudio = null; };
   } catch(e) { /* chat sigue funcionando sin audio */ }
+}
+
+async function speakMsgEL(btn, text) {
+  if (btn && btn.classList.contains("speaking")) {
+    if (_chatAudio) { try { _chatAudio.pause(); } catch(e){} _chatAudio = null; }
+    btn.classList.remove("speaking"); btn.textContent = "🔊";
+    if (currentTTSBtn === btn) currentTTSBtn = null;
+    return;
+  }
+  if (_chatAudio) { try { _chatAudio.pause(); } catch(e){} _chatAudio = null; }
+  if (currentTTSBtn) { currentTTSBtn.classList.remove("speaking"); currentTTSBtn.textContent = "🔊"; currentTTSBtn = null; }
+  window.speechSynthesis.cancel();
+  const clean = cleanTTS(text); if (!clean) return;
+  if (btn) { btn.classList.add("speaking"); btn.textContent = "⏹"; currentTTSBtn = btn; }
+  try {
+    const r = await fetch('/api/tts/audio', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+      body: JSON.stringify({ text: clean }),
+    });
+    if (!r.ok) throw new Error('tts');
+    const blob = await r.blob(); const url = URL.createObjectURL(blob);
+    const audio = new Audio(url); _chatAudio = audio;
+    const done = () => {
+      URL.revokeObjectURL(url);
+      if (_chatAudio === audio) _chatAudio = null;
+      if (btn) { btn.classList.remove("speaking"); btn.textContent = "🔊"; }
+      if (currentTTSBtn === btn) currentTTSBtn = null;
+    };
+    audio.onended = done; audio.onerror = done;
+    audio.play().catch(done);
+  } catch(e) {
+    if (btn) { btn.classList.remove("speaking"); btn.textContent = "🔊"; }
+    if (currentTTSBtn === btn) currentTTSBtn = null;
+  }
 }
 
 function vcAddMessage(role, text) {
@@ -5467,7 +5809,8 @@ const ZyraRecs = {
       const context = `Emoción actual: ${emotion}. Hora: ${hour}:00. Acciones recientes: ${this.memory.slice(-3).join(', ')||'ninguna'}`;
       const d = await api('/chat','POST',{
         message:`Basándote en este contexto del usuario: "${context}", sugiere UNA acción específica en máximo 15 palabras, en primera persona como Zyra. Que sea directa y cálida. Sin comillas.`,
-        history:[]
+        history:[],
+        noSave: true
       });
       if(d.response && d.response.length < 120) {
         this.current = { id:'ai', text: d.response, action: ()=>showPage('assistant') };
@@ -5893,20 +6236,6 @@ async function shareProgress() {
     setTimeout(()=>URL.revokeObjectURL(url),5000);
     zyraToast('Imagen descargada ✅','success');
   },'image/png');
-}
-
-/* ════════════════════════════════════════
-   ONBOARDING
-════════════════════════════════════════ */
-
-function onboardNext(step) {
-  for(let i=0;i<3;i++){const el=document.getElementById(`ob-step-${i}`);if(el)el.style.display='none';}
-  for(let i=0;i<3;i++){const el=document.getElementById(`tour-dot-${i}`);if(el)el.classList.toggle('active',i===step);}
-  const s=document.getElementById(`ob-step-${step}`); if(s) s.style.display='block';
-}
-function finishOnboarding() {
-  localStorage.setItem('zyra_onboarded','1');
-  const o=document.getElementById('onboard-overlay'); if(o) o.style.display='none';
 }
 
 /* ════════════════════════════════════════
@@ -6933,14 +7262,16 @@ document.addEventListener('DOMContentLoaded', () => {
     <input type="text" id="edit-journal-title" placeholder="Título (opcional)" style="width:100%;margin-bottom:12px;padding:11px 14px;background:var(--surface,#1e2235);border:1.5px solid var(--border,#2a2f45);border-radius:12px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box"/>
     <select id="edit-journal-emotion" style="width:100%;margin-bottom:12px;padding:11px 14px;background:var(--surface,#1e2235);border:1.5px solid var(--border,#2a2f45);border-radius:12px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box">
       <option value="">— Emoción —</option>
-      <option value="alegre">😄 Alegre</option>
+      <option value="feliz">😊 Feliz</option>
       <option value="tranquilo">😌 Tranquilo</option>
       <option value="ansioso">😰 Ansioso</option>
       <option value="triste">😢 Triste</option>
-      <option value="enojado">😠 Enojado</option>
+      <option value="enojado">😤 Enojado</option>
+      <option value="confundido">🤔 Confundido</option>
       <option value="esperanzado">🌟 Esperanzado</option>
-      <option value="cansado">😴 Cansado</option>
-      <option value="agradecido">🙏 Agradecido</option>
+      <option value="agotado">😮‍💨 Agotado</option>
+      <option value="motivado">💪 Motivado</option>
+      <option value="nostalgico">🌅 Nostálgico</option>
     </select>
     <textarea id="edit-journal-content" placeholder="¿Qué quieres escribir?" rows="5" style="width:100%;margin-bottom:20px;padding:11px 14px;background:var(--surface,#1e2235);border:1.5px solid var(--border,#2a2f45);border-radius:12px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box;resize:vertical;font-family:inherit"></textarea>
     <button class="btn-primary" style="width:100%;padding:13px" onclick="saveEditJournal()">Guardar cambios</button>
@@ -7779,248 +8110,6 @@ function initZyra3DAvatar() {
       ? 'zyraSpeaking 0.35s ease-in-out infinite'
       : 'zyraIdle 4s ease-in-out infinite';
   }, 120);
-  return; /* ── Three.js renderer kept as dead code ── */
-
-  const container = document.getElementById("vc-avatar");
-  if (!container || !window.THREE) return;
-
-  // Hide SVG fallback
-  const svg = document.getElementById("vc-avatar-svg-fallback");
-  if (svg) svg.style.display = "none";
-
-  const W = container.clientWidth  || 220;
-  const H = container.clientHeight || 220;
-
-  // Renderer
-  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-  renderer.setSize(W, H);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setClearColor(0x000000, 0);
-  container.appendChild(renderer.domElement);
-
-  const scene  = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 100);
-  camera.position.set(0, 1.2, 5.5);
-  camera.lookAt(0, 1.2, 0);
-
-  // ── Lights ──
-  scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-  const pL1 = new THREE.PointLight(0x8b5cf6, 3.5, 12);
-  pL1.position.set(-2.5, 3, 3);
-  scene.add(pL1);
-  const pL2 = new THREE.PointLight(0x38bdf8, 2, 10);
-  pL2.position.set(2.5, 0, 2);
-  scene.add(pL2);
-  const pL3 = new THREE.PointLight(0xec4899, 1.5, 8);
-  pL3.position.set(0, -2, 3);
-  scene.add(pL3);
-
-  // ── Materials ──
-  const skinMat  = new THREE.MeshPhongMaterial({ color: 0xf5c8a8, shininess: 20 });
-  const hairMat  = new THREE.MeshPhongMaterial({ color: 0x1e1248, shininess: 80, specular: 0x6366f1 });
-  const dressMat = new THREE.MeshPhongMaterial({ color: 0x6366f1, shininess: 120, specular: 0xc4b5fd, emissive: 0x1e1b4b, emissiveIntensity: 0.3 });
-  const eyeMat   = new THREE.MeshPhongMaterial({ color: 0x0f0a1e, shininess: 200 });
-  const shineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  const lipMat   = new THREE.MeshPhongMaterial({ color: 0xd4608a, shininess: 60 });
-  const gemMat   = new THREE.MeshPhongMaterial({ color: 0x818cf8, shininess: 300, specular: 0xffffff, emissive: 0x4f46e5, emissiveIntensity: 0.6 });
-
-  // ── Avatar group ──
-  const avatar = new THREE.Group();
-  scene.add(avatar);
-
-  // Head
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.78, 32, 32), skinMat);
-  head.scale.set(1, 1.08, 0.96);
-  head.position.set(0, 2.1, 0);
-  avatar.add(head);
-
-  // Hair back
-  const hairBack = new THREE.Mesh(new THREE.SphereGeometry(0.84, 32, 32), hairMat);
-  hairBack.scale.set(1.02, 1.12, 0.88);
-  hairBack.position.set(0, 2.18, -0.08);
-  avatar.add(hairBack);
-
-  // Hair top dome
-  const hairTopGeo = new THREE.SphereGeometry(0.82, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.55);
-  const hairTop = new THREE.Mesh(hairTopGeo, hairMat);
-  hairTop.position.set(0, 2.38, 0.04);
-  hairTop.rotation.x = -0.18;
-  avatar.add(hairTop);
-
-  // Hair side strands
-  [-0.72, 0.72].forEach((x, i) => {
-    const strand = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.07, 1.0, 10), hairMat);
-    strand.position.set(x, 1.72, 0.05);
-    strand.rotation.z = i === 0 ? 0.18 : -0.18;
-    avatar.add(strand);
-    // Curl at bottom
-    const curl = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.055, 8, 12, Math.PI), hairMat);
-    curl.position.set(x + (i===0?0.07:-0.07), 1.22, 0.05);
-    curl.rotation.z = i === 0 ? 0.4 : -0.4;
-    avatar.add(curl);
-  });
-
-  // Eyes
-  const eyeGeo = new THREE.SphereGeometry(0.115, 16, 16);
-  [-0.28, 0.28].forEach(x => {
-    const eye = new THREE.Mesh(eyeGeo, eyeMat);
-    eye.position.set(x, 2.15, 0.68);
-    avatar.add(eye);
-    // Shine
-    const shine = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 8), shineMat);
-    shine.position.set(x + 0.035, 2.18, 0.77);
-    avatar.add(shine);
-  });
-
-  // Eyelashes (thin flat arcs above eyes)
-  [-0.28, 0.28].forEach(x => {
-    const lash = new THREE.Mesh(
-      new THREE.TorusGeometry(0.14, 0.025, 6, 12, Math.PI * 0.7),
-      hairMat
-    );
-    lash.position.set(x, 2.25, 0.64);
-    lash.rotation.x = -0.3;
-    lash.rotation.z = x < 0 ? 0.2 : -0.2;
-    avatar.add(lash);
-  });
-
-  // Lips
-  const lipGeo = new THREE.TorusGeometry(0.1, 0.028, 6, 16, Math.PI);
-  const lips = new THREE.Mesh(lipGeo, lipMat);
-  lips.position.set(0, 1.88, 0.70);
-  lips.rotation.x = 0.15;
-  avatar.add(lips);
-
-  // Neck
-  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.25, 0.38, 16), skinMat);
-  neck.position.set(0, 1.5, 0);
-  avatar.add(neck);
-
-  // Body / dress
-  const bodyGeo = new THREE.CylinderGeometry(0.6, 0.82, 1.4, 20);
-  const body = new THREE.Mesh(bodyGeo, dressMat);
-  body.position.set(0, 0.72, 0);
-  avatar.add(body);
-
-  // Dress flare at bottom
-  const flare = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 1.1, 0.5, 20), dressMat);
-  flare.position.set(0, 0.06, 0);
-  avatar.add(flare);
-
-  // Collar / neckline detail
-  const collar = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.04, 8, 24), gemMat);
-  collar.position.set(0, 1.38, 0);
-  collar.rotation.x = Math.PI / 2;
-  avatar.add(collar);
-
-  // Gem pendant
-  const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.07), gemMat);
-  gem.position.set(0, 1.22, 0.3);
-  avatar.add(gem);
-
-  // Shoulders
-  [-0.82, 0.82].forEach(x => {
-    const sh = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), dressMat);
-    sh.position.set(x, 1.28, 0);
-    sh.scale.set(1, 0.85, 0.9);
-    avatar.add(sh);
-  });
-
-  // Arms
-  [-1.05, 1.05].forEach((x, i) => {
-    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.13, 1.0, 12), skinMat);
-    arm.position.set(x, 0.72, 0.08);
-    arm.rotation.z = i === 0 ? 0.28 : -0.28;
-    avatar.add(arm);
-    // Hand
-    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 12), skinMat);
-    hand.position.set(x + (i===0?-0.14:0.14), 0.22, 0.1);
-    avatar.add(hand);
-  });
-
-  // ── Floating particles ──
-  const pCount = 80;
-  const pPositions = new Float32Array(pCount * 3);
-  for (let i = 0; i < pCount; i++) {
-    const r = 1.8 + Math.random() * 1.2;
-    const theta = Math.random() * Math.PI * 2;
-    const phi = Math.random() * Math.PI;
-    pPositions[i*3]   = r * Math.sin(phi) * Math.cos(theta);
-    pPositions[i*3+1] = r * Math.cos(phi) + 1.2;
-    pPositions[i*3+2] = r * Math.sin(phi) * Math.sin(theta) - 0.8;
-  }
-  const pGeo = new THREE.BufferGeometry();
-  pGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
-  const pMat = new THREE.PointsMaterial({ color: 0x818cf8, size: 0.045, transparent: true, opacity: 0.65 });
-  const particles = new THREE.Points(pGeo, pMat);
-  scene.add(particles);
-
-  // ── Ground glow disc ──
-  const glowDisc = new THREE.Mesh(
-    new THREE.CircleGeometry(1.2, 32),
-    new THREE.MeshBasicMaterial({ color: 0x6366f1, transparent: true, opacity: 0.12, side: THREE.DoubleSide })
-  );
-  glowDisc.rotation.x = -Math.PI / 2;
-  glowDisc.position.set(0, -0.26, 0);
-  scene.add(glowDisc);
-
-  // ── Animation ──
-  const clock = new THREE.Clock();
-  _3d.active = true;
-  _3d.renderer = renderer;
-
-  function animate() {
-    if (!_3d.active) return;
-    _3d.animId = requestAnimationFrame(animate);
-    const t = clock.getElapsedTime();
-
-    // Breathing: subtle body Y scale
-    const breathScale = 1 + Math.sin(t * 1.4) * 0.025;
-    body.scale.y = breathScale;
-    neck.position.y = 1.5 + Math.sin(t * 1.4) * 0.01;
-
-    // Float bob
-    avatar.position.y = Math.sin(t * 0.75) * 0.06;
-
-    // Gentle head sway
-    head.rotation.z     = Math.sin(t * 0.55) * 0.04;
-    hairBack.rotation.z = head.rotation.z;
-    hairTop.rotation.z  = head.rotation.z;
-
-    // Speaking: head bob + gem pulse
-    if (window.vcSpeaking) {
-      head.position.y = 2.1 + Math.sin(t * 9) * 0.035;
-      gem.scale.setScalar(1 + Math.sin(t * 12) * 0.25);
-      pMat.opacity = 0.8 + Math.sin(t * 6) * 0.2;
-    } else {
-      head.position.y = 2.1;
-      gem.scale.setScalar(1 + Math.sin(t * 2) * 0.08);
-      pMat.opacity = 0.55 + Math.sin(t * 1.2) * 0.1;
-    }
-
-    // Particles slow orbit
-    particles.rotation.y += 0.0025;
-
-    // Glow disc pulse
-    glowDisc.material.opacity = 0.08 + Math.sin(t * 1.4) * 0.04;
-
-    // Light color cycle (subtle)
-    pL1.intensity = 3.2 + Math.sin(t * 1.2) * 0.4;
-    pL2.intensity = 1.8 + Math.sin(t * 0.9 + 1) * 0.3;
-
-    renderer.render(scene, camera);
-  }
-  animate();
-
-  // Resize handler
-  _3d.resizeFn = () => {
-    const nW = container.clientWidth;
-    const nH = container.clientHeight;
-    camera.aspect = nW / nH;
-    camera.updateProjectionMatrix();
-    renderer.setSize(nW, nH);
-  };
-  window.addEventListener('resize', _3d.resizeFn);
 }
 
 function destroyZyra3DAvatar() {
