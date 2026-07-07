@@ -5782,6 +5782,9 @@ function finalizeBotMsgStream(div, text, cards, convId, msgsLeft) {
       <div style="display:flex;align-items:center;gap:6px;margin-top:6px">
         <div class="msg-time">${time}</div>
         <button class="btn-tts" onclick="speakMsgEL(this,decodeURIComponent(this.dataset.t))" data-t="${encodeURIComponent(text)}" title="Escuchar">🔊</button>
+        <button class="btn-feedback" onclick="copyMsg(this,decodeURIComponent(this.dataset.t))" data-t="${encodeURIComponent(text)}" title="Copiar mensaje">📋</button>
+        <button class="btn-feedback" onclick="rateMsg(this,'up')" title="Útil">👍</button>
+        <button class="btn-feedback" onclick="rateMsg(this,'down')" title="No útil">👎</button>
       </div>`;
   }
   if (convId && convId !== String(currentConvId)) { currentConvId = String(convId); loadHistory(); }
