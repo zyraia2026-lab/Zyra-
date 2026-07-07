@@ -1305,6 +1305,24 @@
     </div>
   </div>
 
+  <!-- ══ PLAN DE HOY ══ -->
+  <div id="today-plan-wrap" style="margin-bottom:20px">
+    <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:18px;padding:16px 20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:18px">📋</span>
+          <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Plan de hoy</div>
+        </div>
+        <span id="today-plan-count" style="font-size:11px;color:var(--text3)">0 de 0</span>
+      </div>
+      <div id="today-plan-list" style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px"></div>
+      <div style="display:flex;gap:8px">
+        <input id="today-plan-input" type="text" maxlength="100" placeholder="Añadir tarea para hoy..." style="flex:1;background:var(--bg,#0d0f1c);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;padding:8px 12px;outline:none;transition:border-color .2s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter')addTodayTask()"/>
+        <button onclick="addTodayTask()" style="background:var(--accent,#6366f1);border:none;color:#fff;border-radius:10px;padding:8px 14px;font-size:13px;cursor:pointer;font-weight:700">+</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ INTENCIÓN DEL DÍA ══ -->
   <div id="daily-intention-wrap" style="margin-bottom:20px">
     <div style="background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(139,92,246,.06));border:1.5px solid rgba(99,102,241,.2);border-radius:18px;padding:16px 20px">
@@ -1377,7 +1395,10 @@
     <div class="card">
       <div class="card-header">
         <span class="card-title">¿Cómo te sientes ahora?</span>
-        <button class="btn-sm accent" onclick="toggleEmotionForm()">+ Registrar</button>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="emotion-checkin-dot" style="display:none;width:8px;height:8px;border-radius:50%;background:#f59e0b;box-shadow:0 0 6px #f59e0b;animation:ttsPulse .8s ease infinite alternate" title="No registrado hoy"></span>
+          <button class="btn-sm accent" onclick="toggleEmotionForm()">+ Registrar</button>
+        </div>
       </div>
       <div class="emotions-grid" id="emotions-grid"></div>
       <div class="emotion-form" id="emotion-form">
@@ -4012,6 +4033,11 @@ async function loadDashboard() {
   loadDailyChallenge();
   loadDailyIntention();
   loadMentalHealthTip();
+  loadTodayPlan();
+  // Check-in dot: show pulsing dot if no emotion logged today
+  const lastEmDate = localStorage.getItem('zyra_last_emotion_date');
+  const dot = document.getElementById('emotion-checkin-dot');
+  if (dot) dot.style.display = lastEmDate === new Date().toDateString() ? 'none' : 'inline-block';
 }
 function renderJournalMemory(entries) {
   const wrap = document.getElementById("journal-memory-wrap");
@@ -4080,6 +4106,7 @@ async function saveEmotion() {
   try {
     await api("/profile/emotion", "POST", {emotion: selectedEmotion, note, intensity});
     localStorage.setItem('zyra_last_emotion', selectedEmotion);
+    localStorage.setItem('zyra_last_emotion_date', new Date().toDateString());
     document.getElementById("emotion-note").value = ""; selectedEmotion = "";
     document.getElementById("emotion-form").style.display = "none"; loadDashboard();
     triggerMission('log_emotion');
@@ -4489,6 +4516,7 @@ function renderJournal(entries, updateCache = true) {
         <span class="journal-date" title="${new Date(e.createdAt).toLocaleDateString("es",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}">${timeAgo(e.createdAt)}</span>
         ${em?`<span class="badge purple">${em.emoji} ${em.label}</span>`:""}
         <span style="color:var(--text3);font-size:11px">${(e.content||"").trim().split(/\s+/).filter(Boolean).length} palabras</span>
+        ${((e.content||"").match(/#\w+/g)||[]).slice(0,3).map(tag=>`<span style="font-size:10px;color:var(--accent);background:rgba(99,102,241,.1);border-radius:20px;padding:2px 7px;font-weight:700">${safeHtml(tag)}</span>`).join("")}
       </div>
     </div>`;
   }).join("");
@@ -9861,6 +9889,68 @@ const MH_TIPS = [
 function loadMentalHealthTip() {
   const el = document.getElementById("mh-tip-text");
   if (el) el.textContent = MH_TIPS[new Date().getDate() % MH_TIPS.length];
+}
+
+/* ══════════════════════════════════════════
+   TODAY'S PLAN (daily tasks checklist)
+══════════════════════════════════════════ */
+function getTodayPlanKey() { return `zyra_plan_${new Date().toDateString()}`; }
+function loadTodayPlan() {
+  const tasks = JSON.parse(localStorage.getItem(getTodayPlanKey()) || "[]");
+  renderTodayPlan(tasks);
+}
+function renderTodayPlan(tasks) {
+  const list = document.getElementById("today-plan-list");
+  const count = document.getElementById("today-plan-count");
+  if (!list) return;
+  const done = tasks.filter(t => t.done).length;
+  if (count) count.textContent = `${done} de ${tasks.length}`;
+  if (!tasks.length) {
+    list.innerHTML = `<div style="font-size:12px;color:var(--text3);text-align:center;padding:4px 0;opacity:.7">Ninguna tarea aún — ¡empieza añadiendo algo! 🌱</div>`;
+    return;
+  }
+  list.innerHTML = tasks.map((t, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);transition:all .2s">
+      <button onclick="toggleTodayTask(${i})" style="flex-shrink:0;width:20px;height:20px;border-radius:6px;border:2px solid ${t.done?'#10b981':'var(--border)'};background:${t.done?'#10b981':'transparent'};cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;font-size:11px;color:white">${t.done?'✓':''}</button>
+      <span style="flex:1;font-size:13px;color:var(--text${t.done?'3':''});text-decoration:${t.done?'line-through':''};transition:all .2s">${safeHtml(t.text)}</span>
+      <button onclick="removeTodayTask(${i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 4px;opacity:.5;transition:opacity .2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.5">×</button>
+    </div>`).join('');
+  if (done > 0 && done === tasks.length) {
+    list.insertAdjacentHTML('beforeend', `<div style="text-align:center;font-size:12px;color:#10b981;font-weight:700;padding:8px 0;animation:msgPop .3s ease">🎉 ¡Plan del día completado!</div>`);
+  }
+}
+function addTodayTask() {
+  const inp = document.getElementById("today-plan-input");
+  if (!inp) return;
+  const text = inp.value.trim();
+  if (!text) return;
+  const key = getTodayPlanKey();
+  const tasks = JSON.parse(localStorage.getItem(key) || "[]");
+  tasks.push({ text, done: false });
+  localStorage.setItem(key, JSON.stringify(tasks));
+  inp.value = "";
+  renderTodayPlan(tasks);
+  if (navigator.vibrate) navigator.vibrate(20);
+}
+function toggleTodayTask(idx) {
+  const key = getTodayPlanKey();
+  const tasks = JSON.parse(localStorage.getItem(key) || "[]");
+  if (!tasks[idx]) return;
+  tasks[idx].done = !tasks[idx].done;
+  localStorage.setItem(key, JSON.stringify(tasks));
+  renderTodayPlan(tasks);
+  if (tasks[idx].done && navigator.vibrate) navigator.vibrate([30,10,50]);
+  if (tasks.filter(t=>t.done).length === tasks.length && tasks.length > 0) {
+    zyraToast("¡Plan del día completado! 🎉", "success");
+    if (typeof triggerMission === "function") triggerMission('complete_plan');
+  }
+}
+function removeTodayTask(idx) {
+  const key = getTodayPlanKey();
+  const tasks = JSON.parse(localStorage.getItem(key) || "[]");
+  tasks.splice(idx, 1);
+  localStorage.setItem(key, JSON.stringify(tasks));
+  renderTodayPlan(tasks);
 }
 
 /* ══════════════════════════════════════════
