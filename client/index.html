@@ -3672,7 +3672,7 @@ async function addJournalEntry() {
 }
 async function deleteJournal(id) { if(!await zyraConfirm("¿Eliminar entrada?", {danger:true, okText:"Eliminar"})) return; try { await api("/journal/"+id,"DELETE"); loadJournal(); } catch(e) {} }
 async function exportJournalPDF() {
-  const plan = localStorage.getItem("zyra_plan") || "free";
+  const plan = _zyraCurrentPlan || localStorage.getItem("zyra_plan") || "free";
   if (plan !== "premium") { return showUpgradePrompt('pdf', 'premium'); }
   const btn = document.getElementById("btn-export-pdf");
   if (btn) { btn.textContent = "⏳ Generando..."; btn.disabled = true; }
@@ -7185,6 +7185,7 @@ function showUpgradePrompt(feature, requiredPlan) {
     export: 'Exportar tus datos',
     messages: 'Mensajes ilimitados',
     report: 'Reportes en PDF',
+    pdf: 'Exportar PDF del diario',
     goals: 'Más metas activas',
     journal: 'Más entradas de diario',
   };
@@ -7684,12 +7685,6 @@ async function processPayment() {
     if (exp.length < 5)  { zyraToast('Ingresa la fecha de vencimiento', 'error'); return; }
     if (cvv.length < 3)  { zyraToast('Ingresa el CVV de tu tarjeta', 'error'); return; }
     if (!name)           { zyraToast('Ingresa el nombre en la tarjeta', 'error'); return; }
-  } else if (_pmMethod === 'pse') {
-    const bank = document.getElementById('pm-pse-bank')?.value||'';
-    if (!bank) { zyraToast('Selecciona tu banco', 'error'); return; }
-  } else if (_pmMethod === 'nequi') {
-    const phone = (document.getElementById('pm-nequi-phone')?.value||'').replace(/\D/g,'');
-    if (phone.length < 10) { zyraToast('Ingresa tu número celular completo', 'error'); return; }
   }
 
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Redirigiendo a pago...'; }
@@ -7701,7 +7696,8 @@ async function processPayment() {
       _zyraCurrentPlan = result.plan;
       closePaymentModal();
       if (btn) { btn.disabled = false; btn.textContent = '🔒 Pagar ahora'; }
-      zyraToast('¡Plan ' + d.name + ' activado! ✦ Bienvenido.', 'success', 4000);
+      const _planNames = { basic: 'Básico', premium: 'Premium' };
+      zyraToast('¡Plan ' + (_planNames[result.plan] || result.plan) + ' activado! ✦ Bienvenido.', 'success', 4000);
       await loadPlanStatus();
       if (typeof loadPlanesPage === 'function') loadPlanesPage();
       for (let i = 0; i < 20; i++) setTimeout(() => launchConfetti(), i * 80);
