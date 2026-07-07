@@ -1558,6 +1558,7 @@
     <button class="wellness-tab" id="wtab-water" onclick="openWellness('water')">💧 Agua</button>
     <button class="wellness-tab" id="wtab-sleep" onclick="openWellness('sleep')">😴 Sueño</button>
     <button class="wellness-tab" id="wtab-focus" onclick="openWellness('focus')">⏱ Enfoque</button>
+    <button class="wellness-tab" id="wtab-habits" onclick="openWellness('habits')">✅ Hábitos</button>
   </div>
   <div id="wellness-content"></div>
 </div>
@@ -5120,7 +5121,7 @@ let breathTimer = null, currentWTab = "breath";
 function loadWellness() { openWellness(currentWTab); }
 function openWellness(tab) {
   currentWTab = tab;
-  ["breath","meditation","music","affirmations","gratitude","water","sleep","focus"].forEach(t => {
+  ["breath","meditation","music","affirmations","gratitude","water","sleep","focus","habits"].forEach(t => {
     const btn = document.getElementById("wtab-"+t);
     if(btn) btn.className = t===tab ? "wellness-tab active" : "wellness-tab";
   });
@@ -5134,6 +5135,7 @@ function openWellness(tab) {
   else if(tab==="water")        renderWaterTracker(el);
   else if(tab==="sleep")        renderSleepTracker(el);
   else if(tab==="focus")        renderPomodoro(el);
+  else if(tab==="habits")       renderHabitsTracker(el);
 }
 const BREATH_TECHS = {
   '478':  { name:'4-7-8', desc:'Inhala <strong>4</strong>s, mantén <strong>7</strong>s, exhala <strong>8</strong>s. Calma la ansiedad rápidamente.', phases:[{t:"Inhala",d:4,cls:"inhale"},{t:"Mantén",d:7,cls:""},{t:"Exhala",d:8,cls:"exhale"}] },
@@ -6520,8 +6522,25 @@ async function sendMsg() {
     if (cmd === "agua") { showPage("wellness"); setTimeout(() => openWellness("water"), 100); return; }
     if (cmd === "musica") { showPage("wellness"); setTimeout(() => openWellness("music"), 100); return; }
     if (cmd === "nuevo" || cmd === "nueva") { newChat(); return; }
+    if (cmd === "perfil" || cmd === "profile") { showPage("profile"); return; }
+    if (cmd === "enfoque" || cmd === "pomodoro") { showPage("wellness"); setTimeout(() => openWellness("focus"), 100); return; }
+    if (cmd === "sueno" || cmd === "sueño" || cmd === "dormir") { showPage("wellness"); setTimeout(() => openWellness("sleep"), 100); return; }
+    if (cmd === "juegos" || cmd === "juego") { showPage("games"); return; }
+    if (cmd === "afirmacion" || cmd === "afirmación") {
+      const allAffs = [].concat(...Object.values(AFF_CATS).filter(a=>Array.isArray(a)));
+      const aff = allAffs[Math.floor(Math.random()*allAffs.length)];
+      addBotMsg(`💫 Afirmación del momento:\n\n"${aff}"\n\n¿Cómo te hace sentir esta afirmación?`);
+      return;
+    }
+    if (cmd === "grounding" || cmd === "anclaje") {
+      addBotMsg(`🌿 Técnica de grounding 5-4-3-2-1:\n\nNombra en voz alta o en tu mente:\n• 5 cosas que puedes VER ahora\n• 4 cosas que puedes TOCAR\n• 3 sonidos que puedes OÍR\n• 2 olores que percibes\n• 1 sabor que sientes\n\nEsto te ayuda a conectar con el momento presente cuando la ansiedad aparece. 🍃`);
+      return;
+    }
+    if (cmd === "nota" || cmd === "quicknote") { openQuickNote(); return; }
+    if (cmd === "plan") { showPage("dashboard"); setTimeout(() => document.getElementById("today-plan-input")?.focus(), 300); return; }
+    if (cmd === "habitos" || cmd === "hábitos") { showPage("wellness"); setTimeout(() => openWellness("habits"), 100); return; }
     if (cmd === "ayuda" || cmd === "help" || cmd === "?") {
-      addBotMsg(`Comandos rápidos disponibles:\n\n/respirar — Ejercicio de respiración\n/diario — Tu diario emocional\n/metas — Gestión de metas\n/bienestar — Herramientas de bienestar\n/gratitud — Práctica de gratitud\n/agua — Tracker de hidratación\n/musica — Música terapéutica\n/analitica — Tu análisis emocional\n/nuevo — Nueva conversación\n/inicio — Ir al dashboard`);
+      addBotMsg(`Comandos rápidos disponibles:\n\n🧘 /respirar — Ejercicio de respiración\n⏱ /enfoque — Temporizador pomodoro\n😴 /sueño — Registro de sueño\n✅ /habitos — Tracker de hábitos\n💧 /agua — Tracker de hidratación\n🙏 /gratitud — Práctica de gratitud\n💫 /afirmacion — Afirmación aleatoria\n🌿 /grounding — Técnica 5-4-3-2-1\n📔 /diario — Tu diario emocional\n🎵 /musica — Música terapéutica\n🎯 /metas — Tus metas\n📊 /analitica — Tu progreso\n✏️ /nota — Nota rápida\n📋 /plan — Plan del día\n🔄 /nuevo — Nueva conversación\n🏠 /inicio — Dashboard`);
       return;
     }
     // Unknown command — show hint
@@ -10419,7 +10438,8 @@ function renderWeeklySummary(journalEntries) {
   const weekStart = new Date(today); weekStart.setDate(today.getDate() - 6);
   const journalDays = new Set((journalEntries || []).filter(e => new Date(e.createdAt) >= weekStart).map(e => new Date(e.createdAt).toDateString()));
 
-  let waterDays = 0, challengeDays = 0, gratitudeDays = 0, sleepDays = 0, breathSessions = 0;
+  let waterDays = 0, challengeDays = 0, gratitudeDays = 0, sleepDays = 0, breathSessions = 0, habitDays = 0;
+  const habits = getHabits();
   for (let i = 0; i <= 6; i++) {
     const d = new Date(today); d.setDate(today.getDate() - i);
     const ds = d.toDateString();
@@ -10429,15 +10449,17 @@ function renderWeeklySummary(journalEntries) {
     if (g) { try { if (JSON.parse(g).length > 0) gratitudeDays++; } catch(e) {} }
     if (localStorage.getItem("zyra_sleep_" + ds)) sleepDays++;
     breathSessions += parseInt(localStorage.getItem("zyra_breath_" + ds) || "0");
+    if (habits.length && habits.every(h => !!localStorage.getItem("zyra_habit_" + h.id + "_" + ds))) habitDays++;
   }
 
-  const totalActive = waterDays + challengeDays + gratitudeDays + sleepDays + journalDays.size + breathSessions;
+  const totalActive = waterDays + challengeDays + gratitudeDays + sleepDays + journalDays.size + breathSessions + habitDays;
   if (totalActive === 0) { wrap.style.display = "none"; return; }
 
   const ITEMS = [
     { icon: "📔", label: "Entradas diario", val: journalDays.size, max: 7, color: "#8b5cf6" },
     { icon: "💧", label: "Agua completa", val: waterDays, max: 7, color: "#0ea5e9" },
-    { icon: "⚡", label: "Retos completados", val: challengeDays, max: 7, color: "#10b981" },
+    { icon: "✅", label: "Hábitos perfectos", val: habitDays, max: 7, color: "#10b981" },
+    { icon: "⚡", label: "Retos completados", val: challengeDays, max: 7, color: "#f97316" },
     { icon: "🙏", label: "Días de gratitud", val: gratitudeDays, max: 7, color: "#f59e0b" },
     { icon: "😴", label: "Sueño registrado", val: sleepDays, max: 7, color: "#6366f1" },
     { icon: "🌬️", label: "Sesiones de resp.", val: breathSessions, max: 14, color: "#06b6d4" },
@@ -10728,6 +10750,161 @@ function resetPomodoro() {
   _pomodoroSecsLeft = POMODORO_DURATIONS[_pomodoroMode] * 60;
   const wc = document.getElementById("wellness-content");
   if (wc) renderPomodoro(wc);
+}
+
+/* ══════════════════════════════════════════
+   HABIT TRACKER
+══════════════════════════════════════════ */
+const HABIT_DEFAULTS = [
+  { id: "h_agua",   name: "Hidratación",    emoji: "💧", color: "#3b82f6" },
+  { id: "h_ejer",   name: "Ejercicio",      emoji: "🏃", color: "#10b981" },
+  { id: "h_leer",   name: "Leer",           emoji: "📚", color: "#8b5cf6" },
+  { id: "h_medi",   name: "Meditación",     emoji: "🧘", color: "#6366f1" },
+  { id: "h_sleep",  name: "Dormir a tiempo",emoji: "😴", color: "#f59e0b" },
+];
+
+function getHabits() {
+  try { return JSON.parse(localStorage.getItem("zyra_habits") || "null") || HABIT_DEFAULTS; }
+  catch { return HABIT_DEFAULTS; }
+}
+function saveHabits(h) { localStorage.setItem("zyra_habits", JSON.stringify(h)); }
+
+function getHabitKey(id, d) {
+  const dt = d || new Date().toDateString();
+  return "zyra_habit_" + id + "_" + dt;
+}
+function isHabitDone(id, d) { return !!localStorage.getItem(getHabitKey(id, d)); }
+function toggleHabitDone(id) {
+  const key = getHabitKey(id);
+  if (localStorage.getItem(key)) localStorage.removeItem(key);
+  else localStorage.setItem(key, "1");
+  renderHabitsTracker(document.getElementById("wellness-content"));
+}
+
+function getHabitStreak(id) {
+  let streak = 0, d = new Date();
+  d.setDate(d.getDate() - 1);
+  while (true) {
+    if (!isHabitDone(id, d.toDateString())) break;
+    streak++;
+    d.setDate(d.getDate() - 1);
+    if (streak > 365) break;
+  }
+  if (isHabitDone(id)) streak++;
+  return streak;
+}
+
+function addHabitPrompt() {
+  const opts = [
+    { emoji:"🚶",name:"Caminar",color:"#10b981" },
+    { emoji:"🥗",name:"Comer saludable",color:"#22c55e" },
+    { emoji:"📵",name:"Sin pantallas 1h",color:"#f97316" },
+    { emoji:"🫁",name:"Respirar",color:"#6366f1" },
+    { emoji:"☀️",name:"Salir al sol",color:"#f59e0b" },
+    { emoji:"📝",name:"Journaling",color:"#8b5cf6" },
+    { emoji:"🙏",name:"Gratitud",color:"#ec4899" },
+    { emoji:"🎵",name:"Música/Arte",color:"#14b8a6" },
+    { emoji:"📞",name:"Conectar socialmente",color:"#f43f5e" },
+    { emoji:"💊",name:"Tomar medicamentos",color:"#0ea5e9" },
+  ];
+  const current = getHabits();
+  const panel = document.getElementById("habit-add-panel");
+  if (!panel) return;
+  const available = opts.filter(o => !current.find(c => c.name === o.name));
+  panel.innerHTML = `
+    <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:16px;margin-top:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px">Elige un hábito o crea uno:</div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px">
+        ${available.map(o => `<button onclick="addHabitQuick('${o.emoji}','${o.name}','${o.color}')" style="background:rgba(99,102,241,.07);border:1px solid var(--border);border-radius:20px;color:var(--text);font-size:12px;padding:6px 12px;cursor:pointer">${o.emoji} ${o.name}</button>`).join("")}
+      </div>
+      <div style="display:flex;gap:8px">
+        <input id="habit-custom-inp" placeholder="O escribe el nombre..." maxlength="30" style="flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;padding:8px 12px;outline:none" onkeydown="if(event.key==='Enter')addHabitCustom()"/>
+        <button onclick="addHabitCustom()" style="background:var(--accent);border:none;color:#fff;border-radius:10px;padding:8px 14px;font-size:13px;cursor:pointer;font-weight:700">+</button>
+      </div>
+      <button onclick="document.getElementById('habit-add-panel').innerHTML=''" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;margin-top:8px">Cancelar</button>
+    </div>`;
+}
+
+function addHabitQuick(emoji, name, color) {
+  const habits = getHabits();
+  if (habits.length >= 12) return zyraToast("Máximo 12 hábitos", "error");
+  habits.push({ id: "h_" + Date.now(), name, emoji, color });
+  saveHabits(habits);
+  renderHabitsTracker(document.getElementById("wellness-content"));
+  zyraToast("Hábito añadido ✓", "success");
+}
+
+function addHabitCustom() {
+  const inp = document.getElementById("habit-custom-inp");
+  if (!inp) return;
+  const name = inp.value.trim();
+  if (!name) return zyraToast("Escribe el nombre del hábito", "error");
+  addHabitQuick("⭐", name, "#6366f1");
+}
+
+function deleteHabit(id) {
+  const habits = getHabits().filter(h => h.id !== id);
+  saveHabits(habits);
+  renderHabitsTracker(document.getElementById("wellness-content"));
+  zyraToast("Hábito eliminado", "info");
+}
+
+function renderHabitsTracker(el) {
+  const habits = getHabits();
+  const today = new Date();
+  const last7 = Array.from({length:7}, (_,i) => { const d = new Date(today); d.setDate(d.getDate()-(6-i)); return d; });
+  const dayLabels = ["D","L","M","M","J","V","S"];
+
+  const completedToday = habits.filter(h => isHabitDone(h.id)).length;
+  const pct = habits.length ? Math.round((completedToday / habits.length) * 100) : 0;
+
+  const habitRows = habits.map(h => {
+    const done = isHabitDone(h.id);
+    const streak = getHabitStreak(h.id);
+    const dots = last7.map(d => {
+      const dd = isHabitDone(h.id, d.toDateString());
+      const label = dayLabels[d.getDay()];
+      return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+        <div style="width:20px;height:20px;border-radius:50%;background:${dd ? h.color : "var(--border)"};transition:background .3s;box-shadow:${dd?"0 0 6px "+h.color+"66":"none"}"></div>
+        <span style="font-size:9px;color:var(--text3)">${label}</span>
+      </div>`;
+    }).join("");
+
+    return `<div style="background:var(--surface);border:1.5px solid ${done ? h.color + "66" : "var(--border)"};border-radius:16px;padding:14px 16px;transition:border-color .3s">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <button onclick="toggleHabitDone('${h.id}')" style="width:36px;height:36px;border-radius:50%;border:2.5px solid ${h.color};background:${done ? h.color : "transparent"};font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .25s;flex-shrink:0;color:${done ? "#fff" : h.color}">${done ? "✓" : h.emoji}</button>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:700;color:${done ? h.color : "var(--text)"};text-decoration:${done ? "line-through" : "none"};transition:color .3s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${h.emoji} ${h.name}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${streak > 0 ? "🔥 "+streak+" día"+(streak!==1?"s":"")+" seguido"+(streak!==1?"s":"") : "Empieza hoy"}</div>
+        </div>
+        <button onclick="deleteHabit('${h.id}')" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:4px;border-radius:8px;opacity:.5" title="Eliminar hábito">🗑</button>
+      </div>
+      <div style="display:flex;gap:6px;justify-content:flex-end">${dots}</div>
+    </div>`;
+  }).join("");
+
+  el.innerHTML = `
+  <div class="card" style="max-width:520px;margin:0 auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div>
+        <div style="font-size:15px;font-weight:800;color:var(--text)">✅ Mis Hábitos</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px">${new Date().toLocaleDateString("es-CO",{weekday:"long",day:"numeric",month:"long"})}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:22px;font-weight:800;color:var(--accent)">${completedToday}/${habits.length}</div>
+        <div style="font-size:11px;color:var(--text3)">completados hoy</div>
+      </div>
+    </div>
+    <div style="height:8px;background:var(--border);border-radius:99px;margin-bottom:18px;overflow:hidden">
+      <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#6366f1,#10b981);border-radius:99px;transition:width .6s ease"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+      ${habitRows || '<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">Aún no tienes hábitos. ¡Añade uno!</div>'}
+    </div>
+    <div id="habit-add-panel"></div>
+    <button onclick="addHabitPrompt()" style="width:100%;background:rgba(99,102,241,.08);border:1.5px dashed var(--accent);color:var(--accent);border-radius:14px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;margin-top:4px">+ Añadir hábito</button>
+    ${completedToday === habits.length && habits.length > 0 ? '<div style="text-align:center;margin-top:16px;padding:14px;background:linear-gradient(135deg,rgba(16,185,129,.1),rgba(99,102,241,.1));border:1px solid rgba(16,185,129,.25);border-radius:16px"><div style="font-size:20px;margin-bottom:4px">🎉</div><div style="font-size:14px;font-weight:700;color:#10b981">¡Todos los hábitos de hoy completos!</div><div style="font-size:12px;color:var(--text3);margin-top:4px">Eres increíble. Sigue así.</div></div>' : ""}
+  </div>`;
 }
 
 </script>
