@@ -1490,6 +1490,7 @@
     <button class="wellness-tab" id="wtab-meditation" onclick="openWellness('meditation')">🧘 Meditación</button>
     <button class="wellness-tab" id="wtab-music" onclick="openWellness('music')">🎵 Música</button>
     <button class="wellness-tab" id="wtab-affirmations" onclick="openWellness('affirmations')">💫 Afirmaciones</button>
+    <button class="wellness-tab" id="wtab-gratitude" onclick="openWellness('gratitude')">🙏 Gratitud</button>
   </div>
   <div id="wellness-content"></div>
 </div>
@@ -1516,7 +1517,20 @@
   </div>
 </nav>
 <div class="container">
-  <div class="section-title">🎯 Mis Metas Personales</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px">
+    <div class="section-title" style="margin:0">🎯 Mis Metas Personales</div>
+    <div id="goals-stats-bar" style="display:flex;gap:12px;align-items:center"></div>
+  </div>
+  <!-- Filtro por categoría -->
+  <div id="goals-filter-bar" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+    <button class="btn-sm accent" id="gf-all" onclick="filterGoalsCat('all')" style="font-size:11px;padding:6px 12px">Todas</button>
+    <button class="btn-sm" id="gf-bienestar" onclick="filterGoalsCat('bienestar')" style="font-size:11px;padding:6px 12px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">🧘 Bienestar</button>
+    <button class="btn-sm" id="gf-habitos" onclick="filterGoalsCat('habitos')" style="font-size:11px;padding:6px 12px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">⚡ Hábitos</button>
+    <button class="btn-sm" id="gf-relaciones" onclick="filterGoalsCat('relaciones')" style="font-size:11px;padding:6px 12px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">💛 Relaciones</button>
+    <button class="btn-sm" id="gf-trabajo" onclick="filterGoalsCat('trabajo')" style="font-size:11px;padding:6px 12px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">💼 Trabajo</button>
+    <button class="btn-sm" id="gf-personal" onclick="filterGoalsCat('personal')" style="font-size:11px;padding:6px 12px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">⭐ Personal</button>
+    <button class="btn-sm" id="gf-completed" onclick="filterGoalsCat('completed')" style="font-size:11px;padding:6px 12px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">✅ Completadas</button>
+  </div>
   <div class="card">
     <div class="card-header"><span class="card-title">Agregar nueva meta</span><button class="btn-sm accent" onclick="toggleGoalForm()">+ Nueva meta</button></div>
     <div class="add-form" id="add-goal-form">
@@ -4051,11 +4065,45 @@ async function toggleGoalDash(id) {
 
 /* ── GOALS ── */
 function toggleGoalForm() { document.getElementById("add-goal-form").classList.toggle("show"); }
+let _goalsCurrentFilter = 'all';
 async function loadGoals() {
   const el = document.getElementById("goals-list");
   if(el) el.innerHTML = '<div class="empty" style="opacity:.5">Cargando metas...</div>';
-  try { const d = await api("/goals"); _goalsAllItems = d.goals || d; renderGoals(_goalsAllItems); }
+  try {
+    const d = await api("/goals");
+    _goalsAllItems = d.goals || d;
+    renderGoalsStats(_goalsAllItems);
+    filterGoalsCat(_goalsCurrentFilter, true);
+  }
   catch(e) { if(el) el.innerHTML = `<div class="empty" style="color:var(--danger)">⚠ ${safeHtml(e.message||"Error al cargar metas")}</div>`; }
+}
+function renderGoalsStats(goals) {
+  const bar = document.getElementById("goals-stats-bar");
+  if (!bar) return;
+  const total = goals.length;
+  const done = goals.filter(g=>g.completed).length;
+  const pct = total ? Math.round((done/total)*100) : 0;
+  bar.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px">
+      <div style="font-size:11px;color:var(--text3)">${done}/${total} completadas</div>
+      <div style="width:80px;height:6px;background:var(--border);border-radius:99px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#6366f1,#10b981);border-radius:99px;transition:width .5s"></div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:${pct>=80?"#10b981":pct>=40?"#6366f1":"var(--text3)"}">${pct}%</div>
+    </div>`;
+}
+function filterGoalsCat(cat, silent) {
+  _goalsCurrentFilter = cat;
+  ['all','bienestar','habitos','relaciones','trabajo','personal','completed'].forEach(k => {
+    const b = document.getElementById('gf-'+k);
+    if (!b) return;
+    if (k === cat) { b.className = 'btn-sm accent'; b.style.cssText = 'font-size:11px;padding:6px 12px'; }
+    else { b.className = 'btn-sm'; b.style.cssText = 'font-size:11px;padding:6px 12px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)'; }
+  });
+  const filtered = cat === 'all' ? _goalsAllItems :
+                   cat === 'completed' ? _goalsAllItems.filter(g=>g.completed) :
+                   _goalsAllItems.filter(g=>g.category===cat);
+  renderGoals(filtered);
 }
 function renderGoals(goals) {
   const el = document.getElementById("goals-list");
@@ -4777,16 +4825,17 @@ let breathTimer = null, currentWTab = "breath";
 function loadWellness() { openWellness(currentWTab); }
 function openWellness(tab) {
   currentWTab = tab;
-  ["breath","meditation","music","affirmations"].forEach(t => {
+  ["breath","meditation","music","affirmations","gratitude"].forEach(t => {
     const btn = document.getElementById("wtab-"+t);
     if(btn) btn.className = t===tab ? "wellness-tab active" : "wellness-tab";
   });
   const el = document.getElementById("wellness-content");
   if(!el) return;
-  if(tab==="breath")       renderBreath(el);
-  else if(tab==="meditation")  renderMeditation(el);
-  else if(tab==="music")       renderMusic(el);
+  if(tab==="breath")        renderBreath(el);
+  else if(tab==="meditation")   renderMeditation(el);
+  else if(tab==="music")        renderMusic(el);
   else if(tab==="affirmations") renderAffirmations(el);
+  else if(tab==="gratitude")    renderGratitude(el);
 }
 const BREATH_TECHS = {
   '478':  { name:'4-7-8', desc:'Inhala <strong>4</strong>s, mantén <strong>7</strong>s, exhala <strong>8</strong>s. Calma la ansiedad rápidamente.', phases:[{t:"Inhala",d:4,cls:"inhale"},{t:"Mantén",d:7,cls:""},{t:"Exhala",d:8,cls:"exhale"}] },
@@ -5027,8 +5076,8 @@ function playMedia(query, title, playerId) {
   player.scrollIntoView({behavior:"smooth"});
 }
 
-function renderAffirmations(el) {
-  const affs = [
+const AFF_CATS = {
+  all: [
     "Soy capaz de superar cualquier desafío que se presente en mi vida",
     "Merezco amor, paz y felicidad — comenzando por mí mismo",
     "Cada día es una nueva oportunidad para crecer y mejorar",
@@ -5041,20 +5090,68 @@ function renderAffirmations(el) {
     "Soy una persona en crecimiento constante y eso es suficiente",
     "El amor que me doy a mí mismo es la base de todo lo demás",
     "Hoy elijo cuidarme, aunque sea en pequeñas formas",
-  ];
-  let idx = Math.floor(Math.random() * affs.length);
+  ],
+  calm: [
+    "La calma es un superpoder que puedo elegir en cualquier momento",
+    "Respiro profundo y dejo ir lo que no puedo controlar",
+    "En este momento estoy seguro/a y todo está bien",
+    "Mi mente puede descansar — no tengo que resolver todo ahora",
+    "Suelto la tensión con cada exhalación",
+    "La paz interior es mi estado natural, vuelvo a ella",
+    "Estoy exactamente donde necesito estar",
+    "Permito que mi cuerpo y mente se relajen completamente",
+  ],
+  confidence: [
+    "Confío en mis decisiones y en mi instinto",
+    "Tengo todo lo que necesito para hacer frente a hoy",
+    "Mi voz importa y mis pensamientos tienen valor",
+    "Cada obstáculo que supero me hace más fuerte",
+    "Merezco ocupar espacio en este mundo con plena confianza",
+    "Soy capaz, hábil y digno/a de éxito",
+    "Me atrevo a ser exactamente quien soy, sin disculpas",
+    "Mi historia única es mi mayor fortaleza",
+  ],
+  gratitude: [
+    "Hoy encuentro motivos de gratitud incluso en lo pequeño",
+    "La gratitud transforma lo ordinario en extraordinario",
+    "Doy gracias por mi cuerpo, que trabaja para mí cada día",
+    "Soy agradecido/a por las personas que me acompañan en este camino",
+    "Cada experiencia, buena o difícil, me ha ayudado a crecer",
+    "Tengo suficiente, soy suficiente y hago suficiente",
+    "La belleza de la vida está en los momentos que me tomo para notarla",
+    "Aprecio la persona que me he convertido y la que seguiré siendo",
+  ],
+};
+let _affCurrentCat = 'all';
+
+function renderAffirmations(el) {
+  let affs = AFF_CATS[_affCurrentCat] || AFF_CATS.all;
+  let idx = new Date().getDate() % affs.length;
   el.innerHTML = `
     <div class="affirmation-hero">
       <div class="affirmation-text" id="aff-text">"${affs[idx]}"</div>
-      <button class="btn-cta" style="background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);color:white;backdrop-filter:blur(10px)" onclick="nextAffirmation()">Nueva afirmación ✨</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:18px">
+        <button class="btn-cta" style="background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);color:white;backdrop-filter:blur(10px)" onclick="nextAffirmation()">Nueva ✨</button>
+        <button onclick="copyAffirmation()" style="background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.2);color:white;border-radius:12px;padding:11px 20px;font-size:13px;font-weight:700;cursor:pointer;backdrop-filter:blur(10px)" id="aff-copy-btn">📋 Copiar</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+      ${[['all','🌟 Todas'],['calm','🌊 Calma'],['confidence','💪 Confianza'],['gratitude','🙏 Gratitud']].map(([k,l])=>`
+        <button onclick="switchAffCat('${k}')" id="affcat-${k}" class="btn-sm ${k===_affCurrentCat?'accent':''}" style="${k===_affCurrentCat?'':'background:var(--surface);color:var(--text2);border:1.5px solid var(--border)'}padding:7px 12px;font-size:12px">${l}</button>
+      `).join('')}
     </div>
     <div class="affirmation-grid">
       ${affs.slice(0,6).map(a=>`
-        <div class="affirmation-card" onclick="setAffirmation('${a.replace(/'/g,"\\'")}')">
+        <div class="affirmation-card" onclick="setAffirmation(${JSON.stringify(a)})">
           "${a.substring(0,65)}${a.length>65?"...":""}"
         </div>`).join("")}
     </div>`;
   el._affs = affs; el._affIdx = idx;
+}
+function switchAffCat(cat) {
+  _affCurrentCat = cat;
+  const el = document.getElementById("wellness-content");
+  if (el) renderAffirmations(el);
 }
 function nextAffirmation() {
   const el = document.getElementById("wellness-content");
@@ -5066,6 +5163,85 @@ function nextAffirmation() {
 function setAffirmation(text) {
   const txt = document.getElementById("aff-text");
   if(txt) { txt.style.opacity="0"; setTimeout(()=>{txt.textContent=`"${text}"`;txt.style.opacity="1";},200); txt.style.transition="opacity .2s"; }
+}
+async function copyAffirmation() {
+  const txt = document.getElementById("aff-text");
+  if (!txt) return;
+  try {
+    await navigator.clipboard.writeText(txt.textContent.replace(/^"|"$/g,""));
+    const btn = document.getElementById("aff-copy-btn");
+    if (btn) { const orig = btn.textContent; btn.textContent = "✅ Copiado"; setTimeout(()=>btn.textContent=orig, 1500); }
+  } catch(e) {}
+}
+
+/* ════════════════════════════════════════
+   GRATITUDE JOURNAL
+════════════════════════════════════════ */
+const GRATITUDE_PROMPTS = [
+  "¿Qué pequeño momento de hoy merece tu gratitud?",
+  "¿Qué persona en tu vida te hace sentir acompañado/a?",
+  "¿Qué parte de tu cuerpo funcionó bien hoy y sueles dar por sentada?",
+  "¿Qué aprendiste recientemente que valora tu perspectiva?",
+  "¿Qué lugar o espacio en tu vida te da paz?",
+  "¿Qué habilidad tuya te ha ayudado esta semana?",
+];
+function renderGratitude(el) {
+  const todayKey = `zyra_gratitude_${new Date().toDateString()}`;
+  const saved = JSON.parse(localStorage.getItem(todayKey) || "[]");
+  const prompt = GRATITUDE_PROMPTS[new Date().getDay() % GRATITUDE_PROMPTS.length];
+  el.innerHTML = `
+    <div class="card" style="max-width:560px;margin:0 auto">
+      <div style="text-align:center;padding:8px 0 20px">
+        <div style="font-size:36px;margin-bottom:8px">🙏</div>
+        <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:6px">Práctica de Gratitud</div>
+        <div style="font-size:13px;color:var(--text3);line-height:1.6">Escribir 3 cosas de gratitud al día reduce el estrés y mejora el sueño.</div>
+      </div>
+      <div style="background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(5,150,105,.04));border:1.5px solid rgba(16,185,129,.2);border-radius:14px;padding:14px 16px;margin-bottom:20px">
+        <div style="font-size:11px;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">💭 Reflexión del día</div>
+        <div style="font-size:14px;color:var(--text);font-style:italic">${prompt}</div>
+      </div>
+      <div id="gratitude-entries" style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px">
+        ${saved.length ? saved.map((t,i)=>`
+          <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surface);border:1.5px solid rgba(16,185,129,.25);border-radius:12px">
+            <span style="font-size:18px">${['🌱','🌿','🌳'][i]||'✨'}</span>
+            <span style="flex:1;font-size:13px;color:var(--text)">${safeHtml(t)}</span>
+          </div>`).join('') : `<div style="text-align:center;color:var(--text3);font-size:13px;padding:16px 0;opacity:.7">Aún no has escrito nada hoy — empieza con una sola cosa 🌱</div>`}
+      </div>
+      ${saved.length < 3 ? `
+        <div style="display:flex;gap:8px">
+          <input id="gratitude-input" type="text" maxlength="200" placeholder="Estoy agradecido/a por..." style="flex:1;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:13px;padding:11px 14px;outline:none" onkeydown="if(event.key==='Enter')addGratitudeEntry()"/>
+          <button onclick="addGratitudeEntry()" style="background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;border-radius:12px;padding:11px 18px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">+ Añadir</button>
+        </div>
+        <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:10px">${3-saved.length} más para completar el ejercicio del día</div>
+      ` : `
+        <div style="text-align:center;padding:12px;background:linear-gradient(135deg,rgba(16,185,129,.15),rgba(5,150,105,.08));border-radius:14px">
+          <div style="font-size:20px;margin-bottom:4px">🌟</div>
+          <div style="font-size:14px;font-weight:700;color:#10b981">¡Ejercicio completado!</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:4px">Has cultivado tu gratitud hoy. ¡Excelente trabajo!</div>
+        </div>
+      `}
+    </div>`;
+}
+function addGratitudeEntry() {
+  const inp = document.getElementById("gratitude-input");
+  if (!inp) return;
+  const text = inp.value.trim();
+  if (!text) return zyraToast("Escribe algo por lo que estés agradecido/a", "error");
+  const todayKey = `zyra_gratitude_${new Date().toDateString()}`;
+  const saved = JSON.parse(localStorage.getItem(todayKey) || "[]");
+  if (saved.length >= 3) return;
+  saved.push(text);
+  localStorage.setItem(todayKey, JSON.stringify(saved));
+  inp.value = "";
+  if (saved.length === 3) {
+    zyraToast("¡Práctica de gratitud completada! 🙏", "success");
+    if (navigator.vibrate) navigator.vibrate([40,20,80]);
+    if (typeof triggerMission === "function") triggerMission('gratitude');
+  } else {
+    zyraToast("Entrada guardada ✓", "success");
+  }
+  const wc = document.getElementById("wellness-content");
+  if (wc) renderGratitude(wc);
 }
 
 /* ════════════════════════════════════════
