@@ -1235,6 +1235,17 @@
     <div style="font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Tendencia emocional — últimos 7 días</div>
     <div id="mood-mini-trend-bars" style="display:flex;gap:8px;align-items:flex-end;height:48px"></div>
   </div>
+  <!-- Daily challenge widget -->
+  <div id="daily-challenge-wrap" style="display:none">
+    <div class="daily-challenge-card">
+      <span style="font-size:28px;flex-shrink:0">⚡</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:10px;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Reto del día</div>
+        <div id="daily-challenge-text" style="font-size:13px;color:var(--text);font-weight:600;line-height:1.5"></div>
+      </div>
+      <button id="daily-challenge-btn" class="daily-challenge-btn" onclick="completeDailyChallenge()">✓ Hecho</button>
+    </div>
+  </div>
   <div class="grid4" style="margin-bottom:24px">
     <div class="stat-card">
       <div class="stat-icon-wrap" style="background:linear-gradient(135deg,#eef2ff,#e0e7ff)">💬</div>
@@ -2820,6 +2831,10 @@ function showPage(name) {
   const pg = document.getElementById("page-" + name);
   if(pg) pg.classList.add("active");
   window.scrollTo({ top: 0, behavior: "instant" });
+  // FAB quick note: show on logged-in pages, hide on auth/onboarding pages
+  const authPages = ['landing','login','register','verify-login','verify-register','planes','forgot-password','reset-password'];
+  const fab = document.getElementById("fab-qn");
+  if (fab) fab.classList.toggle("visible", !authPages.includes(name));
   if(name === "dashboard") { loadDashboard(); setTimeout(loadGamification, 300); setTimeout(maybeShowMoodCheckin, 800); }
   if(name === "assistant") loadAssistant();
   if(name === "goals")     { loadGoals(); setTimeout(()=>triggerMission('check_goals'), 500); }
@@ -3936,6 +3951,7 @@ async function loadDashboard() {
     renderDashGoals(goals);
     renderMoodMiniTrend(hd.history || []);
   } catch(e) { console.error(e); }
+  loadDailyChallenge();
 }
 function renderMoodMiniTrend(history) {
   const wrap = document.getElementById("mood-mini-trend");
@@ -4772,15 +4788,24 @@ function openWellness(tab) {
   else if(tab==="music")       renderMusic(el);
   else if(tab==="affirmations") renderAffirmations(el);
 }
+const BREATH_TECHS = {
+  '478':  { name:'4-7-8', desc:'Inhala <strong>4</strong>s, mantén <strong>7</strong>s, exhala <strong>8</strong>s. Calma la ansiedad rápidamente.', phases:[{t:"Inhala",d:4,cls:"inhale"},{t:"Mantén",d:7,cls:""},{t:"Exhala",d:8,cls:"exhale"}] },
+  'box':  { name:'Box 4-4-4-4', desc:'Inhala <strong>4</strong>s, mantén <strong>4</strong>s, exhala <strong>4</strong>s, pausa <strong>4</strong>s. Equilibra mente y cuerpo.', phases:[{t:"Inhala",d:4,cls:"inhale"},{t:"Mantén",d:4,cls:""},{t:"Exhala",d:4,cls:"exhale"},{t:"Pausa",d:4,cls:""}] },
+  'calm': { name:'Calma 4-6', desc:'Inhala <strong>4</strong>s, exhala <strong>6</strong>s. Simple y efectivo para relajarse rápido.', phases:[{t:"Inhala",d:4,cls:"inhale"},{t:"Exhala",d:6,cls:"exhale"}] },
+};
+let currentBreathTech = '478';
+
 function renderBreath(el) {
   if(breathTimer) { clearTimeout(breathTimer); breathTimer = null; }
   el.innerHTML = `
     <div class="card" style="text-align:center;max-width:520px;margin:0 auto">
-      <div style="font-size:13px;color:var(--text3);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Técnica de Respiración</div>
-      <div class="section-title" style="justify-content:center;font-size:22px;margin-bottom:12px">🌬️ Técnica 4-7-8</div>
-      <p style="color:var(--text2);font-size:14px;line-height:1.8;margin-bottom:4px;max-width:380px;margin-left:auto;margin-right:auto">
-        Inhala <strong>4</strong> segundos, mantén <strong>7</strong>, exhala <strong>8</strong>.
-      </p>
+      <div style="font-size:13px;color:var(--text3);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">Técnica de Respiración</div>
+      <div style="display:flex;gap:8px;margin-bottom:18px">
+        <button id="btab-478" class="btn-sm accent" onclick="selectBreathTech('478')" style="flex:1;font-size:11px;padding:8px 4px">🌬️ 4-7-8</button>
+        <button id="btab-box" class="btn-sm" onclick="selectBreathTech('box')" style="flex:1;font-size:11px;padding:8px 4px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">📦 Box 4-4-4-4</button>
+        <button id="btab-calm" class="btn-sm" onclick="selectBreathTech('calm')" style="flex:1;font-size:11px;padding:8px 4px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">🌊 Calma 4-6</button>
+      </div>
+      <p id="breath-tech-desc" style="color:var(--text2);font-size:13px;line-height:1.8;margin-bottom:16px;max-width:360px;margin-left:auto;margin-right:auto">${BREATH_TECHS[currentBreathTech].desc}</p>
       <div class="breath-circle" id="breath-circle">
         <span id="breath-label" style="font-size:14px;font-weight:700;color:var(--sky)">Listo</span>
         <span class="breath-seconds" id="breath-secs" style="display:none">4</span>
@@ -4791,6 +4816,20 @@ function renderBreath(el) {
         <button class="btn-sm" style="padding:13px 20px" onclick="stopBreath()">Detener</button>
       </div>
     </div>`;
+  selectBreathTech(currentBreathTech, true);
+}
+
+function selectBreathTech(tech, silent) {
+  currentBreathTech = tech;
+  if (!silent) stopBreath();
+  ['478','box','calm'].forEach(t => {
+    const b = document.getElementById('btab-'+t);
+    if (!b) return;
+    if (t === tech) { b.className = 'btn-sm accent'; b.style.cssText = 'flex:1;font-size:11px;padding:8px 4px'; }
+    else { b.className = 'btn-sm'; b.style.cssText = 'flex:1;font-size:11px;padding:8px 4px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)'; }
+  });
+  const desc = document.getElementById('breath-tech-desc');
+  if (desc) desc.innerHTML = BREATH_TECHS[tech].desc;
 }
 function startBreath() {
   if(breathTimer) { clearTimeout(breathTimer); breathTimer = null; }
@@ -4805,7 +4844,7 @@ function startBreath() {
   secs.style.display = "block";
   secs.textContent = "";
   if(inst) inst.textContent = "Respira con el círculo";
-  const phases = [{t:"Inhala",d:4,cls:"inhale"},{t:"Mantén",d:7,cls:""},{t:"Exhala",d:8,cls:"exhale"}];
+  const phases = (BREATH_TECHS[currentBreathTech] || BREATH_TECHS['478']).phases;
   let phaseIdx = 0, cycleCount = 0, totalCycles = 4;
   function runPhase() {
     if(!document.getElementById("breath-circle")) return;
@@ -9452,7 +9491,142 @@ function destroyZyra3DAvatar() {
   const img = document.getElementById("vc-avatar-img");
   if (img) img.style.animation = 'zyraIdle 4s ease-in-out infinite';
 }
+
+/* ══════════════════════════════════════════
+   DAILY CHALLENGE
+══════════════════════════════════════════ */
+const DAILY_CHALLENGES = [
+  "Escribe 3 cosas por las que estás agradecido/a hoy.",
+  "Toma 5 minutos para respirar profundo sin distracciones.",
+  "Envía un mensaje de cariño a alguien importante para ti.",
+  "Sal a caminar aunque sea 10 minutos.",
+  "Desconéctate de redes sociales por 2 horas hoy.",
+  "Bebe al menos 8 vasos de agua hoy.",
+  "Escribe en tu diario sobre un recuerdo feliz.",
+  "Haz 10 minutos de estiramiento suave.",
+  "Lee algo inspirador durante 15 minutos.",
+  "Cocina o consume algo nutritivo hoy.",
+  "Llama a alguien que no hayas contactado en mucho tiempo.",
+  "Escucha tu canción favorita y permite que te transporte.",
+  "Haz una lista de 5 cosas que te hacen sonreír.",
+  "Prepara tu ambiente para dormir bien esta noche.",
+  "Dedica 10 minutos a no hacer nada — solo ser y respirar.",
+  "Practica la técnica 4-7-8 al menos 3 veces hoy.",
+  "Escribe una meta pequeña y alcanzable para esta semana.",
+  "Apaga el teléfono 1 hora antes de dormir.",
+  "Observa la naturaleza por 5 minutos: el cielo, una planta, lo que esté cerca.",
+  "Haz algo que hayas estado postergando, aunque sea el primer paso.",
+  "Regálate un elogio sincero frente al espejo.",
+  "Escribe cómo te sientes ahora mismo, sin juzgarte.",
+  "Comparte algo positivo o alentador con alguien hoy.",
+  "Prueba la meditación de 5 minutos en la sección de Bienestar.",
+  "Desafía un pensamiento negativo con evidencia positiva.",
+  "Organiza un espacio pequeño de tu hogar u oficina.",
+  "Intenta algo nuevo hoy, aunque sea pequeño.",
+  "Dedica 20 minutos a un hobby que hayas descuidado.",
+  "Practica el grounding: nombra 5 cosas que ves, 4 que sientes, 3 que oyes.",
+  "Celebra una pequeña victoria de hoy, sin importar qué tan pequeña sea.",
+];
+
+function loadDailyChallenge() {
+  const wrap = document.getElementById("daily-challenge-wrap");
+  const textEl = document.getElementById("daily-challenge-text");
+  const btn = document.getElementById("daily-challenge-btn");
+  if (!wrap || !textEl) return;
+  const todayKey = `zyra_challenge_done_${new Date().toDateString()}`;
+  const challenge = DAILY_CHALLENGES[new Date().getDate() % DAILY_CHALLENGES.length];
+  textEl.textContent = challenge;
+  if (localStorage.getItem(todayKey)) {
+    if (btn) { btn.textContent = "✓ Completado"; btn.classList.add("done"); btn.disabled = true; }
+  } else {
+    if (btn) { btn.textContent = "✓ Hecho"; btn.classList.remove("done"); btn.disabled = false; }
+  }
+  wrap.style.display = "";
+}
+
+function completeDailyChallenge() {
+  const todayKey = `zyra_challenge_done_${new Date().toDateString()}`;
+  if (localStorage.getItem(todayKey)) return;
+  localStorage.setItem(todayKey, "1");
+  const btn = document.getElementById("daily-challenge-btn");
+  if (btn) { btn.textContent = "✓ Completado"; btn.classList.add("done"); btn.disabled = true; }
+  zyraToast("¡Reto del día completado! 🎉", "success");
+  if (navigator.vibrate) navigator.vibrate([40,20,60]);
+  if (typeof triggerMission === "function") triggerMission('daily_challenge');
+}
+
+/* ══════════════════════════════════════════
+   FLOATING QUICK NOTE
+══════════════════════════════════════════ */
+function openQuickNote() {
+  const m = document.getElementById("quick-note-modal");
+  if (!m) return;
+  m.style.display = "flex";
+  document.body.style.overflow = "hidden";
+  setTimeout(() => document.getElementById("qn-content")?.focus(), 150);
+}
+function closeQuickNote() {
+  const m = document.getElementById("quick-note-modal");
+  if (!m) return;
+  m.style.display = "none";
+  document.body.style.overflow = "";
+}
+async function saveQuickNote() {
+  const content = document.getElementById("qn-content")?.value.trim();
+  const emotion = document.getElementById("qn-emotion")?.value;
+  if (!content) return zyraToast("Escribe algo primero", "error");
+  try {
+    await api("/journal", "POST", { title: "", content, emotion: emotion || undefined });
+    closeQuickNote();
+    const qnc = document.getElementById("qn-content");
+    const qne = document.getElementById("qn-emotion");
+    if (qnc) qnc.value = "";
+    if (qne) qne.value = "";
+    zyraToast("Nota guardada en el diario ✓", "success");
+    if (navigator.vibrate) navigator.vibrate(30);
+    // Refresh journal if open
+    const jp = document.getElementById("page-journal");
+    if (jp && jp.classList.contains("active") && typeof loadJournal === "function") loadJournal();
+  } catch(e) {
+    if (e.status === 403 && e.data?.limitReached) showUpgradePrompt('journal', 'basic');
+    else zyraToast(e.message || "Error al guardar", "error");
+  }
+}
+// Also close quick note on Escape (extend existing handler)
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    const m = document.getElementById("quick-note-modal");
+    if (m && m.style.display !== "none") { closeQuickNote(); e.stopPropagation(); }
+  }
+});
 </script>
+
+<!-- ══ FLOATING QUICK NOTE ══ -->
+<button class="fab-qn" id="fab-qn" onclick="openQuickNote()" aria-label="Nota rápida en diario" title="Nota rápida">✏️</button>
+
+<!-- ══ QUICK NOTE MODAL ══ -->
+<div id="quick-note-modal" style="display:none;position:fixed;inset:0;z-index:9700;background:rgba(0,0,0,.7);backdrop-filter:blur(10px);align-items:flex-end;justify-content:center;padding:0" role="dialog" aria-modal="true" aria-label="Nota rápida" onclick="if(event.target===this)closeQuickNote()">
+  <div style="background:var(--bg2,#141624);border-radius:28px 28px 0 0;width:100%;max-width:520px;padding:22px 20px 44px;border-top:1px solid rgba(255,255,255,.1);animation:slideUp .3s ease">
+    <div style="width:40px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin:0 auto 18px"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-size:16px;font-weight:700;color:var(--text)">✏️ Nota rápida</div>
+      <button onclick="closeQuickNote()" style="background:rgba(255,255,255,.08);border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:5px 9px;border-radius:50%;line-height:1">✕</button>
+    </div>
+    <select id="qn-emotion" style="width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:13px;padding:10px 12px;margin-bottom:10px;outline:none;box-sizing:border-box">
+      <option value="">😶 Sin emoción</option>
+      <option value="feliz">😊 Feliz</option>
+      <option value="tranquilo">😌 Tranquilo</option>
+      <option value="ansioso">😰 Ansioso</option>
+      <option value="triste">😢 Triste</option>
+      <option value="enojado">😤 Enojado</option>
+      <option value="motivado">💪 Motivado</option>
+      <option value="esperanzado">🌟 Esperanzado</option>
+      <option value="agotado">😮‍💨 Agotado</option>
+    </select>
+    <textarea id="qn-content" placeholder="¿Qué está en tu mente ahora mismo?" maxlength="1000" style="width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;color:var(--text);font-size:14px;padding:12px 14px;height:110px;resize:none;outline:none;box-sizing:border-box;margin-bottom:12px;font-family:inherit;line-height:1.6;transition:border-color .2s"></textarea>
+    <button onclick="saveQuickNote()" style="width:100%;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;padding:14px;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .2s">Guardar en diario →</button>
+  </div>
+</div>
 
 <style>
 @keyframes confettiFall {
