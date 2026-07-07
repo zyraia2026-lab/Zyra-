@@ -613,7 +613,7 @@ Solo UN ejercicio por turno. Primero pregunta si quieren hacerlo.
 ════════════════════════════════════════ */
 exports.sendMessage = async (req, res) => {
   try {
-    const { message, conversationId, history, mode, noSave } = req.body;
+    const { message, conversationId, history, mode, noSave, dailyContext } = req.body;
     const isVoice = mode === 'voice';
     if (!message?.trim()) return res.status(400).json({ message: "Mensaje vacío" });
 
@@ -636,6 +636,11 @@ exports.sendMessage = async (req, res) => {
       systemPrompt = await buildSystemPrompt(req.user._id, req.user.name);
     } catch(e) {
       console.error("buildSystemPrompt error:", e.message);
+    }
+
+    // Daily local context from client (check-in emotion, habits, water)
+    if (dailyContext) {
+      systemPrompt += `\n\n📅 CONTEXTO DE HOY (datos de la app): ${dailyContext}`;
     }
 
     // Modo voz: respuestas MUY cortas, naturales, como en llamada real
