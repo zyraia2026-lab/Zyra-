@@ -3345,3 +3345,39 @@ body {
 
 /* ── Ambient: click en slider no activa el toggle del sonido ── */
 .ambient-item { user-select: none; }
+
+/* ── Mood check-in modal ── */
+.mood-opt {
+  display: flex; flex-direction: column; align-items: center;
+  background: rgba(255,255,255,.05); border: 1.5px solid transparent;
+  border-radius: 14px; padding: 10px 4px; cursor: pointer;
+  transition: all .18s ease; color: var(--text);
+}
+.mood-opt:hover  { background: rgba(99,102,241,.12); border-color: rgba(99,102,241,.3); }
+.mood-opt.active { background: rgba(99,102,241,.18); border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
+
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* ── Streaming chat cursor ── */
+.stream-cursor {
+  display: inline-block;
+  width: 2px; height: 1.1em;
+  background: var(--accent, #6366f1);
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  border-radius: 1px;
+  animation: blink .8s steps(1) infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.msg.bot.streaming .msg-bubble { min-width: 40px; }
+
+/* ── Admin stat cards ── */
+.admin-stat {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 16px; padding: 18px 16px; text-align: center;
+}
+.admin-stat-value { font-size: 28px; font-weight: 800; color: var(--accent); line-height: 1; }
+.admin-stat-label { font-size: 11px; color: var(--text3); margin-top: 6px; }

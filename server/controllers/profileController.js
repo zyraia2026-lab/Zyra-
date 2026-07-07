@@ -89,6 +89,40 @@ exports.getEmergencyContact = async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
 
+// ── Check-in de humor diario ──
+exports.moodCheckin = async (req, res) => {
+  try {
+    const { emotion, note = "", intensity = 5 } = req.body;
+    const VALID = ["feliz","tranquilo","ansioso","triste","enojado","confundido","esperanzado","agotado","motivado","nostalgico"];
+    if (!VALID.includes(emotion)) return res.status(400).json({ message: "Emoción inválida" });
+
+    // Verificar si ya hizo check-in hoy
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    const p = await Profile.findOne({ user: req.user._id }).lean();
+    const alreadyToday = p?.emotionHistory?.some(h => new Date(h.date) >= todayStart);
+    if (alreadyToday) return res.json({ success: true, alreadyDone: true });
+
+    await Profile.findOneAndUpdate(
+      { user: req.user._id },
+      {
+        currentEmotion: emotion,
+        $push: { emotionHistory: { emotion, note: note.slice(0, 200), intensity: Math.min(10, Math.max(1, intensity)), date: new Date() } },
+      },
+      { upsert: true }
+    );
+    res.json({ success: true, alreadyDone: false });
+  } catch(e) { res.status(500).json({ message: e.message }); }
+};
+
+exports.getMoodStatus = async (req, res) => {
+  try {
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    const p = await Profile.findOne({ user: req.user._id }).lean();
+    const done = p?.emotionHistory?.some(h => new Date(h.date) >= todayStart) || false;
+    res.json({ success: true, checkedInToday: done, currentEmotion: p?.currentEmotion || null });
+  } catch(e) { res.status(500).json({ message: e.message }); }
+};
+
 // ── PIN de bloqueo ──
 exports.setPin = async (req, res) => {
   try {

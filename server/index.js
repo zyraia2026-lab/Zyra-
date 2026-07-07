@@ -68,6 +68,7 @@ app.use("/api/memory",        require("./routes/memory"));
 app.use("/api/analytics",     require("./routes/analytics"));
 app.use("/api/weekly-report", require("./routes/weeklyReport"));
 app.use("/api/referral",      require("./routes/referral"));
+app.use("/api/admin",         require("./routes/admin"));
 
 app.get("/api/health", (req, res) => res.json({ status: "OK", ai: "Zyra/Groq", version: "5.0" }));
 app.get("/api/config", auth, (req, res) => res.json({ ytEnabled: !!process.env.YT_API_KEY }));

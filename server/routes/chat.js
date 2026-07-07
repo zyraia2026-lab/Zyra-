@@ -1,6 +1,6 @@
 const r         = require("express").Router();
 const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
-const { sendMessage }       = require("../controllers/chatController");
+const { sendMessage, streamMessage } = require("../controllers/chatController");
 const { protect }           = require("../middleware/auth");
 const { safetyGuard }       = require("../middleware/safetyGuard");
 const { checkMessageLimit } = require("../middleware/planGate");
@@ -16,5 +16,6 @@ const chatLimiter = rateLimit({
   skip: () => false,
 });
 
-r.post("/", protect, chatLimiter, checkMessageLimit, safetyGuard, sendMessage);
+r.post("/",       protect, chatLimiter, checkMessageLimit, safetyGuard, sendMessage);
+r.post("/stream", protect, chatLimiter, checkMessageLimit, safetyGuard, streamMessage);
 module.exports = r;

@@ -13,6 +13,8 @@ const {
   deleteAllData,
   deleteAccount,
   getPlanStatus,
+  moodCheckin,
+  getMoodStatus,
 } = require("../controllers/profileController");
 const { protect }      = require("../middleware/auth");
 const { requirePlan }  = require("../middleware/planGate");
@@ -22,8 +24,12 @@ r.get("/",        protect, getProfile);
 r.put("/",        protect, updateProfile);
 
 // ── Emociones ──
-r.post("/emotion", protect, addEmotionRecord);
-r.get("/history",  protect, getEmotionHistory);
+r.post("/emotion",        protect, addEmotionRecord);
+r.get("/history",         protect, getEmotionHistory);
+
+// ── Check-in de humor diario ──
+r.post("/mood-checkin", protect, moodCheckin);
+r.get("/mood-status",   protect, getMoodStatus);
 
 // ── Contacto de emergencia (plan básico+) ──
 r.get("/emergency",  protect, getEmergencyContact);
