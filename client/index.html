@@ -5694,6 +5694,7 @@ function addGratitudeEntry() {
   }
   const wc = document.getElementById("wellness-content");
   if (wc) renderGratitude(wc);
+  renderWellbeingScore();
 }
 
 /* ════════════════════════════════════════
@@ -10718,6 +10719,7 @@ function saveSleepToday() {
   if (navigator.vibrate) navigator.vibrate(30);
   const wc = document.getElementById("wellness-content");
   if (wc) renderSleepTracker(wc);
+  renderTodayOverview(); renderWellbeingScore();
 }
 function renderSleepTracker(el) {
   const todayData = (() => { try { return JSON.parse(localStorage.getItem(getSleepKey()) || "null"); } catch(e) { return null; } })();
@@ -11122,8 +11124,15 @@ function getHabitKey(id, d) {
 function isHabitDone(id, d) { return !!localStorage.getItem(getHabitKey(id, d)); }
 function toggleHabitDone(id) {
   const key = getHabitKey(id);
-  if (localStorage.getItem(key)) localStorage.removeItem(key);
-  else localStorage.setItem(key, "1");
+  const wasOff = !localStorage.getItem(key);
+  if (!wasOff) localStorage.removeItem(key);
+  else {
+    localStorage.setItem(key, "1");
+    const habit = getHabits().find(h => h.id === id);
+    const streak = getHabitStreak(id);
+    const MILESTONES = { 7:"🔥 ¡7 días seguidos!", 14:"🌟 ¡2 semanas sin parar!", 21:"💎 ¡21 días — ya es un hábito!", 30:"🏆 ¡30 días! Eres un ejemplo." };
+    if (MILESTONES[streak] && habit) zyraToast(`${habit.emoji} ${habit.name}: ${MILESTONES[streak]}`, "success", 5000);
+  }
   renderHabitsTracker(document.getElementById("wellness-content"));
   renderTodayOverview();
   renderWellbeingScore();
