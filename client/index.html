@@ -5002,7 +5002,12 @@ async function startRenameConv(e, id, span) {
   inp.select();
   const save = async () => {
     const newTitle = inp.value.trim() || oldTitle;
-    inp.replaceWith(Object.assign(document.createElement("span"), { className:"hist-title", textContent:newTitle, ondblclick:(ev)=>startRenameConv(ev,id,inp.parentElement.querySelector(".hist-title")) }));
+    const newSpan = document.createElement("span");
+    newSpan.className = "hist-title";
+    newSpan.textContent = newTitle;
+    newSpan.title = "Doble clic para renombrar";
+    newSpan.ondblclick = (ev) => startRenameConv(ev, id, newSpan);
+    inp.replaceWith(newSpan);
     if (newTitle !== oldTitle) {
       try { await api(`/conversations/${id}/title`,"PATCH",{title:newTitle}); } catch(e) {}
     }
