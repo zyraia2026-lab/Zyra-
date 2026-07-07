@@ -2620,7 +2620,6 @@ async function doLoginVerify() {
     } catch(e) {}
     loadPlanStatus();
     loadGamification();
-    const TERMS_VER = "v1.1-2026-07";
     if (!d.user.termsAcceptedAt || localStorage.getItem("zyra_terms_accepted") !== TERMS_VER) {
       _termsNextAction = "dashboard";
       showTermsOverlay();
@@ -2670,8 +2669,7 @@ async function doRegisterVerify() {
     if (user?.name) {
       api("/auth/update-profile", "PUT", { name: user.name }).catch(() => {});
     }
-    const TERMS_VER2 = "v1.1-2026-07";
-    if (!d.user.termsAcceptedAt || localStorage.getItem("zyra_terms_accepted") !== TERMS_VER2) {
+    if (!d.user.termsAcceptedAt || localStorage.getItem("zyra_terms_accepted") !== TERMS_VER) {
       _termsNextAction = "test";
       showTermsOverlay();
     } else {
@@ -2714,7 +2712,7 @@ function updateTermsBtn() {
 }
 async function acceptTermsAndContinue() {
   try { await api("/auth/accept-terms", "POST"); } catch(e) {}
-  localStorage.setItem("zyra_terms_accepted", "v1.1-2026-07");
+  localStorage.setItem("zyra_terms_accepted", TERMS_VER);
   const overlay = document.getElementById("zyra-terms-overlay");
   if(overlay) overlay.style.display = "none";
   document.body.style.overflow = "";
@@ -7436,6 +7434,8 @@ const PLANS = {
 
 // Billing period state (shared between plans page and payment modal)
 let _billingAnnual = false;
+
+const TERMS_VER = "v1.1-2026-07";
 
 // Plan state — synced from server on load/login
 let _zyraCurrentPlan = localStorage.getItem('zyra_plan') || 'free';
