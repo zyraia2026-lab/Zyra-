@@ -71,11 +71,11 @@ exports.getEmotionHistory = async (req, res) => {
 // ── Contacto de emergencia ──
 exports.setEmergencyContact = async (req, res) => {
   try {
-    const { name, phone, relation } = req.body;
+    const { name, phone, email, relation } = req.body;
     if (!name?.trim() || !phone?.trim()) return res.status(400).json({ message: "Nombre y teléfono requeridos" });
     const p = await Profile.findOneAndUpdate(
       { user: req.user._id },
-      { emergencyContact: { name: name.trim(), phone: phone.trim(), relation: relation?.trim() || "" }, updatedAt: Date.now() },
+      { emergencyContact: { name: name.trim(), phone: phone.trim(), email: email?.trim() || "", relation: relation?.trim() || "" }, updatedAt: Date.now() },
       { new: true, upsert: true }
     );
     res.json({ success: true, emergencyContact: p.emergencyContact });

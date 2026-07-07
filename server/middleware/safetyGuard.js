@@ -26,14 +26,28 @@ function classifyMessage(text) {
 
 async function notifyEmergencyContact(userId, userName, message) {
   try {
+    const User    = require("../models/User");
     const Profile = require("../models/Profile");
     const { sendCrisisAlert } = require("../utils/emailService");
-    const profile = await Profile.findOne({ user: userId }).lean();
+
+    const [user, profile] = await Promise.all([
+      User.findById(userId).select("email").lean(),
+      Profile.findOne({ user: userId }).lean(),
+    ]);
+
     const contact = profile?.emergencyContact;
-    if (contact?.name && contact?.phone) {
-      // Si el contacto tiene email registrado en el futuro — por ahora logueamos
-      console.log(`📞 [CRISIS] Contacto de emergencia de ${userName}: ${contact.name} ${contact.phone}`);
+
+    // Notificar al contacto de emergencia si tiene email propio
+    if (contact?.name && contact?.email) {
+      await sendCrisisAlert(contact.email, contact.name, userName, message).catch(() => {});
     }
+
+    // Siempre notificar al propio usuario
+    if (user?.email) {
+      await sendCrisisAlert(user.email, userName, userName, message).catch(() => {});
+    }
+
+    console.log(`🚨 [CRISIS] Alerta enviada para usuario ${userId} (${userName})`);
   } catch(_) {}
 }
 

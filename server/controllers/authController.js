@@ -2,6 +2,7 @@ const User    = require("../models/User");
 const Profile = require("../models/Profile");
 const OTP     = require("../models/OTPCode");
 const jwt     = require("jsonwebtoken");
+const bcrypt  = require("bcryptjs");
 const { sendVerificationCode, sendWelcomeEmail, sendPasswordResetCode } = require("../utils/emailService");
 
 const tk = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || "7d" });
@@ -37,7 +38,8 @@ exports.registerRequest = async (req, res) => {
       return res.status(400).json({ message: "Este correo ya está registrado" });
 
     const code = generateCode();
-    await saveOTP(email, code, { email, name, password });
+    const hashedPassword = await bcrypt.hash(password, 12);
+    await saveOTP(email, code, { email, name, password: hashedPassword, prehashed: true });
     await sendVerificationCode(email, code, name);
     res.json({ success: true, message: "Código enviado a tu correo" });
   } catch (e) {
@@ -53,14 +55,16 @@ exports.registerVerify = async (req, res) => {
     const result = await verifyOTP(email, code);
     if (result.error) return res.status(400).json({ message: result.error });
 
-    const { name, password } = result.data;
+    const { name, password, prehashed } = result.data;
     if (await User.findOne({ email }))
       return res.status(400).json({ message: "Este correo ya está registrado" });
 
     const genCode = () => "ZYRA" + Math.random().toString(36).slice(2,8).toUpperCase();
     let referralCode = genCode();
     while (await User.exists({ referralCode })) referralCode = genCode();
-    const user = await User.create({ name, email, password, referralCode });
+    const userDoc = new User({ name, email, password, referralCode });
+    if (prehashed) userDoc._prehashed = true;
+    const user = await userDoc.save();
     await Profile.create({ user: user._id });
 
     // Email de bienvenida (fire-and-forget)
