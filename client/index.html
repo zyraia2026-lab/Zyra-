@@ -1414,6 +1414,19 @@
       <div id="dash-goals"></div>
     </div>
   </div>
+  <!-- Recuerdo del diario -->
+  <div id="journal-memory-wrap" style="display:none;margin-bottom:24px">
+    <div style="background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(99,102,241,.06));border:1.5px solid rgba(139,92,246,.2);border-radius:18px;padding:16px 20px">
+      <div style="font-size:10px;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📅 Un recuerdo de tu diario</div>
+      <div id="journal-memory-title" style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px"></div>
+      <div id="journal-memory-content" style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:8px"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div id="journal-memory-date" style="font-size:11px;color:var(--text3)"></div>
+        <button onclick="showPage('journal')" style="font-size:11px;padding:5px 12px;background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);border-radius:20px;color:#a78bfa;cursor:pointer;font-weight:700">Ver en diario →</button>
+      </div>
+    </div>
+  </div>
+
   <div class="cta">
     <div>
       <h3>¿Listo para hablar con Zyra?</h3>
@@ -1754,7 +1767,7 @@
     <div class="chat-input">
       <div class="input-row">
         <button class="btn-voice" id="btn-voice" onclick="toggleVoice()" title="Mantén para hablar">🎤</button>
-        <textarea class="chat-ta" id="chat-input" placeholder="Cuéntale a Zyra cómo te sientes... (Enter para enviar)" oninput="onInput()" onkeydown="onKey(event)"></textarea>
+        <textarea class="chat-ta" id="chat-input" placeholder="Cuéntale a Zyra cómo te sientes... · Escribe /ayuda para comandos" oninput="onInput()" onkeydown="onKey(event)"></textarea>
         <button class="btn-send" id="btn-send" onclick="sendMsg()">➤</button>
       </div>
       <div style="display:flex;justify-content:space-between;height:16px;margin-bottom:2px">
@@ -3991,10 +4004,31 @@ async function loadDashboard() {
     renderDashConvs(cd.conversations || []);
     renderDashGoals(goals);
     renderMoodMiniTrend(hd.history || []);
+    renderJournalMemory(entries);
   } catch(e) { console.error(e); }
   loadDailyChallenge();
   loadDailyIntention();
   loadMentalHealthTip();
+}
+function renderJournalMemory(entries) {
+  const wrap = document.getElementById("journal-memory-wrap");
+  if (!wrap || !entries || !entries.length) return;
+  const today = new Date();
+  const todayMD = (today.getMonth() + 1) + "-" + today.getDate();
+  // Find entry from previous year(s) with same month/day
+  const memory = entries.find(e => {
+    const d = new Date(e.createdAt);
+    const yr = d.getFullYear();
+    const md = (d.getMonth() + 1) + "-" + d.getDate();
+    return yr < today.getFullYear() && md === todayMD;
+  });
+  if (!memory) { wrap.style.display = "none"; return; }
+  const d = new Date(memory.createdAt);
+  const yearsAgo = today.getFullYear() - d.getFullYear();
+  document.getElementById("journal-memory-title").textContent = memory.title || "Entrada sin título";
+  document.getElementById("journal-memory-content").textContent = (memory.content || "").slice(0, 160) + ((memory.content||"").length > 160 ? "…" : "");
+  document.getElementById("journal-memory-date").textContent = `Hace ${yearsAgo} año${yearsAgo !== 1 ? "s" : ""} — ${d.toLocaleDateString("es", {day:"numeric",month:"long",year:"numeric"})}`;
+  wrap.style.display = "";
 }
 function renderMoodMiniTrend(history) {
   const wrap = document.getElementById("mood-mini-trend");
@@ -6186,6 +6220,28 @@ async function sendMsg() {
   if (zyraCrisisLocked) { zyraTriggerCrisis(); return; }
   const inp = document.getElementById("chat-input");
   const msg = inp.value.trim(); if (!msg) return;
+  // Slash commands — instant local actions
+  if (msg.startsWith("/")) {
+    const cmd = msg.toLowerCase().replace(/^\//, "").trim();
+    inp.value = ""; onInput();
+    if (cmd === "respirar" || cmd === "respiracion") { showPage("wellness"); setTimeout(() => openWellness("breath"), 100); return; }
+    if (cmd === "diario") { showPage("journal"); return; }
+    if (cmd === "meta" || cmd === "metas") { showPage("goals"); return; }
+    if (cmd === "inicio" || cmd === "dashboard") { showPage("dashboard"); return; }
+    if (cmd === "analitica" || cmd === "analytics" || cmd === "analisis") { showPage("analytics"); return; }
+    if (cmd === "bienestar" || cmd === "wellness") { showPage("wellness"); return; }
+    if (cmd === "gratitud") { showPage("wellness"); setTimeout(() => openWellness("gratitude"), 100); return; }
+    if (cmd === "agua") { showPage("wellness"); setTimeout(() => openWellness("water"), 100); return; }
+    if (cmd === "musica") { showPage("wellness"); setTimeout(() => openWellness("music"), 100); return; }
+    if (cmd === "nuevo" || cmd === "nueva") { newChat(); return; }
+    if (cmd === "ayuda" || cmd === "help" || cmd === "?") {
+      addBotMsg(`Comandos rápidos disponibles:\n\n/respirar — Ejercicio de respiración\n/diario — Tu diario emocional\n/metas — Gestión de metas\n/bienestar — Herramientas de bienestar\n/gratitud — Práctica de gratitud\n/agua — Tracker de hidratación\n/musica — Música terapéutica\n/analitica — Tu análisis emocional\n/nuevo — Nueva conversación\n/inicio — Ir al dashboard`);
+      return;
+    }
+    // Unknown command — show hint
+    addBotMsg(`No reconozco el comando "/${cmd}". Escribe /ayuda para ver los comandos disponibles.`);
+    return;
+  }
   if (navigator.vibrate) navigator.vibrate(20);
   inp.value = ""; localStorage.removeItem("zyra_chat_draft"); onInput(); addUserMsg(msg);
   const pc = document.getElementById("prompt-chips"); if (pc) pc.remove();
