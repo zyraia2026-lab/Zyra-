@@ -57,7 +57,10 @@ exports.registerVerify = async (req, res) => {
     if (await User.findOne({ email }))
       return res.status(400).json({ message: "Este correo ya está registrado" });
 
-    const user = await User.create({ name, email, password });
+    const genCode = () => "ZYRA" + Math.random().toString(36).slice(2,8).toUpperCase();
+    let referralCode = genCode();
+    while (await User.exists({ referralCode })) referralCode = genCode();
+    const user = await User.create({ name, email, password, referralCode });
     await Profile.create({ user: user._id });
 
     // Email de bienvenida (fire-and-forget)

@@ -21,6 +21,12 @@ const S = new mongoose.Schema({
   // ── Consentimiento legal ──
   termsAcceptedAt:      { type: Date, default: null },
   termsAcceptedVersion: { type: String, default: null },
+
+  // ── Referidos ──
+  referralCode:       { type: String, unique: true, sparse: true },
+  referredBy:         { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+  referralCount:      { type: Number, default: 0 },
+  referralRewardUsed: { type: Boolean, default: false },
 });
 
 S.pre("save", async function(next) {
