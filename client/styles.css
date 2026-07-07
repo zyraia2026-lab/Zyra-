@@ -3313,3 +3313,10 @@ body {
     transition-duration: .01ms !important;
   }
 }
+
+/* Profile stats grid: 2 columns en pantallas pequeñas */
+@media (max-width: 375px) {
+  .profile-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}

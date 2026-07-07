@@ -670,10 +670,7 @@
   </div>
 </div>
 
-<!-- ══ LOGIN ══════ -->
-<div id="page-login" class="page active">
-
-<!-- ══ NAV INFERIOR MÓVIL ══ -->
+<!-- ══ NAV INFERIOR MÓVIL — fuera de cualquier .page para que position:fixed funcione ══ -->
 <div class="mobile-nav-bottom" id="mobile-tabbar" style="display:none">
   <button class="mobile-nav-btn" onclick="showPage('dashboard')" data-page="dashboard">
     <span class="mnb-icon">🏠</span><span class="mnb-label">Inicio</span>
@@ -691,6 +688,9 @@
     <span class="mnb-icon">👤</span><span class="mnb-label">Perfil</span>
   </button>
 </div>
+
+<!-- ══ LOGIN ══════ -->
+<div id="page-login" class="page active">
 <div class="auth-wrap">
 
   <!-- ══ IZQUIERDA: Slideshow dramático + contenido ══ -->
@@ -1457,12 +1457,7 @@
       <button class="btn-tts" id="btn-tts-toggle" onclick="toggleAutoSpeak()" title="Activar voz">🔇</button>
       <button class="btn-call" id="btn-voice-call" onclick="openVoiceCall()" title="Llamada de voz con Zyra (Premium)">📞 Llamada 🔒</button>
     </div>
-    <div class="messages" id="messages">
-      <div class="typing" id="typing-indicator">
-        <div class="msg-av bot"><img src="/Imagenes/1000154669.png" alt="Zyra"/></div>
-        <div class="typing-bubble"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-      </div>
-    </div>
+    <div class="messages" id="messages"></div>
     <div class="chat-input">
       <div class="input-row">
         <button class="btn-voice" id="btn-voice" onclick="toggleVoice()" title="Mantén para hablar">🎤</button>
@@ -1528,7 +1523,7 @@
       </div>
     </div>
     <!-- Stats grid -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px">
+    <div class="profile-stats-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px">
       <div style="background:rgba(14,165,233,.1);border-radius:14px;padding:14px;text-align:center">
         <div style="font-size:26px;font-weight:900;color:#38bdf8" id="prof-sessions">0</div>
         <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Sesiones</div>
@@ -2751,7 +2746,7 @@ function initGdprBanner() {
     el.id = BANNER_ID;
     el.setAttribute("role", "status");
     el.setAttribute("aria-live", "assertive");
-    el.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:9800;background:#1f2937;color:#f9fafb;text-align:center;padding:10px 16px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.4)";
+    el.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:8800;background:#1f2937;color:#f9fafb;text-align:center;padding:10px 16px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.4)";
     el.innerHTML = '<span>📡 Sin conexión — los cambios se reanudarán cuando vuelva la red</span>';
     document.body.prepend(el);
   }
@@ -8270,7 +8265,7 @@ function renderBreathGame(el) {
         <div class="breath-counter" id="bp-cycles">Ciclos: 0</div>
       </div>
       <div class="breath-circle-wrap">
-        <div class="breath-circle" id="breath-circle">
+        <div class="breath-circle" id="game-breath-circle">
           <span class="breath-inner-text" id="breath-inner">Pulsa inicio</span>
         </div>
       </div>
@@ -8293,7 +8288,7 @@ function renderBreathGame(el) {
 
   function runTick() {
     const p = PHASES[phase];
-    const circle = document.getElementById('breath-circle');
+    const circle = document.getElementById('game-breath-circle');
     const label  = document.getElementById('bp-label');
     const timerEl = document.getElementById('bp-timer');
     const inner  = document.getElementById('breath-inner');
@@ -8330,7 +8325,7 @@ function renderBreathGame(el) {
   }
   function resetBreathing() {
     stopBreathing(); phase = 0; tick = 0; cycles = 0; running = false;
-    const circle = document.getElementById('breath-circle');
+    const circle = document.getElementById('game-breath-circle');
     const label  = document.getElementById('bp-label');
     const timerEl = document.getElementById('bp-timer');
     const inner  = document.getElementById('breath-inner');
