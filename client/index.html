@@ -1693,6 +1693,7 @@
             <option value="nostalgico">🌅 Nostálgico</option>
           </select>
         </div>
+        <div id="journal-mood-prompts" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
         <div class="form-row">
           <textarea id="journal-content" placeholder="Escribe libremente sobre tu día..." style="height:100px" maxlength="2000" oninput="updateJournalCharCount(this);savejournalDraft()"></textarea>
         </div>
@@ -4372,6 +4373,10 @@ function renderGoals(goals) {
             </div>
             <span style="font-size:10px;color:var(--text3);white-space:nowrap;font-weight:600">${prog}%</span>
           </div>
+          ${!g.completed ? `<div style="display:flex;align-items:center;gap:5px;margin-top:7px">
+            <span style="font-size:10px;color:var(--text3);font-weight:600;flex-shrink:0">Progreso rápido:</span>
+            ${[25,50,75,100].map(v => `<button onclick="quickGoalProgress('${g._id}',${v})" style="font-size:10px;padding:3px 7px;border-radius:6px;border:1px solid var(--border);background:${prog>=v?"var(--accent)":"var(--surface)"};color:${prog>=v?"#fff":"var(--text3)"};cursor:pointer;font-weight:700;transition:all .2s">${v}%</button>`).join("")}
+          </div>` : ""}
           <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap">
             <div class="goal-meta" style="margin:0">
               <span class="goal-cat">${safeHtml(CAT[g.category]||g.category)}</span>
@@ -4395,6 +4400,23 @@ function toggleGoalNotes(id) {
   _goalNotesOpen = _goalNotesOpen === id ? null : id;
   renderGoals(_goalsAllItems);
   setTimeout(() => { const item = document.getElementById("goal-item-"+id); if(item) item.scrollIntoView({behavior:"smooth",block:"nearest"}); }, 50);
+}
+
+async function quickGoalProgress(id, pct) {
+  const goal = (_goalsAllItems || []).find(g => g._id === id);
+  if (!goal || goal.completed) return;
+  try {
+    const updated = await api("/goals/" + id, "PUT", {
+      title: goal.title, category: goal.category, reminder: goal.reminder,
+      dueDate: goal.dueDate, priority: goal.priority, progress: pct
+    });
+    const idx = _goalsAllItems.findIndex(g => g._id === id);
+    if (idx >= 0) _goalsAllItems[idx] = updated.goal;
+    renderGoalsStats(_goalsAllItems);
+    renderGoals(_goalsAllItems);
+    if (pct === 100) zyraToast("🎉 ¡Meta al 100%! Márcala como completada cuando estés listo.", "success", 4000);
+    else zyraToast(`Progreso actualizado a ${pct}% ✓`, "success");
+  } catch(e) { zyraToast(e.message, "error"); }
 }
 async function addGoalNoteClient(goalId) {
   const inp = document.getElementById("goal-note-input-"+goalId);
@@ -4552,7 +4574,44 @@ function filterJournal() {
   renderJournal(filtered, false);
 }
 
-function toggleJournalForm() { document.getElementById("add-journal-form").classList.toggle("show"); }
+function toggleJournalForm() {
+  const form = document.getElementById("add-journal-form");
+  form.classList.toggle("show");
+  if (form.classList.contains("show")) injectJournalMoodPrompts();
+}
+
+const JOURNAL_PROMPTS = {
+  feliz:       ["¿Qué me hizo sonreír hoy?", "¿Cómo puedo compartir esta alegría?", "¿Qué pequeño momento fue perfecto?"],
+  tranquilo:   ["¿Qué me trajo paz hoy?", "¿Qué pensamiento me ayudó a estar en calma?", "¿Cómo me gustaría mantener esta tranquilidad?"],
+  motivado:    ["¿Qué logré hoy que me enorgullece?", "¿Qué me da energía en este momento?", "¿Cuál es mi siguiente paso?"],
+  ansioso:     ["¿Qué me está preocupando exactamente?", "¿Qué podría salir bien?", "¿Qué haría mi yo más calmado?"],
+  triste:      ["¿Qué me pesa el corazón hoy?", "¿Qué necesito en este momento?", "¿A quién podría hablarle de esto?"],
+  enojado:     ["¿Qué me molestó y por qué?", "¿Qué hay detrás de este enojo?", "¿Qué necesito para soltar esto?"],
+  agotado:     ["¿Qué me quitó energía hoy?", "¿Qué haré mañana diferente?", "¿Qué necesito para recargar?"],
+  esperanzado: ["¿Qué me da esperanza ahora?", "¿Cómo visualizo que esto mejora?", "¿Qué pequeño paso puedo dar?"],
+  confundido:  ["¿Qué me genera más confusión?", "¿Qué necesito aclarar?", "¿A quién podría pedir perspectiva?"],
+  nostalgico:  ["¿Qué recuerdo me vino hoy?", "¿Qué aprendí de ese momento?", "¿Cómo me conecta ese pasado con quien soy hoy?"],
+};
+
+function injectJournalMoodPrompts() {
+  const wrap = document.getElementById("journal-mood-prompts");
+  if (!wrap) return;
+  const emo = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString());
+  const prompts = JOURNAL_PROMPTS[emo] || ["¿Qué fue lo más significativo de hoy?", "¿Qué aprendí hoy?", "¿Qué agradezco de este día?"];
+  wrap.style.display = "flex";
+  wrap.innerHTML = prompts.map(p => `<button onclick="useJournalPrompt(${JSON.stringify(p)})" style="font-size:11px;padding:5px 10px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">✍️ ${p}</button>`).join("");
+}
+
+function useJournalPrompt(prompt) {
+  const ta = document.getElementById("journal-content");
+  if (!ta) return;
+  if (ta.value.trim()) ta.value += "\n\n" + prompt + "\n";
+  else ta.value = prompt + "\n";
+  ta.focus();
+  ta.setSelectionRange(ta.value.length, ta.value.length);
+  updateJournalCharCount(ta);
+  savejournalDraft();
+}
 function savejournalDraft() {
   const t = document.getElementById("journal-title")?.value || "";
   const c = document.getElementById("journal-content")?.value || "";
