@@ -1224,7 +1224,7 @@
     <div class="hero-left">
       <p class="greeting" id="hero-greeting">Buenos días,</p>
       <h1 id="hero-name">Cargando...</h1>
-      <p class="hero-desc">Tu espacio personal de bienestar emocional. Aquí puedes ser tú mismo.</p>
+      <p class="hero-desc" id="daily-quote">Tu espacio personal de bienestar emocional. Aquí puedes ser tú mismo.</p>
       <div class="hero-status" id="hero-status">😌 Estado: Tranquilo</div>
     </div>
     <div class="hero-right">
@@ -3893,10 +3893,15 @@ async function saveProfilePassword() {
 
 /* ── DASHBOARD ── */
 function greeting() { const h = new Date().getHours(); return h < 12 ? "Buenos días," : h < 18 ? "Buenas tardes," : "Buenas noches,"; }
+const DAILY_QUOTES = [
+  "Cada día es una nueva oportunidad para crecer y mejorar.","El cuidado de uno mismo no es egoísmo, es supervivencia.","La resiliencia no es no sentir dolor, sino aprender a seguir adelante.","Tus emociones son válidas, todas ellas.","Pequeños pasos cada día llevan a grandes transformaciones.","La salud mental es tan importante como la física.","Eres más fuerte de lo que crees y más valioso de lo que imaginas.","La paz comienza cuando decides dejarte de juzgar.","Un día a la vez, una respiración a la vez.","Hablar de tus sentimientos es un acto de valentía.","El progreso, no la perfección, es la meta.","Mereces amor, comenzando por el tuyo propio.","Cada tormenta emocional pasa. Siempre pasa.","Tu historia no define quién serás. Tú lo defines.","La vulnerabilidad es fortaleza disfrazada.","Descansa cuando lo necesites, no cuando te rindas.","Las emociones difíciles son mensajeras, no enemigas.","Cuídate como cuidarías a alguien que amas.","Está bien no estar bien. Lo que importa es buscar ayuda.","El autoconocimiento es el primer paso hacia la sanación.","Tus victorias, aunque pequeñas, merecen celebrarse.","Hoy puedes elegir una respuesta diferente.","La mente necesita pausa tanto como el cuerpo.","Eres suficiente tal como eres, justo ahora.","La conexión con otros sana lo que el tiempo no alcanza.","No tienes que tenerlo todo resuelto. Avanza de igual forma.","Sentir es humano. Ser humano es suficiente.","Cada momento difícil que superaste te hizo más sabio.","El presente es el único lugar donde puedes comenzar.","Confía en tu proceso, aunque no puedas ver el resultado aún.",
+];
 async function loadDashboard() {
   if(!user) return;
   document.getElementById("hero-greeting").textContent = greeting();
   document.getElementById("hero-name").textContent = user.name;
+  const qEl = document.getElementById("daily-quote");
+  if (qEl) qEl.textContent = "💬 " + DAILY_QUOTES[new Date().getDate() % DAILY_QUOTES.length];
   // Skeleton while loading
   ["st-sessions","st-emotion","st-goals","st-journal"].forEach(id => {
     const el = document.getElementById(id);
@@ -4017,7 +4022,7 @@ function renderGoals(goals) {
       <div style="flex:1;min-width:0">
         <div class="goal-text">${safeHtml(g.title)}</div>
         ${g.reminder?`<div style="font-size:11px;color:var(--text3);margin-top:2px">⏰ ${safeHtml(g.reminder)}</div>`:""}
-        ${g.dueDate?`<div style="font-size:11px;color:var(--text3)">📅 ${new Date(g.dueDate).toLocaleDateString("es")}</div>`:""}
+        ${g.dueDate ? (() => { const d=new Date(g.dueDate); const now=new Date(); const overdue=!g.completed&&d<now; const soon=!g.completed&&!overdue&&(d-now)<86400000*3; const clr=overdue?"var(--danger)":soon?"#f59e0b":"var(--text3)"; const icon=overdue?"⚠️ Vencida:":soon?"⏳ Pronto:":"📅"; return `<div style="font-size:11px;color:${clr};font-weight:${overdue||soon?700:400}">${icon} ${d.toLocaleDateString("es")}</div>`; })() : ""}
         <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
           <div style="flex:1;height:5px;background:var(--border);border-radius:99px;overflow:hidden">
             <div style="height:100%;width:${prog}%;background:${progColor};border-radius:99px;transition:width .4s"></div>
@@ -7997,6 +8002,15 @@ loadDashboard = async function() {
   checkOnboarding();
   setTimeout(()=>checkWeeklyReport(), 2000);
 };
+
+// Atajos de teclado globales
+document.addEventListener('keydown', e => {
+  if (e.key === 'k' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); showPage('assistant'); setTimeout(() => document.getElementById('chat-input')?.focus(), 100); }
+  if (e.key === 'Escape') {
+    const modals = document.querySelectorAll('.modal[style*="flex"], .overlay[style*="flex"]');
+    if (modals.length > 0) { modals[modals.length-1].style.display = 'none'; document.body.style.overflow = ''; }
+  }
+});
 
 // Añadir Share en el perfil
 document.addEventListener('DOMContentLoaded',()=>{
