@@ -799,3 +799,182 @@ exports.sendMessage = async (req, res) => {
     res.status(500).json({ message: "Error interno: " + e.message });
   }
 };
+
+/* ════════════════════════════════════════
+   STREAM MESSAGE (SSE)
+════════════════════════════════════════ */
+exports.streamMessage = async (req, res) => {
+  // Set SSE headers first so the client knows it's a stream
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  const send = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`);
+
+  try {
+    const { message, conversationId, history, noSave } = req.body;
+    if (!message?.trim()) { send({ error: "empty" }); return res.end(); }
+
+    const musicReq           = wantsMusic(message);
+    const incompleteMusicReq = musicReq && isIncompleteMusicRequest(message);
+    const bookReq  = wantsBook(message);
+    const quoteReq = wantsQuote(message);
+    const movieReq = wantsMovie(message);
+
+    callPython("/analyze", { text: message }, 2000)
+      .then(ea => { if (ea?.emotion) Profile.findOneAndUpdate({ user: req.user._id }, { currentEmotion: ea.emotion }).catch(()=>{}); })
+      .catch(()=>{});
+
+    const usedSongs = (history || []).flatMap(m =>
+      m.role === "assistant" && m.cards ? m.cards.filter(c=>c.type==="song").map(c=>c.title.toLowerCase()) : []
+    );
+
+    let systemPrompt = `Eres Zyra, una acompañante emocional cálida y empática. Hablas en español latinoamericano natural. Respuestas cortas de 2-4 oraciones. No eres una IA, eres Zyra.`;
+    try { systemPrompt = await buildSystemPrompt(req.user._id, req.user.name); } catch(e) {}
+
+    if (incompleteMusicReq) {
+      systemPrompt += `\n\n🎵 IMPORTANTE: El usuario quiere música pero NO dijo de quién ni qué estilo. Pregunta de forma amigable y natural "¿De quién quieres escuchar?" o "¿Qué estilo te va ahora?". NO digas "Claro 🎵", NO mandes música todavía.`;
+    }
+
+    const { getPlan } = require("../middleware/planGate");
+    const { plan: userPlan } = getPlan(req.user);
+
+    const MODEL_ORDER = userPlan === "premium"
+      ? ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+      : ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"];
+
+    const MAX_TOKENS  = userPlan === "premium" ? 450 : userPlan === "basic" ? 380 : 280;
+    const TEMPERATURE = 0.88;
+
+    const aiMessages = [
+      { role: "system", content: systemPrompt },
+      ...(history || []).slice(-15).map(m => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.content })),
+      { role: "user", content: message }
+    ];
+
+    // ── Stream Groq ──
+    let rawResponse = "";
+    if (groq) {
+      for (const model of MODEL_ORDER) {
+        try {
+          const stream = await groq.chat.completions.create({
+            model, messages: aiMessages, temperature: TEMPERATURE,
+            max_tokens: MAX_TOKENS, stream: true,
+          });
+          for await (const chunk of stream) {
+            const delta = chunk.choices[0]?.delta?.content || "";
+            if (delta) { rawResponse += delta; send({ t: delta }); }
+          }
+          if (rawResponse) { console.log(`✅ Groq stream [${userPlan}] ${model}`); break; }
+        } catch(e) {
+          console.error(`❌ Groq stream ${model}:`, e.message);
+        }
+      }
+    }
+
+    if (!rawResponse) {
+      const fallback = "Hola, estoy aquí contigo. Cuéntame ¿cómo te sientes en este momento?";
+      rawResponse = fallback;
+      send({ t: fallback });
+    }
+
+    // ── Negative streak prefix ──
+    try {
+      const profile = await Profile.findOne({ user: req.user._id }).lean();
+      const negStreak = profile?.negativeStreakCount || 0;
+      const alreadyMentioned = (history || []).some(m => m.role === "assistant" && m.content?.includes("he notado que esta semana"));
+      if (negStreak >= 3 && !alreadyMentioned && !rawResponse.toLowerCase().includes("semana")) {
+        rawResponse = `Oye, he notado que esta semana has estado cargando emociones pesadas varios días seguidos. Eso merece atención. ${rawResponse}`;
+      }
+    } catch(_) {}
+
+    // ── Post-process cards ──
+    let cleanText = rawResponse;
+    let cards = [];
+    try {
+      const parsed = parseResponse(rawResponse, bookReq, quoteReq, movieReq);
+      cleanText = parsed?.cleanText || rawResponse;
+      cards = Array.isArray(parsed?.cards) ? parsed.cards : [];
+    } catch(e) {}
+
+    if (musicReq && !incompleteMusicReq) {
+      const detected = detectArtist(message);
+      const mood     = detectMood(message);
+      let songCards  = [];
+      if (detected) {
+        songCards = pickSongs(detected.key, 3, usedSongs, mood);
+        if (!songCards.length) songCards = pickSongs(detected.key, 3, [], mood);
+      } else {
+        const artistName = extractArtistName(message);
+        if (artistName) {
+          const ytSongs = await getSongsForUnknownArtist(artistName).catch(()=>null);
+          if (ytSongs?.length) {
+            const fmt = artistName.split(" ").map(w=>w[0].toUpperCase()+w.slice(1)).join(" ");
+            const avail = ytSongs.filter(s=>!usedSongs.includes(s.title.toLowerCase()));
+            const pool = avail.length ? avail : ytSongs;
+            songCards = pool.slice(0,3).map(s=>({ type:"song", title:s.title, artist:s.artist||fmt, videoId:s.videoId||null }));
+          }
+        }
+      }
+      if (songCards.length) cards = [...songCards, ...cards];
+    }
+
+    if (movieReq && !cards.find(c=>c.type==="movie")) {
+      const pool = MOVIES[detectMovieCategory(message)] || MOVIES.feliz;
+      cards = [...cards, ...pool.sort(()=>Math.random()-.5).slice(0,3).map(m=>({type:"movie",title:m.title,platform:m.platform}))];
+    }
+
+    if (bookReq && !cards.find(c=>c.type==="book")) {
+      const m2 = message.toLowerCase();
+      const cat = /ansied|miedo/.test(m2)?"ansiedad":/motiv|inspir/.test(m2)?"motivacion":/pareja|amor/.test(m2)?"relaciones":"autoayuda";
+      const book = BOOKS[cat][Math.floor(Math.random()*BOOKS[cat].length)];
+      cards.push({ type:"book", title:book.title, author:book.author });
+    }
+
+    if (quoteReq && !cards.find(c=>c.type==="quote")) {
+      const q = QUOTES[Math.floor(Math.random()*QUOTES.length)];
+      cards.push({ type:"quote", text:q.text, author:q.author });
+    }
+
+    cards = await Promise.all(cards.map(async card =>
+      card.type === "song" ? { ...card, videoId: await getVideoId(card.title, card.artist).catch(()=>null) } : card
+    ));
+
+    // ── Save to DB ──
+    let conv;
+    if (!noSave) {
+      const msgPair = [
+        { role:"user",      content:message,   timestamp:new Date() },
+        { role:"assistant", content:cleanText, timestamp:new Date(), cards }
+      ];
+      if (conversationId) {
+        conv = await Conversation.findOneAndUpdate(
+          { _id:conversationId, user:req.user._id },
+          { $push:{ messages:{ $each:msgPair, $slice:-200 } }, updatedAt:Date.now() },
+          { new:true }
+        ).catch(()=>null);
+      }
+      if (!conv) {
+        const title = message.length > 60 ? message.substring(0,57)+"..." : message;
+        conv = await Conversation.create({ user:req.user._id, title, messages:msgPair });
+        await Profile.findOneAndUpdate({ user:req.user._id }, { $inc:{ sessionsCount:1 }, lastSession:new Date() }).catch(()=>{});
+      }
+      extractAndSaveMemories(req.user._id, req.user.name, message, cleanText).catch(()=>{});
+    }
+
+    // ── Done event with metadata ──
+    send({
+      done: true,
+      cards,
+      conversationId: conv?._id,
+      plan: userPlan,
+      messagesRemaining: req.messagesRemaining ?? null,
+    });
+    res.end();
+
+  } catch(e) {
+    console.error("❌ streamMessage fatal:", e.message);
+    try { send({ error: true }); res.end(); } catch(_) {}
+  }
+};

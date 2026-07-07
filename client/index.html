@@ -1973,6 +1973,13 @@
     <a href="mailto:zyra.ia.2026@gmail.com" style="color:var(--text3)">Soporte</a>
   </div>
 
+  <!-- ══ ADMIN PANEL (solo admins) ══ -->
+  <div id="admin-profile-card" class="card" style="display:none;border-color:rgba(99,102,241,.3);background:rgba(99,102,241,.05);margin-bottom:16px">
+    <div class="card-header"><span class="card-title">🛠️ Panel de administración</span></div>
+    <p style="font-size:13px;color:var(--text3);margin-bottom:12px">Estadísticas de usuarios, pagos y uso de la plataforma.</p>
+    <button class="btn-sm accent" onclick="showPage('admin')">Abrir panel admin →</button>
+  </div>
+
   <!-- ══ ZONA DE PELIGRO ══ -->
   <div class="card" style="border-color:#fecaca">
     <div class="card-header"><span class="card-title" style="color:var(--red)">⚠️ Zona de peligro</span></div>
@@ -2061,6 +2068,79 @@
       <p style="color:#4b5563;font-size:11px;text-align:center;margin-top:16px;line-height:1.6">Zyra no reemplaza la atención profesional de salud mental. Si estás en peligro inmediato llama al número de emergencias de tu país.</p>
     </div>
   </div>
+</div>
+
+<!-- ══════ MOOD CHECK-IN MODAL ══════ -->
+<div id="mood-checkin-modal" style="display:none;position:fixed;inset:0;z-index:9200;background:rgba(0,0,0,.75);backdrop-filter:blur(12px);align-items:flex-end;justify-content:center;padding:0" role="dialog" aria-modal="true" aria-label="Check-in de humor">
+  <div style="background:var(--bg2,#141624);border-radius:28px 28px 0 0;width:100%;max-width:480px;padding:28px 24px 40px;border-top:1px solid rgba(255,255,255,.08);animation:slideUp .3s ease">
+    <div style="width:40px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin:0 auto 20px"></div>
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:28px;margin-bottom:8px">🌅</div>
+      <div style="font-size:17px;font-weight:700;color:var(--text)">¿Cómo te sientes hoy?</div>
+      <div style="font-size:13px;color:var(--text3);margin-top:4px">Un segundo para conectar contigo</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:20px" id="mood-options">
+      <button class="mood-opt" onclick="selectMood('feliz')" data-e="feliz" aria-label="Feliz">
+        <span style="font-size:28px">😊</span><span style="font-size:10px;color:var(--text3);margin-top:4px;display:block">Feliz</span>
+      </button>
+      <button class="mood-opt" onclick="selectMood('tranquilo')" data-e="tranquilo" aria-label="Tranquilo">
+        <span style="font-size:28px">😌</span><span style="font-size:10px;color:var(--text3);margin-top:4px;display:block">Tranquilo</span>
+      </button>
+      <button class="mood-opt" onclick="selectMood('ansioso')" data-e="ansioso" aria-label="Ansioso">
+        <span style="font-size:28px">😰</span><span style="font-size:10px;color:var(--text3);margin-top:4px;display:block">Ansioso</span>
+      </button>
+      <button class="mood-opt" onclick="selectMood('triste')" data-e="triste" aria-label="Triste">
+        <span style="font-size:28px">😢</span><span style="font-size:10px;color:var(--text3);margin-top:4px;display:block">Triste</span>
+      </button>
+      <button class="mood-opt" onclick="selectMood('enojado')" data-e="enojado" aria-label="Enojado">
+        <span style="font-size:28px">😤</span><span style="font-size:10px;color:var(--text3);margin-top:4px;display:block">Enojado</span>
+      </button>
+      <button class="mood-opt" onclick="selectMood('motivado')" data-e="motivado" aria-label="Motivado">
+        <span style="font-size:28px">💪</span><span style="font-size:10px;color:var(--text3);margin-top:4px;display:block">Motivado</span>
+      </button>
+      <button class="mood-opt" onclick="selectMood('agotado')" data-e="agotado" aria-label="Agotado">
+        <span style="font-size:28px">😮‍💨</span><span style="font-size:10px;color:var(--text3);margin-top:4px;display:block">Agotado</span>
+      </button>
+      <button class="mood-opt" onclick="selectMood('esperanzado')" data-e="esperanzado" aria-label="Esperanzado">
+        <span style="font-size:28px">🌟</span><span style="font-size:10px;color:var(--text3);margin-top:4px;display:block">Esperanza</span>
+      </button>
+      <button class="mood-opt" onclick="selectMood('confundido')" data-e="confundido" aria-label="Confundido">
+        <span style="font-size:28px">🤔</span><span style="font-size:10px;color:var(--text3);margin-top:4px;display:block">Confundido</span>
+      </button>
+      <button class="mood-opt" onclick="selectMood('nostalgico')" data-e="nostalgico" aria-label="Nostálgico">
+        <span style="font-size:28px">🌅</span><span style="font-size:10px;color:var(--text3);margin-top:4px;display:block">Nostálgico</span>
+      </button>
+    </div>
+    <div id="mood-note-wrap" style="display:none;margin-bottom:16px">
+      <input id="mood-note-input" type="text" maxlength="200" placeholder="¿Quieres agregar algo? (opcional)"
+        style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 16px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box"/>
+    </div>
+    <button id="mood-submit-btn" onclick="submitMoodCheckin()" disabled
+      style="width:100%;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;padding:14px;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;opacity:.5;transition:opacity .2s">
+      Guardar y continuar
+    </button>
+    <button onclick="closeMoodCheckin()" style="width:100%;background:transparent;border:none;color:var(--text3);padding:12px;font-size:13px;cursor:pointer;margin-top:6px">
+      Ahora no
+    </button>
+  </div>
+</div>
+
+<!-- ══════ ADMIN PANEL ══════ -->
+<div id="page-admin" class="page">
+<nav>
+  <div class="nav-inner">
+    <div class="nav-left">
+      <button class="back-btn" onclick="showPage('dashboard')" aria-label="Volver">←</button>
+      <span class="nav-title">🛠️ Admin — Zyra</span>
+    </div>
+  </div>
+</nav>
+<div class="page-content" id="admin-content">
+  <div class="empty" style="padding:40px 0;text-align:center">
+    <div style="font-size:40px;margin-bottom:12px;opacity:.4">🛠️</div>
+    <p style="color:var(--text3)">Cargando estadísticas...</p>
+  </div>
+</div>
 </div>
 
 <!-- ══════ FORGOT PASSWORD ══════ -->
@@ -2731,7 +2811,7 @@ function showPage(name) {
   const pg = document.getElementById("page-" + name);
   if(pg) pg.classList.add("active");
   window.scrollTo({ top: 0, behavior: "instant" });
-  if(name === "dashboard") { loadDashboard(); setTimeout(loadGamification, 300); }
+  if(name === "dashboard") { loadDashboard(); setTimeout(loadGamification, 300); setTimeout(maybeShowMoodCheckin, 800); }
   if(name === "assistant") loadAssistant();
   if(name === "goals")     { loadGoals(); setTimeout(()=>triggerMission('check_goals'), 500); }
   if(name === "planes")    setTimeout(function(){ if(typeof loadPlanesPage==="function") loadPlanesPage(); }, 150);
@@ -2739,10 +2819,11 @@ function showPage(name) {
   if(name === "wellness")  loadWellness();
   if(name === "profile")   loadProfile();
   if(name === "analytics") loadAnalytics();
+  if(name === "admin")     loadAdminPanel();
   if(name === "games")     setTimeout(()=>{ if(typeof openGame==="function") openGame('breath'); }, 100);
 
   // ── Tabbar móvil: mostrar/ocultar y marcar activo ──
-  const noTabPages = ['landing','login','register','verify-login','verify-register','voice-call','forgot-password','reset-password'];
+  const noTabPages = ['landing','login','register','verify-login','verify-register','voice-call','forgot-password','reset-password','admin'];
   const tabbar = document.getElementById('mobile-tabbar');
   if(tabbar) {
     tabbar.style.display = noTabPages.includes(name) ? 'none' : '';
@@ -3510,6 +3591,12 @@ async function loadProfile() {
     loadMemories();
     const pinMsg = document.getElementById("pin-status-msg");
     if(pinMsg) pinMsg.textContent = p.pinEnabled ? "🔐 PIN activo" : "Sin PIN configurado";
+
+    // Mostrar tarjeta de admin si el usuario es admin
+    const adminCard = document.getElementById("admin-profile-card");
+    if (adminCard && ud.user?.email === "capimagu@hotmail.com") {
+      adminCard.style.display = "block";
+    }
   } catch(e) { console.error("loadProfile error:", e); }
 }
 
@@ -5540,47 +5627,227 @@ function zyraTryUnlock() {
   }
 }
 
+/* ── Streaming bubble helpers ── */
+function addBotMsgStream() {
+  const msgs   = document.getElementById("messages");
+  const typing = document.getElementById("typing-indicator");
+  const div    = document.createElement("div"); div.className = "msg bot streaming";
+  div.innerHTML = `<div class="msg-av bot"><img src="${LOGO}" alt="Zyra"/></div>
+    <div class="msg-bubble"><span class="stream-text"></span><span class="stream-cursor">▋</span></div>`;
+  msgs.insertBefore(div, typing); msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+function updateBotMsgStream(div, text) {
+  const span = div.querySelector(".stream-text");
+  if (span) span.innerHTML = safeHtml(text).replace(/\n/g, "<br>");
+  const msgs = document.getElementById("messages");
+  if (msgs) msgs.scrollTop = msgs.scrollHeight;
+}
+
+function finalizeBotMsgStream(div, text, cards, convId, msgsLeft) {
+  const time = new Date().toLocaleTimeString("es", {hour:"2-digit", minute:"2-digit"});
+  div.classList.remove("streaming");
+  let cHTML = "";
+  if (cards && cards.length) {
+    // Re-use full card rendering from addBotMsg by temporarily creating that message
+    const tmp = document.createElement("div");
+    const msgs = document.getElementById("messages");
+    const typing = document.getElementById("typing-indicator");
+    msgs.insertBefore(tmp, typing);
+    addBotMsg(text, null, cards);
+    tmp.remove(); div.remove();
+    return;
+  }
+  const bubble = div.querySelector(".msg-bubble");
+  if (bubble) {
+    bubble.innerHTML = `${safeHtml(text).replace(/\n/g,"<br>")}
+      <div style="display:flex;align-items:center;gap:6px;margin-top:6px">
+        <div class="msg-time">${time}</div>
+        <button class="btn-tts" onclick="speakMsgEL(this,decodeURIComponent(this.dataset.t))" data-t="${encodeURIComponent(text)}" title="Escuchar">🔊</button>
+      </div>`;
+  }
+  if (convId && convId !== String(currentConvId)) { currentConvId = String(convId); loadHistory(); }
+  if (msgsLeft !== undefined && msgsLeft !== null) { _zyraMessagesRemaining = msgsLeft; updateMsgsRemainingUI(); }
+}
+
 async function sendMsg() {
-  // Si hay bloqueo de crisis activo, no enviar nada
   if (zyraCrisisLocked) { zyraTriggerCrisis(); return; }
-
   const inp = document.getElementById("chat-input");
-  const msg = inp.value.trim(); if(!msg) return;
+  const msg = inp.value.trim(); if (!msg) return;
   inp.value = ""; onInput(); addUserMsg(msg);
-  chatHistory.push({role:"user",content:msg}); showTyping(true);
-  try {
-    const historyPayload = chatHistory.map(m => ({role:m.role, content:m.content}));
-    const d = await api("/chat","POST",{message:msg,conversationId:currentConvId,history:historyPayload});
-    showTyping(false);
+  chatHistory.push({role:"user", content:msg});
 
-    // El servidor detectó una crisis — bloquear IA
-    if (d.crisis) {
-      zyraTriggerCrisis();
-      return;
+  const historyPayload = chatHistory.map(m => ({role:m.role, content:m.content}));
+  showTyping(false);
+  const streamDiv = addBotMsgStream();
+
+  try {
+    const r = await fetch("/api/chat/stream", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? {Authorization: "Bearer " + token} : {})
+      },
+      body: JSON.stringify({message:msg, conversationId:currentConvId, history:historyPayload})
+    });
+
+    // Si el servidor respondió con JSON (crisis / rate limit / error middleware)
+    const ct = r.headers.get("content-type") || "";
+    if (!ct.includes("text/event-stream")) {
+      streamDiv.remove();
+      const d = await r.json().catch(() => ({}));
+      if (d.crisis) { zyraTriggerCrisis(); chatHistory.pop(); return; }
+      if (r.status === 429 || d.limitReached) {
+        addBotMsg("Has alcanzado tu límite de mensajes para hoy. Mejora tu plan para seguir hablando conmigo.");
+        showUpgradePrompt("messages", "basic");
+        _zyraMessagesRemaining = 0; updateMsgsRemainingUI();
+      } else {
+        addBotMsg("Ups, tuve un problema técnico. Intenta de nuevo en un momento.");
+      }
+      chatHistory.pop(); return;
     }
 
-    addBotMsg(d.response, null, d.cards||[]);
-    if(autoSpeak) zyraChatSpeak(d.response);
-    chatHistory.push({role:"assistant",content:d.response});
-    if(chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
-    if(!currentConvId || currentConvId !== String(d.conversationId)) { currentConvId = String(d.conversationId); loadHistory(); }
-    // Trigger mission after 5 messages in a session
-    const userMsgs = chatHistory.filter(m => m.role === 'user').length;
-    if (userMsgs === 5) triggerMission('chat_zyra');
-    if (d.messagesRemaining !== undefined && d.messagesRemaining !== null) {
-      _zyraMessagesRemaining = d.messagesRemaining;
-      updateMsgsRemainingUI();
+    const reader  = r.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = ""; let fullText = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const parts = buffer.split("\n\n"); buffer = parts.pop() ?? "";
+      for (const part of parts) {
+        if (!part.startsWith("data: ")) continue;
+        let data;
+        try { data = JSON.parse(part.slice(6).trim()); } catch { continue; }
+
+        if (data.t) {
+          fullText += data.t;
+          updateBotMsgStream(streamDiv, fullText);
+        }
+
+        if (data.done) {
+          finalizeBotMsgStream(streamDiv, fullText, data.cards||[], data.conversationId, data.messagesRemaining);
+          chatHistory.push({role:"assistant", content:fullText});
+          if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+          if (autoSpeak) zyraChatSpeak(fullText);
+          const userMsgs = chatHistory.filter(m => m.role === "user").length;
+          if (userMsgs === 5) triggerMission("chat_zyra");
+        }
+
+        if (data.error) {
+          streamDiv.remove();
+          addBotMsg("Ups, tuve un problema técnico. Intenta de nuevo en un momento.");
+          chatHistory.pop(); return;
+        }
+      }
     }
   } catch(e) {
-    showTyping(false);
-    if (e.status === 429 && e.data?.limitReached) {
-      addBotMsg("Has alcanzado tu límite de mensajes para hoy. Mejora tu plan para seguir hablando conmigo.");
-      showUpgradePrompt('messages', 'basic');
-      _zyraMessagesRemaining = 0;
-      updateMsgsRemainingUI();
-    } else {
-      addBotMsg("Ups, tuve un problema técnico. Intenta de nuevo en un momento.");
+    try { streamDiv.remove(); } catch(_) {}
+    addBotMsg("Ups, tuve un problema técnico. Intenta de nuevo en un momento.");
+    chatHistory.pop();
+  }
+}
+
+/* ════ MOOD CHECK-IN ════ */
+let _selectedMood = null;
+
+function selectMood(emotion) {
+  _selectedMood = emotion;
+  document.querySelectorAll(".mood-opt").forEach(b => b.classList.toggle("active", b.dataset.e === emotion));
+  const noteWrap = document.getElementById("mood-note-wrap");
+  const btn      = document.getElementById("mood-submit-btn");
+  if (noteWrap) noteWrap.style.display = "block";
+  if (btn) { btn.disabled = false; btn.style.opacity = "1"; }
+}
+
+async function submitMoodCheckin() {
+  if (!_selectedMood) return;
+  const note = document.getElementById("mood-note-input")?.value?.trim() || "";
+  try {
+    await api("/profile/mood-checkin", "POST", { emotion: _selectedMood, note });
+    closeMoodCheckin();
+    zyraToast(`✨ Registrado — hoy te sientes ${_selectedMood}`, "success");
+    // Si el usuario está en el chat, personalizar el primer mensaje
+    if (_selectedMood === "triste" || _selectedMood === "ansioso" || _selectedMood === "agotado") {
+      const inp = document.getElementById("chat-input");
+      if (inp && !inp.value) inp.value = `Me siento ${_selectedMood} hoy`;
     }
+  } catch(e) { zyraToast("Error guardando humor", "error"); }
+}
+
+function closeMoodCheckin() {
+  const m = document.getElementById("mood-checkin-modal");
+  if (m) m.style.display = "none";
+  localStorage.setItem("zyra_mood_date", new Date().toDateString());
+  _selectedMood = null;
+}
+
+async function maybeShowMoodCheckin() {
+  if (!token || !user) return;
+  const saved = localStorage.getItem("zyra_mood_date");
+  if (saved === new Date().toDateString()) return; // ya hizo check-in hoy (local)
+  try {
+    const d = await api("/profile/mood-status");
+    if (d.checkedInToday) { localStorage.setItem("zyra_mood_date", new Date().toDateString()); return; }
+    const m = document.getElementById("mood-checkin-modal");
+    if (m) m.style.display = "flex";
+  } catch(e) {}
+}
+
+/* ════ ADMIN PANEL ════ */
+async function loadAdminPanel() {
+  const el = document.getElementById("admin-content");
+  if (!el) return;
+  el.innerHTML = `<div class="container" style="padding:20px 0 80px"><div class="empty" style="padding:40px 0;text-align:center"><div style="font-size:32px;opacity:.4">⏳</div><p style="color:var(--text3);margin-top:8px">Cargando...</p></div></div>`;
+  try {
+    const d = await api("/admin/stats");
+    const fmt = n => n >= 1000000 ? `$${(n/1000000).toFixed(1)}M COP` : n >= 1000 ? `$${(n/1000).toFixed(0)}K COP` : `$${n} COP`;
+    const pct = (a,b) => b > 0 ? Math.round(a/b*100) : 0;
+    el.innerHTML = `<div class="container" style="padding:20px 0 80px">
+      <h2 style="color:var(--text);margin-bottom:16px;font-size:18px">👥 Usuarios</h2>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px">
+        <div class="admin-stat"><div class="admin-stat-value">${d.users.total}</div><div class="admin-stat-label">Total</div></div>
+        <div class="admin-stat"><div class="admin-stat-value" style="color:#22c55e">${d.users.newToday}</div><div class="admin-stat-label">Hoy</div></div>
+        <div class="admin-stat"><div class="admin-stat-value" style="color:#f59e0b">${d.users.newWeek}</div><div class="admin-stat-label">Esta semana</div></div>
+        <div class="admin-stat"><div class="admin-stat-value" style="color:#8b5cf6">${d.users.premium}</div><div class="admin-stat-label">Premium</div></div>
+        <div class="admin-stat"><div class="admin-stat-value" style="color:#0ea5e9">${d.users.basic}</div><div class="admin-stat-label">Básico</div></div>
+        <div class="admin-stat"><div class="admin-stat-value" style="color:var(--text3)">${d.users.free}</div><div class="admin-stat-label">Gratis</div></div>
+      </div>
+      <h2 style="color:var(--text);margin-bottom:16px;font-size:18px">💬 Conversaciones</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px">
+        <div class="admin-stat"><div class="admin-stat-value">${d.conversations.total}</div><div class="admin-stat-label">Total sesiones</div></div>
+        <div class="admin-stat"><div class="admin-stat-value" style="color:#22c55e">${d.conversations.today}</div><div class="admin-stat-label">Hoy</div></div>
+      </div>
+      <h2 style="color:var(--text);margin-bottom:16px;font-size:18px">💳 Pagos reales</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px">
+        <div class="admin-stat"><div class="admin-stat-value">${d.payments.count}</div><div class="admin-stat-label">Transacciones</div></div>
+        <div class="admin-stat"><div class="admin-stat-value" style="font-size:18px">${fmt(d.payments.revenue)}</div><div class="admin-stat-label">Ingresos</div></div>
+      </div>
+      <h2 style="color:var(--text);margin-bottom:12px;font-size:18px">🕐 Últimos usuarios</h2>
+      <div class="card" style="overflow:auto;margin-bottom:24px">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="border-bottom:1px solid var(--border)">
+            <th style="padding:10px 12px;text-align:left;color:var(--text3)">Nombre</th>
+            <th style="padding:10px 12px;text-align:left;color:var(--text3)">Email</th>
+            <th style="padding:10px 12px;text-align:center;color:var(--text3)">Plan</th>
+            <th style="padding:10px 12px;text-align:right;color:var(--text3)">Registro</th>
+          </tr></thead>
+          <tbody>
+            ${(d.recentUsers||[]).map(u=>`<tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:10px 12px;color:var(--text)">${safeHtml(u.name)}</td>
+              <td style="padding:10px 12px;color:var(--text3)">${safeHtml(u.email)}</td>
+              <td style="padding:10px 12px;text-align:center"><span style="background:${u.plan==='premium'?'rgba(139,92,246,.2)':u.plan==='basic'?'rgba(14,165,233,.2)':'rgba(100,116,139,.15)'};color:${u.plan==='premium'?'#a78bfa':u.plan==='basic'?'#38bdf8':'#94a3b8'};padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700">${u.plan}</span></td>
+              <td style="padding:10px 12px;text-align:right;color:var(--text3)">${new Date(u.createdAt).toLocaleDateString('es')}</td>
+            </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>
+      <button onclick="loadAdminPanel()" class="btn-sm" style="color:var(--text3)">↺ Actualizar</button>
+    </div>`;
+  } catch(e) {
+    el.innerHTML = `<div class="container" style="padding:40px 0;text-align:center"><p style="color:var(--danger)">${e.status === 403 ? "Acceso denegado — esta sección es solo para admins." : safeHtml(e.message)}</p></div>`;
   }
 }
 
