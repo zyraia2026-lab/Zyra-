@@ -1,9 +1,11 @@
 const r = require("express").Router();
-const { getGoals, createGoal, toggleGoal, updateGoal, deleteGoal } = require("../controllers/goalController");
+const { getGoals, createGoal, toggleGoal, updateGoal, deleteGoal, addGoalNote, deleteGoalNote } = require("../controllers/goalController");
 const { protect } = require("../middleware/auth");
 r.get("/", protect, getGoals);
 r.post("/", protect, createGoal);
 r.put("/:id/toggle", protect, toggleGoal);
 r.put("/:id", protect, updateGoal);
 r.delete("/:id", protect, deleteGoal);
+r.post("/:id/notes", protect, addGoalNote);
+r.delete("/:id/notes/:noteId", protect, deleteGoalNote);
 module.exports = r;
