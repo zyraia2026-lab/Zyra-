@@ -1235,6 +1235,11 @@
     <div style="font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Tendencia emocional — últimos 7 días</div>
     <div id="mood-mini-trend-bars" style="display:flex;gap:8px;align-items:flex-end;height:48px"></div>
   </div>
+  <!-- Today's overview: check-in + habits -->
+  <div id="today-overview-wrap" style="display:none;margin-bottom:16px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px 16px">
+    <div style="font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Resumen de hoy</div>
+    <div id="today-overview-content" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"></div>
+  </div>
   <!-- Daily challenge widget -->
   <div id="daily-challenge-wrap" style="display:none">
     <div class="daily-challenge-card">
@@ -4157,6 +4162,7 @@ async function loadDashboard() {
   }
   // Show daily mood check-in if not done today
   setTimeout(showDailyCheckin, 1500);
+  renderTodayOverview();
 }
 function renderJournalMemory(entries) {
   const wrap = document.getElementById("journal-memory-wrap");
@@ -10758,6 +10764,58 @@ function resetPomodoro() {
 }
 
 /* ══════════════════════════════════════════
+   TODAY'S OVERVIEW WIDGET
+══════════════════════════════════════════ */
+const CHECKIN_EMOJI = { feliz:"😊", tranquilo:"😌", motivado:"💪", ansioso:"😰", triste:"😢", enojado:"😤", agotado:"😮‍💨", esperanzado:"🌟", confundido:"🤔", nostalgico:"🌅" };
+const CHECKIN_LABEL = { feliz:"Feliz", tranquilo:"Tranquilo", motivado:"Motivado", ansioso:"Ansioso", triste:"Triste", enojado:"Enojado", agotado:"Agotado", esperanzado:"Esperanzado", confundido:"Confundido", nostalgico:"Nostálgico" };
+
+function renderTodayOverview() {
+  const wrap = document.getElementById("today-overview-wrap");
+  const content = document.getElementById("today-overview-content");
+  if (!wrap || !content) return;
+
+  const checkinEmo = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString());
+  const habits = getHabits();
+  const doneHabits = habits.filter(h => isHabitDone(h.id)).length;
+  const waterToday = parseInt(localStorage.getItem("zyra_water_" + new Date().toDateString()) || "0");
+  const breathToday = parseInt(localStorage.getItem("zyra_breath_" + new Date().toDateString()) || "0");
+
+  const items = [];
+  if (checkinEmo) {
+    items.push(`<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:60px;text-align:center">
+      <div style="font-size:26px">${CHECKIN_EMOJI[checkinEmo] || "💙"}</div>
+      <div style="font-size:10px;color:var(--text3);font-weight:600">${CHECKIN_LABEL[checkinEmo] || checkinEmo}</div>
+    </div>`);
+  }
+  if (habits.length) {
+    const pct = Math.round(doneHabits / habits.length * 100);
+    items.push(`<div onclick="showPage('wellness');setTimeout(()=>openWellness('habits'),100)" style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:60px;text-align:center;cursor:pointer">
+      <div style="font-size:18px;font-weight:800;color:${pct===100?"#10b981":"var(--accent)"}">${doneHabits}/${habits.length}</div>
+      <div style="font-size:10px;color:var(--text3);font-weight:600">Hábitos</div>
+      <div style="height:4px;width:48px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:2px">
+        <div style="height:100%;width:${pct}%;background:${pct===100?"#10b981":"var(--accent)"};border-radius:2px"></div>
+      </div>
+    </div>`);
+  }
+  if (waterToday > 0) {
+    items.push(`<div onclick="showPage('wellness');setTimeout(()=>openWellness('water'),100)" style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:60px;text-align:center;cursor:pointer">
+      <div style="font-size:18px;font-weight:800;color:#0ea5e9">${waterToday}/8💧</div>
+      <div style="font-size:10px;color:var(--text3);font-weight:600">Agua</div>
+    </div>`);
+  }
+  if (breathToday > 0) {
+    items.push(`<div onclick="showPage('wellness')" style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:60px;text-align:center;cursor:pointer">
+      <div style="font-size:18px;font-weight:800;color:#8b5cf6">${breathToday}x🌬️</div>
+      <div style="font-size:10px;color:var(--text3);font-weight:600">Respiración</div>
+    </div>`);
+  }
+
+  if (!items.length) { wrap.style.display = "none"; return; }
+  content.innerHTML = items.join(`<div style="width:1px;height:36px;background:var(--border);flex-shrink:0"></div>`);
+  wrap.style.display = "";
+}
+
+/* ══════════════════════════════════════════
    HABIT ANALYTICS
 ══════════════════════════════════════════ */
 function renderHabitAnalytics() {
@@ -10850,6 +10908,7 @@ function submitCheckin(emotion) {
   if (modal) modal.style.display = "none";
   const resp = CHECKIN_RESPONSES[emotion] || "Gracias por compartir cómo te sientes. 💙";
   zyraToast(resp, "success", 5000);
+  renderTodayOverview();
 }
 
 /* ══════════════════════════════════════════
@@ -10879,6 +10938,7 @@ function toggleHabitDone(id) {
   if (localStorage.getItem(key)) localStorage.removeItem(key);
   else localStorage.setItem(key, "1");
   renderHabitsTracker(document.getElementById("wellness-content"));
+  renderTodayOverview();
 }
 
 function getHabitStreak(id) {
