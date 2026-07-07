@@ -1700,7 +1700,10 @@
         <textarea class="chat-ta" id="chat-input" placeholder="Cuéntale a Zyra cómo te sientes... (Enter para enviar)" oninput="onInput()" onkeydown="onKey(event)"></textarea>
         <button class="btn-send" id="btn-send" onclick="sendMsg()">➤</button>
       </div>
-      <div id="voice-status" style="font-size:11px;color:var(--sky);text-align:center;height:16px;margin-bottom:2px"></div>
+      <div style="display:flex;justify-content:space-between;height:16px;margin-bottom:2px">
+        <div id="voice-status" style="font-size:11px;color:var(--sky);text-align:left"></div>
+        <div id="chat-char-count" style="font-size:11px;color:var(--text3);display:none"></div>
+      </div>
       <div id="chat-msgs-remaining" style="font-size:11px;text-align:right;height:14px;margin-bottom:2px;padding-right:4px"></div>
       <div class="disclaimer">Zyra es un acompañamiento emocional con IA. No reemplaza atención psicológica profesional.</div>
     </div>
@@ -5426,6 +5429,13 @@ function onInput() {
   document.getElementById("btn-send").classList.toggle("ready", v.length > 0);
   ta.style.height = "auto";
   ta.style.height = Math.min(ta.scrollHeight, 120) + "px";
+  const len = ta.value.length;
+  const cc = document.getElementById("chat-char-count");
+  if (cc) {
+    cc.style.display = len > 300 ? "" : "none";
+    cc.textContent = len + "/2000";
+    cc.style.color = len > 1800 ? "var(--danger)" : len > 1200 ? "#f59e0b" : "var(--text3)";
+  }
 }
 function onKey(e) { if(e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); } }
 
@@ -5800,6 +5810,7 @@ async function sendMsg() {
   if (zyraCrisisLocked) { zyraTriggerCrisis(); return; }
   const inp = document.getElementById("chat-input");
   const msg = inp.value.trim(); if (!msg) return;
+  if (navigator.vibrate) navigator.vibrate(20);
   inp.value = ""; onInput(); addUserMsg(msg);
   const pc = document.getElementById("prompt-chips"); if (pc) pc.remove();
   chatHistory.push({role:"user", content:msg});
