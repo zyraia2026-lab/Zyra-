@@ -1231,6 +1231,10 @@
       <div class="hero-emoji" id="hero-emoji">🌊</div>
     </div>
   </div>
+  <div id="mood-mini-trend" style="display:none;margin-bottom:16px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px 16px">
+    <div style="font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Tendencia emocional — últimos 7 días</div>
+    <div id="mood-mini-trend-bars" style="display:flex;gap:8px;align-items:flex-end;height:48px"></div>
+  </div>
   <div class="grid4" style="margin-bottom:24px">
     <div class="stat-card">
       <div class="stat-icon-wrap" style="background:linear-gradient(135deg,#eef2ff,#e0e7ff)">💬</div>
@@ -3930,7 +3934,27 @@ async function loadDashboard() {
     renderChart(hd.history);
     renderDashConvs(cd.conversations || []);
     renderDashGoals(goals);
+    renderMoodMiniTrend(hd.history || []);
   } catch(e) { console.error(e); }
+}
+function renderMoodMiniTrend(history) {
+  const wrap = document.getElementById("mood-mini-trend");
+  const bars = document.getElementById("mood-mini-trend-bars");
+  if (!wrap || !bars || history.length < 3) { if(wrap) wrap.style.display="none"; return; }
+  wrap.style.display = "";
+  const last7 = history.slice(-7);
+  const COLORS = {feliz:"#22c55e",tranquilo:"#0ea5e9",motivado:"#8b5cf6",emocionado:"#f59e0b",ansioso:"#f97316",estresado:"#ef4444",triste:"#6366f1",enojado:"#dc2626",cansado:"#94a3b8",solo:"#a78bfa"};
+  bars.innerHTML = last7.map(h => {
+    const em = EMOTIONS.find(e=>e.key===h.emotion)||EMOTIONS[1];
+    const clr = COLORS[h.emotion]||"#6366f1";
+    const d = new Date(h.date);
+    const label = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"][d.getDay()];
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px" title="${em.label} — ${d.toLocaleDateString('es')}">
+      <div style="width:100%;height:32px;background:${clr};border-radius:6px;opacity:.8;transition:opacity .2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.8"></div>
+      <span style="font-size:14px;line-height:1">${em.emoji}</span>
+      <span style="font-size:9px;color:var(--text3)">${label}</span>
+    </div>`;
+  }).join("");
 }
 function renderEmotions(current) {
   document.getElementById("emotions-grid").innerHTML = EMOTIONS.map(em => `
@@ -4004,7 +4028,10 @@ function renderDashGoals(goals) {
       <span class="goal-cat">${safeHtml(CAT[g.category]||g.category)}</span>
     </div>`).join("");
 }
-async function toggleGoalDash(id) { try { await api("/goals/"+id+"/toggle","PUT"); loadDashboard(); } catch(e) {} }
+async function toggleGoalDash(id) {
+  const goal = (_goalsAllItems||[]).find(g=>g._id===id);
+  try { const d = await api("/goals/"+id+"/toggle","PUT"); if ((d.goal?.completed ?? !goal?.completed) && !goal?.completed) zyraCelebrate(); loadDashboard(); } catch(e) {}
+}
 
 /* ── GOALS ── */
 function toggleGoalForm() { document.getElementById("add-goal-form").classList.toggle("show"); }
@@ -4062,7 +4089,46 @@ async function addGoal() {
     else zyraToast(e.message, "error");
   }
 }
-async function toggleGoal(id) { try { await api("/goals/"+id+"/toggle","PUT"); loadGoals(); } catch(e) {} }
+async function toggleGoal(id) {
+  const prev = _goalsAllItems.find(g => g._id===id);
+  try {
+    const d = await api("/goals/"+id+"/toggle","PUT");
+    const nowCompleted = d.goal?.completed ?? !prev?.completed;
+    if (nowCompleted && !prev?.completed) zyraCelebrate();
+    loadGoals();
+  } catch(e) {}
+}
+function zyraCelebrate() {
+  const canvas = document.createElement("canvas");
+  canvas.style.cssText = "position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:99999";
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext("2d");
+  canvas.width = innerWidth; canvas.height = innerHeight;
+  const particles = Array.from({length:80},()=>({
+    x: Math.random()*canvas.width, y: Math.random()*canvas.height-canvas.height,
+    r: 4+Math.random()*6, dy: 2+Math.random()*4, dx: (Math.random()-.5)*3,
+    color: ["#6366f1","#8b5cf6","#22c55e","#f59e0b","#ef4444","#0ea5e9"][Math.floor(Math.random()*6)],
+    spin: Math.random()*0.2-.1,
+    rot: Math.random()*Math.PI*2
+  }));
+  let frame = 0;
+  const animate = () => {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    let active = false;
+    particles.forEach(p => {
+      p.y += p.dy; p.x += p.dx; p.rot += p.spin;
+      if (p.y < canvas.height+20) { active = true; }
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+      ctx.fillStyle = p.color; ctx.globalAlpha = Math.max(0,1-(p.y/canvas.height)*.5);
+      ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r); ctx.restore();
+    });
+    if (active && frame++ < 120) requestAnimationFrame(animate);
+    else canvas.remove();
+  };
+  animate();
+  zyraToast("¡Meta completada! 🎉", "success");
+  if (navigator.vibrate) navigator.vibrate([50,30,80]);
+}
 async function deleteGoal(id) { if(!await zyraConfirm("¿Eliminar meta?", {danger:true, okText:"Eliminar"})) return; try { await api("/goals/"+id,"DELETE"); loadGoals(); } catch(e) {} }
 
 function openEditGoal(id) {
