@@ -26,4 +26,6 @@ const conversationSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 });
 
+conversationSchema.index({ user: 1, updatedAt: -1 });
+
 module.exports = mongoose.model("Conversation", conversationSchema);

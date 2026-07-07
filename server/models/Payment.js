@@ -6,7 +6,9 @@ const S = new mongoose.Schema({
   amount:    { type: Number, default: 0 },
   currency:  { type: String, default: "cop" },
   status:    { type: String, enum: ["paid","refunded","cancelled"], default: "paid" },
-  stripeSessionId: { type: String, default: null },
+  stripeSessionId: { type: String, default: null, sparse: true },
   createdAt: { type: Date, default: Date.now },
 });
+S.index({ user: 1, createdAt: -1 });
+S.index({ stripeSessionId: 1 }, { unique: true, sparse: true });
 module.exports = mongoose.model("Payment", S);

@@ -10,4 +10,5 @@ const S = new mongoose.Schema({
   progress:  { type: Number, min: 0, max: 100, default: 0 },
   createdAt: { type: Date, default: Date.now }
 });
+S.index({ user: 1, createdAt: -1 });
 module.exports = mongoose.model("Goal", S);

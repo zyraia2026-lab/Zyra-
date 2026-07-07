@@ -144,7 +144,11 @@ exports.verifySession = async (req, res) => {
 
     const isAnnualV = session.metadata?.period === "annual";
     const amt = PLANS[planName] ? (isAnnualV ? PLANS[planName].annual : PLANS[planName].monthly) : 0;
-    await Payment.create({ user: req.user._id, plan: planName, period: isAnnualV ? "annual" : "monthly", amount: amt, currency: PLANS[planName]?.currency || "cop", stripeSessionId: session.id }).catch(()=>{});
+    await Payment.findOneAndUpdate(
+      { stripeSessionId: session.id },
+      { user: req.user._id, plan: planName, period: isAnnualV ? "annual" : "monthly", amount: amt, currency: PLANS[planName]?.currency || "cop", stripeSessionId: session.id },
+      { upsert: true, new: true }
+    ).catch(()=>{});
 
     res.json({ success: true, plan: planName, expiresAt: expires });
   } catch(e) {
@@ -182,6 +186,44 @@ exports.webhook = async (req, res) => {
     return res.status(400).send(`Webhook Error: ${e.message}`);
   }
 
+  // Renovación automática de suscripción
+  if (event.type === "invoice.payment_succeeded") {
+    const invoice = event.data.object;
+    const customerId = invoice.customer;
+    if (customerId && invoice.subscription) {
+      try {
+        const sub = await stripe.subscriptions.retrieve(invoice.subscription);
+        const { plan } = sub.metadata || {};
+        if (plan && PLANS[plan]) {
+          const duration = sub.items?.data?.[0]?.price?.recurring?.interval === "year"
+            ? PLANS[plan].durationAnnual
+            : PLANS[plan].durationMonthly;
+          const expires = new Date();
+          expires.setDate(expires.getDate() + duration);
+          await User.findOneAndUpdate({ stripeCustomerId: customerId }, {
+            plan, planExpiresAt: expires, planActivatedAt: new Date(),
+          });
+          console.log(`🔄 Renovación de ${plan} para customer ${customerId}`);
+        }
+      } catch(e) {
+        console.error("invoice.payment_succeeded error:", e.message);
+      }
+    }
+  }
+
+  // Cancelación/expiración de suscripción desde Stripe
+  if (event.type === "customer.subscription.deleted") {
+    const sub = event.data.object;
+    try {
+      await User.findOneAndUpdate({ stripeCustomerId: sub.customer }, {
+        plan: "free", planExpiresAt: null, planActivatedAt: null,
+      });
+      console.log(`❌ Suscripción cancelada para customer ${sub.customer}`);
+    } catch(e) {
+      console.error("subscription.deleted error:", e.message);
+    }
+  }
+
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
     if (session.payment_status === "paid") {
@@ -197,7 +239,11 @@ exports.webhook = async (req, res) => {
           await User.findByIdAndUpdate(userId, wUpd);
           const wIsAnnual = session.metadata?.period === "annual";
           const wAmt = PLANS[plan] ? (wIsAnnual ? PLANS[plan].annual : PLANS[plan].monthly) : 0;
-          await Payment.create({ user: userId, plan, period: wIsAnnual ? "annual" : "monthly", amount: wAmt, currency: PLANS[plan]?.currency || "cop", stripeSessionId: session.id }).catch(()=>{});
+          await Payment.findOneAndUpdate(
+            { stripeSessionId: session.id },
+            { user: userId, plan, period: wIsAnnual ? "annual" : "monthly", amount: wAmt, currency: PLANS[plan]?.currency || "cop", stripeSessionId: session.id },
+            { upsert: true, new: true }
+          ).catch(()=>{});
           console.log(`✅ Plan ${plan} activado para usuario ${userId}`);
         } catch(e) {
           console.error("Error activando plan via webhook:", e.message);

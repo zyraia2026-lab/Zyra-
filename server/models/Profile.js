@@ -27,8 +27,9 @@ const S = new mongoose.Schema({
 
   // ── Contacto de emergencia ──
   emergencyContact: {
-    name:  { type: String, default: "" },
-    phone: { type: String, default: "" },
+    name:     { type: String, default: "" },
+    phone:    { type: String, default: "" },
+    email:    { type: String, default: "" },
     relation: { type: String, default: "" }
   },
 
