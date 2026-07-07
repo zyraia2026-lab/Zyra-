@@ -228,7 +228,7 @@ exports.forgotPasswordReset = async (req, res) => {
 // ── ACEPTAR TÉRMINOS Y CONDICIONES ──
 exports.acceptTerms = async (req, res) => {
   try {
-    const TERMS_VERSION = "v1.0-2026-07";
+    const TERMS_VERSION = "v1.1-2026-07";
     await User.findByIdAndUpdate(req.user._id, {
       termsAcceptedAt: new Date(),
       termsAcceptedVersion: TERMS_VERSION,

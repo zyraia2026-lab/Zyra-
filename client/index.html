@@ -118,13 +118,17 @@
 
       <!-- Checkboxes -->
       <div style="padding-bottom:4px">
-        <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);border-radius:12px;margin-bottom:10px" onclick="updateTermsBtn()">
-          <input type="checkbox" id="tc-check-1" style="margin-top:2px;flex-shrink:0;accent-color:#6366f1;width:17px;height:17px"/>
-          <span style="font-size:13px;color:var(--text,#e8eaf6);line-height:1.5">He leído y acepto los <strong><a onclick="showLegal('terms');event.stopPropagation()" style="color:#818cf8;cursor:pointer">Términos de Uso</a></strong> y la <strong><a onclick="showLegal('privacy');event.stopPropagation()" style="color:#818cf8;cursor:pointer">Política de Privacidad</a></strong> de Zyra.</span>
+        <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);border-radius:12px;margin-bottom:10px">
+          <input type="checkbox" id="tc-check-1" style="margin-top:2px;flex-shrink:0;accent-color:#6366f1;width:17px;height:17px" onchange="updateTermsBtn()"/>
+          <span style="font-size:13px;color:var(--text,#e8eaf6);line-height:1.5">He leído, entendido y acepto los <strong><a onclick="showLegal('terms');event.stopPropagation()" style="color:#818cf8;cursor:pointer;text-decoration:underline">Términos y Condiciones de Uso</a></strong> y la <strong><a onclick="showLegal('privacy');event.stopPropagation()" style="color:#818cf8;cursor:pointer;text-decoration:underline">Política de Privacidad y Tratamiento de Datos</a></strong> de Zyra. Autorizo el tratamiento de mis datos personales según lo descrito.</span>
         </label>
-        <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.15);border-radius:12px" onclick="updateTermsBtn()">
-          <input type="checkbox" id="tc-check-2" style="margin-top:2px;flex-shrink:0;accent-color:#6366f1;width:17px;height:17px"/>
-          <span style="font-size:13px;color:var(--text,#e8eaf6);line-height:1.5">Entiendo que Zyra <strong>no reemplaza</strong> la atención de un profesional de salud mental.</span>
+        <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.15);border-radius:12px;margin-bottom:10px">
+          <input type="checkbox" id="tc-check-2" style="margin-top:2px;flex-shrink:0;accent-color:#ef4444;width:17px;height:17px" onchange="updateTermsBtn()"/>
+          <span style="font-size:13px;color:var(--text,#e8eaf6);line-height:1.5">Entiendo que Zyra es una herramienta de bienestar emocional con IA y <strong>NO reemplaza</strong> la atención de un profesional de salud mental, psicólogo, psiquiatra ni servicio de emergencias.</span>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.15);border-radius:12px">
+          <input type="checkbox" id="tc-check-3" style="margin-top:2px;flex-shrink:0;accent-color:#10b981;width:17px;height:17px" onchange="updateTermsBtn()"/>
+          <span style="font-size:13px;color:var(--text,#e8eaf6);line-height:1.5">Confirmo que tengo <strong>13 años o más</strong>. Si tengo entre 13 y 17 años, cuento con el consentimiento de mis padres o tutores. Si voy a contratar un plan de pago, confirmo ser mayor de 18 años.</span>
         </label>
       </div>
 
@@ -135,10 +139,10 @@
     <div style="padding:20px 28px;border-top:1px solid rgba(255,255,255,.07);flex-shrink:0">
       <button id="btn-accept-terms" onclick="acceptTermsAndContinue()" disabled
         style="width:100%;padding:15px;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;transition:all .3s;background:rgba(99,102,241,.3);color:rgba(255,255,255,.4)">
-        Acepta los dos puntos para continuar
+        Acepta los tres puntos para continuar
       </button>
       <p style="text-align:center;font-size:11px;color:var(--text3,#7880a0);margin:10px 0 0">
-        Versión de términos: v1.0 — Julio 2026 · <a href="mailto:zyra.ia.2026@gmail.com" style="color:#818cf8">Contacto</a>
+        Versión v1.1 — 6 de julio de 2026 · <a href="mailto:zyra.ia.2026@gmail.com" style="color:#818cf8">Contacto legal</a>
       </p>
     </div>
 
@@ -1916,124 +1920,273 @@
   <!-- TÉRMINOS DE USO -->
   <div id="legal-terms">
     <h1 style="font-size:22px;font-weight:800;margin-bottom:4px">Términos y Condiciones de Uso</h1>
-    <p style="font-size:12px;color:var(--text3);margin-bottom:24px">Última actualización: julio 2026</p>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:8px">Versión 1.1 — Última actualización: 6 de julio de 2026</p>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:24px">Operado por: <strong>Zyra IA</strong> · Contacto: <a href="mailto:zyra.ia.2026@gmail.com" style="color:#818cf8">zyra.ia.2026@gmail.com</a></p>
+
+    <div class="card" style="margin-bottom:16px;background:rgba(239,68,68,.06);border-color:#fecaca">
+      <div class="card-header"><span class="card-title" style="color:#f87171">⚕️ AVISO CRÍTICO DE SALUD MENTAL</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0"><strong>Zyra NO es un servicio médico, psicológico, psiquiátrico ni de emergencias. No diagnostica enfermedades, no prescribe tratamientos y no reemplaza en ningún caso la atención de un profesional de salud mental.</strong> Las respuestas de la IA son orientativas y de apoyo emocional general. Si estás en crisis, tienes pensamientos de hacerte daño o de hacérselo a otros, contacta de inmediato:<br/><br/>
+      🇨🇴 Colombia: <strong>Línea 106</strong> (Salud Mental) · <strong>123</strong> (Emergencias)<br/>
+      🇪🇸 España: <strong>024</strong> (Atención conducta suicida) · <strong>717 003 717</strong> (Teléfono Esperanza)<br/>
+      🇲🇽 México: <strong>800 290 0024</strong> (SAPTEL 24h)<br/>
+      🌎 Internacional: <strong>findahelpline.com</strong></p>
+    </div>
 
     <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">1. Aceptación</span></div>
-      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Al crear una cuenta en Zyra, aceptas estos Términos y Condiciones. Si no estás de acuerdo, no uses la aplicación. Zyra se reserva el derecho de modificar estos términos con previo aviso de 15 días.</p>
+      <div class="card-header"><span class="card-title">1. Aceptación y vigencia</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Al crear una cuenta, usar la aplicación o hacer clic en "Acepto", manifiestas tu acuerdo libre, previo e informado con estos Términos y con la Política de Privacidad. Si no estás de acuerdo, debes abstenerte de usar el servicio.<br/><br/>
+      Zyra se reserva el derecho de modificar estos Términos. Los cambios se notificarán por correo electrónico y mediante un aviso en la aplicación con al menos <strong>15 días de anticipación</strong>. El uso continuo del servicio tras el plazo constituye aceptación de las modificaciones. La versión vigente siempre está disponible en esta página.</p>
     </div>
 
     <div class="card" style="margin-bottom:16px">
       <div class="card-header"><span class="card-title">2. Descripción del servicio</span></div>
-      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Zyra es una aplicación de apoyo emocional que utiliza inteligencia artificial para ofrecer conversaciones de bienestar, seguimiento de emociones, diario personal y herramientas de mindfulness. Zyra <strong>no es un servicio médico ni terapéutico</strong> y no reemplaza la atención profesional de salud mental.</p>
-    </div>
-
-    <div class="card" style="margin-bottom:16px;border-color:#fecaca">
-      <div class="card-header"><span class="card-title" style="color:var(--red)">3. Aviso de salud mental</span></div>
-      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Zyra NO es un sustituto de la terapia psicológica, psiquiatría ni ningún tratamiento médico. Si experimentas pensamientos de hacerte daño a ti mismo o a otros, por favor contacta inmediatamente una línea de crisis:<br/><br/>
-      🇨🇴 <strong>Colombia:</strong> Línea 106 (salud mental) · 123 (emergencias)<br/>
-      🇪🇸 <strong>España:</strong> Teléfono de la Esperanza 717 003 717<br/>
-      🌎 <strong>Internacional:</strong> findahelpline.com</p>
-    </div>
-
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">4. Edad mínima</span></div>
-      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Para usar Zyra debes tener al menos 13 años de edad. Si eres menor de 18 años, debes contar con el consentimiento de tus padres o tutores legales. Zyra no recopila intencionalmente información de menores de 13 años.</p>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Zyra es una plataforma digital de bienestar emocional que ofrece:<br/><br/>
+      • Conversaciones de apoyo emocional basadas en inteligencia artificial (IA)<br/>
+      • Diario de emociones con seguimiento de estados de ánimo<br/>
+      • Gestión de metas personales con seguimiento de progreso<br/>
+      • Herramientas de mindfulness, respiración y bienestar<br/>
+      • Llamadas de voz con IA (plan Premium)<br/>
+      • Reportes en PDF de actividad emocional (plan Premium)<br/>
+      • Gamificación: logros, monedas y recompensas<br/>
+      • Notificaciones de recordatorio configurables<br/><br/>
+      El servicio se presta "tal como está" (<em>as-is</em>). La disponibilidad del servicio puede interrumpirse por mantenimiento, causas de fuerza mayor o mejoras técnicas. Zyra procurará anunciar interrupciones programadas con anticipación razonable.</p>
     </div>
 
     <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">5. Uso aceptable</span></div>
-      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Está prohibido usar Zyra para: compartir contenido ilegal, acosar a otros usuarios, intentar hackear o comprometer la seguridad del servicio, usar la IA para generar contenido dañino, o intentar evadir los límites del plan. Nos reservamos el derecho de cancelar cuentas que violen estas normas.</p>
+      <div class="card-header"><span class="card-title">3. Requisitos de edad y capacidad</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0"><strong>Edad mínima general:</strong> 13 años. Si tienes entre 13 y 17 años, debes contar con la autorización expresa de tu padre, madre o tutor legal antes de crear una cuenta. Al registrarte confirmas que cumples este requisito.<br/><br/>
+      <strong>Funciones de pago:</strong> solo pueden contratar planes de pago personas mayores de 18 años o emancipadas legalmente, con capacidad para celebrar contratos vinculantes.<br/><br/>
+      <strong>Menores de 13 años:</strong> Zyra no recopila intencionalmente información de personas menores de 13 años. Si detectamos una cuenta de un menor de 13 años sin autorización parental verificada, la eliminaremos de inmediato. Padres o tutores que identifiquen este caso deben contactarnos a zyra.ia.2026@gmail.com.</p>
     </div>
 
     <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">6. Pagos y suscripciones</span></div>
-      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Los planes de pago se procesan de forma segura a través de Stripe. Las suscripciones se renuevan automáticamente. Puedes cancelar en cualquier momento desde tu perfil. No se realizan reembolsos por períodos ya facturados, salvo que la ley aplicable lo exija.</p>
+      <div class="card-header"><span class="card-title">4. Cuenta de usuario</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">• Eres responsable de mantener la confidencialidad de tu contraseña y de todas las actividades realizadas desde tu cuenta.<br/>
+      • Debes notificarnos de inmediato ante cualquier acceso no autorizado a: zyra.ia.2026@gmail.com<br/>
+      • Solo puedes tener una cuenta por persona. La creación de cuentas múltiples para evadir límites o sanciones está prohibida.<br/>
+      • La cuenta es personal e intransferible.<br/>
+      • Zyra puede suspender o eliminar cuentas que incumplan estos Términos, previa notificación cuando sea posible, salvo que la infracción sea grave o inmediata.</p>
     </div>
 
     <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">7. Propiedad intelectual</span></div>
-      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">El diseño, código, nombre "Zyra", el personaje y todos los elementos gráficos son propiedad exclusiva de Zyra. Está prohibida su reproducción total o parcial sin autorización escrita.</p>
+      <div class="card-header"><span class="card-title">5. Uso aceptable y conductas prohibidas</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Queda estrictamente prohibido:<br/><br/>
+      • Usar el servicio para cualquier fin ilegal bajo la legislación colombiana o internacional aplicable<br/>
+      • Intentar acceder sin autorización a sistemas, servidores o cuentas de otros usuarios (hacking)<br/>
+      • Usar la IA para generar, difundir o almacenar contenido que incite al odio, la violencia, la discriminación o el abuso sexual<br/>
+      • Acosar, intimidar o amenazar a otros usuarios o al equipo de Zyra<br/>
+      • Hacer scraping, ingeniería inversa o reproducción del código fuente sin autorización<br/>
+      • Evadir controles de límite de mensajes, planes o funcionalidades mediante medios técnicos<br/>
+      • Crear cuentas automatizadas (bots) para interactuar con el servicio<br/>
+      • Usar Zyra para dar consejo médico, legal o financiero a terceros<br/><br/>
+      El incumplimiento puede resultar en suspensión temporal o eliminación permanente de la cuenta sin reembolso.</p>
     </div>
 
     <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">8. Limitación de responsabilidad</span></div>
-      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Zyra se proporciona "tal como está". No garantizamos disponibilidad 24/7 ni precisión absoluta de las respuestas de IA. En ningún caso seremos responsables de daños directos, indirectos o consecuentes derivados del uso del servicio.</p>
+      <div class="card-header"><span class="card-title">6. Planes de pago, renovación y cancelación</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0"><strong>Planes disponibles:</strong><br/>
+      • Plan Gratis: sin costo, con funciones limitadas<br/>
+      • Plan Básico: $9.900 COP/mes o $99.000 COP/año<br/>
+      • Plan Premium: $24.900 COP/mes o $249.000 COP/año<br/><br/>
+      <strong>Facturación:</strong> Los pagos se procesan mediante Stripe (procesador certificado PCI DSS). Zyra no almacena datos de tarjetas de crédito/débito. Los precios incluyen IVA según la legislación colombiana aplicable.<br/><br/>
+      <strong>Renovación automática:</strong> Los planes de pago se renuevan automáticamente al vencer el período contratado, cargando el mismo monto a tu método de pago. Recibirás un correo de recordatorio 3 días antes de cada renovación.<br/><br/>
+      <strong>Cancelación:</strong> Puedes cancelar tu suscripción en cualquier momento desde Perfil → Mi suscripción → Cancelar plan. La cancelación es efectiva al final del período vigente; conservas acceso hasta esa fecha. No hay cargos adicionales tras la cancelación.<br/><br/>
+      <strong>Política de reembolsos:</strong> Los pagos ya realizados no son reembolsables, salvo en los siguientes casos: (i) fallo técnico documentado que haya impedido el acceso al servicio por más de 72 horas consecutivas; (ii) cobro duplicado o error de facturación; (iii) cuando la legislación colombiana (Estatuto del Consumidor, Ley 1480 de 2011) o la normativa aplicable lo exija. Las solicitudes de reembolso deben presentarse dentro de los 30 días siguientes al cargo a zyra.ia.2026@gmail.com.<br/><br/>
+      <strong>Cambios de precio:</strong> Cualquier modificación de precios se notificará con al menos 30 días de anticipación. Los suscriptores activos mantienen su precio hasta el siguiente período de renovación.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">7. Inteligencia artificial — limitaciones y responsabilidad</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Las respuestas generadas por la IA de Zyra son producidas por modelos de lenguaje de terceros (Groq/Meta Llama). Por su naturaleza, estas respuestas:<br/><br/>
+      • Pueden contener imprecisiones, errores o información desactualizada<br/>
+      • No constituyen consejo médico, psicológico, legal, financiero ni de ningún tipo profesional<br/>
+      • No deben ser tomadas como diagnóstico, tratamiento ni pronóstico de ninguna condición<br/>
+      • Pueden no ser apropiadas para todas las situaciones o contextos culturales<br/><br/>
+      Zyra no se responsabiliza por decisiones tomadas basadas en las respuestas de la IA. El usuario asume la responsabilidad del uso que hace del contenido generado.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">8. Propiedad intelectual</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">El nombre "Zyra", el logotipo, el diseño visual, el código fuente, el personaje de IA y todos los elementos de la plataforma son propiedad exclusiva de Zyra IA y están protegidos por las leyes de propiedad intelectual colombianas (Ley 23 de 1982 y normas concordantes) e internacionales.<br/><br/>
+      Se concede al usuario una licencia limitada, personal, no exclusiva, no transferible y revocable para acceder y usar el servicio según estos Términos. Queda prohibida cualquier reproducción, distribución, modificación o explotación comercial sin autorización escrita previa.<br/><br/>
+      El contenido que el usuario crea (entradas de diario, metas, conversaciones) es de su propiedad. Al usar el servicio, el usuario otorga a Zyra una licencia limitada para procesar y almacenar dicho contenido con el único fin de prestar el servicio.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">9. Limitación de responsabilidad</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">En la máxima medida permitida por la ley aplicable:<br/><br/>
+      • Zyra no garantiza que el servicio esté libre de errores, interrupciones o vulnerabilidades<br/>
+      • Zyra no se responsabiliza por pérdida de datos causada por fuerza mayor, fallos de terceros o conducta del usuario<br/>
+      • La responsabilidad total de Zyra frente al usuario por cualquier reclamación no excederá el valor pagado por el plan en los últimos 3 meses<br/>
+      • No somos responsables por daños indirectos, emergentes, especiales ni pérdida de ganancias<br/><br/>
+      Estas limitaciones no aplican en casos de dolo, culpa grave o responsabilidades que no puedan excluirse por ley.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">10. Suspensión y terminación</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Zyra puede suspender o terminar el acceso de un usuario que: (i) incumpla estos Términos; (ii) proporcione información falsa al registrarse; (iii) utilice el servicio de forma fraudulenta; (iv) ponga en riesgo la seguridad de otros usuarios o del sistema.<br/><br/>
+      En casos graves (p. ej., contenido ilegal, intento de intrusión), la cancelación puede ser inmediata y sin reembolso. En casos menores, se notificará al usuario con posibilidad de subsanar la infracción en 7 días.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">11. Ley aplicable y resolución de disputas</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Estos Términos se rigen por las leyes de la República de Colombia. Ante cualquier controversia, las partes intentarán resolverla de forma amistosa en un plazo de 30 días. Si no es posible, la disputa se someterá a los jueces y tribunales competentes de la ciudad de Bogotá D.C., Colombia, renunciando expresamente a cualquier otro fuero.<br/><br/>
+      Para usuarios en la Unión Europea: aplican también los derechos consagrados en el RGPD (Reglamento UE 2016/679) y la normativa de consumidores de la UE, en lo que sea más favorable al usuario.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">12. Fuerza mayor</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Zyra no será responsable por el incumplimiento o retraso de sus obligaciones causado por eventos fuera de su control razonable, incluyendo desastres naturales, fallos de infraestructura de internet, apagones de proveedores de nube, actos de autoridades gubernamentales, pandemias o ciberataques masivos.</p>
     </div>
 
     <div class="card">
-      <div class="card-header"><span class="card-title">9. Contacto legal</span></div>
-      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Para consultas legales: <a href="mailto:zyra.ia.2026@gmail.com" style="color:#818cf8">zyra.ia.2026@gmail.com</a></p>
+      <div class="card-header"><span class="card-title">13. Contacto legal</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Para consultas, reclamaciones o ejercicio de derechos:<br/>
+      📧 <a href="mailto:zyra.ia.2026@gmail.com" style="color:#818cf8">zyra.ia.2026@gmail.com</a><br/><br/>
+      <em>Estos Términos han sido redactados con fines informativos y serán revisados por asesoría jurídica especializada antes del lanzamiento comercial oficial.</em></p>
     </div>
   </div>
 
   <!-- POLÍTICA DE PRIVACIDAD -->
   <div id="legal-privacy" style="display:none">
-    <h1 style="font-size:22px;font-weight:800;margin-bottom:4px">Política de Privacidad</h1>
-    <p style="font-size:12px;color:var(--text3);margin-bottom:24px">Última actualización: julio 2026</p>
+    <h1 style="font-size:22px;font-weight:800;margin-bottom:4px">Política de Privacidad y Tratamiento de Datos</h1>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:8px">Versión 1.1 — Última actualización: 6 de julio de 2026</p>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:24px">Responsable del tratamiento: <strong>Zyra IA</strong> · <a href="mailto:zyra.ia.2026@gmail.com" style="color:#818cf8">zyra.ia.2026@gmail.com</a><br/>
+    Normativa aplicable: Ley 1581 de 2012 (Colombia) · Decreto 1377 de 2013 · RGPD (UE) 2016/679 (usuarios europeos)</p>
 
     <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">1. Datos que recopilamos</span></div>
+      <div class="card-header"><span class="card-title">1. Datos personales que recopilamos</span></div>
       <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">
-        <strong>Datos de cuenta:</strong> nombre, correo electrónico y contraseña (cifrada con bcrypt).<br/>
-        <strong>Datos de uso:</strong> historial de emociones, entradas del diario, metas, conversaciones con la IA y logros.<br/>
-        <strong>Datos técnicos:</strong> dirección IP, tipo de navegador (solo para seguridad y rate limiting).<br/>
-        <strong>Pagos:</strong> Procesados por Stripe — Zyra no almacena datos de tarjetas.
+        <strong>Datos de identificación y cuenta:</strong><br/>
+        • Nombre completo, correo electrónico, contraseña (almacenada en hash bcrypt — nunca en texto plano)<br/>
+        • Foto de perfil (opcional, almacenada en base64)<br/>
+        • Fecha de creación de cuenta y última sesión<br/><br/>
+        <strong>Datos de uso y contenido personal:</strong><br/>
+        • Conversaciones con la IA (historial de chat)<br/>
+        • Entradas del diario emocional (texto, emoción registrada, fecha)<br/>
+        • Metas personales y su progreso<br/>
+        • Estado de ánimo diario y racha de sesiones<br/>
+        • Logros, monedas y recompensas del sistema de gamificación<br/>
+        • Memorias guardadas por la IA (fragmentos de contexto personal)<br/>
+        • Configuraciones: tema, avatar, PIN, recordatorios, contacto de emergencia<br/><br/>
+        <strong>Datos técnicos (seguridad):</strong><br/>
+        • Dirección IP (solo para rate limiting y prevención de abusos — no se almacena permanentemente)<br/>
+        • Tipo de navegador y sistema operativo (user-agent, para diagnóstico técnico)<br/>
+        • Tokens de sesión JWT (almacenados en localStorage del navegador)<br/><br/>
+        <strong>Datos de pago:</strong><br/>
+        • Zyra NO almacena datos de tarjetas bancarias. Los pagos son procesados íntegramente por Stripe, Inc. Guardamos: plan contratado, fecha de pago, período y monto (sin datos financieros sensibles).<br/><br/>
+        <strong>Datos de referidos:</strong><br/>
+        • Código de referido único por usuario y registro de quién refirió a quién (solo IDs internos).
       </p>
     </div>
 
     <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">2. Cómo usamos tus datos</span></div>
+      <div class="card-header"><span class="card-title">2. Base legal del tratamiento</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Tratamos tus datos con base en:<br/><br/>
+      • <strong>Consentimiento informado:</strong> al aceptar estos Términos y esta Política durante el registro. Puedes retirar tu consentimiento eliminando tu cuenta.<br/>
+      • <strong>Ejecución del contrato:</strong> el tratamiento es necesario para prestarte el servicio contratado (planes de pago, historial, personalización de IA).<br/>
+      • <strong>Interés legítimo:</strong> para mejorar la seguridad del sistema, detectar fraudes y garantizar la estabilidad técnica del servicio.<br/>
+      • <strong>Obligación legal:</strong> conservación de registros de facturación según la legislación tributaria colombiana (5 años).</p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">3. Finalidades del tratamiento</span></div>
       <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">
-        • Proveer y mejorar el servicio de IA personalizada<br/>
-        • Enviarte códigos de verificación y emails de bienvenida<br/>
-        • Proteger la seguridad de tu cuenta<br/>
-        • Cumplir con obligaciones legales<br/><br/>
-        <strong>No vendemos tus datos a terceros bajo ninguna circunstancia.</strong>
+        ✅ Crear y gestionar tu cuenta de usuario<br/>
+        ✅ Personalizar las respuestas de la IA según tu historial e interacciones<br/>
+        ✅ Enviar correos transaccionales: verificación OTP, bienvenida, restablecimiento de contraseña<br/>
+        ✅ Enviar notificaciones push de recordatorio (si las activas)<br/>
+        ✅ Procesar pagos y gestionar suscripciones<br/>
+        ✅ Generar reportes en PDF de tu actividad emocional<br/>
+        ✅ Mejorar el servicio mediante análisis agregado y anonimizado<br/>
+        ✅ Cumplir obligaciones legales y resolver disputas<br/><br/>
+        <strong style="color:#f87171">❌ Nunca:</strong> vender, alquilar ni ceder tus datos a terceros con fines comerciales o publicitarios.<br/>
+        <strong style="color:#f87171">❌ Nunca:</strong> usar tus datos para publicidad de terceros.<br/>
+        <strong style="color:#f87171">❌ Nunca:</strong> tomar decisiones automatizadas con efectos jurídicos significativos sobre ti sin supervisión humana.
       </p>
     </div>
 
     <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">3. Almacenamiento y seguridad</span></div>
-      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Tus datos se almacenan en MongoDB Atlas (nube cifrada). Las conexiones usan HTTPS/TLS. Las contraseñas se cifran con bcrypt antes de guardarse. Los tokens de sesión (JWT) expiran en 7 días.</p>
+      <div class="card-header"><span class="card-title">4. Subencargados y transferencias internacionales</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Para prestar el servicio, Zyra comparte datos mínimos y necesarios con los siguientes proveedores:<br/><br/>
+      <strong>MongoDB Atlas (MongoDB, Inc.)</strong> — Almacenamiento de base de datos en servidores en EE. UU. Cifrado en reposo (AES-256) y en tránsito (TLS). Certificado SOC 2.<br/>
+      <strong>Groq, Inc.</strong> — Procesamiento de mensajes de chat para generar respuestas de IA. Solo envía el texto del mensaje; Groq no almacena historial de forma permanente según su política vigente.<br/>
+      <strong>ElevenLabs</strong> — Conversión de texto a voz (llamadas de voz IA). Solo se envía el texto a vocalizar.<br/>
+      <strong>Stripe, Inc.</strong> — Procesador de pagos certificado PCI DSS Nivel 1. Zyra no transmite datos de tarjeta a sus propios servidores.<br/>
+      <strong>Resend / Nodemailer</strong> — Envío de correos transaccionales (OTP, bienvenida). Solo se comparte dirección de correo y nombre.<br/>
+      <strong>Google Fonts (Google LLC)</strong> — Carga de tipografías desde CDN de Google. Puede registrar la IP del usuario según la política de Google.<br/><br/>
+      Todas las transferencias se realizan bajo cláusulas contractuales estándar o mecanismos equivalentes que garantizan un nivel adecuado de protección.</p>
     </div>
 
     <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">4. Tus derechos (GDPR / Ley 1581 Colombia)</span></div>
+      <div class="card-header"><span class="card-title">5. Seguridad de los datos</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Implementamos medidas técnicas y organizativas para proteger tus datos:<br/><br/>
+      • Comunicaciones cifradas con TLS/HTTPS en todas las conexiones<br/>
+      • Contraseñas almacenadas en hash bcrypt (factor de coste 10) — irreversibles<br/>
+      • Tokens JWT con expiración de 7 días<br/>
+      • Autenticación en dos pasos mediante código OTP por correo en cada login<br/>
+      • Rate limiting en endpoints sensibles para prevenir ataques de fuerza bruta<br/>
+      • Sanitización de inputs para prevenir inyección NoSQL y XSS<br/>
+      • Variables de entorno para secretos — nunca en código fuente<br/>
+      • Cabeceras de seguridad HTTP (Helmet.js)<br/><br/>
+      En caso de brecha de seguridad que afecte tus datos personales, notificaremos a los usuarios afectados y a la Superintendencia de Industria y Comercio (Colombia) dentro de los plazos establecidos por la ley.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">6. Retención y eliminación de datos</span></div>
       <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">
-        Tienes derecho a:<br/>
-        • <strong>Acceder</strong> a tus datos (Perfil → Exportar mis datos)<br/>
-        • <strong>Rectificar</strong> información incorrecta (Perfil → Editar)<br/>
-        • <strong>Eliminar</strong> tu cuenta y todos tus datos (Perfil → Zona de peligro)<br/>
-        • <strong>Portabilidad</strong> de datos en formato JSON<br/>
-        • <strong>Oposición</strong> al procesamiento: escríbenos a zyra.ia.2026@gmail.com
-      </p>
+      <strong>Datos de cuenta y contenido personal:</strong> conservados mientras la cuenta esté activa. Al eliminar la cuenta, todos los datos se eliminan permanentemente en un plazo máximo de <strong>30 días calendario</strong>.<br/><br/>
+      <strong>Conversaciones de IA:</strong> almacenadas hasta que el usuario las elimine o cierre la cuenta. El historial se limita a las últimas 200 interacciones por conversación para optimizar rendimiento.<br/><br/>
+      <strong>Registros de facturación:</strong> retenidos por <strong>5 años</strong> según el artículo 28 del Estatuto Tributario colombiano y normas concordantes. Solo se conserva información de transacción (plan, fecha, monto, ID de sesión Stripe) — sin datos de tarjeta.<br/><br/>
+      <strong>Logs de seguridad (IP, intentos de acceso):</strong> máximo 90 días.<br/><br/>
+      <strong>Copias de seguridad:</strong> las copias automáticas de MongoDB Atlas se eliminan en un plazo de 7 días después de la eliminación de la cuenta principal.</p>
     </div>
 
     <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">5. Cookies y almacenamiento local</span></div>
-      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Zyra usa <strong>localStorage</strong> del navegador para guardar tu sesión (token JWT), preferencias de tema y configuración del avatar. No usamos cookies de seguimiento ni publicidad.</p>
+      <div class="card-header"><span class="card-title">7. Tus derechos — cómo ejercerlos</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Conforme a la Ley 1581 de 2012 (Colombia) y al RGPD (para usuarios de la UE), tienes derecho a:<br/><br/>
+      <strong>📂 Acceso:</strong> Saber qué datos tenemos sobre ti. Puedes exportarlos en Perfil → Exportar mis datos (formato JSON).<br/>
+      <strong>✏️ Rectificación:</strong> Corregir datos inexactos. Desde Perfil → Editar información.<br/>
+      <strong>🗑️ Supresión ("derecho al olvido"):</strong> Eliminar tu cuenta y todos tus datos en Perfil → Zona de peligro → Eliminar mi cuenta. Responderemos en máximo 10 días hábiles.<br/>
+      <strong>📦 Portabilidad:</strong> Recibir tus datos en formato JSON (Perfil → Exportar mis datos).<br/>
+      <strong>🚫 Oposición:</strong> Oponerte al tratamiento de tus datos por razones legítimas, contactándonos por correo.<br/>
+      <strong>⏸️ Limitación:</strong> Solicitar que limitemos el tratamiento en casos específicos (ej: datos bajo disputa).<br/>
+      <strong>↩️ Retiro del consentimiento:</strong> Puedes retirar tu consentimiento en cualquier momento eliminando tu cuenta. El retiro no afecta la licitud del tratamiento previo.<br/><br/>
+      Para ejercer cualquier derecho: <a href="mailto:zyra.ia.2026@gmail.com" style="color:#818cf8">zyra.ia.2026@gmail.com</a> con asunto "Ejercicio de derechos HABEAS DATA". Responderemos en máximo <strong>10 días hábiles</strong> conforme al artículo 14 de la Ley 1581 de 2012.<br/><br/>
+      También puedes presentar queja ante la <strong>Superintendencia de Industria y Comercio</strong> (Colombia): <a href="https://www.sic.gov.co" target="_blank" rel="noopener" style="color:#818cf8">www.sic.gov.co</a></p>
     </div>
 
     <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">6. Retención de datos</span></div>
-      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Conservamos tus datos mientras tengas una cuenta activa. Al eliminar tu cuenta, todos tus datos se borran permanentemente en un plazo de 30 días. Los registros de facturación se retienen 5 años por obligación legal.</p>
+      <div class="card-header"><span class="card-title">8. Almacenamiento local y no uso de cookies</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Zyra usa exclusivamente el <strong>localStorage</strong> del navegador para:<br/><br/>
+      • Token de sesión JWT (autenticación)<br/>
+      • Plan activo y preferencias de UI (tema, avatar, idioma)<br/>
+      • Estado del borrador del diario y notificaciones ya vistas<br/>
+      • Consentimiento GDPR y estado de términos aceptados<br/><br/>
+      <strong>No usamos cookies de seguimiento, cookies de terceros ni píxeles de publicidad de ningún tipo.</strong> No realizamos seguimiento entre sitios web ni fingerprinting de dispositivos. El almacenamiento local puede borrarse desde la configuración del navegador en cualquier momento.</p>
     </div>
 
     <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">7. Servicios de terceros</span></div>
-      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">
-        • <strong>Groq/Meta Llama:</strong> Procesa mensajes para generar respuestas de IA (no almacena historial)<br/>
-        • <strong>Stripe:</strong> Procesamiento de pagos (PCI DSS compliant)<br/>
-        • <strong>ElevenLabs:</strong> Síntesis de voz (texto a audio)<br/>
-        • <strong>Google Fonts:</strong> Tipografías (puede registrar IP)<br/>
-        • <strong>MongoDB Atlas:</strong> Almacenamiento de datos (cifrado en reposo)
-      </p>
+      <div class="card-header"><span class="card-title">9. Datos de menores de edad</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Zyra no recopila intencionalmente información de personas menores de 13 años. Los usuarios de entre 13 y 17 años deben contar con el consentimiento documentado de sus padres o tutores.<br/><br/>
+      Si como padre, madre o tutor detectas que un menor a tu cargo tiene una cuenta en Zyra sin tu autorización, contáctanos a <a href="mailto:zyra.ia.2026@gmail.com" style="color:#818cf8">zyra.ia.2026@gmail.com</a> y procederemos a eliminar la cuenta y todos sus datos en un plazo máximo de <strong>48 horas</strong>.</p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">10. Notificación de brechas de seguridad</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">En caso de incidente de seguridad que comprometa tus datos personales:<br/><br/>
+      • Notificaremos a los usuarios afectados por correo electrónico dentro de las <strong>72 horas</strong> de detectar el incidente, indicando la naturaleza, datos afectados y medidas adoptadas.<br/>
+      • Reportaremos el incidente ante la Superintendencia de Industria y Comercio (Colombia) conforme a la Circular Única y normas aplicables.<br/>
+      • Para usuarios de la UE, cumpliremos con los plazos del artículo 33 del RGPD.</p>
     </div>
 
     <div class="card">
-      <div class="card-header"><span class="card-title">8. Contacto DPO</span></div>
-      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Para ejercer tus derechos o cualquier consulta sobre privacidad: <a href="mailto:zyra.ia.2026@gmail.com" style="color:#818cf8">zyra.ia.2026@gmail.com</a></p>
+      <div class="card-header"><span class="card-title">11. Cambios a esta política</span></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin:0">Podemos actualizar esta Política periódicamente. Los cambios materiales se notificarán por correo electrónico con al menos <strong>15 días de anticipación</strong> y se requerirá nueva aceptación en la aplicación. La versión vigente y su fecha siempre estarán disponibles en esta página.<br/><br/>
+      <strong>Contacto Responsable de Privacidad (DPO):</strong><br/>
+      📧 <a href="mailto:zyra.ia.2026@gmail.com" style="color:#818cf8">zyra.ia.2026@gmail.com</a><br/>
+      Asunto: "Consulta Privacidad / DPO"<br/><br/>
+      <em>Esta política ha sido redactada con fines informativos y será revisada por asesoría jurídica especializada antes del lanzamiento comercial oficial.</em></p>
     </div>
   </div>
 </div>
@@ -2472,7 +2625,8 @@ async function doLoginVerify() {
     } catch(e) {}
     loadPlanStatus();
     loadGamification();
-    if (!d.user.termsAcceptedAt && !localStorage.getItem("zyra_terms_accepted")) {
+    const TERMS_VER = "v1.1-2026-07";
+    if (!d.user.termsAcceptedAt || localStorage.getItem("zyra_terms_accepted") !== TERMS_VER) {
       _termsNextAction = "dashboard";
       showTermsOverlay();
     } else {
@@ -2521,7 +2675,8 @@ async function doRegisterVerify() {
     if (user?.name) {
       api("/auth/update-profile", "PUT", { name: user.name }).catch(() => {});
     }
-    if (!d.user.termsAcceptedAt && !localStorage.getItem("zyra_terms_accepted")) {
+    const TERMS_VER2 = "v1.1-2026-07";
+    if (!d.user.termsAcceptedAt || localStorage.getItem("zyra_terms_accepted") !== TERMS_VER2) {
       _termsNextAction = "test";
       showTermsOverlay();
     } else {
@@ -2552,16 +2707,19 @@ function onTermsScroll(el) { /* reserved for future scroll-tracking */ }
 function updateTermsBtn() {
   const c1 = document.getElementById("tc-check-1")?.checked;
   const c2 = document.getElementById("tc-check-2")?.checked;
+  const c3 = document.getElementById("tc-check-3")?.checked;
+  const all = c1 && c2 && c3;
   const btn = document.getElementById("btn-accept-terms");
   if(!btn) return;
-  btn.disabled = !(c1 && c2);
-  btn.style.background = (c1 && c2) ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "rgba(99,102,241,.3)";
-  btn.style.color = (c1 && c2) ? "white" : "rgba(255,255,255,.4)";
-  btn.textContent = (c1 && c2) ? "Acepto y quiero continuar →" : "Acepta los dos puntos para continuar";
+  btn.disabled = !all;
+  btn.style.background = all ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "rgba(99,102,241,.3)";
+  btn.style.color = all ? "white" : "rgba(255,255,255,.4)";
+  const remaining = [!c1 && "Términos", !c2 && "Salud mental", !c3 && "Edad"].filter(Boolean);
+  btn.textContent = all ? "He leído y acepto — Continuar →" : `Faltan: ${remaining.join(", ")}`;
 }
 async function acceptTermsAndContinue() {
   try { await api("/auth/accept-terms", "POST"); } catch(e) {}
-  localStorage.setItem("zyra_terms_accepted", "v1.0-2026-07");
+  localStorage.setItem("zyra_terms_accepted", "v1.1-2026-07");
   const overlay = document.getElementById("zyra-terms-overlay");
   if(overlay) overlay.style.display = "none";
   document.body.style.overflow = "";
@@ -2583,6 +2741,32 @@ function initGdprBanner() {
     if(b) b.style.display = "flex";
   }
 }
+
+/* ── DETECCIÓN DE RED OFFLINE/ONLINE ── */
+(function initNetworkDetection() {
+  const BANNER_ID = "zyra-offline-banner";
+  function showOffline() {
+    if (document.getElementById(BANNER_ID)) return;
+    const el = document.createElement("div");
+    el.id = BANNER_ID;
+    el.setAttribute("role", "status");
+    el.setAttribute("aria-live", "assertive");
+    el.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:9800;background:#1f2937;color:#f9fafb;text-align:center;padding:10px 16px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.4)";
+    el.innerHTML = '<span>📡 Sin conexión — los cambios se reanudarán cuando vuelva la red</span>';
+    document.body.prepend(el);
+  }
+  function hideOffline() {
+    const el = document.getElementById(BANNER_ID);
+    if (el) {
+      el.innerHTML = '<span>✅ Conexión restaurada</span>';
+      el.style.background = "#065f46";
+      setTimeout(() => el.remove(), 2500);
+    }
+  }
+  if (!navigator.onLine) showOffline();
+  window.addEventListener("offline", showOffline);
+  window.addEventListener("online",  hideOffline);
+}());
 function initPasswordToggles() {
   document.querySelectorAll(".input-wrap input[type='password']").forEach(inp => {
     if(inp.parentNode.querySelector(".pw-toggle")) return;
@@ -3226,19 +3410,51 @@ function updatePasswordStrength(pass) {
 async function loadSubscriptionInfo() {
   try {
     const d = await api("/profile/plan");
-    const planMap = { free: { label: "Plan Gratis", desc: "20 mensajes/día · 3 metas · 5 entradas de diario", color: "#6b7280" }, basic: { label: "Plan Básico", desc: "100 mensajes/día · 10 metas · 30 entradas", color: "#6366f1" }, premium: { label: "Plan Premium", desc: "Mensajes ilimitados · Todo desbloqueado", color: "#f59e0b" } };
+    const planMap = {
+      free:    { label: "Plan Gratis",   desc: "20 mensajes/día · 3 metas · 5 entradas de diario", color: "#6b7280" },
+      basic:   { label: "Plan Básico",   desc: "100 mensajes/día · 10 metas · 30 entradas · Diario ilimitado", color: "#6366f1" },
+      premium: { label: "Plan Premium",  desc: "Mensajes ilimitados · Voz IA · PDF · Todo desbloqueado", color: "#f59e0b" },
+    };
     const info = planMap[d.plan] || planMap.free;
     const badge = document.getElementById("sub-plan-badge");
     const desc  = document.getElementById("sub-plan-desc");
-    const cancelBtn = document.getElementById("btn-cancel-plan");
+    const cancelBtn  = document.getElementById("btn-cancel-plan");
     const upgradeBtn = document.getElementById("btn-upgrade-plan");
-    if(badge) { badge.textContent = info.label; badge.style.background = info.color + "22"; badge.style.color = info.color; badge.style.border = "1px solid " + info.color + "44"; }
-    if(desc) desc.textContent = info.desc;
-    if(cancelBtn) cancelBtn.style.display = d.plan !== "free" ? "inline-flex" : "none";
-    if(upgradeBtn) upgradeBtn.style.display = d.plan === "premium" ? "none" : "inline-flex";
-    const portalBtn = document.getElementById("btn-billing-portal");
-    if(portalBtn) portalBtn.style.display = d.plan !== "free" ? "inline-flex" : "none";
+    const portalBtn  = document.getElementById("btn-billing-portal");
+    if (badge) { badge.textContent = info.label; badge.style.background = info.color + "22"; badge.style.color = info.color; badge.style.border = "1px solid " + info.color + "44"; }
+
+    // Expiry info
+    let descText = info.desc;
+    if (d.plan !== "free" && d.planExpiresAt) {
+      const exp = new Date(d.planExpiresAt);
+      const daysLeft = Math.ceil((exp - Date.now()) / 86400000);
+      const expStr = exp.toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" });
+      if (daysLeft > 0) {
+        descText += ` · Vence el ${expStr} (${daysLeft} día${daysLeft !== 1 ? "s" : ""})`;
+      } else {
+        descText += " · Plan vencido";
+      }
+      // Show warning banner in dashboard if ≤ 3 days
+      if (daysLeft <= 3 && daysLeft > 0) showPlanExpiryBanner(daysLeft, d.plan);
+    }
+    if (desc) desc.textContent = descText;
+
+    if (cancelBtn)  cancelBtn.style.display  = d.plan !== "free" ? "inline-flex" : "none";
+    if (upgradeBtn) upgradeBtn.style.display = d.plan === "premium" ? "none" : "inline-flex";
+    if (portalBtn)  portalBtn.style.display  = d.plan !== "free" ? "inline-flex" : "none";
   } catch(e) {}
+}
+
+function showPlanExpiryBanner(daysLeft, plan) {
+  if (document.getElementById("plan-expiry-banner")) return;
+  const planNames = { basic: "Básico", premium: "Premium" };
+  const banner = document.createElement("div");
+  banner.id = "plan-expiry-banner";
+  banner.setAttribute("role", "alert");
+  banner.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:8900;background:linear-gradient(90deg,#f59e0b,#d97706);color:#fff;text-align:center;padding:10px 48px 10px 16px;font-size:13px;font-weight:700;line-height:1.4;box-shadow:0 2px 8px rgba(0,0,0,.3)";
+  banner.innerHTML = `⚠️ Tu Plan ${planNames[plan] || plan} vence en <strong>${daysLeft} día${daysLeft !== 1 ? "s" : ""}</strong>. <a onclick="showPage('planes')" style="color:#fff;text-decoration:underline;cursor:pointer">Renovar ahora →</a>
+    <button onclick="this.parentNode.remove()" aria-label="Cerrar aviso" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,.8);font-size:18px;cursor:pointer;line-height:1">×</button>`;
+  document.body.prepend(banner);
 }
 async function openBillingPortal() {
   const btn = document.getElementById("btn-billing-portal");
