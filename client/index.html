@@ -112,8 +112,8 @@
 
       <!-- Links a documentos completos -->
       <div style="display:flex;gap:10px;margin-bottom:16px">
-        <button onclick="showLegal('terms')" style="flex:1;padding:11px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:var(--text2,#c0c4d8);font-size:12px;cursor:pointer;font-weight:600">📄 Leer Términos completos</button>
-        <button onclick="showLegal('privacy')" style="flex:1;padding:11px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:var(--text2,#c0c4d8);font-size:12px;cursor:pointer;font-weight:600">🔒 Leer Privacidad completa</button>
+        <button onclick="window.open('/legal?tab=terms','_blank','noopener')" style="flex:1;padding:11px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:var(--text2,#c0c4d8);font-size:12px;cursor:pointer;font-weight:600">📄 Leer Términos completos ↗</button>
+        <button onclick="window.open('/legal?tab=privacy','_blank','noopener')" style="flex:1;padding:11px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:var(--text2,#c0c4d8);font-size:12px;cursor:pointer;font-weight:600">🔒 Leer Privacidad completa ↗</button>
       </div>
 
       <!-- Checkboxes -->
@@ -681,8 +681,8 @@
   <button class="mobile-nav-btn" onclick="showPage('journal')" data-page="journal">
     <span class="mnb-icon">📔</span><span class="mnb-label">Diario</span>
   </button>
-  <button class="mobile-nav-btn" onclick="showPage('analytics')" data-page="analytics">
-    <span class="mnb-icon">📊</span><span class="mnb-label">Análisis</span>
+  <button class="mobile-nav-btn" onclick="showPage('wellness')" data-page="wellness">
+    <span class="mnb-icon">🧘</span><span class="mnb-label">Bienestar</span>
   </button>
   <button class="mobile-nav-btn" onclick="showPage('profile')" data-page="profile">
     <span class="mnb-icon">👤</span><span class="mnb-label">Perfil</span>
@@ -4351,7 +4351,12 @@ function startBreath() {
   const secs   = document.getElementById("breath-secs");
   const inst   = document.getElementById("breath-inst");
   if(!circle) return;
+  // Resetear estado visual antes de arrancar
+  circle.className = "breath-circle";
+  if(label) label.textContent = "Preparando...";
   secs.style.display = "block";
+  secs.textContent = "";
+  if(inst) inst.textContent = "Respira con el círculo";
   const phases = [{t:"Inhala",d:4,cls:"inhale"},{t:"Mantén",d:7,cls:""},{t:"Exhala",d:8,cls:"exhale"}];
   let phaseIdx = 0, cycleCount = 0, totalCycles = 4;
   function runPhase() {
@@ -4379,7 +4384,17 @@ function startBreath() {
   }
   runPhase();
 }
-function stopBreath() { if(breathTimer) { clearTimeout(breathTimer); breathTimer = null; } }
+function stopBreath() {
+  if(breathTimer) { clearTimeout(breathTimer); breathTimer = null; }
+  const circle = document.getElementById("breath-circle");
+  const label  = document.getElementById("breath-label");
+  const secs   = document.getElementById("breath-secs");
+  const inst   = document.getElementById("breath-inst");
+  if(circle) circle.className = "breath-circle";
+  if(label)  label.textContent = "Listo";
+  if(secs)   secs.style.display = "none";
+  if(inst)   inst.textContent = "Presiona iniciar cuando estés en un lugar cómodo";
+}
 
 function renderMeditation(el) {
   const items = [
@@ -4501,10 +4516,19 @@ function playMedia(query, title, playerId) {
         const videoId = data.items?.[0]?.id?.videoId;
         const frameDiv = document.getElementById(pid);
         if(videoId && frameDiv) {
-          frameDiv.innerHTML = `<iframe width="100%" height="100%"
-            src="https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0"
-            frameborder="0" allow="autoplay;encrypted-media" allowfullscreen
-            style="aspect-ratio:16/9;width:100%;display:block"></iframe>`;
+          const ytUrl = `https://www.youtube.com/watch?v=${videoId}`;
+          frameDiv.innerHTML = `
+            <div style="border-radius:10px;overflow:hidden;position:relative;background:#000">
+              <iframe id="yt-frame-${pid}" width="100%" height="100%"
+                src="https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0"
+                frameborder="0" allow="autoplay;encrypted-media" allowfullscreen
+                style="aspect-ratio:16/9;width:100%;display:block"
+                onerror="this.parentElement.innerHTML='<div style=&quot;padding:24px;text-align:center&quot;><p style=&quot;color:#aaa;font-size:13px;margin-bottom:12px&quot;>Este video no permite reproducción integrada</p><a href=&quot;${ytUrl}&quot; target=&quot;_blank&quot; style=&quot;background:#ff0000;color:white;padding:10px 20px;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none&quot;>▶ Ver en YouTube</a></div>'">
+              </iframe>
+            </div>
+            <div style="margin-top:6px;text-align:right">
+              <a href="${ytUrl}" target="_blank" rel="noopener" style="font-size:11px;color:var(--text3);text-decoration:none">↗ Ver en YouTube</a>
+            </div>`;
         } else if(frameDiv) {
           frameDiv.innerHTML = `<div style="padding:24px;text-align:center"><a href="https://www.youtube.com/results?search_query=${encodeURIComponent(q)}" target="_blank" style="background:#ff0000;color:white;padding:10px 20px;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none">▶ Ver en YouTube</a></div>`;
         }
@@ -5382,12 +5406,18 @@ window.addEventListener("load", () => {
     };
     sr.onend = () => { setListening(false); };
   }
-  if(token && user) {
+  // Página legal accesible sin login (abierta desde el overlay de términos)
+  const _urlPs = new URLSearchParams(window.location.search);
+  const _legalTab = _urlPs.get('tab');
+  if (_legalTab === 'terms' || _legalTab === 'privacy') {
+    showPage('legal');
+    showLegalTab(_legalTab);
+  } else if(token && user) {
     updateNav();
     checkPinOnLoad();
     loadAndApplyTheme();
     // Respetar deep link (?p=) o ir al dashboard
-    const urlPage = new URLSearchParams(window.location.search).get('p');
+    const urlPage = _urlPs.get('p');
     const authPages = ['login','register','verify-login','verify-register'];
     const startPage = (urlPage && !authPages.includes(urlPage)) ? urlPage : 'dashboard';
     showPage(startPage);
@@ -5553,6 +5583,7 @@ function endVoiceCall() {
   if(vcTimer) { clearInterval(vcTimer); vcTimer = null; }
   if(vcSR) { try { vcSR.abort(); } catch(e){} vcSR = null; }
   window.speechSynthesis.cancel();
+  if(_vcAudioPlaying) { try { _vcAudioPlaying.pause(); _vcAudioPlaying.currentTime = 0; } catch(e){} _vcAudioPlaying = null; }
   vcListening = false; vcSpeaking = false;
   vcSetBodyClass(false);
   if(vcConvId) currentConvId = vcConvId;
@@ -5813,38 +5844,52 @@ async function zyraChatSpeak(text) {
   } catch(e) { /* chat sigue funcionando sin audio */ }
 }
 
+let _ttsAbort = null;
 async function speakMsgEL(btn, text) {
-  if (btn && btn.classList.contains("speaking")) {
+  // Si ya está cargando o hablando → parar todo
+  if (btn && (btn.classList.contains("speaking") || btn.classList.contains("loading"))) {
+    if (_ttsAbort) { _ttsAbort.abort(); _ttsAbort = null; }
     if (_chatAudio) { try { _chatAudio.pause(); } catch(e){} _chatAudio = null; }
-    btn.classList.remove("speaking"); btn.textContent = "🔊";
+    if (btn) { btn.classList.remove("speaking","loading"); btn.textContent = "🔊"; }
     if (currentTTSBtn === btn) currentTTSBtn = null;
     return;
   }
+  // Parar cualquier audio previo
+  if (_ttsAbort) { _ttsAbort.abort(); _ttsAbort = null; }
   if (_chatAudio) { try { _chatAudio.pause(); } catch(e){} _chatAudio = null; }
-  if (currentTTSBtn) { currentTTSBtn.classList.remove("speaking"); currentTTSBtn.textContent = "🔊"; currentTTSBtn = null; }
+  if (currentTTSBtn) { currentTTSBtn.classList.remove("speaking","loading"); currentTTSBtn.textContent = "🔊"; currentTTSBtn = null; }
   window.speechSynthesis.cancel();
   const clean = cleanTTS(text); if (!clean) return;
-  if (btn) { btn.classList.add("speaking"); btn.textContent = "⏹"; currentTTSBtn = btn; }
+  // Estado: cargando
+  if (btn) { btn.classList.add("loading"); btn.textContent = "⏳"; currentTTSBtn = btn; }
+  const ac = new AbortController(); _ttsAbort = ac;
   try {
     const r = await fetch('/api/tts/audio', {
-      method: 'POST',
+      method: 'POST', signal: ac.signal,
       headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
       body: JSON.stringify({ text: clean }),
     });
     if (!r.ok) throw new Error('tts');
     const blob = await r.blob(); const url = URL.createObjectURL(blob);
+    if (ac.signal.aborted) { URL.revokeObjectURL(url); return; }
+    // Estado: reproduciendo
+    if (btn) { btn.classList.remove("loading"); btn.classList.add("speaking"); btn.textContent = "⏹"; }
     const audio = new Audio(url); _chatAudio = audio;
     const done = () => {
       URL.revokeObjectURL(url);
       if (_chatAudio === audio) _chatAudio = null;
-      if (btn) { btn.classList.remove("speaking"); btn.textContent = "🔊"; }
+      if (btn) { btn.classList.remove("speaking","loading"); btn.textContent = "🔊"; }
       if (currentTTSBtn === btn) currentTTSBtn = null;
     };
     audio.onended = done; audio.onerror = done;
     audio.play().catch(done);
   } catch(e) {
-    if (btn) { btn.classList.remove("speaking"); btn.textContent = "🔊"; }
-    if (currentTTSBtn === btn) currentTTSBtn = null;
+    if (!ac.signal.aborted) {
+      if (btn) { btn.classList.remove("speaking","loading"); btn.textContent = "🔊"; }
+      if (currentTTSBtn === btn) currentTTSBtn = null;
+    }
+  } finally {
+    if (_ttsAbort === ac) _ttsAbort = null;
   }
 }
 
@@ -7808,6 +7853,48 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <span class="pm-method-check">✓</span>
           </button>
+          <button id="pm-method-nequi" onclick="selectPayMethod('nequi')" class="pm-method-btn">
+            <span style="font-size:20px">📱</span>
+            <div style="text-align:left;flex:1">
+              <div style="font-weight:700;font-size:13px">Nequi</div>
+              <div style="font-size:11px;opacity:.7">Paga directo desde tu app Nequi</div>
+            </div>
+            <span class="pm-method-check">✓</span>
+          </button>
+          <button id="pm-method-pse" onclick="selectPayMethod('pse')" class="pm-method-btn">
+            <span style="font-size:20px">🏦</span>
+            <div style="text-align:left;flex:1">
+              <div style="font-weight:700;font-size:13px">PSE — Débito bancario</div>
+              <div style="font-size:11px;opacity:.7">Bancolombia, Davivienda, BBVA y más</div>
+            </div>
+            <span class="pm-method-check">✓</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Formulario Nequi -->
+      <div id="pm-form-nequi" style="display:none;margin-bottom:20px">
+        <div style="background:rgba(130,71,229,.08);border:1px solid rgba(130,71,229,.2);border-radius:14px;padding:16px">
+          <div style="font-weight:700;font-size:13px;color:#a78bfa;margin-bottom:8px">📱 Pago por Nequi</div>
+          <div style="font-size:12px;color:var(--text3,#7880a0);line-height:1.6;margin-bottom:12px">Ingresa tu número Nequi y recibirás una notificación de pago en tu app.</div>
+          <label style="font-size:11px;font-weight:700;color:var(--text3);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">Número de celular Nequi</label>
+          <input id="pm-nequi-phone" type="tel" maxlength="10" placeholder="300 000 0000"
+            style="width:100%;padding:12px 14px;background:var(--surface,#1e2235);border:1.5px solid var(--border,#2a2f45);border-radius:12px;color:var(--text,#e8eaf6);font-size:15px;outline:none;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif"/>
+        </div>
+      </div>
+
+      <!-- Formulario PSE -->
+      <div id="pm-form-pse" style="display:none;margin-bottom:20px">
+        <div style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:14px;padding:16px">
+          <div style="font-weight:700;font-size:13px;color:#34d399;margin-bottom:8px">🏦 Pago por PSE</div>
+          <div style="font-size:12px;color:var(--text3,#7880a0);line-height:1.6;margin-bottom:12px">Serás redirigido a tu banco para completar el pago de forma segura.</div>
+          <label style="font-size:11px;font-weight:700;color:var(--text3);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">Banco</label>
+          <select id="pm-pse-bank" style="width:100%;padding:12px 14px;background:var(--surface,#1e2235);border:1.5px solid var(--border,#2a2f45);border-radius:12px;color:var(--text,#e8eaf6);font-size:14px;outline:none;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif">
+            <option value="">Selecciona tu banco</option>
+            <option>Bancolombia</option><option>Davivienda</option><option>BBVA</option>
+            <option>Banco de Bogotá</option><option>AV Villas</option><option>Banco Popular</option>
+            <option>Colpatria</option><option>Occidente</option><option>Agrario</option>
+          </select>
         </div>
       </div>
 
@@ -7964,11 +8051,13 @@ function selectPayPeriod(p) {
 }
 
 function selectPayMethod(m) {
-  _pmMethod = 'card';
-  const btn = document.getElementById('pm-method-card');
-  if (btn) btn.classList.add('pm-method-active');
-  const form = document.getElementById('pm-form-card');
-  if (form) form.style.display = 'block';
+  _pmMethod = m;
+  ['card','nequi','pse'].forEach(v => {
+    const btn  = document.getElementById('pm-method-' + v);
+    const form = document.getElementById('pm-form-' + v);
+    if (btn)  btn.classList.toggle('pm-method-active', v === m);
+    if (form) form.style.display = v === m ? 'block' : 'none';
+  });
 }
 
 function fmtCard(el) {

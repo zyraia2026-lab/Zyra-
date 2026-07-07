@@ -3320,3 +3320,28 @@ body {
     grid-template-columns: repeat(2, 1fr) !important;
   }
 }
+
+/* ── Auth pages: acento siempre morado, sin importar el tema del usuario ── */
+#page-login, #page-register,
+#page-forgot-password, #page-reset-password,
+#page-verify-login, #page-verify-register {
+  --accent: #6366f1;
+  --grad: linear-gradient(135deg, #6366f1, #8b5cf6);
+}
+
+/* ── Forgot / Reset: fondo propio (no tienen panel izquierdo) ── */
+#page-forgot-password .auth-wrap,
+#page-reset-password .auth-wrap {
+  grid-template-columns: 1fr;
+  background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #1a1040 100%);
+  align-items: center;
+  justify-items: center;
+  padding: 40px 20px;
+}
+#page-forgot-password .auth-right,
+#page-reset-password .auth-right {
+  grid-column: 1;
+}
+
+/* ── Ambient: click en slider no activa el toggle del sonido ── */
+.ambient-item { user-select: none; }
