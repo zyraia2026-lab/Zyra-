@@ -5,7 +5,7 @@ const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 const ytLimiter = rateLimit({
   windowMs: 60_000,
   max: 20,
-  keyGenerator: (req) => req.user?._id?.toString() || ipKeyGenerator(req),
+  keyGenerator: (req) => req.user?._id?.toString() || ipKeyGenerator(req.ip),
   message: { message: "Demasiadas búsquedas. Espera un momento." },
   standardHeaders: true, legacyHeaders: false,
 });
