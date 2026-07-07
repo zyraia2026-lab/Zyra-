@@ -8,6 +8,7 @@ const S = new mongoose.Schema({
   dueDate:   { type: Date },
   priority:  { type: String, enum: ["alta","media","baja"], default: "media" },
   progress:  { type: Number, min: 0, max: 100, default: 0 },
+  notes:     [{ text: { type: String, required: true }, date: { type: Date, default: Date.now } }],
   createdAt: { type: Date, default: Date.now }
 });
 S.index({ user: 1, createdAt: -1 });

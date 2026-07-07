@@ -63,3 +63,25 @@ exports.deleteGoal = async (req, res) => {
     res.json({ success: true });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
+
+exports.addGoalNote = async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text?.trim()) return res.status(400).json({ message: "El texto de la nota es requerido" });
+    const goal = await Goal.findOne({ _id: req.params.id, user: req.user._id });
+    if (!goal) return res.status(404).json({ message: "Meta no encontrada" });
+    goal.notes.push({ text: text.trim(), date: new Date() });
+    await goal.save();
+    res.json({ success: true, goal });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+};
+
+exports.deleteGoalNote = async (req, res) => {
+  try {
+    const goal = await Goal.findOne({ _id: req.params.id, user: req.user._id });
+    if (!goal) return res.status(404).json({ message: "Meta no encontrada" });
+    goal.notes = goal.notes.filter(n => n._id.toString() !== req.params.noteId);
+    await goal.save();
+    res.json({ success: true, goal });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+};

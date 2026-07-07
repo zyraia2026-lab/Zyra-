@@ -1549,6 +1549,8 @@
     <button class="wellness-tab" id="wtab-affirmations" onclick="openWellness('affirmations')">💫 Afirmaciones</button>
     <button class="wellness-tab" id="wtab-gratitude" onclick="openWellness('gratitude')">🙏 Gratitud</button>
     <button class="wellness-tab" id="wtab-water" onclick="openWellness('water')">💧 Agua</button>
+    <button class="wellness-tab" id="wtab-sleep" onclick="openWellness('sleep')">😴 Sueño</button>
+    <button class="wellness-tab" id="wtab-focus" onclick="openWellness('focus')">⏱ Enfoque</button>
   </div>
   <div id="wellness-content"></div>
 </div>
@@ -3398,6 +3400,9 @@ function renderAnalytics(d, el) {
     </div>
   </div>` : ""}
 
+  <!-- Mapa de calor emocional -->
+  <div class="card" style="margin-bottom:20px" id="analytics-heatmap-card"></div>
+
   <!-- Reporte semanal -->
   <div class="card" style="margin-bottom:20px;background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.05));border-color:rgba(99,102,241,.2)">
     <div class="card-header"><span class="card-title">📋 Reporte semanal IA</span></div>
@@ -3406,6 +3411,65 @@ function renderAnalytics(d, el) {
   </div>
 
 </div>`;
+  // Render emotion heatmap after HTML is set
+  setTimeout(() => renderEmotionHeatmap(d), 0);
+}
+
+function renderEmotionHeatmap(d) {
+  const card = document.getElementById("analytics-heatmap-card");
+  if (!card) return;
+  const EMOTION_COLOR = { feliz:"#22c55e", tranquilo:"#0ea5e9", motivado:"#6366f1", esperanzado:"#a78bfa", confundido:"#f59e0b", ansioso:"#f97316", agotado:"#94a3b8", triste:"#60a5fa", enojado:"#ef4444", nostalgico:"#e879f9" };
+  const EMOTION_EMOJI = { feliz:"😊", tranquilo:"😌", ansioso:"😰", triste:"😢", enojado:"😤", confundido:"🤔", esperanzado:"🌟", agotado:"😮‍💨", motivado:"💪", nostalgico:"🌅" };
+  // Build day→emotion map from weeklyTrend and emotionFrequency (best we can from server data)
+  // Use journalEntries from cache if available
+  const entries = window._journalCacheForHeatmap || [];
+  const dayMap = {};
+  entries.forEach(e => {
+    const key = new Date(e.createdAt).toDateString();
+    if (!dayMap[key]) dayMap[key] = e.emotion;
+  });
+  // Build last 84 days (12 weeks)
+  const today = new Date(); today.setHours(0,0,0,0);
+  const days = [];
+  for (let i = 83; i >= 0; i--) { const d2 = new Date(today); d2.setDate(today.getDate()-i); days.push(d2); }
+  // Group into weeks (columns)
+  const weeks = [];
+  let week = [];
+  // Pad first week
+  const firstDay = days[0].getDay(); // 0=Sun
+  for (let i = 0; i < firstDay; i++) week.push(null);
+  days.forEach(d2 => { week.push(d2); if (week.length === 7) { weeks.push(week); week = []; } });
+  if (week.length) weeks.push(week);
+  const DAY_LABELS = ["D","L","M","M","J","V","S"];
+  const MONTH_LABELS = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+  // Month label row
+  let monthRow = "";
+  let lastMonth = -1;
+  weeks.forEach((w,wi) => {
+    const d2 = w.find(Boolean);
+    if (d2 && d2.getMonth() !== lastMonth) { lastMonth = d2.getMonth(); monthRow += `<div style="grid-column:${wi+2};font-size:9px;color:var(--text3);padding-bottom:2px;white-space:nowrap">${MONTH_LABELS[d2.getMonth()]}</div>`; }
+  });
+  const cells = weeks.map((w, wi) => w.map((d2, di) => {
+    if (!d2) return `<div style="grid-column:${wi+2};grid-row:${di+2};width:11px;height:11px;border-radius:3px;background:transparent"></div>`;
+    const key = d2.toDateString();
+    const emo = dayMap[key];
+    const color = emo ? EMOTION_COLOR[emo] || "#6366f1" : "var(--border)";
+    const emoji = emo ? EMOTION_EMOJI[emo] || "" : "";
+    const isToday = d2.getTime() === today.getTime();
+    return `<div title="${d2.toLocaleDateString("es")}${emo ? " · "+emoji+" "+emo : ""}" style="grid-column:${wi+2};grid-row:${di+2};width:11px;height:11px;border-radius:3px;background:${color};opacity:${emo?".85":".25"};box-shadow:${isToday?"0 0 0 2px var(--accent)":"none"};cursor:default;transition:transform .1s" onmouseenter="this.style.transform='scale(1.4)'" onmouseleave="this.style.transform='scale(1)'"></div>`;
+  }).join("")).join("");
+  const dayLabelCells = DAY_LABELS.map((l,i) => `<div style="grid-column:1;grid-row:${i+2};font-size:9px;color:var(--text3);display:flex;align-items:center;justify-content:flex-end;padding-right:4px;height:11px">${i%2===1?l:""}</div>`).join("");
+  card.innerHTML = `
+    <div class="card-header"><span class="card-title">🗓 Mapa de emociones (84 días)</span></div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+      <div style="display:inline-grid;grid-template-columns:18px repeat(${weeks.length},13px);grid-template-rows:16px repeat(7,13px);gap:2px;padding:4px 0 8px">
+        ${monthRow}${dayLabelCells}${cells}
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+      ${Object.entries(EMOTION_COLOR).map(([e,c])=>`<div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:2px;background:${c};flex-shrink:0"></div><span style="font-size:10px;color:var(--text3)">${EMOTION_EMOJI[e]||""} ${e}</span></div>`).join("")}
+      <div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:2px;background:var(--border);flex-shrink:0;opacity:.4"></div><span style="font-size:10px;color:var(--text3)">sin registro</span></div>
+    </div>`;
 }
 
 /* ── Weekly Report ── */
@@ -4029,6 +4093,7 @@ async function loadDashboard() {
     renderDashGoals(goals);
     renderMoodMiniTrend(hd.history || []);
     renderJournalMemory(entries);
+    window._journalCacheForHeatmap = entries;
   } catch(e) { console.error(e); }
   loadDailyChallenge();
   loadDailyIntention();
@@ -4208,34 +4273,91 @@ function filterGoalsSearch(q) {
   if (q) filtered = filtered.filter(g => g.title?.toLowerCase().includes(q.toLowerCase()));
   renderGoals(filtered);
 }
+let _goalNotesOpen = null;
 function renderGoals(goals) {
   const el = document.getElementById("goals-list");
   if(!goals.length) { el.innerHTML = '<div class="empty"><span class="empty-icon">🎯</span>No tienes metas aún.<br><button class="btn-sm accent" style="margin-top:10px" onclick="document.getElementById(\'add-goal-form\').classList.add(\'show\')">+ Crear primera meta</button></div>'; return; }
   el.innerHTML = goals.map(g => {
     const prog = g.completed ? 100 : (g.progress || 0);
     const progColor = prog >= 100 ? "#10b981" : prog >= 60 ? "#6366f1" : prog >= 30 ? "#f59e0b" : "#94a3b8";
+    const notes = g.notes || [];
+    const notesOpen = _goalNotesOpen === g._id;
+    const notesHtml = notesOpen ? `
+      <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📝 Notas de progreso</div>
+        ${notes.length ? notes.map(n => `
+          <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;background:var(--surface);border-radius:10px;padding:8px 10px;border:1px solid var(--border)">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;color:var(--text);line-height:1.5">${safeHtml(n.text)}</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:3px">${new Date(n.date).toLocaleDateString("es",{day:"numeric",month:"short",year:"numeric"})}</div>
+            </div>
+            <button onclick="deleteGoalNoteClient('${g._id}','${n._id}')" style="background:none;border:none;color:var(--text3);font-size:14px;cursor:pointer;padding:0;flex-shrink:0;line-height:1;opacity:.6" title="Eliminar nota">✕</button>
+          </div>`).join("") : '<div style="font-size:12px;color:var(--text3);text-align:center;padding:8px">Aún no hay notas. ¡Registra tu progreso!</div>'}
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <input id="goal-note-input-${g._id}" placeholder="¿Cómo va tu progreso?" maxlength="280" style="flex:1;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;padding:8px 10px;outline:none;font-family:inherit" onkeydown="if(event.key==='Enter')addGoalNoteClient('${g._id}')"/>
+          <button onclick="addGoalNoteClient('${g._id}')" style="background:var(--accent);border:none;color:#fff;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">+ Nota</button>
+        </div>
+      </div>` : "";
     return `
-    <div class="goal-item ${g.completed?"done":""}">
-      <div class="goal-check ${g.completed?"checked":""}" onclick="toggleGoal('${g._id}')">✓</div>
-      <div style="flex:1;min-width:0">
-        <div class="goal-text">${safeHtml(g.title)}</div>
-        ${g.reminder?`<div style="font-size:11px;color:var(--text3);margin-top:2px">⏰ ${safeHtml(g.reminder)}</div>`:""}
-        ${g.dueDate ? (() => { const d=new Date(g.dueDate); const now=new Date(); const overdue=!g.completed&&d<now; const soon=!g.completed&&!overdue&&(d-now)<86400000*3; const clr=overdue?"var(--danger)":soon?"#f59e0b":"var(--text3)"; const icon=overdue?"⚠️ Vencida:":soon?"⏳ Pronto:":"📅"; return `<div style="font-size:11px;color:${clr};font-weight:${overdue||soon?700:400}">${icon} ${d.toLocaleDateString("es")}</div>`; })() : ""}
-        <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
-          <div style="flex:1;height:5px;background:var(--border);border-radius:99px;overflow:hidden">
-            <div style="height:100%;width:${prog}%;background:${progColor};border-radius:99px;transition:width .4s"></div>
+    <div class="goal-item ${g.completed?"done":""}" id="goal-item-${g._id}">
+      <div style="display:flex;align-items:flex-start;gap:0;width:100%">
+        <div class="goal-check ${g.completed?"checked":""}" onclick="toggleGoal('${g._id}')" style="margin-top:2px">✓</div>
+        <div style="flex:1;min-width:0">
+          <div class="goal-text">${safeHtml(g.title)}</div>
+          ${g.reminder?`<div style="font-size:11px;color:var(--text3);margin-top:2px">⏰ ${safeHtml(g.reminder)}</div>`:""}
+          ${g.dueDate ? (() => { const d=new Date(g.dueDate); const now=new Date(); const overdue=!g.completed&&d<now; const soon=!g.completed&&!overdue&&(d-now)<86400000*3; const clr=overdue?"var(--danger)":soon?"#f59e0b":"var(--text3)"; const icon=overdue?"⚠️ Vencida:":soon?"⏳ Pronto:":"📅"; return `<div style="font-size:11px;color:${clr};font-weight:${overdue||soon?700:400}">${icon} ${d.toLocaleDateString("es")}</div>`; })() : ""}
+          <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+            <div style="flex:1;height:5px;background:var(--border);border-radius:99px;overflow:hidden">
+              <div style="height:100%;width:${prog}%;background:${progColor};border-radius:99px;transition:width .4s"></div>
+            </div>
+            <span style="font-size:10px;color:var(--text3);white-space:nowrap;font-weight:600">${prog}%</span>
           </div>
-          <span style="font-size:10px;color:var(--text3);white-space:nowrap;font-weight:600">${prog}%</span>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap">
+            <div class="goal-meta" style="margin:0">
+              <span class="goal-cat">${safeHtml(CAT[g.category]||g.category)}</span>
+              <span class="goal-priority-${safeHtml(g.priority)}">● ${safeHtml(g.priority)}</span>
+            </div>
+            <button onclick="toggleGoalNotes('${g._id}')" style="background:none;border:1px solid var(--border);border-radius:8px;color:${notesOpen?"var(--accent)":"var(--text3)"};font-size:11px;padding:3px 8px;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .15s">
+              📝 ${notes.length ? notes.length+" nota"+(notes.length!==1?"s":"") : "Notas"}${notesOpen?" ▲":" ▼"}
+            </button>
+          </div>
+          ${notesHtml}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;margin-left:8px">
+          <button class="btn-xs" onclick="openEditGoal('${g._id}')">✏</button>
+          <button class="goal-del" onclick="deleteGoal('${g._id}')">×</button>
         </div>
       </div>
-      <div class="goal-meta">
-        <span class="goal-cat">${safeHtml(CAT[g.category]||g.category)}</span>
-        <span class="goal-priority-${safeHtml(g.priority)}">● ${safeHtml(g.priority)}</span>
-      </div>
-      <button class="btn-xs" style="margin-right:4px" onclick="openEditGoal('${g._id}')">✏</button>
-      <button class="goal-del" onclick="deleteGoal('${g._id}')">×</button>
     </div>`;
   }).join("");
+}
+function toggleGoalNotes(id) {
+  _goalNotesOpen = _goalNotesOpen === id ? null : id;
+  renderGoals(_goalsAllItems);
+  setTimeout(() => { const item = document.getElementById("goal-item-"+id); if(item) item.scrollIntoView({behavior:"smooth",block:"nearest"}); }, 50);
+}
+async function addGoalNoteClient(goalId) {
+  const inp = document.getElementById("goal-note-input-"+goalId);
+  if(!inp) return;
+  const text = inp.value.trim();
+  if(!text) return zyraToast("Escribe algo primero", "error");
+  try {
+    const d = await api("/goals/"+goalId+"/notes","POST",{text});
+    const idx = _goalsAllItems.findIndex(g => g._id === goalId);
+    if(idx>=0) _goalsAllItems[idx] = d.goal;
+    renderGoalsStats(_goalsAllItems);
+    renderGoals(_goalsAllItems);
+    zyraToast("Nota guardada", "success");
+  } catch(e) { zyraToast(e.message,"error"); }
+}
+async function deleteGoalNoteClient(goalId, noteId) {
+  try {
+    const d = await api("/goals/"+goalId+"/notes/"+noteId,"DELETE");
+    const idx = _goalsAllItems.findIndex(g => g._id === goalId);
+    if(idx>=0) _goalsAllItems[idx] = d.goal;
+    renderGoalsStats(_goalsAllItems);
+    renderGoals(_goalsAllItems);
+  } catch(e) { zyraToast(e.message,"error"); }
 }
 async function addGoal() {
   const title = document.getElementById("goal-title").value.trim();
@@ -4413,6 +4535,7 @@ async function loadJournal() {
   try {
     const d = await api("/journal");
     _journalAllEntries = d.entries || d;
+    window._journalCacheForHeatmap = _journalAllEntries;
     _journalSortAsc = false;
     const btn = document.getElementById("journal-sort-btn");
     if (btn) btn.textContent = "↓ Reciente";
@@ -4949,7 +5072,7 @@ let breathTimer = null, currentWTab = "breath";
 function loadWellness() { openWellness(currentWTab); }
 function openWellness(tab) {
   currentWTab = tab;
-  ["breath","meditation","music","affirmations","gratitude","water"].forEach(t => {
+  ["breath","meditation","music","affirmations","gratitude","water","sleep","focus"].forEach(t => {
     const btn = document.getElementById("wtab-"+t);
     if(btn) btn.className = t===tab ? "wellness-tab active" : "wellness-tab";
   });
@@ -4961,6 +5084,8 @@ function openWellness(tab) {
   else if(tab==="affirmations") renderAffirmations(el);
   else if(tab==="gratitude")    renderGratitude(el);
   else if(tab==="water")        renderWaterTracker(el);
+  else if(tab==="sleep")        renderSleepTracker(el);
+  else if(tab==="focus")        renderPomodoro(el);
 }
 const BREATH_TECHS = {
   '478':  { name:'4-7-8', desc:'Inhala <strong>4</strong>s, mantén <strong>7</strong>s, exhala <strong>8</strong>s. Calma la ansiedad rápidamente.', phases:[{t:"Inhala",d:4,cls:"inhale"},{t:"Mantén",d:7,cls:""},{t:"Exhala",d:8,cls:"exhale"}] },
@@ -10167,6 +10292,207 @@ document.addEventListener('keydown', e => {
     if (m && m.style.display !== "none") { closeQuickNote(); e.stopPropagation(); }
   }
 });
+
+/* ══════════════════════════════════════════
+   SLEEP TRACKER
+══════════════════════════════════════════ */
+function getSleepKey() { return "zyra_sleep_" + new Date().toDateString(); }
+function getSleepHistory() {
+  const hist = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const key = "zyra_sleep_" + d.toDateString();
+    const raw = localStorage.getItem(key);
+    if (raw) { try { hist.push({ ...JSON.parse(raw), date: d }); } catch(e) {} }
+    else hist.push({ hours: null, quality: null, date: d });
+  }
+  return hist;
+}
+function saveSleepToday() {
+  const h = parseFloat(document.getElementById("sleep-hours-input")?.value || "0");
+  const q = parseInt(document.getElementById("sleep-quality-input")?.value || "3");
+  if (!h || h < 1 || h > 24) return zyraToast("Ingresa horas válidas (1-24)", "error");
+  localStorage.setItem(getSleepKey(), JSON.stringify({ hours: h, quality: q }));
+  zyraToast("Sueño registrado 😴", "success");
+  if (navigator.vibrate) navigator.vibrate(30);
+  const wc = document.getElementById("wellness-content");
+  if (wc) renderSleepTracker(wc);
+}
+function renderSleepTracker(el) {
+  const todayData = (() => { try { return JSON.parse(localStorage.getItem(getSleepKey()) || "null"); } catch(e) { return null; } })();
+  const hist = getSleepHistory();
+  const QUALITY_LABELS = ["","Muy malo","Malo","Regular","Bueno","Excelente"];
+  const QUALITY_COLORS = ["","#ef4444","#f97316","#f59e0b","#22c55e","#10b981"];
+  const QUALITY_EMOJI  = ["","😣","😔","😐","🙂","😄"];
+  const avgHours = hist.filter(h => h.hours).reduce((a,b,_,arr) => a + b.hours/arr.length, 0);
+  const avgQuality = hist.filter(h => h.quality).reduce((a,b,_,arr) => a + b.quality/arr.length, 0);
+  const barMax = Math.max(10, ...hist.map(h => h.hours || 0));
+  const SLEEP_TIPS = [
+    "Mantén un horario de sueño consistente, incluso los fines de semana.",
+    "Evita pantallas 1 hora antes de dormir para mejorar la calidad del sueño.",
+    "Una habitación fresca (18-20°C) favorece el sueño profundo.",
+    "El magnesio natural en nueces y espinacas puede mejorar el sueño.",
+    "La respiración 4-7-8 antes de dormir reduce el tiempo en conciliar el sueño.",
+    "Evita la cafeína después de las 2pm para no interrumpir el ciclo de sueño.",
+    "Un cuaderno de notas junto a la cama ayuda a descargar preocupaciones antes de dormir.",
+  ];
+  el.innerHTML = `
+  <div class="card" style="max-width:520px;margin:0 auto">
+    <div class="card-header">
+      <span class="card-title">😴 Registro de Sueño</span>
+      <span style="font-size:12px;color:var(--text3)">7 últimos días</span>
+    </div>
+    <div style="display:flex;gap:12px;margin-bottom:16px">
+      <div style="flex:1;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.15);border-radius:14px;padding:14px;text-align:center">
+        <div style="font-size:24px;font-weight:800;color:var(--accent)">${avgHours ? avgHours.toFixed(1)+"h" : "—"}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">Promedio hrs</div>
+      </div>
+      <div style="flex:1;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.15);border-radius:14px;padding:14px;text-align:center">
+        <div style="font-size:24px;font-weight:800;color:#10b981">${avgQuality ? QUALITY_EMOJI[Math.round(avgQuality)] : "—"}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">Calidad media</div>
+      </div>
+      <div style="flex:1;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.15);border-radius:14px;padding:14px;text-align:center">
+        <div style="font-size:24px;font-weight:800;color:#f59e0b">${hist.filter(h=>h.hours).length}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">Días con datos</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:8px;height:70px;margin-bottom:8px;padding:0 4px">
+      ${hist.map(h => {
+        const barH = h.hours ? Math.round((h.hours / barMax) * 60) + 8 : 4;
+        const clr = h.quality ? QUALITY_COLORS[h.quality] : "var(--border)";
+        const day = h.date.toLocaleDateString("es",{weekday:"short"});
+        const isToday = h.date.toDateString() === new Date().toDateString();
+        return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div title="'+(h.hours ? h.hours+'h · '+(QUALITY_LABELS[h.quality||3]) : 'Sin registro')+'" style="width:100%;height:'+barH+'px;background:'+clr+';border-radius:6px;opacity:'+(h.hours?.8:.3)+';box-shadow:'+(isToday?'0 0 0 2px var(--accent)':'none')+';transition:height .3s"></div><div style="font-size:9px;color:'+(isToday?'var(--accent)':'var(--text3)')+';font-weight:'+(isToday?700:400)+'">'+day+'</div></div>';
+      }).join("")}
+    </div>
+    <div style="display:flex;justify-content:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+      ${QUALITY_LABELS.slice(1).map((l,i)=>'<div style="display:flex;align-items:center;gap:4px"><div style="width:8px;height:8px;border-radius:2px;background:'+QUALITY_COLORS[i+1]+'"></div><span style="font-size:10px;color:var(--text3)">'+l+'</span></div>').join("")}
+    </div>
+    <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">${todayData ? "✏️ Editar registro de hoy" : "🌙 Registrar sueño de anoche"}</div>
+      ${todayData ? '<div style="font-size:13px;color:var(--text3);margin-bottom:12px">Ya registraste: <strong style="color:var(--text)">'+todayData.hours+'h · '+QUALITY_EMOJI[todayData.quality]+' '+QUALITY_LABELS[todayData.quality]+'</strong></div>' : ""}
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <label style="font-size:12px;color:var(--text3);white-space:nowrap;min-width:60px">Horas 😴</label>
+        <input id="sleep-hours-input" type="number" min="1" max="24" step="0.5" value="${todayData?.hours || ""}" placeholder="7.5" style="flex:1;background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;padding:8px 12px;outline:none;font-family:inherit"/>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+          <label style="font-size:12px;color:var(--text3)">Calidad</label>
+          <span id="sleep-q-label" style="font-size:12px;color:var(--accent);font-weight:700">${todayData ? QUALITY_EMOJI[todayData.quality]+" "+QUALITY_LABELS[todayData.quality] : "😐 Regular"}</span>
+        </div>
+        <input id="sleep-quality-input" type="range" min="1" max="5" step="1" value="${todayData?.quality || 3}" style="width:100%;accent-color:var(--accent)"
+          oninput="const l=document.getElementById('sleep-q-label');if(l){const lb=['','😣 Muy malo','😔 Malo','😐 Regular','🙂 Bueno','😄 Excelente'];l.textContent=lb[this.value]||'';}" />
+      </div>
+      <button onclick="saveSleepToday()" style="width:100%;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;padding:12px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer">Guardar registro</button>
+    </div>
+    <div style="background:rgba(14,165,233,.06);border:1px solid rgba(14,165,233,.15);border-radius:14px;padding:14px">
+      <div style="font-size:11px;font-weight:700;color:#38bdf8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">💡 Tip de sueño</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.6">${SLEEP_TIPS[new Date().getDay()]}</div>
+    </div>
+  </div>`;
+}
+
+/* ══════════════════════════════════════════
+   POMODORO / FOCUS TIMER
+══════════════════════════════════════════ */
+let _pomodoroTimer = null;
+let _pomodoroSecsLeft = 25 * 60;
+let _pomodoroRunning = false;
+let _pomodoroMode = "work";
+let _pomodoroRounds = 0;
+const POMODORO_DURATIONS = { work: 25, short: 5, long: 15 };
+
+function pomodoroFormatTime(s) {
+  const m = Math.floor(s / 60); const sec = s % 60;
+  return String(m).padStart(2,"0") + ":" + String(sec).padStart(2,"0");
+}
+
+function renderPomodoro(el) {
+  const modeColor = { work:"#6366f1", short:"#10b981", long:"#f59e0b" };
+  const modeBg = { work:"rgba(99,102,241,.15)", short:"rgba(16,185,129,.15)", long:"rgba(245,158,11,.15)" };
+  const modeLabel = { work:"🍅 Enfoque", short:"☕ Pausa corta", long:"🌿 Pausa larga" };
+  const total = POMODORO_DURATIONS[_pomodoroMode] * 60;
+  const circ = 2 * Math.PI * 78;
+  const offset = circ * (1 - _pomodoroSecsLeft / total);
+  el.innerHTML = `
+  <div class="card" style="max-width:480px;margin:0 auto;text-align:center">
+    <div style="font-size:13px;color:var(--text3);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:16px">Temporizador de Enfoque</div>
+    <div style="display:flex;gap:8px;margin-bottom:24px">
+      ${["work","short","long"].map(m=>'<button onclick="setPomodoroMode(\''+m+'\')" style="flex:1;padding:9px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid '+(_pomodoroMode===m?modeColor[m]:'var(--border)')+';background:'+(_pomodoroMode===m?modeBg[m]:'var(--surface)')+';color:'+(_pomodoroMode===m?modeColor[m]:'var(--text3)')+'">'+modeLabel[m]+'</button>').join("")}
+    </div>
+    <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;margin-bottom:24px">
+      <svg width="180" height="180" viewBox="0 0 180 180" style="transform:rotate(-90deg)">
+        <circle cx="90" cy="90" r="78" fill="none" stroke="var(--border)" stroke-width="8"/>
+        <circle id="pomo-progress-ring" cx="90" cy="90" r="78" fill="none" stroke="${modeColor[_pomodoroMode]}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${offset}" style="transition:stroke-dashoffset .5s linear"/>
+      </svg>
+      <div style="position:absolute;text-align:center">
+        <div id="pomo-time-display" style="font-size:40px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:2px">${pomodoroFormatTime(_pomodoroSecsLeft)}</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px">${modeLabel[_pomodoroMode]}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">Rondas: <strong id="pomo-rounds" style="color:var(--accent)">${_pomodoroRounds}</strong></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;justify-content:center;margin-bottom:16px">
+      <button onclick="togglePomodoro()" id="pomo-btn-start" style="background:linear-gradient(135deg,${_pomodoroMode==="work"?"#6366f1,#8b5cf6":_pomodoroMode==="short"?"#10b981,#059669":"#f59e0b,#d97706"});border:none;color:#fff;padding:14px 36px;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer">${_pomodoroRunning?"⏸ Pausar":"▶ Iniciar"}</button>
+      <button onclick="resetPomodoro()" style="background:var(--surface);border:1.5px solid var(--border);color:var(--text3);padding:14px 20px;border-radius:14px;font-size:14px;cursor:pointer">↺</button>
+    </div>
+    <div id="pomo-sessions-log" style="font-size:12px;color:var(--text3);min-height:20px;margin-bottom:16px">${_pomodoroRounds > 0 ? "🍅".repeat(Math.min(_pomodoroRounds,8))+" "+_pomodoroRounds+" ronda"+((_pomodoroRounds!==1)?"s":"")+" completada"+((_pomodoroRounds!==1)?"s":"") : ""}</div>
+    <div style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.12);border-radius:14px;padding:14px;text-align:left">
+      <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">¿Qué es el método Pomodoro?</div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.7">Trabaja <strong style="color:var(--text)">25 minutos</strong> sin interrupciones, descansa <strong style="color:var(--text)">5 minutos</strong>. Después de 4 rondas, toma una pausa larga. Mejora el enfoque y reduce la fatiga mental.</div>
+    </div>
+  </div>`;
+}
+
+function setPomodoroMode(mode) {
+  if (_pomodoroTimer) { clearInterval(_pomodoroTimer); _pomodoroTimer = null; }
+  _pomodoroRunning = false;
+  _pomodoroMode = mode;
+  _pomodoroSecsLeft = POMODORO_DURATIONS[mode] * 60;
+  const wc = document.getElementById("wellness-content");
+  if (wc) renderPomodoro(wc);
+}
+
+function togglePomodoro() {
+  if (_pomodoroRunning) {
+    clearInterval(_pomodoroTimer); _pomodoroTimer = null; _pomodoroRunning = false;
+    const btn = document.getElementById("pomo-btn-start");
+    if (btn) btn.textContent = "▶ Continuar";
+  } else {
+    _pomodoroRunning = true;
+    const btn = document.getElementById("pomo-btn-start");
+    if (btn) btn.textContent = "⏸ Pausar";
+    _pomodoroTimer = setInterval(() => {
+      _pomodoroSecsLeft--;
+      const disp = document.getElementById("pomo-time-display");
+      const ring = document.getElementById("pomo-progress-ring");
+      const total = POMODORO_DURATIONS[_pomodoroMode] * 60;
+      if (disp) disp.textContent = pomodoroFormatTime(_pomodoroSecsLeft);
+      if (ring) { const circ = 2*Math.PI*78; ring.setAttribute("stroke-dashoffset", circ*(1-_pomodoroSecsLeft/total)); }
+      if (_pomodoroSecsLeft <= 0) {
+        clearInterval(_pomodoroTimer); _pomodoroTimer = null; _pomodoroRunning = false;
+        if (_pomodoroMode === "work") {
+          _pomodoroRounds++;
+          if (navigator.vibrate) navigator.vibrate([100,50,100,50,200]);
+          zyraToast("🍅 ¡Ronda completada! Toma un descanso 😊", "success");
+          setPomodoroMode(_pomodoroRounds % 4 === 0 ? "long" : "short");
+        } else {
+          if (navigator.vibrate) navigator.vibrate([50,30,100]);
+          zyraToast("💪 ¡Descanso terminado! A trabajar", "info");
+          setPomodoroMode("work");
+        }
+      }
+    }, 1000);
+  }
+}
+
+function resetPomodoro() {
+  if (_pomodoroTimer) { clearInterval(_pomodoroTimer); _pomodoroTimer = null; }
+  _pomodoroRunning = false;
+  _pomodoroSecsLeft = POMODORO_DURATIONS[_pomodoroMode] * 60;
+  const wc = document.getElementById("wellness-content");
+  if (wc) renderPomodoro(wc);
+}
+
 </script>
 
 <!-- ══ FLOATING QUICK NOTE ══ -->
