@@ -3419,6 +3419,9 @@ function renderAnalytics(d, el) {
     </div>
   </div>` : ""}
 
+  <!-- Hábitos (local) -->
+  <div class="card" style="margin-bottom:20px" id="analytics-habits-card"></div>
+
   <!-- Mapa de calor emocional -->
   <div class="card" style="margin-bottom:20px" id="analytics-heatmap-card"></div>
 
@@ -3430,8 +3433,8 @@ function renderAnalytics(d, el) {
   </div>
 
 </div>`;
-  // Render emotion heatmap after HTML is set
-  setTimeout(() => renderEmotionHeatmap(d), 0);
+  // Render local cards after HTML is set
+  setTimeout(() => { renderHabitAnalytics(); renderEmotionHeatmap(d); }, 0);
 }
 
 function renderEmotionHeatmap(d) {
@@ -4152,6 +4155,8 @@ async function loadDashboard() {
     if (waterToday < 4) setTimeout(() => zyraToast("💧 Has tomado solo "+waterToday+" vasos hoy. ¡Hidratate!", "info"), 2000);
     else if (waterToday < 8 && hour >= 19) setTimeout(() => zyraToast("💧 "+waterToday+"/8 vasos — ya casi llegas a la meta de hoy", "info"), 2000);
   }
+  // Show daily mood check-in if not done today
+  setTimeout(showDailyCheckin, 1500);
 }
 function renderJournalMemory(entries) {
   const wrap = document.getElementById("journal-memory-wrap");
@@ -10753,6 +10758,101 @@ function resetPomodoro() {
 }
 
 /* ══════════════════════════════════════════
+   HABIT ANALYTICS
+══════════════════════════════════════════ */
+function renderHabitAnalytics() {
+  const card = document.getElementById("analytics-habits-card");
+  if (!card) return;
+  const habits = getHabits();
+  if (!habits.length) { card.innerHTML = ""; return; }
+  const today = new Date();
+  const streaks = habits.map(h => ({ ...h, streak: getHabitStreak(h.id) })).sort((a,b) => b.streak - a.streak);
+  const last30 = Array.from({length:30}, (_,i) => { const d = new Date(today); d.setDate(d.getDate()-(29-i)); return d; });
+  const totalPossible = habits.length * 30;
+  const totalDone = last30.reduce((sum, d) => sum + habits.filter(h => isHabitDone(h.id, d.toDateString())).length, 0);
+  const overallRate = totalPossible > 0 ? Math.round((totalDone / totalPossible) * 100) : 0;
+  const habitRows = streaks.slice(0,5).map(h => {
+    const rate7 = last30.slice(-7).filter(d => isHabitDone(h.id, d.toDateString())).length;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:18px">${h.emoji}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${h.name}</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
+          <div style="height:5px;flex:1;background:var(--border);border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:${Math.round(rate7/7*100)}%;background:${h.color};border-radius:3px"></div>
+          </div>
+          <span style="font-size:10px;color:var(--text3);flex-shrink:0">${rate7}/7 días</span>
+        </div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        ${h.streak > 0 ? `<div style="font-size:12px;font-weight:700;color:${h.color}">🔥${h.streak}</div>` : `<div style="font-size:12px;color:var(--text3)">—</div>`}
+      </div>
+    </div>`;
+  }).join("");
+  card.innerHTML = `
+    <div class="card-header"><span class="card-title">✅ Mis hábitos (30 días)</span></div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      <div style="position:relative;width:60px;height:60px;flex-shrink:0">
+        <svg viewBox="0 0 36 36" width="60" height="60" style="transform:rotate(-90deg)">
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--border)" stroke-width="3.5"/>
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke="#10b981" stroke-width="3.5" stroke-linecap="round"
+            stroke-dasharray="100" stroke-dashoffset="${100 - overallRate}" style="transition:stroke-dashoffset .8s ease"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#10b981">${overallRate}%</div>
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--text)">Tasa de cumplimiento</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px">${totalDone} de ${totalPossible} sesiones en 30 días</div>
+      </div>
+    </div>
+    ${habitRows}`;
+}
+
+/* ══════════════════════════════════════════
+   DAILY MOOD CHECK-IN
+══════════════════════════════════════════ */
+const CHECKIN_RESPONSES = {
+  feliz:      "¡Qué alegría! Guardar estos momentos felices en el diario te ayuda a revisitarlos cuando lo necesites. 😊",
+  tranquilo:  "La tranquilidad es un regalo. Aprovecha esta energía para algo que disfrutes hoy. 😌",
+  motivado:   "¡Energía positiva! Es un buen día para avanzar en tus metas. 💪",
+  ansioso:    "Está bien sentirse así. Una respiración lenta puede ayudarte ahora mismo. ¿Quieres intentarlo? 😰",
+  triste:     "Gracias por compartirlo. Todos tenemos días difíciles. Estoy aquí para escucharte. 💙",
+  enojado:    "Es válido sentirse enojado. Escribe cómo te sientes — puede ayudar a procesar la emoción. 😤",
+  agotado:    "Tu cuerpo pide descanso. Hoy está bien hacer menos. Cuídate. 😮‍💨",
+  esperanzado:"La esperanza es una fuerza poderosa. ¿Qué te la inspira hoy? 🌟",
+  confundido:  "La incertidumbre puede ser incómoda. A veces ayuda escribir los pensamientos. 🤔",
+  nostalgico: "Los recuerdos tienen su magia. ¿Quieres escribir sobre lo que recuerdas? 🌅",
+};
+
+function showDailyCheckin() {
+  const key = "zyra_daily_checkin_" + new Date().toDateString();
+  if (localStorage.getItem(key)) return;
+  const h = new Date().getHours();
+  const greeting = h < 12 ? "Buenos días ☀️" : h < 18 ? "Buenas tardes 🌤" : "Buenas noches 🌙";
+  const modal = document.getElementById("daily-checkin-modal");
+  const greetEl = document.getElementById("checkin-greeting");
+  if (!modal) return;
+  if (greetEl) greetEl.textContent = greeting;
+  modal.style.display = "flex";
+}
+
+function closeCheckin() {
+  const modal = document.getElementById("daily-checkin-modal");
+  if (modal) modal.style.display = "none";
+  localStorage.setItem("zyra_daily_checkin_" + new Date().toDateString(), "skipped");
+}
+
+function submitCheckin(emotion) {
+  const key = "zyra_daily_checkin_" + new Date().toDateString();
+  localStorage.setItem(key, emotion);
+  localStorage.setItem("zyra_checkin_emotion_" + new Date().toDateString(), emotion);
+  const modal = document.getElementById("daily-checkin-modal");
+  if (modal) modal.style.display = "none";
+  const resp = CHECKIN_RESPONSES[emotion] || "Gracias por compartir cómo te sientes. 💙";
+  zyraToast(resp, "success", 5000);
+}
+
+/* ══════════════════════════════════════════
    HABIT TRACKER
 ══════════════════════════════════════════ */
 const HABIT_DEFAULTS = [
@@ -10909,6 +11009,30 @@ function renderHabitsTracker(el) {
 
 </script>
 
+<!-- ══ DAILY MOOD CHECK-IN ══ -->
+<div id="daily-checkin-modal" style="display:none;position:fixed;inset:0;z-index:9800;background:rgba(0,0,0,.65);backdrop-filter:blur(12px);align-items:flex-end;justify-content:center;padding:0" role="dialog" aria-modal="true" aria-label="Check-in diario">
+  <div style="background:var(--bg2,#141624);border-radius:28px 28px 0 0;width:100%;max-width:480px;padding:24px 20px 48px;border-top:1px solid rgba(255,255,255,.1);animation:slideUp .35s ease">
+    <div style="width:40px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin:0 auto 20px"></div>
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:13px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px" id="checkin-greeting">Buenos días</div>
+      <div style="font-size:18px;font-weight:800;color:var(--text)">¿Cómo te sientes ahora mismo?</div>
+    </div>
+    <div id="checkin-emotions" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:20px">
+      <button onclick="submitCheckin('feliz')"     class="checkin-btn" data-emo="feliz">😊<br><span>Feliz</span></button>
+      <button onclick="submitCheckin('tranquilo')" class="checkin-btn" data-emo="tranquilo">😌<br><span>Tranquilo</span></button>
+      <button onclick="submitCheckin('motivado')"  class="checkin-btn" data-emo="motivado">💪<br><span>Motivado</span></button>
+      <button onclick="submitCheckin('ansioso')"   class="checkin-btn" data-emo="ansioso">😰<br><span>Ansioso</span></button>
+      <button onclick="submitCheckin('triste')"    class="checkin-btn" data-emo="triste">😢<br><span>Triste</span></button>
+      <button onclick="submitCheckin('enojado')"   class="checkin-btn" data-emo="enojado">😤<br><span>Enojado</span></button>
+      <button onclick="submitCheckin('agotado')"   class="checkin-btn" data-emo="agotado">😮‍💨<br><span>Agotado</span></button>
+      <button onclick="submitCheckin('esperanzado')" class="checkin-btn" data-emo="esperanzado">🌟<br><span>Esperanzado</span></button>
+      <button onclick="submitCheckin('confundido')" class="checkin-btn" data-emo="confundido">🤔<br><span>Confundido</span></button>
+      <button onclick="submitCheckin('nostalgico')" class="checkin-btn" data-emo="nostalgico">🌅<br><span>Nostálgico</span></button>
+    </div>
+    <button onclick="closeCheckin()" style="width:100%;background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:8px">Saltar por ahora</button>
+  </div>
+</div>
+
 <!-- ══ FLOATING QUICK NOTE ══ -->
 <button class="fab-qn" id="fab-qn" onclick="openQuickNote()" aria-label="Nota rápida en diario" title="Nota rápida">✏️</button>
 
@@ -10954,6 +11078,14 @@ function renderHabitsTracker(el) {
   25%     { transform: scale(1.02) translateY(-4px); filter: brightness(1.1) drop-shadow(0 0 18px #a78bfacc); }
   75%     { transform: scale(0.99) translateY(2px); filter: brightness(0.95) drop-shadow(0 0 6px #a78bfa66); }
 }
+.checkin-btn {
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:var(--surface);border:1.5px solid var(--border);border-radius:14px;
+  padding:10px 4px;cursor:pointer;font-size:22px;color:var(--text);transition:all .2s;
+  gap:3px;line-height:1;
+}
+.checkin-btn span { font-size:10px;color:var(--text3);font-weight:600; }
+.checkin-btn:hover, .checkin-btn:active { transform:scale(1.08);border-color:var(--accent);background:rgba(99,102,241,.1); }
 </style>
 
 </body>
