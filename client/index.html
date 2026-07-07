@@ -1277,6 +1277,17 @@
       <div><div class="stat-label">Entradas diario</div><div class="stat-value" id="st-journal">0</div></div>
     </div>
   </div>
+  <!-- Wellbeing Score -->
+  <div id="wellbeing-score-wrap" style="display:none;margin-bottom:20px;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:14px 16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:700;color:var(--text2)">⚡ Puntuación de bienestar de hoy</div>
+      <div id="wellbeing-score-val" style="font-size:22px;font-weight:900;color:var(--accent)"></div>
+    </div>
+    <div style="height:8px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:8px">
+      <div id="wellbeing-score-bar" style="height:100%;border-radius:99px;transition:width .8s ease;background:linear-gradient(90deg,#6366f1,#10b981)"></div>
+    </div>
+    <div id="wellbeing-score-items" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+  </div>
   <div class="quick-actions">
     <div class="quick-card" onclick="showPage('assistant')">
       <span class="quick-card-icon">💬</span>
@@ -4180,6 +4191,7 @@ async function loadDashboard() {
   // Show daily mood check-in if not done today
   setTimeout(showDailyCheckin, 1500);
   renderTodayOverview();
+  renderWellbeingScore();
 }
 function renderJournalMemory(entries) {
   const wrap = document.getElementById("journal-memory-wrap");
@@ -10499,6 +10511,7 @@ function addWater() {
   }
   const wc = document.getElementById("wellness-content");
   if (wc) renderWaterTracker(wc);
+  renderTodayOverview(); renderWellbeingScore();
 }
 function removeWater() {
   const key = getWaterKey();
@@ -10882,6 +10895,61 @@ function resetPomodoro() {
 }
 
 /* ══════════════════════════════════════════
+   WELLBEING SCORE
+══════════════════════════════════════════ */
+function renderWellbeingScore() {
+  const wrap = document.getElementById("wellbeing-score-wrap");
+  const valEl = document.getElementById("wellbeing-score-val");
+  const barEl = document.getElementById("wellbeing-score-bar");
+  const itemsEl = document.getElementById("wellbeing-score-items");
+  if (!wrap || !valEl || !barEl || !itemsEl) return;
+
+  const today = new Date().toDateString();
+  const checks = [];
+
+  const emo = localStorage.getItem("zyra_checkin_emotion_" + today);
+  const posEmo = ["feliz","tranquilo","motivado","esperanzado"];
+  if (emo) checks.push({ label: "Check-in", done: true, bonus: posEmo.includes(emo) });
+
+  const water = parseInt(localStorage.getItem("zyra_water_" + today) || "0");
+  checks.push({ label: "💧 Agua", done: water >= 8, partial: water >= 4 && water < 8 });
+
+  const habits = getHabits();
+  if (habits.length) {
+    const doneH = habits.filter(h => isHabitDone(h.id)).length;
+    checks.push({ label: "✅ Hábitos", done: doneH === habits.length, partial: doneH > 0 && doneH < habits.length });
+  }
+
+  const sleep = localStorage.getItem("zyra_sleep_" + today);
+  if (sleep) { try { const s = JSON.parse(sleep); checks.push({ label: "😴 Sueño", done: s.hours >= 7 }); } catch(e) {} }
+
+  const breath = parseInt(localStorage.getItem("zyra_breath_" + today) || "0");
+  if (breath) checks.push({ label: "🌬️ Respiración", done: true });
+
+  const gratitude = localStorage.getItem("zyra_gratitude_" + today);
+  if (gratitude) { try { if (JSON.parse(gratitude).length > 0) checks.push({ label: "🙏 Gratitud", done: true }); } catch(e) {} }
+
+  if (checks.length === 0) { wrap.style.display = "none"; return; }
+
+  let score = 0;
+  checks.forEach(c => {
+    if (c.done) score += c.bonus ? 22 : 18;
+    else if (c.partial) score += 9;
+  });
+  score = Math.min(100, score);
+
+  const scoreColor = score >= 70 ? "#10b981" : score >= 40 ? "#f59e0b" : "#6366f1";
+  const scoreEmoji = score >= 80 ? "🌟" : score >= 60 ? "💪" : score >= 40 ? "🌱" : "💙";
+
+  valEl.textContent = scoreEmoji + " " + score;
+  valEl.style.color = scoreColor;
+  barEl.style.width = score + "%";
+  barEl.style.background = `linear-gradient(90deg, ${scoreColor}, ${score >= 70 ? "#22c55e" : "#6366f1"})`;
+  itemsEl.innerHTML = checks.map(c => `<span style="font-size:10px;padding:3px 8px;border-radius:20px;background:${c.done?"rgba(16,185,129,.12)":c.partial?"rgba(245,158,11,.1)":"var(--border)"};color:${c.done?"#10b981":c.partial?"#f59e0b":"var(--text3)"};font-weight:600">${c.label} ${c.done?"✓":c.partial?"~":"○"}</span>`).join("");
+  wrap.style.display = "";
+}
+
+/* ══════════════════════════════════════════
    TODAY'S OVERVIEW WIDGET
 ══════════════════════════════════════════ */
 const CHECKIN_EMOJI = { feliz:"😊", tranquilo:"😌", motivado:"💪", ansioso:"😰", triste:"😢", enojado:"😤", agotado:"😮‍💨", esperanzado:"🌟", confundido:"🤔", nostalgico:"🌅" };
@@ -11027,6 +11095,7 @@ function submitCheckin(emotion) {
   const resp = CHECKIN_RESPONSES[emotion] || "Gracias por compartir cómo te sientes. 💙";
   zyraToast(resp, "success", 5000);
   renderTodayOverview();
+  renderWellbeingScore();
 }
 
 /* ══════════════════════════════════════════
@@ -11057,6 +11126,7 @@ function toggleHabitDone(id) {
   else localStorage.setItem(key, "1");
   renderHabitsTracker(document.getElementById("wellness-content"));
   renderTodayOverview();
+  renderWellbeingScore();
 }
 
 function getHabitStreak(id) {
