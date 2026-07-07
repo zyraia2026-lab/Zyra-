@@ -1448,6 +1448,12 @@
     </div>
   </div>
 
+  <!-- Weekly consistency summary -->
+  <div id="weekly-summary-wrap" style="margin-bottom:24px;display:none">
+    <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">📊 Tu semana en un vistazo</div>
+    <div id="weekly-summary-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px"></div>
+  </div>
+
   <div class="cta">
     <div>
       <h3>¿Listo para hablar con Zyra?</h3>
@@ -1856,6 +1862,17 @@
           <span id="prof-coins-badge" style="background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);color:#fbbf24;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700">🪙 0 monedas</span>
         </div>
       </div>
+    </div>
+    <!-- Profile completeness -->
+    <div id="prof-completeness-wrap" style="display:none;margin-top:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Perfil completado</span>
+        <span id="prof-completeness-pct" style="font-size:12px;font-weight:800;color:var(--accent)">0%</span>
+      </div>
+      <div style="height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden">
+        <div id="prof-completeness-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#6366f1,#22c55e);border-radius:3px;transition:width .6s ease"></div>
+      </div>
+      <div id="prof-completeness-hint" style="font-size:11px;color:rgba(255,255,255,.5);margin-top:6px"></div>
     </div>
     <!-- Stats grid -->
     <div class="profile-stats-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px">
@@ -3749,6 +3766,28 @@ async function loadProfile() {
     if(badgEl) badgEl.textContent = `✦ ${planNames[plan]||"Plan Gratis"}`;
 
     renderAvatarPicker(p.avatarEmoji, p.avatarColor);
+
+    // Profile completeness bar
+    const checks = [
+      { done: !!(p.photoUrl || p.avatarEmoji), label: "Personaliza tu avatar o foto" },
+      { done: !!(p.reminderEnabled), label: "Activa los recordatorios diarios" },
+      { done: !!(Array.isArray(jd?.entries) ? jd.entries.length > 0 : (Array.isArray(jd) ? jd.length > 0 : false)), label: "Escribe tu primera entrada de diario" },
+      { done: !!(Array.isArray(gd?.goals) ? gd.goals.length > 0 : (Array.isArray(gd) ? gd.length > 0 : false)), label: "Crea tu primera meta" },
+      { done: !!(p.sessionsCount > 0), label: "Comienza tu primera sesión con Zyra" },
+    ];
+    const doneCnt = checks.filter(c=>c.done).length;
+    const pct = Math.round((doneCnt / checks.length) * 100);
+    const cWrap = document.getElementById("prof-completeness-wrap");
+    const cBar  = document.getElementById("prof-completeness-bar");
+    const cPct  = document.getElementById("prof-completeness-pct");
+    const cHint = document.getElementById("prof-completeness-hint");
+    if (cWrap && doneCnt < checks.length) {
+      cWrap.style.display = "";
+      setTimeout(() => { if (cBar) cBar.style.width = pct + "%"; if (cPct) cPct.textContent = pct + "%"; }, 100);
+      const next = checks.find(c => !c.done);
+      if (cHint && next) cHint.textContent = "➡ " + next.label;
+    }
+
     loadEmergencyContact();
     initPushUI(p);
     loadSubscriptionInfo();
@@ -4094,6 +4133,7 @@ async function loadDashboard() {
     renderMoodMiniTrend(hd.history || []);
     renderJournalMemory(entries);
     window._journalCacheForHeatmap = entries;
+    renderWeeklySummary(entries);
   } catch(e) { console.error(e); }
   loadDailyChallenge();
   loadDailyIntention();
@@ -5382,6 +5422,7 @@ function renderAffirmations(el) {
       <div class="affirmation-text" id="aff-text">"${affs[idx]}"</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:18px">
         <button class="btn-cta" style="background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);color:white;backdrop-filter:blur(10px)" onclick="nextAffirmation()">Nueva ✨</button>
+        <button onclick="toggleFavoriteAff()" id="aff-fav-btn" style="background:rgba(239,68,68,.2);border:2px solid rgba(239,68,68,.4);color:white;border-radius:12px;padding:11px 20px;font-size:13px;font-weight:700;cursor:pointer;backdrop-filter:blur(10px)">♡ Guardar</button>
         <button onclick="copyAffirmation()" style="background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.2);color:white;border-radius:12px;padding:11px 20px;font-size:13px;font-weight:700;cursor:pointer;backdrop-filter:blur(10px)" id="aff-copy-btn">📋 Copiar</button>
         <button onclick="shareAffirmation()" style="background:rgba(37,211,102,.25);border:2px solid rgba(37,211,102,.4);color:white;border-radius:12px;padding:11px 20px;font-size:13px;font-weight:700;cursor:pointer;backdrop-filter:blur(10px)">📤 Compartir</button>
       </div>
@@ -5396,8 +5437,14 @@ function renderAffirmations(el) {
         <div class="affirmation-card" onclick="setAffirmation(${JSON.stringify(a)})">
           "${a.substring(0,65)}${a.length>65?"...":""}"
         </div>`).join("")}
-    </div>`;
+    </div>
+    ${(()=>{const favs=JSON.parse(localStorage.getItem("zyra_aff_favs")||"[]");return favs.length?`<div style="margin-top:16px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">❤️ Mis favoritas</div><div style="display:flex;flex-direction:column;gap:8px">${favs.map((a,i)=>'<div style="background:var(--surface);border:1.5px solid rgba(239,68,68,.2);border-radius:12px;padding:10px 14px;display:flex;gap:10px;align-items:center"><div style="flex:1;font-size:13px;color:var(--text);line-height:1.5;cursor:pointer" onclick="setAffirmation('+JSON.stringify(a)+')">"'+a.substring(0,90)+(a.length>90?"...":"")+'"</div><button onclick="removeFavoriteAff('+i+')" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:16px;flex-shrink:0;line-height:1" title="Quitar de favoritos">✕</button></div>').join("")}</div></div>`:"";})()}`;
   el._affs = affs; el._affIdx = idx;
+  // Update favorite button state
+  setTimeout(() => {
+    const txt = document.getElementById("aff-text");
+    if (txt) updateFavBtn(txt.textContent.replace(/^"|"$/g,""));
+  }, 0);
 }
 function switchAffCat(cat) {
   _affCurrentCat = cat;
@@ -5409,11 +5456,11 @@ function nextAffirmation() {
   if(!el || !el._affs) return;
   el._affIdx = (el._affIdx + 1) % el._affs.length;
   const txt = document.getElementById("aff-text");
-  if(txt) { txt.style.opacity="0"; setTimeout(()=>{txt.textContent=`"${el._affs[el._affIdx]}"`;txt.style.opacity="1";},200); txt.style.transition="opacity .2s"; }
+  if(txt) { txt.style.opacity="0"; setTimeout(()=>{ txt.textContent=`"${el._affs[el._affIdx]}"`;txt.style.opacity="1"; updateFavBtn(el._affs[el._affIdx]); },200); txt.style.transition="opacity .2s"; }
 }
 function setAffirmation(text) {
   const txt = document.getElementById("aff-text");
-  if(txt) { txt.style.opacity="0"; setTimeout(()=>{txt.textContent=`"${text}"`;txt.style.opacity="1";},200); txt.style.transition="opacity .2s"; }
+  if(txt) { txt.style.opacity="0"; setTimeout(()=>{ txt.textContent=`"${text}"`;txt.style.opacity="1"; updateFavBtn(text); },200); txt.style.transition="opacity .2s"; }
 }
 async function copyAffirmation() {
   const txt = document.getElementById("aff-text");
@@ -5432,9 +5479,37 @@ function shareAffirmation() {
   if (navigator.share) {
     navigator.share({ title: "Afirmación de Zyra", text: full }).catch(() => {});
   } else {
-    // Fallback: copy to clipboard
     navigator.clipboard?.writeText(full).then(() => zyraToast("Afirmación copiada para compartir 📋", "success")).catch(() => {});
   }
+}
+function getFavoriteAffs() { try { return JSON.parse(localStorage.getItem("zyra_aff_favs") || "[]"); } catch(e) { return []; } }
+function updateFavBtn(text) {
+  const btn = document.getElementById("aff-fav-btn");
+  if (!btn) return;
+  const favs = getFavoriteAffs();
+  const isFav = favs.includes(text);
+  btn.textContent = isFav ? "❤️ Guardada" : "♡ Guardar";
+  btn.style.background = isFav ? "rgba(239,68,68,.4)" : "rgba(239,68,68,.2)";
+}
+function toggleFavoriteAff() {
+  const txt = document.getElementById("aff-text");
+  if (!txt) return;
+  const text = txt.textContent.replace(/^"|"$/g,"");
+  const favs = getFavoriteAffs();
+  const idx = favs.indexOf(text);
+  if (idx >= 0) { favs.splice(idx, 1); zyraToast("Eliminada de favoritas", "info"); }
+  else { favs.unshift(text); zyraToast("❤️ Guardada en favoritas", "success"); if (navigator.vibrate) navigator.vibrate(30); }
+  localStorage.setItem("zyra_aff_favs", JSON.stringify(favs));
+  updateFavBtn(text);
+  const wc = document.getElementById("wellness-content");
+  if (wc) renderAffirmations(wc);
+}
+function removeFavoriteAff(i) {
+  const favs = getFavoriteAffs();
+  favs.splice(i, 1);
+  localStorage.setItem("zyra_aff_favs", JSON.stringify(favs));
+  const wc = document.getElementById("wellness-content");
+  if (wc) renderAffirmations(wc);
 }
 
 /* ════════════════════════════════════════
@@ -10220,6 +10295,56 @@ const DAILY_CHALLENGES = [
   "Practica el grounding: nombra 5 cosas que ves, 4 que sientes, 3 que oyes.",
   "Celebra una pequeña victoria de hoy, sin importar qué tan pequeña sea.",
 ];
+
+/* ══════════════════════════════════════════
+   WEEKLY CONSISTENCY SUMMARY
+══════════════════════════════════════════ */
+function renderWeeklySummary(journalEntries) {
+  const wrap = document.getElementById("weekly-summary-wrap");
+  const grid = document.getElementById("weekly-summary-grid");
+  if (!wrap || !grid) return;
+
+  // Build set of journal days this week
+  const today = new Date(); today.setHours(0,0,0,0);
+  const weekStart = new Date(today); weekStart.setDate(today.getDate() - 6);
+  const journalDays = new Set((journalEntries || []).filter(e => new Date(e.createdAt) >= weekStart).map(e => new Date(e.createdAt).toDateString()));
+
+  let waterDays = 0, challengeDays = 0, gratitudeDays = 0, sleepDays = 0;
+  for (let i = 0; i <= 6; i++) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    const ds = d.toDateString();
+    if (parseInt(localStorage.getItem("zyra_water_" + ds) || "0") >= 8) waterDays++;
+    if (localStorage.getItem("zyra_challenge_done_" + ds)) challengeDays++;
+    const g = localStorage.getItem("zyra_gratitude_" + ds);
+    if (g) { try { if (JSON.parse(g).length > 0) gratitudeDays++; } catch(e) {} }
+    if (localStorage.getItem("zyra_sleep_" + ds)) sleepDays++;
+  }
+
+  const totalActive = waterDays + challengeDays + gratitudeDays + sleepDays + journalDays.size;
+  if (totalActive === 0) { wrap.style.display = "none"; return; }
+
+  const ITEMS = [
+    { icon: "📔", label: "Entradas diario", val: journalDays.size, max: 7, color: "#8b5cf6" },
+    { icon: "💧", label: "Agua completa (8v)", val: waterDays, max: 7, color: "#0ea5e9" },
+    { icon: "⚡", label: "Retos completados", val: challengeDays, max: 7, color: "#10b981" },
+    { icon: "🙏", label: "Días de gratitud", val: gratitudeDays, max: 7, color: "#f59e0b" },
+    { icon: "😴", label: "Sueño registrado", val: sleepDays, max: 7, color: "#6366f1" },
+  ].filter(item => item.val > 0);
+
+  grid.innerHTML = ITEMS.map(item => {
+    const pct = Math.round((item.val / item.max) * 100);
+    const dots = Array.from({length: 7}, (_,i) => `<div style="width:10px;height:10px;border-radius:3px;background:${i < item.val ? item.color : "var(--border)"};opacity:${i < item.val ? 1 : .35}"></div>`).join("");
+    return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:12px;color:var(--text2)">${item.icon} ${item.label}</div>
+        <div style="font-size:11px;font-weight:700;color:${item.color}">${item.val}/7</div>
+      </div>
+      <div style="display:flex;gap:3px">${dots}</div>
+    </div>`;
+  }).join("");
+
+  wrap.style.display = "";
+}
 
 function loadDailyChallenge() {
   const wrap = document.getElementById("daily-challenge-wrap");
