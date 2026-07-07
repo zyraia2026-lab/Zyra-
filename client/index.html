@@ -1496,6 +1496,7 @@
     <button class="game-tab"        id="gtab-bubbles"   onclick="openGame('bubbles')">✨ Burbujas Zen</button>
     <button class="game-tab"        id="gtab-memory"    onclick="openGame('memory')">🧠 Memory</button>
     <button class="game-tab"        id="gtab-zen"       onclick="openGame('zen')">🪨 Jardín Zen</button>
+    <button class="game-tab"        id="gtab-doodle"    onclick="openGame('doodle')">🎨 Doodle Zen</button>
   </div>
 
   <div id="game-container"></div>
@@ -4143,6 +4144,13 @@ async function loadDashboard() {
   const lastEmDate = localStorage.getItem('zyra_last_emotion_date');
   const dot = document.getElementById('emotion-checkin-dot');
   if (dot) dot.style.display = lastEmDate === new Date().toDateString() ? 'none' : 'inline-block';
+  // Smart habit nudges (afternoon/evening only)
+  const hour = new Date().getHours();
+  if (hour >= 15) {
+    const waterToday = parseInt(localStorage.getItem("zyra_water_" + new Date().toDateString()) || "0");
+    if (waterToday < 4) setTimeout(() => zyraToast("💧 Has tomado solo "+waterToday+" vasos hoy. ¡Hidratate!", "info"), 2000);
+    else if (waterToday < 8 && hour >= 19) setTimeout(() => zyraToast("💧 "+waterToday+"/8 vasos — ya casi llegas a la meta de hoy", "info"), 2000);
+  }
 }
 function renderJournalMemory(entries) {
   const wrap = document.getElementById("journal-memory-wrap");
@@ -5197,10 +5205,16 @@ function startBreath() {
       if(sec > 0) { secs.textContent = sec; breathTimer = setTimeout(tick, 1000); }
       else {
         phaseIdx++;
-        if(phaseIdx >= 3) { phaseIdx = 0; cycleCount++; }
+        if(phaseIdx >= phases.length) { phaseIdx = 0; cycleCount++; }
         if(cycleCount >= totalCycles) {
           circle.className = "breath-circle"; label.textContent = "✓";
           secs.style.display = "none"; inst.textContent = "¡Completado!";
+          // Track breath session
+          const bKey = "zyra_breath_" + new Date().toDateString();
+          localStorage.setItem(bKey, (parseInt(localStorage.getItem(bKey)||"0")+1).toString());
+          zyraToast("🌬️ Sesión de respiración completada 🎉", "success");
+          if (navigator.vibrate) navigator.vibrate([30,20,60]);
+          if (typeof triggerMission === "function") triggerMission('do_exercise');
           return;
         }
         runPhase();
@@ -9682,8 +9696,7 @@ function closeAchievements() {
 let _currentGame = null;
 
 function openGame(name) {
-  // Update tabs
-  ['breath','bubbles','memory','zen'].forEach(t => {
+  ['breath','bubbles','memory','zen','doodle'].forEach(t => {
     const btn = document.getElementById('gtab-' + t);
     if (btn) btn.classList.toggle('active', t === name);
   });
@@ -9691,13 +9704,13 @@ function openGame(name) {
   const container = document.getElementById('game-container');
   if (!container) return;
 
-  // Stop any running game
   if (window._gameCleanup) { window._gameCleanup(); window._gameCleanup = null; }
 
   if (name === 'breath')  renderBreathGame(container);
   if (name === 'bubbles') renderBubblesGame(container);
   if (name === 'memory')  renderMemoryGame(container);
   if (name === 'zen')     renderZenGarden(container);
+  if (name === 'doodle')  renderDoodleGame(container);
 }
 
 /* ── JUEGO 1: Respiración guiada 4-7-8 ── */
@@ -10015,6 +10028,103 @@ function renderZenGarden(el) {
   drawSand();
 }
 
+/* ── JUEGO 5: Doodle Zen ── */
+function renderDoodleGame(el) {
+  const PALETTES = [
+    { name:"Calma", colors:["#6366f1","#8b5cf6","#0ea5e9","#22c55e","#f59e0b","#ec4899","#fff","#1e1b4b"] },
+    { name:"Pastel", colors:["#fda4af","#fbcfe8","#ddd6fe","#bfdbfe","#a7f3d0","#fde68a","#fed7aa","#e5e7eb"] },
+    { name:"Oscuro", colors:["#1e1b4b","#312e81","#164e63","#14532d","#422006","#4c1d95","#7f1d1d","#111827"] },
+    { name:"Arcoíris", colors:["#ef4444","#f97316","#eab308","#22c55e","#0ea5e9","#6366f1","#8b5cf6","#ec4899"] },
+  ];
+  let currentPaletteIdx = 0, currentColor = PALETTES[0].colors[0], brushSize = 8, drawing = false, lastX = 0, lastY = 0;
+  let strokes = 0;
+
+  el.innerHTML = `
+    <div style="padding:12px 0">
+      <div style="font-size:13px;color:var(--text3);margin-bottom:10px;text-align:center">Dibuja libremente — no hay reglas, solo calma 🌿</div>
+
+      <!-- Palette row -->
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <div id="doodle-colors" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+        <div style="display:flex;gap:4px;margin-left:auto">
+          ${PALETTES.map((p,i)=>`<button onclick="switchDoodlePalette(${i})" id="dpal-${i}" style="padding:5px 9px;border-radius:8px;font-size:11px;border:1.5px solid ${i===0?'var(--accent)':'var(--border)'};background:var(--surface);color:${i===0?'var(--accent)':'var(--text3)'};cursor:pointer">${p.name}</button>`).join("")}
+        </div>
+      </div>
+
+      <!-- Brush size -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="font-size:11px;color:var(--text3)">Pincel</span>
+        <input type="range" id="doodle-size" min="2" max="40" value="8" style="flex:1;accent-color:var(--accent)" oninput="updateDoodleBrush(this.value)"/>
+        <div id="doodle-preview" style="width:18px;height:18px;border-radius:50%;background:${currentColor};flex-shrink:0"></div>
+        <button onclick="clearDoodle()" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text3);font-size:11px;cursor:pointer">🗑 Borrar</button>
+        <button onclick="saveDoodle()" style="padding:5px 10px;border-radius:8px;border:1px solid rgba(99,102,241,.3);background:rgba(99,102,241,.1);color:var(--accent);font-size:11px;cursor:pointer">💾 Guardar</button>
+      </div>
+
+      <canvas id="doodle-canvas" style="width:100%;border-radius:16px;border:2px solid var(--border);touch-action:none;cursor:crosshair;background:#0f0f1a"></canvas>
+      <div id="doodle-strokes" style="font-size:11px;color:var(--text3);text-align:center;margin-top:6px">Trazos: 0</div>
+    </div>`;
+
+  const canvas = document.getElementById("doodle-canvas");
+  if (!canvas) return;
+  // Set canvas resolution
+  const resize = () => { const r=canvas.getBoundingClientRect(); canvas.width=Math.round(r.width*devicePixelRatio)||600; canvas.height=Math.round(r.height*devicePixelRatio)||400; canvas.style.height=(canvas.width/2)+"px"; };
+  resize();
+  const ctx = canvas.getContext("2d");
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+
+  function renderPalette() {
+    const wrap = document.getElementById("doodle-colors");
+    if (!wrap) return;
+    const pal = PALETTES[currentPaletteIdx];
+    wrap.innerHTML = pal.colors.map(c=>`<div onclick="selectDoodleColor('${c}')" style="width:28px;height:28px;border-radius:50%;background:${c};cursor:pointer;border:3px solid ${c===currentColor?'var(--accent)':'transparent'};box-shadow:0 2px 8px rgba(0,0,0,.3);transition:transform .1s" onmouseenter="this.style.transform='scale(1.2)'" onmouseleave="this.style.transform='scale(1)'"></div>`).join("");
+    PALETTES.forEach((_,i)=>{const b=document.getElementById("dpal-"+i);if(b){b.style.borderColor=i===currentPaletteIdx?'var(--accent)':'var(--border)';b.style.color=i===currentPaletteIdx?'var(--accent)':'var(--text3)';}});
+  }
+  renderPalette();
+
+  const getPos = e => {
+    const rect = canvas.getBoundingClientRect();
+    const pt = e.touches?.[0] || e;
+    return [(pt.clientX-rect.left)*(canvas.width/rect.width),(pt.clientY-rect.top)*(canvas.height/rect.height)];
+  };
+
+  const startDraw = e => { e.preventDefault(); drawing=true; const[x,y]=getPos(e); lastX=x; lastY=y; };
+  const draw = e => {
+    if(!drawing)return; e.preventDefault();
+    const[x,y]=getPos(e);
+    ctx.strokeStyle=currentColor; ctx.lineWidth=brushSize*devicePixelRatio;
+    ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(x,y); ctx.stroke();
+    lastX=x; lastY=y; strokes++;
+    const sl=document.getElementById("doodle-strokes"); if(sl) sl.textContent="Trazos: "+strokes;
+    if(strokes===30) triggerMission('do_exercise');
+  };
+  const endDraw = () => { drawing=false; };
+
+  canvas.addEventListener("mousedown",startDraw); canvas.addEventListener("mousemove",draw);
+  canvas.addEventListener("mouseup",endDraw); canvas.addEventListener("mouseleave",endDraw);
+  canvas.addEventListener("touchstart",startDraw,{passive:false}); canvas.addEventListener("touchmove",draw,{passive:false});
+  canvas.addEventListener("touchend",endDraw);
+
+  window.selectDoodleColor = c => {
+    currentColor=c;
+    const prev=document.getElementById("doodle-preview"); if(prev) prev.style.background=c;
+    renderPalette();
+  };
+  window.switchDoodlePalette = i => { currentPaletteIdx=i; currentColor=PALETTES[i].colors[0]; renderPalette(); const prev=document.getElementById("doodle-preview"); if(prev) prev.style.background=currentColor; };
+  window.updateDoodleBrush = v => { brushSize=parseInt(v); const prev=document.getElementById("doodle-preview"); if(prev){prev.style.width=Math.max(10,brushSize)+"px";prev.style.height=Math.max(10,brushSize)+"px";} };
+  window.clearDoodle = () => { ctx.clearRect(0,0,canvas.width,canvas.height); strokes=0; const sl=document.getElementById("doodle-strokes"); if(sl)sl.textContent="Trazos: 0"; };
+  window.saveDoodle = () => {
+    const link=document.createElement("a"); link.download="zyra-doodle.png"; link.href=canvas.toDataURL("image/png");
+    link.click(); zyraToast("Doodle guardado como imagen 🎨","success");
+  };
+
+  window._gameCleanup = () => {
+    canvas.removeEventListener("mousedown",startDraw); canvas.removeEventListener("mousemove",draw);
+    canvas.removeEventListener("mouseup",endDraw); canvas.removeEventListener("mouseleave",endDraw);
+    canvas.removeEventListener("touchstart",startDraw); canvas.removeEventListener("touchmove",draw);
+    canvas.removeEventListener("touchend",endDraw);
+  };
+}
+
 /* No showPage override needed — hooks added inline below */
 
 // ══════════════════════════════════════════
@@ -10309,7 +10419,7 @@ function renderWeeklySummary(journalEntries) {
   const weekStart = new Date(today); weekStart.setDate(today.getDate() - 6);
   const journalDays = new Set((journalEntries || []).filter(e => new Date(e.createdAt) >= weekStart).map(e => new Date(e.createdAt).toDateString()));
 
-  let waterDays = 0, challengeDays = 0, gratitudeDays = 0, sleepDays = 0;
+  let waterDays = 0, challengeDays = 0, gratitudeDays = 0, sleepDays = 0, breathSessions = 0;
   for (let i = 0; i <= 6; i++) {
     const d = new Date(today); d.setDate(today.getDate() - i);
     const ds = d.toDateString();
@@ -10318,17 +10428,19 @@ function renderWeeklySummary(journalEntries) {
     const g = localStorage.getItem("zyra_gratitude_" + ds);
     if (g) { try { if (JSON.parse(g).length > 0) gratitudeDays++; } catch(e) {} }
     if (localStorage.getItem("zyra_sleep_" + ds)) sleepDays++;
+    breathSessions += parseInt(localStorage.getItem("zyra_breath_" + ds) || "0");
   }
 
-  const totalActive = waterDays + challengeDays + gratitudeDays + sleepDays + journalDays.size;
+  const totalActive = waterDays + challengeDays + gratitudeDays + sleepDays + journalDays.size + breathSessions;
   if (totalActive === 0) { wrap.style.display = "none"; return; }
 
   const ITEMS = [
     { icon: "📔", label: "Entradas diario", val: journalDays.size, max: 7, color: "#8b5cf6" },
-    { icon: "💧", label: "Agua completa (8v)", val: waterDays, max: 7, color: "#0ea5e9" },
+    { icon: "💧", label: "Agua completa", val: waterDays, max: 7, color: "#0ea5e9" },
     { icon: "⚡", label: "Retos completados", val: challengeDays, max: 7, color: "#10b981" },
     { icon: "🙏", label: "Días de gratitud", val: gratitudeDays, max: 7, color: "#f59e0b" },
     { icon: "😴", label: "Sueño registrado", val: sleepDays, max: 7, color: "#6366f1" },
+    { icon: "🌬️", label: "Sesiones de resp.", val: breathSessions, max: 14, color: "#06b6d4" },
   ].filter(item => item.val > 0);
 
   grid.innerHTML = ITEMS.map(item => {
