@@ -1623,7 +1623,10 @@
 </nav>
 <div class="container">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px">
-    <div class="section-title" style="margin:0">📔 Mi Diario Emocional</div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div class="section-title" style="margin:0">📔 Mi Diario Emocional</div>
+      <span id="journal-streak-badge" style="display:none;background:rgba(251,146,60,.15);border:1px solid rgba(251,146,60,.3);color:#fb923c;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;align-items:center;gap:4px"></span>
+    </div>
     <button id="btn-export-pdf" onclick="exportJournalPDF()" aria-label="Exportar diario como PDF" style="background:linear-gradient(135deg,#7c3aed,#6366f1);border:none;border-radius:12px;color:white;font-size:12px;font-weight:700;padding:9px 16px;cursor:pointer;display:flex;align-items:center;gap:6px">📄 Exportar PDF</button>
   </div>
 
@@ -4387,8 +4390,27 @@ async function loadJournal() {
     const btn = document.getElementById("journal-sort-btn");
     if (btn) btn.textContent = "↓ Reciente";
     renderJournal(_journalAllEntries);
+    renderJournalStreak(_journalAllEntries);
   }
   catch(e) { if(el) el.innerHTML = `<div class="empty" style="color:var(--danger)">⚠ ${safeHtml(e.message||"Error al cargar el diario")}</div>`; }
+}
+function renderJournalStreak(entries) {
+  const badge = document.getElementById("journal-streak-badge");
+  if (!badge || !entries.length) return;
+  // Count consecutive days with at least one entry
+  const days = new Set(entries.map(e => new Date(e.createdAt).toDateString()));
+  let streak = 0;
+  const check = new Date();
+  while (days.has(check.toDateString())) {
+    streak++;
+    check.setDate(check.getDate() - 1);
+  }
+  if (streak > 0) {
+    badge.style.display = "inline-flex";
+    badge.textContent = `🔥 ${streak} día${streak !== 1 ? "s" : ""}`;
+  } else {
+    badge.style.display = "none";
+  }
 }
 let _journalSortAsc = false;
 
@@ -5394,14 +5416,36 @@ function newChat() {
     <div class="typing-bubble"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
   </div>`;
   const name = user ? safeHtml(user.name.split(" ")[0]) : "";
-  addBotMsg(`Hola ${name}, soy Zyra 💙 Este es tu espacio seguro, sin juicios. ¿Cómo estás hoy?`);
+  const hour = new Date().getHours();
+  let greeting, welcome;
+  if (hour >= 6 && hour < 12) {
+    greeting = "☀️ Buenos días";
+    welcome = `${greeting}, ${name}. Soy Zyra 💙 ¿Cómo empezaste el día? ¿Hay algo que quieras procesar o simplemente quieres hablar?`;
+  } else if (hour >= 12 && hour < 17) {
+    greeting = "🌤️ Buenas tardes";
+    welcome = `${greeting}, ${name}. Soy Zyra 💙 ¿Cómo va tu día hasta ahora? Aquí puedes hablar sin filtros.`;
+  } else if (hour >= 17 && hour < 21) {
+    greeting = "🌅 Buenas tardes";
+    welcome = `${greeting}, ${name}. Soy Zyra 💙 ¿Cómo fue tu día? A veces hablar sobre él ayuda a cerrar bien la jornada.`;
+  } else {
+    greeting = "🌙 Buenas noches";
+    welcome = `${greeting}, ${name}. Soy Zyra 💙 A estas horas los pensamientos pueden pesar más. Cuéntame, ¿qué te tiene despierto/a?`;
+  }
+  addBotMsg(welcome);
+  // Time-aware prompt chips
+  const CHIP_SETS = {
+    morning: [["⚡","Necesito energía para hoy"],["📋","Quiero organizar mi día"],["😰","Me siento ansioso al despertar"],["💪","Quiero motivarme"],["🌟","Tengo una meta importante hoy"],["🧘","Guíame con respiración"]],
+    afternoon: [["😮‍💨","Estoy agotado/a a esta hora"],["💬","Necesito hablar de algo"],["😰","Me siento estresado/a"],["💡","Necesito un descanso mental"],["😔","No me está yendo bien hoy"],["🎵","Dame música para concentrarme"]],
+    evening: [["🌅","Quiero reflexionar sobre mi día"],["😔","Fue un día difícil"],["🙏","Quiero practicar gratitud"],["💙","Me siento solo/a"],["🌙","Quiero preparar mi descanso"],["💬","Necesito hablar"]],
+    night: [["🌙","No puedo dormir"],["😰","Tengo pensamientos intrusivos"],["💙","Me siento solo/a en la noche"],["🧘","Ayúdame a relajarme"],["😔","Estoy triste"],["💬","Solo quiero hablar"]]
+  };
+  const chipSet = hour >= 6 && hour < 12 ? CHIP_SETS.morning :
+                  hour >= 12 && hour < 17 ? CHIP_SETS.afternoon :
+                  hour >= 17 && hour < 21 ? CHIP_SETS.evening : CHIP_SETS.night;
   const chips = document.createElement("div");
   chips.id = "prompt-chips";
   chips.className = "prompt-chips";
-  chips.innerHTML = [
-    ["😰","Me siento ansioso"], ["😔","Estoy triste hoy"], ["💬","Necesito hablar"],
-    ["🎵","Dame música para relajarme"], ["🌙","No puedo dormir"], ["💪","Quiero motivarme"]
-  ].map(([e,t]) => `<button class="prompt-chip" onclick="fillPrompt(${JSON.stringify(t)})">${e} ${t}</button>`).join("");
+  chips.innerHTML = chipSet.map(([e,t]) => `<button class="prompt-chip" onclick="fillPrompt(${JSON.stringify(t)})">${e} ${t}</button>`).join("");
   msgs.insertBefore(chips, document.getElementById("typing-indicator"));
   loadHistory();
 }
