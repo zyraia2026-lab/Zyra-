@@ -85,6 +85,14 @@ setInterval(() => {
   }
 }, 60_000);
 
+// ── Keep-alive: ping propio cada 13 min para evitar sleep en Render free tier
+if (process.env.NODE_ENV === "production") {
+  const SELF = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+  setInterval(() => {
+    fetch(`${SELF}/api/health`).catch(() => {});
+  }, 13 * 60 * 1000);
+}
+
 // ── SPA fallback
 app.get("*", (req, res) => res.sendFile(path.join(__dirname, "../client/index.html")));
 
