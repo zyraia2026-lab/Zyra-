@@ -689,6 +689,235 @@
   </button>
 </div>
 
+<!-- ══════════════════════════════════════════════
+     LANDING PAGE — Página de bienvenida pública
+══════════════════════════════════════════════ -->
+<div id="page-landing" class="page">
+<style>
+.lp-nav{position:sticky;top:0;z-index:100;background:rgba(8,8,15,.9);backdrop-filter:blur(16px);border-bottom:1px solid rgba(99,102,241,.15);padding:0 32px;height:64px;display:flex;align-items:center;justify-content:space-between}
+.lp-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.lp-logo img{width:34px;height:34px;border-radius:10px}
+.lp-logo-text{font-family:'Playfair Display',serif;font-size:20px;font-weight:800;background:linear-gradient(135deg,#818cf8,#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.lp-nav-btns{display:flex;gap:10px;align-items:center}
+.lp-btn-ghost{background:transparent;border:1.5px solid rgba(99,102,241,.4);color:#a5b4fc;padding:8px 18px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .2s}
+.lp-btn-ghost:hover{border-color:#6366f1;color:#c4b5fd}
+.lp-btn-solid{background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:white;padding:9px 20px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .2s;box-shadow:0 4px 16px rgba(99,102,241,.35)}
+.lp-btn-solid:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(99,102,241,.5)}
+.lp-hero{min-height:92vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px 24px 60px;background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(99,102,241,.25) 0%,transparent 70%),#08080f;position:relative;overflow:hidden}
+.lp-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 15% 80%,rgba(139,92,246,.12),transparent 50%),radial-gradient(circle at 85% 20%,rgba(14,165,233,.08),transparent 50%);pointer-events:none}
+.lp-eyebrow{display:inline-flex;align-items:center;gap:8px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);border-radius:99px;padding:6px 16px;font-size:12px;font-weight:700;color:#a5b4fc;letter-spacing:.5px;margin-bottom:28px}
+.lp-h1{font-family:'Playfair Display',serif;font-size:clamp(36px,7vw,72px);font-weight:900;line-height:1.1;color:#e8eaf6;margin-bottom:20px;text-wrap:balance}
+.lp-h1 em{font-style:normal;background:linear-gradient(135deg,#818cf8,#c084fc,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.lp-sub{font-size:clamp(16px,2.5vw,20px);color:#7880a0;max-width:560px;line-height:1.6;margin-bottom:40px}
+.lp-ctas{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-bottom:60px}
+.lp-cta-primary{background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:white;padding:15px 32px;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .25s;box-shadow:0 8px 32px rgba(99,102,241,.4);letter-spacing:.3px}
+.lp-cta-primary:hover{transform:translateY(-2px);box-shadow:0 16px 48px rgba(99,102,241,.55)}
+.lp-cta-secondary{background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.15);color:#c4b5fd;padding:15px 28px;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;transition:all .2s}
+.lp-cta-secondary:hover{background:rgba(99,102,241,.1);border-color:rgba(99,102,241,.4)}
+.lp-trust{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+.lp-trust-item{display:flex;align-items:center;gap:7px;font-size:12px;color:#555b7a;font-weight:600}
+.lp-features{padding:100px 24px;background:#08080f}
+.lp-section-label{text-align:center;font-size:12px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:14px}
+.lp-section-title{text-align:center;font-family:'Playfair Display',serif;font-size:clamp(26px,4vw,42px);font-weight:800;color:#e8eaf6;margin-bottom:12px;text-wrap:balance}
+.lp-section-sub{text-align:center;color:#7880a0;font-size:15px;max-width:520px;margin:0 auto 56px;line-height:1.6}
+.lp-feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;max-width:960px;margin:0 auto}
+.lp-feat-card{background:linear-gradient(135deg,rgba(99,102,241,.06),rgba(139,92,246,.04));border:1px solid rgba(99,102,241,.12);border-radius:20px;padding:28px;transition:all .25s;cursor:default}
+.lp-feat-card:hover{border-color:rgba(99,102,241,.3);transform:translateY(-3px);background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(139,92,246,.07))}
+.lp-feat-icon{font-size:36px;margin-bottom:16px;display:block}
+.lp-feat-title{font-size:17px;font-weight:800;color:#e8eaf6;margin-bottom:8px}
+.lp-feat-desc{font-size:13px;color:#7880a0;line-height:1.6}
+.lp-how{padding:100px 24px;background:linear-gradient(180deg,#08080f 0%,#0a0714 100%)}
+.lp-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:32px;max-width:800px;margin:0 auto}
+.lp-step{text-align:center}
+.lp-step-num{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:20px;font-weight:900;color:white;box-shadow:0 8px 24px rgba(99,102,241,.35)}
+.lp-step-title{font-size:16px;font-weight:800;color:#e8eaf6;margin-bottom:8px}
+.lp-step-desc{font-size:13px;color:#7880a0;line-height:1.6}
+.lp-plans{padding:100px 24px;background:#08080f}
+.lp-plans-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;max-width:800px;margin:0 auto}
+.lp-plan-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:28px;text-align:center;transition:all .25s}
+.lp-plan-card.featured{background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.08));border-color:rgba(99,102,241,.35);position:relative}
+.lp-plan-card.featured::before{content:'Más popular';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;font-size:10px;font-weight:800;padding:4px 14px;border-radius:99px;white-space:nowrap;letter-spacing:.5px}
+.lp-plan-name{font-size:14px;font-weight:700;color:#7880a0;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px}
+.lp-plan-price{font-family:'Playfair Display',serif;font-size:36px;font-weight:900;color:#e8eaf6;margin-bottom:4px}
+.lp-plan-period{font-size:12px;color:#7880a0;margin-bottom:20px}
+.lp-plan-feats{list-style:none;text-align:left;margin-bottom:24px}
+.lp-plan-feats li{font-size:13px;color:#a5b4fc;padding:5px 0;display:flex;gap:8px;align-items:flex-start}
+.lp-plan-feats li::before{content:'✓';color:#6366f1;font-weight:900;flex-shrink:0}
+.lp-final{padding:100px 24px;text-align:center;background:radial-gradient(ellipse 80% 80% at 50% 50%,rgba(99,102,241,.15),transparent 70%),#08080f}
+.lp-footer{padding:32px 24px;text-align:center;border-top:1px solid rgba(255,255,255,.06);background:#08080f;font-size:12px;color:#555b7a}
+.lp-footer a{color:#6366f1;cursor:pointer;text-decoration:none}
+@media(max-width:640px){
+  .lp-nav{padding:0 16px}
+  .lp-nav-btns .lp-btn-ghost{display:none}
+  .lp-h1{font-size:32px}
+  .lp-cta-primary,.lp-cta-secondary{width:100%;text-align:center}
+  .lp-ctas{flex-direction:column}
+  .lp-trust{gap:12px}
+}
+</style>
+
+<!-- Nav -->
+<nav class="lp-nav">
+  <div class="lp-logo">
+    <img src="/Imagenes/1000154669.png" alt="Zyra"/>
+    <span class="lp-logo-text">Zyra</span>
+  </div>
+  <div class="lp-nav-btns">
+    <button class="lp-btn-ghost" onclick="showPage('login')">Iniciar sesión</button>
+    <button class="lp-btn-solid" onclick="showPage('register')">Comenzar gratis →</button>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="lp-hero">
+  <div class="lp-eyebrow">✦ Bienestar emocional con IA</div>
+  <h1 class="lp-h1">Tu mejor amiga,<br><em>siempre disponible</em></h1>
+  <p class="lp-sub">Habla con Zyra cuando lo necesites. Sin juicios, sin listas de espera, sin horarios. Apoyo emocional real en español latinoamericano.</p>
+  <div class="lp-ctas">
+    <button class="lp-cta-primary" onclick="showPage('register')">🚀 Comenzar gratis — es fácil</button>
+    <button class="lp-cta-secondary" onclick="showPage('login')">Ya tengo cuenta →</button>
+  </div>
+  <div class="lp-trust">
+    <div class="lp-trust-item">🔒 Privado y cifrado</div>
+    <div class="lp-trust-item">✅ Sin tarjeta para empezar</div>
+    <div class="lp-trust-item">🇨🇴 Hecho para Latinoamérica</div>
+    <div class="lp-trust-item">🧠 IA que te conoce</div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="lp-features">
+  <div class="lp-section-label">¿Qué puedes hacer?</div>
+  <h2 class="lp-section-title">Todo lo que necesitas para tu bienestar</h2>
+  <p class="lp-section-sub">No es una app de meditación genérica. Zyra te conoce, te recuerda y está contigo.</p>
+  <div class="lp-feat-grid">
+    <div class="lp-feat-card">
+      <span class="lp-feat-icon">💬</span>
+      <div class="lp-feat-title">Chat con Zyra IA</div>
+      <div class="lp-feat-desc">Habla de lo que sea — trabajo, relaciones, ansiedad, días malos. Zyra escucha sin juzgar y responde como una amiga de verdad.</div>
+    </div>
+    <div class="lp-feat-card">
+      <span class="lp-feat-icon">📔</span>
+      <div class="lp-feat-title">Diario emocional</div>
+      <div class="lp-feat-desc">Escribe cómo te sientes cada día. Tus entradas son privadas y Zyra las usa para entenderte mejor con el tiempo.</div>
+    </div>
+    <div class="lp-feat-card">
+      <span class="lp-feat-icon">🎯</span>
+      <div class="lp-feat-title">Metas de bienestar</div>
+      <div class="lp-feat-desc">Crea metas personales y rastrea tu progreso. Desde meditar 5 minutos al día hasta dormir mejor esta semana.</div>
+    </div>
+    <div class="lp-feat-card">
+      <span class="lp-feat-icon">🧘</span>
+      <div class="lp-feat-title">Herramientas de calma</div>
+      <div class="lp-feat-desc">Respiración guiada, meditaciones, música relajante, sonidos ambientales y afirmaciones. Todo en un solo lugar.</div>
+    </div>
+    <div class="lp-feat-card">
+      <span class="lp-feat-icon">📊</span>
+      <div class="lp-feat-title">Análisis emocional</div>
+      <div class="lp-feat-desc">Ve patrones en tus emociones, rachas de uso, logros y cómo has progresado semana a semana.</div>
+    </div>
+    <div class="lp-feat-card">
+      <span class="lp-feat-icon">🎮</span>
+      <div class="lp-feat-title">Juegos de bienestar</div>
+      <div class="lp-feat-desc">Burbujas Zen, Jardín Zen, Memory y respiración guiada. Para cuando necesitas desconectar y calmar la mente.</div>
+    </div>
+  </div>
+</section>
+
+<!-- Cómo funciona -->
+<section class="lp-how">
+  <div class="lp-section-label">Así de fácil</div>
+  <h2 class="lp-section-title">Empieza en 3 pasos</h2>
+  <p class="lp-section-sub">Sin formularios largos, sin configuraciones complicadas.</p>
+  <div class="lp-steps">
+    <div class="lp-step">
+      <div class="lp-step-num">1</div>
+      <div class="lp-step-title">Crea tu cuenta gratis</div>
+      <div class="lp-step-desc">Solo tu correo y contraseña. En 30 segundos estás dentro.</div>
+    </div>
+    <div class="lp-step">
+      <div class="lp-step-num">2</div>
+      <div class="lp-step-title">Haz el test emocional</div>
+      <div class="lp-step-desc">Zyra aprende cómo eres y adapta sus respuestas a ti desde el primer mensaje.</div>
+    </div>
+    <div class="lp-step">
+      <div class="lp-step-num">3</div>
+      <div class="lp-step-title">Habla cuando quieras</div>
+      <div class="lp-step-desc">De día, de noche, entre semana o el fin de semana. Zyra siempre está disponible.</div>
+    </div>
+  </div>
+</section>
+
+<!-- Planes -->
+<section class="lp-plans">
+  <div class="lp-section-label">Planes</div>
+  <h2 class="lp-section-title">Empieza gratis, sube cuando quieras</h2>
+  <p class="lp-section-sub">Sin compromisos. Cancela cuando quieras.</p>
+  <div class="lp-plans-grid">
+    <div class="lp-plan-card">
+      <div class="lp-plan-name">Gratis</div>
+      <div class="lp-plan-price">$0</div>
+      <div class="lp-plan-period">Para siempre</div>
+      <ul class="lp-plan-feats">
+        <li>10 mensajes con Zyra al día</li>
+        <li>Diario emocional (3 entradas/día)</li>
+        <li>Herramientas de bienestar básicas</li>
+        <li>Metas de bienestar</li>
+        <li>Juegos de bienestar</li>
+      </ul>
+      <button class="lp-btn-ghost" style="width:100%;padding:11px" onclick="showPage('register')">Empezar gratis</button>
+    </div>
+    <div class="lp-plan-card featured">
+      <div class="lp-plan-name">Básico</div>
+      <div class="lp-plan-price">$9.900</div>
+      <div class="lp-plan-period">COP / mes</div>
+      <ul class="lp-plan-feats">
+        <li>Mensajes ilimitados con Zyra</li>
+        <li>Diario ilimitado + exportar PDF</li>
+        <li>Música real en streaming</li>
+        <li>Análisis emocional avanzado</li>
+        <li>Soporte prioritario</li>
+      </ul>
+      <button class="lp-btn-solid" style="width:100%;padding:11px" onclick="showPage('register')">Comenzar →</button>
+    </div>
+    <div class="lp-plan-card">
+      <div class="lp-plan-name">Premium</div>
+      <div class="lp-plan-price">$24.900</div>
+      <div class="lp-plan-period">COP / mes</div>
+      <ul class="lp-plan-feats">
+        <li>Todo lo de Básico</li>
+        <li>Voz de IA con ElevenLabs</li>
+        <li>Llamadas de voz con Zyra</li>
+        <li>Reportes semanales IA</li>
+        <li>Memoria extendida de Zyra</li>
+      </ul>
+      <button class="lp-btn-ghost" style="width:100%;padding:11px" onclick="showPage('register')">Elegir Premium</button>
+    </div>
+  </div>
+</section>
+
+<!-- CTA final -->
+<section class="lp-final">
+  <div class="lp-eyebrow" style="margin:0 auto 28px">✦ Únete a Zyra hoy</div>
+  <h2 class="lp-section-title" style="margin-bottom:14px">¿Lista para sentirte mejor?</h2>
+  <p class="lp-section-sub" style="margin-bottom:36px">Tu primera sesión con Zyra es gratis. Sin tarjeta, sin trámites.</p>
+  <button class="lp-cta-primary" style="font-size:17px;padding:17px 40px" onclick="showPage('register')">🚀 Crear mi cuenta gratis</button>
+</section>
+
+<!-- Footer -->
+<footer class="lp-footer">
+  <div style="margin-bottom:8px">
+    <a onclick="showLegal('terms')">Términos de Uso</a>
+    <span style="margin:0 10px;opacity:.4">·</span>
+    <a onclick="showLegal('privacy')">Política de Privacidad</a>
+    <span style="margin:0 10px;opacity:.4">·</span>
+    <a href="mailto:zyra.ia.2026@gmail.com">Soporte</a>
+  </div>
+  <div>© 2026 Zyra — Bienestar Emocional con IA · Hecho con ❤️ en Colombia</div>
+</footer>
+
+</div>
+
 <!-- ══ LOGIN ══════ -->
 <div id="page-login" class="page active">
 <div class="auth-wrap">
@@ -1044,6 +1273,12 @@
       <div class="quick-card-title">Modo Enfoque</div>
       <div class="quick-card-desc">Pomodoro + sonidos ambientales</div>
       <div class="quick-card-badge"><span class="badge orange">25 min</span></div>
+    </div>
+    <div class="quick-card" onclick="showPage('analytics')">
+      <span class="quick-card-icon">📊</span>
+      <div class="quick-card-title">Mi análisis emocional</div>
+      <div class="quick-card-desc">Patrones, progreso y rachas de la semana</div>
+      <div class="quick-card-badge"><span class="badge blue">Ver estadísticas</span></div>
     </div>
   </div>
 
@@ -2506,7 +2741,7 @@ function showPage(name) {
   if(name === "games")     setTimeout(()=>{ if(typeof openGame==="function") openGame('breath'); }, 100);
 
   // ── Tabbar móvil: mostrar/ocultar y marcar activo ──
-  const noTabPages = ['login','register','verify-login','verify-register','voice-call','forgot-password','reset-password'];
+  const noTabPages = ['landing','login','register','verify-login','verify-register','voice-call','forgot-password','reset-password'];
   const tabbar = document.getElementById('mobile-tabbar');
   if(tabbar) {
     tabbar.style.display = noTabPages.includes(name) ? 'none' : '';
@@ -5423,7 +5658,7 @@ window.addEventListener("load", () => {
     showPage(startPage);
     setTimeout(() => checkOnboarding(), 1000);
   } else {
-    showPage("login");
+    showPage("landing");
   }
   setTimeout(() => {
     const s = document.getElementById("zyra-splash");
