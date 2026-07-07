@@ -3274,3 +3274,42 @@ body {
 .skeleton-line.short { width: 55%; }
 .skeleton-line.medium { width: 75%; }
 .skeleton-line.full  { width: 100%; }
+
+/* ═══════════════════════════════════════════
+   ACCESIBILIDAD
+═══════════════════════════════════════════ */
+
+/* Skip link — visible solo cuando recibe foco */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 8px;
+  padding: 8px 16px;
+  background: var(--accent, #6366f1);
+  color: #fff;
+  border-radius: 0 0 10px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  z-index: 99999;
+  text-decoration: none;
+  transition: top .15s;
+}
+.skip-link:focus { top: 0; }
+
+/* Focus ring visible en todos los elementos interactivos */
+:focus-visible {
+  outline: 2px solid var(--accent, #6366f1);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* Eliminar outline solo cuando el usuario usa mouse */
+:focus:not(:focus-visible) { outline: none; }
+
+/* Respetar preferencia de movimiento reducido */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
