@@ -21,3 +21,17 @@ exports.deleteConversation = async (req, res) => {
     res.json({ success: true });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
+
+exports.renameConversation = async (req, res) => {
+  try {
+    const { title } = req.body;
+    if (!title || typeof title !== "string" || !title.trim()) return res.status(400).json({ message: "Título requerido" });
+    const c = await Conversation.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id },
+      { title: title.trim().slice(0, 100) },
+      { new: true }
+    );
+    if (!c) return res.status(404).json({ message: "No encontrada" });
+    res.json({ success: true, title: c.title });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+};

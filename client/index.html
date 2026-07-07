@@ -1692,7 +1692,8 @@
       <button class="btn-tts" id="btn-tts-toggle" onclick="toggleAutoSpeak()" title="Activar voz">🔇</button>
       <button class="btn-call" id="btn-voice-call" onclick="openVoiceCall()" title="Llamada de voz con Zyra (Premium)">📞 Llamada 🔒</button>
     </div>
-    <div class="messages" id="messages"></div>
+    <div class="messages" id="messages" onscroll="onMsgsScroll(this)"></div>
+    <button id="btn-scroll-bottom" class="btn-scroll-bottom" onclick="scrollChatBottom()" title="Ir al final" style="display:none">↓</button>
     <div class="chat-input">
       <div class="input-row">
         <button class="btn-voice" id="btn-voice" onclick="toggleVoice()" title="Mantén para hablar">🎤</button>
@@ -4252,6 +4253,7 @@ function renderJournal(entries, updateCache = true) {
       <div class="journal-meta">
         <span class="journal-date" title="${new Date(e.createdAt).toLocaleDateString("es",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}">${timeAgo(e.createdAt)}</span>
         ${em?`<span class="badge purple">${em.emoji} ${em.label}</span>`:""}
+        <span style="color:var(--text3);font-size:11px">${(e.content||"").trim().split(/\s+/).filter(Boolean).length} palabras</span>
       </div>
     </div>`;
   }).join("");
@@ -4308,17 +4310,65 @@ async function exportJournalPDF() {
   if (btn) { btn.textContent = "⏳ Generando..."; btn.disabled = true; }
   try {
     const res = await fetch("/api/report/pdf", { method:"POST", headers: { Authorization: "Bearer " + localStorage.getItem("zyra_token"), "Content-Type":"application/json" } });
-    if (!res.ok) { const j = await res.json().catch(()=>{}); throw new Error(j?.message || "Error al generar PDF"); }
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "zyra-diario-" + Date.now() + ".pdf"; a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 3000);
-    zyraToast("PDF generado correctamente", "success");
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url; a.download = "zyra-reporte-" + Date.now() + ".pdf"; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
+      zyraToast("PDF generado correctamente", "success");
+    } else {
+      // Fallback: print-based PDF via browser
+      await exportPrintReport();
+    }
   } catch(e) {
-    zyraToast(e.message || "Error al generar PDF", "error");
+    await exportPrintReport();
   } finally {
     if (btn) { btn.textContent = "📄 Exportar PDF"; btn.disabled = false; }
   }
+}
+async function exportPrintReport() {
+  const [profRes, journalRes, goalsRes] = await Promise.allSettled([
+    api("/profile"), api("/journal"), api("/goals")
+  ]);
+  const prof    = profRes.status==="fulfilled" ? profRes.value : {};
+  const entries = journalRes.status==="fulfilled" ? (journalRes.value.entries||journalRes.value||[]) : [];
+  const goals   = goalsRes.status==="fulfilled" ? (goalsRes.value.goals||goalsRes.value||[]) : [];
+  const name    = user?.name || "Usuario";
+  const date    = new Date().toLocaleDateString("es-CO",{year:"numeric",month:"long",day:"numeric"});
+  const EMOTIONS_ES = {feliz:"😊 Feliz",triste:"😔 Triste",ansioso:"😰 Ansioso",enojado:"😠 Enojado",tranquilo:"😌 Tranquilo",estresado:"😤 Estresado",emocionado:"🤩 Emocionado",cansado:"😴 Cansado",motivado:"💪 Motivado",solo:"🥺 Solo"};
+  const w = window.open("","_blank","width=900,height=700");
+  w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte Zyra — ${safeHtml(name)}</title><style>
+    body{font-family:system-ui,sans-serif;color:#1e293b;max-width:800px;margin:0 auto;padding:32px;line-height:1.6}
+    .hdr{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border-radius:16px;padding:24px 32px;margin-bottom:32px}
+    .hdr h1{margin:0 0 4px;font-size:28px}
+    .hdr p{margin:0;opacity:.8;font-size:14px}
+    h2{color:#6366f1;border-bottom:2px solid #e0e7ff;padding-bottom:8px;margin-top:32px}
+    .stats{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px}
+    .stat{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px 20px;flex:1;min-width:120px;text-align:center}
+    .stat-n{font-size:28px;font-weight:800;color:#6366f1}
+    .stat-l{font-size:12px;color:#64748b;margin-top:4px}
+    .goal{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #f1f5f9}
+    .goal-ck{font-size:18px}
+    .entry{background:#f8fafc;border-radius:12px;padding:16px;margin-bottom:16px}
+    .entry-title{font-weight:700;margin-bottom:4px}
+    .entry-meta{font-size:12px;color:#64748b;margin-bottom:8px}
+    .entry-body{font-size:13px;color:#475569;white-space:pre-wrap}
+    .footer{margin-top:40px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;text-align:center}
+    @media print{.no-print{display:none}body{padding:0}}
+  </style></head><body>
+    <div class="hdr"><h1>💙 Reporte de Bienestar — ${safeHtml(name)}</h1><p>Generado el ${date} · Zyra IA</p></div>
+    <div class="stats">
+      <div class="stat"><div class="stat-n">${entries.length}</div><div class="stat-l">Entradas diario</div></div>
+      <div class="stat"><div class="stat-n">${goals.length}</div><div class="stat-l">Metas creadas</div></div>
+      <div class="stat"><div class="stat-n">${goals.filter(g=>g.completed).length}</div><div class="stat-l">Metas logradas</div></div>
+      <div class="stat"><div class="stat-n">${(prof.profile?.emotionHistory||[]).length}</div><div class="stat-l">Registros emocionales</div></div>
+    </div>
+    ${goals.length?`<h2>🎯 Metas Personales</h2>${goals.map(g=>`<div class="goal"><span class="goal-ck">${g.completed?"✅":"⭕"}</span><span>${safeHtml(g.title||"Meta")}</span></div>`).join("")}`:""}
+    ${entries.length?`<h2>📔 Entradas del Diario</h2>${entries.slice(0,20).map(e=>`<div class="entry"><div class="entry-title">${safeHtml(e.title||"Sin título")}</div><div class="entry-meta">${new Date(e.createdAt).toLocaleDateString("es-CO",{year:"numeric",month:"long",day:"numeric"})} · ${EMOTIONS_ES[e.emotion]||""}</div><div class="entry-body">${safeHtml(e.content||"").slice(0,500)}${(e.content||"").length>500?"…":""}</div></div>`).join("")}`:""}
+    <div class="footer">Este reporte es generado por Zyra IA y no reemplaza el consejo de un profesional de salud mental. 💙</div>
+    <div class="no-print" style="text-align:center;margin:24px 0"><button onclick="window.print()" style="background:#6366f1;color:white;border:none;border-radius:10px;padding:12px 28px;font-size:15px;cursor:pointer;font-weight:700">🖨️ Guardar como PDF / Imprimir</button></div>
+  </body></html>`);
+  w.document.close();
 }
 
 function openEditJournal(id) {
@@ -4929,9 +4979,29 @@ function renderHistory(convs) {
   if(!convs.length) { el.innerHTML = '<div class="empty" style="font-size:12px;padding:16px 0">Sin sesiones aún</div>'; return; }
   el.innerHTML = convs.map(c => `
     <div class="hist-item ${c._id===currentConvId?"active":""}" onclick="openConv('${c._id}')">
-      <span class="hist-title">${safeHtml(c.title)}</span>
+      <span class="hist-title" ondblclick="startRenameConv(event,'${c._id}',this)" title="Doble clic para renombrar">${safeHtml(c.title)}</span>
       <button class="hist-del" onclick="delConv(event,'${c._id}')">×</button>
     </div>`).join("");
+}
+async function startRenameConv(e, id, span) {
+  e.stopPropagation();
+  const oldTitle = span.textContent;
+  const inp = document.createElement("input");
+  inp.value = oldTitle;
+  inp.className = "hist-rename-inp";
+  inp.style.cssText = "width:100%;border:none;outline:none;background:transparent;font:inherit;color:inherit;padding:0";
+  span.replaceWith(inp);
+  inp.select();
+  const save = async () => {
+    const newTitle = inp.value.trim() || oldTitle;
+    inp.replaceWith(Object.assign(document.createElement("span"), { className:"hist-title", textContent:newTitle, ondblclick:(ev)=>startRenameConv(ev,id,inp.parentElement.querySelector(".hist-title")) }));
+    if (newTitle !== oldTitle) {
+      try { await api(`/conversations/${id}/title`,"PATCH",{title:newTitle}); } catch(e) {}
+    }
+    const c = _allConversations.find(x => x._id===id); if(c) c.title = newTitle;
+  };
+  inp.addEventListener("blur", save);
+  inp.addEventListener("keydown", ev => { if(ev.key==="Enter"){ev.preventDefault();inp.blur();} if(ev.key==="Escape"){inp.value=oldTitle;inp.blur();} });
 }
 function newChat() {
   currentConvId = null; chatHistory = [];
@@ -4942,7 +5012,19 @@ function newChat() {
   </div>`;
   const name = user ? safeHtml(user.name.split(" ")[0]) : "";
   addBotMsg(`Hola ${name}, soy Zyra 💙 Este es tu espacio seguro, sin juicios. ¿Cómo estás hoy?`);
+  const chips = document.createElement("div");
+  chips.id = "prompt-chips";
+  chips.className = "prompt-chips";
+  chips.innerHTML = [
+    ["😰","Me siento ansioso"], ["😔","Estoy triste hoy"], ["💬","Necesito hablar"],
+    ["🎵","Dame música para relajarme"], ["🌙","No puedo dormir"], ["💪","Quiero motivarme"]
+  ].map(([e,t]) => `<button class="prompt-chip" onclick="fillPrompt(${JSON.stringify(t)})">${e} ${t}</button>`).join("");
+  msgs.insertBefore(chips, document.getElementById("typing-indicator"));
   loadHistory();
+}
+function fillPrompt(text) {
+  const inp = document.getElementById("chat-input");
+  inp.value = text; onInput(); inp.focus();
 }
 async function openConv(id) {
   currentConvId = id; chatHistory = [];
@@ -5280,9 +5362,28 @@ function addBotMsg(text, ts, cards) {
       <div style="display:flex;align-items:center;gap:6px;margin-top:6px">
         <div class="msg-time">${time}</div>
         <button class="btn-tts" onclick="speakMsgEL(this,decodeURIComponent(this.dataset.t))" data-t="${encodeURIComponent(text)}" title="Escuchar">🔊</button>
+        <button class="btn-feedback" onclick="copyMsg(this,decodeURIComponent(this.dataset.t))" data-t="${encodeURIComponent(text)}" title="Copiar mensaje">📋</button>
+        <button class="btn-feedback" onclick="rateMsg(this,'up')" title="Útil">👍</button>
+        <button class="btn-feedback" onclick="rateMsg(this,'down')" title="No útil">👎</button>
       </div>
     </div>`;
   msgs.insertBefore(div, typing); msgs.scrollTop = msgs.scrollHeight;
+}
+function rateMsg(btn, vote) {
+  const row = btn.closest("div[style]");
+  if (!row) return;
+  row.querySelectorAll(".btn-feedback").forEach(b => { b.disabled = true; b.classList.remove("voted"); });
+  btn.classList.add("voted");
+  btn.style.transform = "scale(1.4)";
+  setTimeout(() => btn.style.transform = "", 300);
+}
+async function copyMsg(btn, text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    const orig = btn.textContent;
+    btn.textContent = "✅";
+    setTimeout(() => btn.textContent = orig, 1500);
+  } catch(e) {}
 }
 
 function addUserMsg(text, ts) {
@@ -5304,7 +5405,23 @@ function addUserMsg(text, ts) {
 }
 
 function showTyping(show) { const t = document.getElementById("typing-indicator"); if(t) t.className = "typing"+(show?" show":""); }
-function onInput() { const v = document.getElementById("chat-input").value.trim(); document.getElementById("btn-send").classList.toggle("ready", v.length > 0); }
+function onMsgsScroll(el) {
+  const btn = document.getElementById("btn-scroll-bottom");
+  if (!btn) return;
+  const fromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+  btn.style.display = fromBottom > 120 ? "flex" : "none";
+}
+function scrollChatBottom() {
+  const msgs = document.getElementById("messages");
+  if (msgs) msgs.scrollTop = msgs.scrollHeight;
+}
+function onInput() {
+  const ta = document.getElementById("chat-input");
+  const v = ta.value.trim();
+  document.getElementById("btn-send").classList.toggle("ready", v.length > 0);
+  ta.style.height = "auto";
+  ta.style.height = Math.min(ta.scrollHeight, 120) + "px";
+}
 function onKey(e) { if(e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); } }
 
 /* ════ PERFIL — CONTACTO DE EMERGENCIA, PIN, TEMA Y DATOS ════ */
@@ -5676,6 +5793,7 @@ async function sendMsg() {
   const inp = document.getElementById("chat-input");
   const msg = inp.value.trim(); if (!msg) return;
   inp.value = ""; onInput(); addUserMsg(msg);
+  const pc = document.getElementById("prompt-chips"); if (pc) pc.remove();
   chatHistory.push({role:"user", content:msg});
 
   const historyPayload = chatHistory.map(m => ({role:m.role, content:m.content}));
