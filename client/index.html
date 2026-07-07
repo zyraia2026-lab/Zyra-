@@ -1313,7 +1313,10 @@
   </div>
 </nav>
 <div class="container">
-  <div class="section-title">📔 Mi Diario Emocional</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px">
+    <div class="section-title" style="margin:0">📔 Mi Diario Emocional</div>
+    <button id="btn-export-pdf" onclick="exportJournalPDF()" style="background:linear-gradient(135deg,#7c3aed,#6366f1);border:none;border-radius:12px;color:white;font-size:12px;font-weight:700;padding:9px 16px;cursor:pointer;display:flex;align-items:center;gap:6px">📄 Exportar PDF</button>
+  </div>
 
   <!-- Tabs -->
   <div style="display:flex;gap:8px;margin-bottom:18px">
@@ -1327,8 +1330,8 @@
       <div class="card-header"><span class="card-title">Nueva entrada</span><button class="btn-sm accent" onclick="toggleJournalForm()">+ Escribir</button></div>
       <div class="add-form" id="add-journal-form">
         <div class="form-row">
-          <input type="text" id="journal-title" placeholder="Título de la entrada (opcional)"/>
-          <select id="journal-emotion">
+          <input type="text" id="journal-title" placeholder="Título de la entrada (opcional)" oninput="savejournalDraft()"/>
+          <select id="journal-emotion" onchange="savejournalDraft()">
             <option value="">Sin emoción</option>
             <option value="feliz">😊 Feliz</option>
             <option value="tranquilo">😌 Tranquilo</option>
@@ -1343,10 +1346,11 @@
           </select>
         </div>
         <div class="form-row">
-          <textarea id="journal-content" placeholder="Escribe libremente sobre tu día..." style="height:100px" maxlength="2000" oninput="updateJournalCharCount(this)"></textarea>
+          <textarea id="journal-content" placeholder="Escribe libremente sobre tu día..." style="height:100px" maxlength="2000" oninput="updateJournalCharCount(this);savejournalDraft()"></textarea>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <span id="journal-char-count" style="font-size:11px;color:var(--text3)">0 / 2000</span>
+          <span id="journal-draft-indicator" style="font-size:11px;color:var(--text3);display:none">💾 Borrador guardado</span>
         </div>
         <button class="btn-primary" style="padding:12px;font-size:13px" onclick="addJournalEntry()">Guardar Entrada →</button>
       </div>
@@ -1428,6 +1432,9 @@
   <div class="sidebar">
     <button class="btn-new" onclick="newChat()">✦ Nueva sesión</button>
     <div class="history-label">Sesiones anteriores</div>
+    <div style="padding:0 0 8px">
+      <input id="hist-search" type="search" placeholder="🔍 Buscar..." oninput="filterHistory(this.value)" style="width:100%;box-sizing:border-box;padding:7px 11px;background:var(--surface2,rgba(255,255,255,.04));border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:12px;outline:none"/>
+    </div>
     <div id="hist-list"><div class="empty" style="font-size:12px;padding:16px 0">Sin sesiones aún</div></div>
   </div>
   <div class="chat-box">
@@ -1666,8 +1673,17 @@
     <p id="sub-plan-desc" style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.6"></p>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn-sm accent" onclick="showPage('planes')" id="btn-upgrade-plan">⬆ Ver planes</button>
+      <button class="btn-sm" id="btn-billing-portal" style="display:none" onclick="openBillingPortal()">⚙ Gestionar suscripción</button>
       <button class="btn-sm" id="btn-cancel-plan" style="display:none;color:var(--text3)" onclick="cancelSubscription()">Cancelar plan</button>
     </div>
+  </div>
+
+  <!-- ══ HISTORIAL DE PAGOS ══ -->
+  <div class="card" id="payment-history-card" style="margin-bottom:20px;display:none">
+    <div class="card-header">
+      <span class="card-title">🧾 Historial de pagos</span>
+    </div>
+    <div id="payment-history-list" style="margin-top:4px"></div>
   </div>
 
   <!-- ══ MIS DATOS ══ -->
@@ -2618,7 +2634,13 @@ async function clearAllMemories() {
 async function loadAnalytics() {
   const el = document.getElementById("analytics-content");
   if(!el) return;
-  el.innerHTML = `<div class="empty" style="padding:60px 0;text-align:center"><div style="font-size:40px;margin-bottom:12px;opacity:.4">📊</div><p style="color:var(--text3)">Cargando análisis...</p></div>`;
+  el.innerHTML = `<div class="container" style="padding:20px 0 80px">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+      ${[1,2,3,4,5,6].map(()=>`<div class="card" style="padding:16px;text-align:center"><div class="skeleton skeleton-stat-value" style="margin:0 auto 8px"></div><div class="skeleton skeleton-stat-label" style="margin:0 auto"></div></div>`).join("")}
+    </div>
+    <div class="card" style="padding:20px;margin-bottom:20px"><div class="skeleton skeleton-line full"></div><div class="skeleton skeleton-line medium"></div><div class="skeleton skeleton-line short"></div></div>
+    <div class="card" style="padding:20px"><div class="skeleton skeleton-line full"></div><div class="skeleton skeleton-line medium"></div></div>
+  </div>`;
   try {
     const d = await api("/analytics");
     renderAnalytics(d, el);
@@ -3022,6 +3044,7 @@ async function loadProfile() {
     loadEmergencyContact();
     initPushUI(p);
     loadSubscriptionInfo();
+    loadPaymentHistory();
     loadMemories();
     const pinMsg = document.getElementById("pin-status-msg");
     if(pinMsg) pinMsg.textContent = p.pinEnabled ? "🔐 PIN activo" : "Sin PIN configurado";
@@ -3164,7 +3187,50 @@ async function loadSubscriptionInfo() {
     if(desc) desc.textContent = info.desc;
     if(cancelBtn) cancelBtn.style.display = d.plan !== "free" ? "inline-flex" : "none";
     if(upgradeBtn) upgradeBtn.style.display = d.plan === "premium" ? "none" : "inline-flex";
+    const portalBtn = document.getElementById("btn-billing-portal");
+    if(portalBtn) portalBtn.style.display = d.plan !== "free" ? "inline-flex" : "none";
   } catch(e) {}
+}
+async function openBillingPortal() {
+  const btn = document.getElementById("btn-billing-portal");
+  if (btn) { btn.textContent = "⏳ Cargando..."; btn.disabled = true; }
+  try {
+    const d = await api("/payments/portal", "POST");
+    if (d.url) { window.open(d.url, "_blank"); }
+    else zyraToast(d.message || "Error al abrir portal", "error");
+  } catch(e) {
+    zyraToast(e.message || "Gestiona tu suscripción en soporte@zyra.app", "info", 5000);
+  } finally {
+    if (btn) { btn.textContent = "⚙ Gestionar suscripción"; btn.disabled = false; }
+  }
+}
+async function loadPaymentHistory() {
+  const card = document.getElementById("payment-history-card");
+  const list = document.getElementById("payment-history-list");
+  if (!card || !list) return;
+  try {
+    const d = await api("/payments/history");
+    const payments = d.payments || [];
+    if (!payments.length) { card.style.display = "none"; return; }
+    card.style.display = "";
+    const planLabels = { basic: "Plan Básico", premium: "Plan Premium", free: "Plan Gratis" };
+    const periodLabels = { monthly: "Mensual", annual: "Anual", demo: "Demo" };
+    const fmt = n => n ? new Intl.NumberFormat("es-CO", { style:"currency", currency:"COP", maximumFractionDigits:0 }).format(n/100) : "—";
+    list.innerHTML = payments.map(p => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text)">${planLabels[p.plan]||p.plan} · ${periodLabels[p.period]||p.period}</div>
+          <div style="font-size:11px;color:var(--text3)">${new Date(p.createdAt).toLocaleDateString("es",{day:"numeric",month:"long",year:"numeric"})}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:13px;font-weight:700;color:#10b981">${fmt(p.amount)}</div>
+          <div style="font-size:10px;color:var(--text3)">${p.status === "paid" ? "✅ Pagado" : p.status}</div>
+        </div>
+      </div>`).join("");
+    // Remove last border
+    const items = list.querySelectorAll("[style*='border-bottom']");
+    if (items.length) items[items.length-1].style.borderBottom = "none";
+  } catch(e) { if(card) card.style.display = "none"; }
 }
 async function cancelSubscription() {
   const ok = await zyraConfirm("¿Cancelar tu plan? Volverás al plan gratuito.", { danger: true, okText: "Sí, cancelar" });
@@ -3200,6 +3266,11 @@ async function loadDashboard() {
   if(!user) return;
   document.getElementById("hero-greeting").textContent = greeting();
   document.getElementById("hero-name").textContent = user.name;
+  // Skeleton while loading
+  ["st-sessions","st-emotion","st-goals","st-journal"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '<span class="skeleton skeleton-stat-value"></span>';
+  });
   try {
     const [pd, cd, hd, gd, jd] = await Promise.all([
       api("/profile"), api("/conversations"), api("/profile/history"), api("/goals"), api("/journal")
@@ -3306,13 +3377,22 @@ async function loadGoals() {
 function renderGoals(goals) {
   const el = document.getElementById("goals-list");
   if(!goals.length) { el.innerHTML = '<div class="empty"><span class="empty-icon">🎯</span>No tienes metas aún.<br><button class="btn-sm accent" style="margin-top:10px" onclick="document.getElementById(\'add-goal-form\').classList.add(\'show\')">+ Crear primera meta</button></div>'; return; }
-  el.innerHTML = goals.map(g => `
+  el.innerHTML = goals.map(g => {
+    const prog = g.completed ? 100 : (g.progress || 0);
+    const progColor = prog >= 100 ? "#10b981" : prog >= 60 ? "#6366f1" : prog >= 30 ? "#f59e0b" : "#94a3b8";
+    return `
     <div class="goal-item ${g.completed?"done":""}">
       <div class="goal-check ${g.completed?"checked":""}" onclick="toggleGoal('${g._id}')">✓</div>
-      <div style="flex:1">
+      <div style="flex:1;min-width:0">
         <div class="goal-text">${safeHtml(g.title)}</div>
         ${g.reminder?`<div style="font-size:11px;color:var(--text3);margin-top:2px">⏰ ${safeHtml(g.reminder)}</div>`:""}
         ${g.dueDate?`<div style="font-size:11px;color:var(--text3)">📅 ${new Date(g.dueDate).toLocaleDateString("es")}</div>`:""}
+        <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+          <div style="flex:1;height:5px;background:var(--border);border-radius:99px;overflow:hidden">
+            <div style="height:100%;width:${prog}%;background:${progColor};border-radius:99px;transition:width .4s"></div>
+          </div>
+          <span style="font-size:10px;color:var(--text3);white-space:nowrap;font-weight:600">${prog}%</span>
+        </div>
       </div>
       <div class="goal-meta">
         <span class="goal-cat">${safeHtml(CAT[g.category]||g.category)}</span>
@@ -3320,7 +3400,8 @@ function renderGoals(goals) {
       </div>
       <button class="btn-xs" style="margin-right:4px" onclick="openEditGoal('${g._id}')">✏</button>
       <button class="goal-del" onclick="deleteGoal('${g._id}')">×</button>
-    </div>`).join("");
+    </div>`;
+  }).join("");
 }
 async function addGoal() {
   const title = document.getElementById("goal-title").value.trim();
@@ -3352,6 +3433,11 @@ function openEditGoal(id) {
   document.getElementById("edit-goal-priority").value = g.priority || "media";
   document.getElementById("edit-goal-reminder").value = g.reminder || "";
   document.getElementById("edit-goal-date").value = g.dueDate ? g.dueDate.substring(0,10) : "";
+  const prog = g.completed ? 100 : (g.progress || 0);
+  const sl = document.getElementById("edit-goal-progress");
+  const lb = document.getElementById("edit-goal-progress-label");
+  if (sl) sl.value = prog;
+  if (lb) lb.textContent = prog;
   const m = document.getElementById("edit-goal-modal");
   if(m) { m.style.display = "flex"; document.body.style.overflow = "hidden"; }
 }
@@ -3366,9 +3452,10 @@ async function saveEditGoal() {
   const priority = document.getElementById("edit-goal-priority").value;
   const reminder = document.getElementById("edit-goal-reminder").value.trim();
   const dueDate = document.getElementById("edit-goal-date").value;
+  const progress = parseInt(document.getElementById("edit-goal-progress")?.value || "0", 10);
   if(!title) return zyraToast("Escribe un título para la meta", "error");
   try {
-    await api("/goals/"+id, "PUT", { title, category, priority, reminder, dueDate: dueDate||undefined });
+    await api("/goals/"+id, "PUT", { title, category, priority, reminder, dueDate: dueDate||undefined, progress });
     closeEditGoal();
     loadGoals();
     zyraToast("Meta actualizada", "success");
@@ -3411,9 +3498,45 @@ function filterJournal() {
 }
 
 function toggleJournalForm() { document.getElementById("add-journal-form").classList.toggle("show"); }
+function savejournalDraft() {
+  const t = document.getElementById("journal-title")?.value || "";
+  const c = document.getElementById("journal-content")?.value || "";
+  const e = document.getElementById("journal-emotion")?.value || "";
+  if (t || c) {
+    localStorage.setItem("zyra_journal_draft", JSON.stringify({ t, c, e }));
+    const ind = document.getElementById("journal-draft-indicator");
+    if (ind) { ind.style.display = ""; clearTimeout(ind._hideTimer); ind._hideTimer = setTimeout(() => { if(ind) ind.style.display = "none"; }, 2000); }
+  } else {
+    localStorage.removeItem("zyra_journal_draft");
+  }
+}
+function restoreJournalDraft() {
+  try {
+    const raw = localStorage.getItem("zyra_journal_draft");
+    if (!raw) return;
+    const { t, c, e } = JSON.parse(raw);
+    const ti = document.getElementById("journal-title");
+    const ci = document.getElementById("journal-content");
+    const ei = document.getElementById("journal-emotion");
+    if (ti && t) ti.value = t;
+    if (ci && c) { ci.value = c; updateJournalCharCount(ci); }
+    if (ei && e) ei.value = e;
+    if (t || c) {
+      document.getElementById("add-journal-form")?.classList.add("show");
+      const ind = document.getElementById("journal-draft-indicator");
+      if (ind) ind.style.display = "";
+    }
+  } catch(e) {}
+}
+function clearJournalDraft() {
+  localStorage.removeItem("zyra_journal_draft");
+  const ind = document.getElementById("journal-draft-indicator");
+  if (ind) ind.style.display = "none";
+}
 async function loadJournal() {
   const el = document.getElementById("journal-list");
   if(el) el.innerHTML = '<div class="empty" style="opacity:.5">Cargando diario...</div>';
+  restoreJournalDraft();
   try {
     const d = await api("/journal");
     _journalAllEntries = d.entries || d;
@@ -3497,11 +3620,25 @@ function renderJournal(entries, updateCache = true) {
       </div>
       <div class="journal-preview">${safeHtml(e.content)}</div>
       <div class="journal-meta">
-        <span class="journal-date">${new Date(e.createdAt).toLocaleDateString("es",{weekday:"long",day:"numeric",month:"long"})}</span>
+        <span class="journal-date" title="${new Date(e.createdAt).toLocaleDateString("es",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}">${timeAgo(e.createdAt)}</span>
         ${em?`<span class="badge purple">${em.emoji} ${em.label}</span>`:""}
       </div>
     </div>`;
   }).join("");
+}
+function timeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1)  return "Ahora mismo";
+  if (m < 60) return `Hace ${m} min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `Hace ${h} h`;
+  const d = Math.floor(h / 24);
+  if (d < 7)  return `Hace ${d} día${d>1?"s":""}`;
+  if (d < 30) return `Hace ${Math.floor(d/7)} sem`;
+  const mo = Math.floor(d / 30);
+  if (mo < 12) return `Hace ${mo} mes${mo>1?"es":""}`;
+  return `Hace ${Math.floor(mo/12)} año${Math.floor(mo/12)>1?"s":""}`;
 }
 function clearJournalFilter() {
   const si = document.getElementById("journal-search-input");
@@ -3523,6 +3660,7 @@ async function addJournalEntry() {
     document.getElementById("journal-emotion").value = "";
     const cc = document.getElementById("journal-char-count");
     if (cc) cc.textContent = "0 / 2000";
+    clearJournalDraft();
     document.getElementById("add-journal-form").classList.remove("show");
     clearJournalFilter();
     loadJournal();
@@ -3533,6 +3671,25 @@ async function addJournalEntry() {
   }
 }
 async function deleteJournal(id) { if(!await zyraConfirm("¿Eliminar entrada?", {danger:true, okText:"Eliminar"})) return; try { await api("/journal/"+id,"DELETE"); loadJournal(); } catch(e) {} }
+async function exportJournalPDF() {
+  const plan = localStorage.getItem("zyra_plan") || "free";
+  if (plan !== "premium") { return showUpgradePrompt('pdf', 'premium'); }
+  const btn = document.getElementById("btn-export-pdf");
+  if (btn) { btn.textContent = "⏳ Generando..."; btn.disabled = true; }
+  try {
+    const res = await fetch("/api/report/pdf", { method:"POST", headers: { Authorization: "Bearer " + localStorage.getItem("zyra_token"), "Content-Type":"application/json" } });
+    if (!res.ok) { const j = await res.json().catch(()=>{}); throw new Error(j?.message || "Error al generar PDF"); }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "zyra-diario-" + Date.now() + ".pdf"; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+    zyraToast("PDF generado correctamente", "success");
+  } catch(e) {
+    zyraToast(e.message || "Error al generar PDF", "error");
+  } finally {
+    if (btn) { btn.textContent = "📄 Exportar PDF"; btn.disabled = false; }
+  }
+}
 
 function openEditJournal(id) {
   const e = _journalAllEntries.find(x => x._id === id); if(!e) return;
@@ -4097,11 +4254,21 @@ function setAffirmation(text) {
    ASSISTANT
 ════════════════════════════════════════ */
 async function loadAssistant() { await loadHistory(); if(currentConvId) await openConv(currentConvId); else newChat(); zyraMaybeShowWelcome(); }
+let _allConversations = [];
 async function loadHistory() {
   const el = document.getElementById("hist-list");
   if(el) el.innerHTML = '<div class="empty" style="font-size:12px;padding:16px 0;opacity:.5">Cargando...</div>';
-  try { const d = await api("/conversations"); renderHistory(d.conversations || []); }
+  try {
+    const d = await api("/conversations");
+    _allConversations = d.conversations || [];
+    const q = document.getElementById("hist-search")?.value || "";
+    renderHistory(q ? _allConversations.filter(c => c.title?.toLowerCase().includes(q.toLowerCase())) : _allConversations);
+  }
   catch(e) { if(el) el.innerHTML = `<div class="empty" style="font-size:12px;color:var(--danger)">⚠ ${safeHtml(e.message||"Error")}</div>`; }
+}
+function filterHistory(q) {
+  const filtered = q ? _allConversations.filter(c => c.title?.toLowerCase().includes(q.toLowerCase())) : _allConversations;
+  renderHistory(filtered);
 }
 function renderHistory(convs) {
   const el = document.getElementById("hist-list");
@@ -7245,9 +7412,13 @@ document.addEventListener('DOMContentLoaded', () => {
         <option value="baja">🟢 Baja</option>
       </select>
     </div>
-    <div class="form-row" style="margin-bottom:20px">
+    <div class="form-row" style="margin-bottom:12px">
       <input type="text" id="edit-goal-reminder" placeholder="Recordatorio"/>
       <input type="date" id="edit-goal-date"/>
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="font-size:12px;font-weight:600;color:var(--text3);display:block;margin-bottom:6px">Progreso: <span id="edit-goal-progress-label">0</span>%</label>
+      <input type="range" id="edit-goal-progress" min="0" max="100" step="5" value="0" style="width:100%;accent-color:#6366f1" oninput="document.getElementById('edit-goal-progress-label').textContent=this.value"/>
     </div>
     <button class="btn-primary" style="width:100%;padding:13px" onclick="saveEditGoal()">Guardar cambios</button>
   </div>

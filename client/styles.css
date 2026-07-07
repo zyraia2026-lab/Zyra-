@@ -3255,3 +3255,22 @@ body {
 .pw-toggle:hover { color:var(--text,#e8eaf6); }
 .form-group .input-wrap input[type="password"],
 .form-group .input-wrap input[type="text"] { padding-right:44px; }
+
+/* ── Skeleton loading ── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--surface,#1e2235) 25%, rgba(255,255,255,.06) 50%, var(--surface,#1e2235) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 8px;
+  display: inline-block;
+}
+.skeleton-stat-value { height: 36px; width: 60px; border-radius: 10px; }
+.skeleton-stat-label { height: 10px; width: 80px; border-radius: 6px; margin-top: 6px; }
+.skeleton-line       { height: 14px; border-radius: 6px; margin-bottom: 8px; }
+.skeleton-line.short { width: 55%; }
+.skeleton-line.medium { width: 75%; }
+.skeleton-line.full  { width: 100%; }

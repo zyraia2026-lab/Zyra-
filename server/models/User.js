@@ -9,9 +9,10 @@ const S = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 
   // ── Suscripción ──
-  plan:            { type: String, enum: ["free","basic","premium"], default: "free" },
-  planExpiresAt:   { type: Date, default: null },
-  planActivatedAt: { type: Date, default: null },
+  plan:             { type: String, enum: ["free","basic","premium"], default: "free" },
+  planExpiresAt:    { type: Date, default: null },
+  planActivatedAt:  { type: Date, default: null },
+  stripeCustomerId: { type: String, default: null },
 
   // ── Uso diario de mensajes ──
   messagesUsedToday: { type: Number, default: 0 },
