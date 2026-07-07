@@ -1246,6 +1246,14 @@
       <button id="daily-challenge-btn" class="daily-challenge-btn" onclick="completeDailyChallenge()">✓ Hecho</button>
     </div>
   </div>
+  <!-- Mental health tip of the day -->
+  <div id="mh-tip-wrap" style="margin-bottom:16px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px 16px;display:flex;gap:10px;align-items:flex-start">
+    <span style="font-size:22px;flex-shrink:0;margin-top:1px">🧠</span>
+    <div>
+      <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Dato de salud mental</div>
+      <div id="mh-tip-text" style="font-size:13px;color:var(--text2);line-height:1.6"></div>
+    </div>
+  </div>
   <div class="grid4" style="margin-bottom:24px">
     <div class="stat-card">
       <div class="stat-icon-wrap" style="background:linear-gradient(135deg,#eef2ff,#e0e7ff)">💬</div>
@@ -1571,6 +1579,9 @@
         <input type="date" id="goal-date"/>
       </div>
       <button class="btn-primary" style="padding:12px;font-size:13px" onclick="addGoal()">Crear Meta →</button>
+    </div>
+    <div style="padding:10px 0 4px;border-top:1px solid var(--border);margin-top:8px">
+      <input id="goals-search-input" type="search" placeholder="🔍 Buscar meta..." style="width:100%;padding:9px 13px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:13px;outline:none;box-sizing:border-box" oninput="filterGoalsSearch(this.value)"/>
     </div>
     <div id="goals-list"></div>
   </div>
@@ -3983,6 +3994,7 @@ async function loadDashboard() {
   } catch(e) { console.error(e); }
   loadDailyChallenge();
   loadDailyIntention();
+  loadMentalHealthTip();
 }
 function renderMoodMiniTrend(history) {
   const wrap = document.getElementById("mood-mini-trend");
@@ -4117,9 +4129,19 @@ function filterGoalsCat(cat, silent) {
     if (k === cat) { b.className = 'btn-sm accent'; b.style.cssText = 'font-size:11px;padding:6px 12px'; }
     else { b.className = 'btn-sm'; b.style.cssText = 'font-size:11px;padding:6px 12px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)'; }
   });
-  const filtered = cat === 'all' ? _goalsAllItems :
-                   cat === 'completed' ? _goalsAllItems.filter(g=>g.completed) :
-                   _goalsAllItems.filter(g=>g.category===cat);
+  const q = document.getElementById('goals-search-input')?.value?.toLowerCase() || '';
+  let filtered = cat === 'all' ? _goalsAllItems :
+                 cat === 'completed' ? _goalsAllItems.filter(g=>g.completed) :
+                 _goalsAllItems.filter(g=>g.category===cat);
+  if (q) filtered = filtered.filter(g => g.title?.toLowerCase().includes(q));
+  renderGoals(filtered);
+}
+function filterGoalsSearch(q) {
+  const cat = _goalsCurrentFilter || 'all';
+  let filtered = cat === 'all' ? _goalsAllItems :
+                 cat === 'completed' ? _goalsAllItems.filter(g=>g.completed) :
+                 _goalsAllItems.filter(g=>g.category===cat);
+  if (q) filtered = filtered.filter(g => g.title?.toLowerCase().includes(q.toLowerCase()));
   renderGoals(filtered);
 }
 function renderGoals(goals) {
@@ -5152,6 +5174,7 @@ function renderAffirmations(el) {
       <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:18px">
         <button class="btn-cta" style="background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);color:white;backdrop-filter:blur(10px)" onclick="nextAffirmation()">Nueva ✨</button>
         <button onclick="copyAffirmation()" style="background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.2);color:white;border-radius:12px;padding:11px 20px;font-size:13px;font-weight:700;cursor:pointer;backdrop-filter:blur(10px)" id="aff-copy-btn">📋 Copiar</button>
+        <button onclick="shareAffirmation()" style="background:rgba(37,211,102,.25);border:2px solid rgba(37,211,102,.4);color:white;border-radius:12px;padding:11px 20px;font-size:13px;font-weight:700;cursor:pointer;backdrop-filter:blur(10px)">📤 Compartir</button>
       </div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
@@ -5191,6 +5214,18 @@ async function copyAffirmation() {
     const btn = document.getElementById("aff-copy-btn");
     if (btn) { const orig = btn.textContent; btn.textContent = "✅ Copiado"; setTimeout(()=>btn.textContent=orig, 1500); }
   } catch(e) {}
+}
+function shareAffirmation() {
+  const txt = document.getElementById("aff-text");
+  if (!txt) return;
+  const text = txt.textContent.replace(/^"|"$/g,"");
+  const full = `💙 "${text}" — Zyra, tu bienestar emocional`;
+  if (navigator.share) {
+    navigator.share({ title: "Afirmación de Zyra", text: full }).catch(() => {});
+  } else {
+    // Fallback: copy to clipboard
+    navigator.clipboard?.writeText(full).then(() => zyraToast("Afirmación copiada para compartir 📋", "success")).catch(() => {});
+  }
 }
 
 /* ════════════════════════════════════════
@@ -9685,6 +9720,47 @@ function destroyZyra3DAvatar() {
   // Reset animation to idle
   const img = document.getElementById("vc-avatar-img");
   if (img) img.style.animation = 'zyraIdle 4s ease-in-out infinite';
+}
+
+/* ══════════════════════════════════════════
+   MENTAL HEALTH TIPS
+══════════════════════════════════════════ */
+const MH_TIPS = [
+  "Dormir 7-9 horas mejora la regulación emocional hasta un 60% según estudios del sueño.",
+  "Ejercitar 30 minutos 3 veces por semana tiene efectos antidepresivos similares a ciertos medicamentos.",
+  "La escritura expresiva (diario) reduce el cortisol y mejora el sistema inmunológico.",
+  "La conexión social es el factor protector #1 contra la depresión y la ansiedad.",
+  "Respirar lentamente activa el nervio vago y reduce la respuesta al estrés en segundos.",
+  "La gratitud diaria activa el cortex prefrontal y genera endorfinas naturales.",
+  "Escuchar música que te gusta libera dopamina — el mismo neurotransmisor que el chocolate.",
+  "Pasar tiempo en la naturaleza reduce la rumia mental y baja la presión arterial.",
+  "El 80% de la serotonina del cuerpo se produce en el intestino — la alimentación afecta tu estado de ánimo.",
+  "El mindfulness de 10 minutos diarios restructura el córtex cingulado anterior en 8 semanas.",
+  "Pedir ayuda no es debilidad — es la acción más valiente del autocuidado.",
+  "Las emociones duran 90 segundos neuroquímicamente; lo que las prolonga son nuestros pensamientos.",
+  "La hidratación afecta el cerebro: con solo 2% de deshidratación hay peor concentración y más ansiedad.",
+  "Reír genuinamente 15 minutos reduce el cortisol y aumenta las defensas inmunes.",
+  "El movimiento físico es el ansiolítico natural más accesible que existe.",
+  "Nombrar una emoción ('estoy ansioso') activa la corteza prefrontal y calma la amígdala.",
+  "El perfeccionismo es el mayor predictor de procrastinación y agotamiento crónico.",
+  "Las conexiones humanas profundas — no las redes sociales — son lo que más protege la salud mental.",
+  "Un 'no' dicho con amor es más saludable que un 'sí' dicho por miedo.",
+  "La autocompasión predice mejor resiliencia que la autoestima — trátate como tratarías a un amigo.",
+  "El trauma no es lo que te pasó, sino lo que pasó dentro de ti como consecuencia.",
+  "Caminar 20 minutos en silencio reduce la hiperactividad mental igual que la meditación.",
+  "Reducir el uso de pantallas 2 horas antes de dormir mejora la calidad del sueño hasta un 40%.",
+  "La respiración 4-7-8 activa el sistema nervioso parasimpático en menos de 4 minutos.",
+  "Escribir 3 metas pequeñas al inicio del día aumenta la sensación de logro y motivación.",
+  "El apoyo emocional percibido — sentir que tienes a alguien — es más poderoso que el apoyo real recibido.",
+  "Los abrazos de 20 segundos liberan oxitocina, conocida como la 'hormona del vínculo'.",
+  "Hablar en tercera persona ('¿Qué haría Carlos?') reduce la carga emocional de las decisiones difíciles.",
+  "Meditar 8 semanas cambia físicamente la estructura del cerebro, reduciendo la densidad de la amígdala.",
+  "El movimiento corporal procesa el estrés — si estás ansioso/a, mueve el cuerpo.",
+  "La aceptación — no la resignación — es el primer paso hacia el cambio real.",
+];
+function loadMentalHealthTip() {
+  const el = document.getElementById("mh-tip-text");
+  if (el) el.textContent = MH_TIPS[new Date().getDate() % MH_TIPS.length];
 }
 
 /* ══════════════════════════════════════════
