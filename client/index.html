@@ -6567,6 +6567,26 @@ async function sendMsg() {
   showTyping(false);
   const streamDiv = addBotMsgStream();
 
+  // Build daily context snippet for the AI
+  const _today = new Date().toDateString();
+  const _dcParts = [];
+  const _checkinEmo = localStorage.getItem("zyra_checkin_emotion_" + _today);
+  if (_checkinEmo) _dcParts.push(`Check-in de hoy: se siente "${_checkinEmo}"`);
+  const _habits = getHabits();
+  if (_habits.length) {
+    const _doneH = _habits.filter(h => isHabitDone(h.id)).length;
+    _dcParts.push(`Hábitos hoy: ${_doneH}/${_habits.length} completados (${_habits.filter(h=>isHabitDone(h.id)).map(h=>h.name).join(", ") || "ninguno"})`);
+    const _topStreak = _habits.map(h=>({name:h.name,s:getHabitStreak(h.id)})).sort((a,b)=>b.s-a.s)[0];
+    if (_topStreak?.s > 1) _dcParts.push(`Mejor racha: ${_topStreak.name} (${_topStreak.s} días)`);
+  }
+  const _water = parseInt(localStorage.getItem("zyra_water_" + _today) || "0");
+  if (_water) _dcParts.push(`Agua: ${_water}/8 vasos`);
+  const _breath = parseInt(localStorage.getItem("zyra_breath_" + _today) || "0");
+  if (_breath) _dcParts.push(`Respiración: ${_breath} sesión(es)`);
+  const _sleep = localStorage.getItem("zyra_sleep_" + _today);
+  if (_sleep) { try { const s = JSON.parse(_sleep); _dcParts.push(`Sueño anoche: ${s.hours}h`); } catch(e) {} }
+  const dailyContext = _dcParts.join(". ");
+
   try {
     const r = await fetch("/api/chat/stream", {
       method: "POST",
@@ -6574,7 +6594,7 @@ async function sendMsg() {
         "Content-Type": "application/json",
         ...(token ? {Authorization: "Bearer " + token} : {})
       },
-      body: JSON.stringify({message:msg, conversationId:currentConvId, history:historyPayload})
+      body: JSON.stringify({message:msg, conversationId:currentConvId, history:historyPayload, dailyContext: dailyContext || undefined})
     });
 
     // Si el servidor respondió con JSON (crisis / rate limit / error middleware)
