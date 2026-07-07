@@ -1690,6 +1690,7 @@
       </div>
       <div class="ai-badge">✦ Zyra IA</div>
       <button class="btn-tts" id="btn-tts-toggle" onclick="toggleAutoSpeak()" title="Activar voz">🔇</button>
+      <button class="btn-feedback" onclick="exportCurrentChat()" title="Exportar conversación" style="font-size:16px;opacity:.5">💾</button>
       <button class="btn-call" id="btn-voice-call" onclick="openVoiceCall()" title="Llamada de voz con Zyra (Premium)">📞 Llamada 🔒</button>
     </div>
     <div class="messages" id="messages" onscroll="onMsgsScroll(this)"></div>
@@ -4965,7 +4966,7 @@ function setAffirmation(text) {
 /* ════════════════════════════════════════
    ASSISTANT
 ════════════════════════════════════════ */
-async function loadAssistant() { await loadHistory(); if(currentConvId) await openConv(currentConvId); else newChat(); zyraMaybeShowWelcome(); }
+async function loadAssistant() { await loadHistory(); if(currentConvId) await openConv(currentConvId); else newChat(); zyraMaybeShowWelcome(); setTimeout(restoreChatDraft, 200); }
 let _allConversations = [];
 async function loadHistory() {
   const el = document.getElementById("hist-list");
@@ -5398,6 +5399,33 @@ async function copyMsg(btn, text) {
     setTimeout(() => btn.textContent = orig, 1500);
   } catch(e) {}
 }
+function exportCurrentChat() {
+  const msgs = document.querySelectorAll("#messages .msg");
+  if (!msgs.length) return zyraToast("No hay mensajes para exportar", "info");
+  const lines = [];
+  const date = new Date().toLocaleDateString("es-CO", {year:"numeric",month:"long",day:"numeric",hour:"2-digit",minute:"2-digit"});
+  lines.push(`Conversación con Zyra — ${date}`);
+  lines.push("=".repeat(50));
+  msgs.forEach(m => {
+    const isBot = m.classList.contains("bot");
+    const bubble = m.querySelector(".msg-bubble");
+    if (!bubble) return;
+    const timeEl = bubble.querySelector(".msg-time");
+    const time = timeEl ? "[" + timeEl.textContent + "] " : "";
+    // Get text content, skip buttons
+    const clone = bubble.cloneNode(true);
+    clone.querySelectorAll("button, .cards-row, div[style]").forEach(el => el.remove());
+    const text = (clone.textContent || "").trim();
+    if (text) lines.push(`${time}${isBot ? "Zyra" : "Tú"}: ${text}`);
+  });
+  lines.push("\n— Exportado desde Zyra IA —");
+  const blob = new Blob([lines.join("\n")], {type:"text/plain;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `zyra-chat-${Date.now()}.txt`; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  zyraToast("Conversación exportada", "success");
+}
 
 function addUserMsg(text, ts) {
   const msgs   = document.getElementById("messages");
@@ -5441,6 +5469,14 @@ function onInput() {
     cc.textContent = len + "/2000";
     cc.style.color = len > 1800 ? "var(--danger)" : len > 1200 ? "#f59e0b" : "var(--text3)";
   }
+  if (ta.value.length > 0) localStorage.setItem("zyra_chat_draft", ta.value);
+  else localStorage.removeItem("zyra_chat_draft");
+}
+function restoreChatDraft() {
+  const draft = localStorage.getItem("zyra_chat_draft");
+  if (!draft) return;
+  const ta = document.getElementById("chat-input");
+  if (ta && !ta.value) { ta.value = draft; onInput(); }
 }
 function onKey(e) { if(e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); } }
 
@@ -5816,7 +5852,7 @@ async function sendMsg() {
   const inp = document.getElementById("chat-input");
   const msg = inp.value.trim(); if (!msg) return;
   if (navigator.vibrate) navigator.vibrate(20);
-  inp.value = ""; onInput(); addUserMsg(msg);
+  inp.value = ""; localStorage.removeItem("zyra_chat_draft"); onInput(); addUserMsg(msg);
   const pc = document.getElementById("prompt-chips"); if (pc) pc.remove();
   chatHistory.push({role:"user", content:msg});
 
