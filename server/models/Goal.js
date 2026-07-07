@@ -7,6 +7,7 @@ const S = new mongoose.Schema({
   reminder:  { type: String, default: "" },
   dueDate:   { type: Date },
   priority:  { type: String, enum: ["alta","media","baja"], default: "media" },
+  progress:  { type: Number, min: 0, max: 100, default: 0 },
   createdAt: { type: Date, default: Date.now }
 });
 module.exports = mongoose.model("Goal", S);

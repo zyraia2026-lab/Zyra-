@@ -1,4 +1,5 @@
-const User = require("../models/User");
+const User    = require("../models/User");
+const Payment = require("../models/Payment");
 
 let stripe = null;
 try {
@@ -51,6 +52,8 @@ exports.createCheckout = async (req, res) => {
         planExpiresAt:   expires,
         planActivatedAt: new Date(),
       });
+      const demoAmt = isAnnual ? PLANS[plan].annual : PLANS[plan].monthly;
+      await Payment.create({ user: req.user._id, plan, period: "demo", amount: demoAmt, currency: PLANS[plan].currency }).catch(()=>{});
       return res.json({ demo: true, plan, message: "Plan actualizado en modo demo" });
     }
 
@@ -135,11 +138,13 @@ exports.verifySession = async (req, res) => {
     const expires = new Date();
     expires.setDate(expires.getDate() + duration);
 
-    await User.findByIdAndUpdate(req.user._id, {
-      plan:            planName,
-      planExpiresAt:   expires,
-      planActivatedAt: new Date(),
-    });
+    const upd = { plan: planName, planExpiresAt: expires, planActivatedAt: new Date() };
+    if (session.customer) upd.stripeCustomerId = session.customer;
+    await User.findByIdAndUpdate(req.user._id, upd);
+
+    const isAnnualV = session.metadata?.period === "annual";
+    const amt = PLANS[planName] ? (isAnnualV ? PLANS[planName].annual : PLANS[planName].monthly) : 0;
+    await Payment.create({ user: req.user._id, plan: planName, period: isAnnualV ? "annual" : "monthly", amount: amt, currency: PLANS[planName]?.currency || "cop", stripeSessionId: session.id }).catch(()=>{});
 
     res.json({ success: true, plan: planName, expiresAt: expires });
   } catch(e) {
@@ -187,11 +192,12 @@ exports.webhook = async (req, res) => {
           const durationWh = isAnnualWh ? PLANS[plan].durationAnnual : PLANS[plan].durationMonthly;
           const expires = new Date();
           expires.setDate(expires.getDate() + durationWh);
-          await User.findByIdAndUpdate(userId, {
-            plan,
-            planExpiresAt:   expires,
-            planActivatedAt: new Date(),
-          });
+          const wUpd = { plan, planExpiresAt: expires, planActivatedAt: new Date() };
+          if (session.customer) wUpd.stripeCustomerId = session.customer;
+          await User.findByIdAndUpdate(userId, wUpd);
+          const wIsAnnual = session.metadata?.period === "annual";
+          const wAmt = PLANS[plan] ? (wIsAnnual ? PLANS[plan].annual : PLANS[plan].monthly) : 0;
+          await Payment.create({ user: userId, plan, period: wIsAnnual ? "annual" : "monthly", amount: wAmt, currency: PLANS[plan]?.currency || "cop", stripeSessionId: session.id }).catch(()=>{});
           console.log(`✅ Plan ${plan} activado para usuario ${userId}`);
         } catch(e) {
           console.error("Error activando plan via webhook:", e.message);
@@ -201,4 +207,36 @@ exports.webhook = async (req, res) => {
   }
 
   res.status(200).json({ received: true });
+};
+
+/* ── Historial de pagos ── */
+exports.paymentHistory = async (req, res) => {
+  try {
+    const payments = await Payment.find({ user: req.user._id }).sort({ createdAt: -1 }).limit(20);
+    res.json({ payments });
+  } catch(e) {
+    res.status(500).json({ message: e.message });
+  }
+};
+
+/* ── Portal de facturación de Stripe ── */
+exports.billingPortal = async (req, res) => {
+  if (!stripe) {
+    return res.status(503).json({ message: "Stripe no está configurado. Contacta soporte para gestionar tu suscripción." });
+  }
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user.stripeCustomerId) {
+      return res.status(400).json({ message: "No tienes una suscripción activa de Stripe. Contáctanos en soporte@zyra.app" });
+    }
+    const appUrl = process.env.APP_URL || "http://localhost:438";
+    const session = await stripe.billingPortal.sessions.create({
+      customer:   user.stripeCustomerId,
+      return_url: appUrl + "/",
+    });
+    res.json({ url: session.url });
+  } catch(e) {
+    console.error("billingPortal error:", e.message);
+    res.status(500).json({ message: "Error al abrir portal de facturación" });
+  }
 };

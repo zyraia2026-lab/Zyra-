@@ -43,11 +43,13 @@ exports.toggleGoal = async (req, res) => {
 
 exports.updateGoal = async (req, res) => {
   try {
-    const { title, category, reminder, dueDate, priority } = req.body;
+    const { title, category, reminder, dueDate, priority, progress } = req.body;
     if (!title?.trim()) return res.status(400).json({ message: "El título es requerido" });
+    const upd = { title: title.trim(), category, reminder, dueDate: dueDate || null, priority, updatedAt: new Date() };
+    if (typeof progress === "number") upd.progress = Math.min(100, Math.max(0, progress));
     const goal = await Goal.findOneAndUpdate(
       { _id: req.params.id, user: req.user._id },
-      { title: title.trim(), category, reminder, dueDate: dueDate || null, priority, updatedAt: new Date() },
+      upd,
       { new: true }
     );
     if (!goal) return res.status(404).json({ message: "Meta no encontrada" });
