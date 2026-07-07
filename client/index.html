@@ -4116,7 +4116,23 @@ async function loadDashboard() {
   document.getElementById("hero-greeting").textContent = greeting();
   document.getElementById("hero-name").textContent = user.name;
   const qEl = document.getElementById("daily-quote");
-  if (qEl) qEl.textContent = "💬 " + DAILY_QUOTES[new Date().getDate() % DAILY_QUOTES.length];
+  if (qEl) {
+    const _qEmo = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString());
+    const EMO_QUOTES = {
+      feliz:       ["Cuando estás bien, compártelo — la alegría se multiplica al darse.","La felicidad no es un destino, es una forma de viajar. Y hoy tú ya estás en camino.","Este momento de alegría es tuyo. Guárdalo en tu memoria."],
+      tranquilo:   ["La calma no es vacío, es poder.","En la quietud encontramos las respuestas que el ruido nos oculta.","Eres un oasis de paz en un mundo acelerado."],
+      motivado:    ["La motivación te arranca, el hábito te mantiene. Hoy tienes los dos.","Tu energía de hoy es el fundamento de quien serás mañana.","Actúa cuando tengas ganas. Este momento de impulso es poderoso."],
+      ansioso:     ["La ansiedad miente. Lo que sientes es real, pero el peligro a menudo no lo es.","Respira. Este momento pasará. Tú has sobrevivido el 100% de tus días difíciles.","No tienes que resolver todo ahora. Un paso pequeño es suficiente."],
+      triste:      ["La tristeza es amor sin lugar adonde ir. Es válida.","Llora si necesitas. El cuerpo sabe cómo sanar.","No estás solo/a. Este sentimiento también pasará."],
+      enojado:     ["El enojo es información. Escúchalo antes de actuarlo.","Detrás del enojo suele haber un límite que se cruzó. ¿Cuál es el tuyo?","Respira antes de responder. Tu calma es tu fortaleza."],
+      agotado:     ["Descansar no es rendirse. Es cargar energía para seguir.","Hoy hiciste suficiente. Permítete parar.","El cuerpo agotado pide pausa. Escucharlo es sabiduría."],
+      esperanzado: ["La esperanza no es ingenuidad — es elegir ver posibilidades.","Cuando tienes esperanza, ya ganaste la mitad de la batalla.","Nutre esa esperanza. Es la semilla de lo que viene."],
+      confundido:  ["No tener respuestas es el primer paso hacia encontrarlas.","La confusión es el espacio justo antes de la claridad.","Está bien no saber. Avanza con lo que tienes."],
+      nostalgico:  ["Los recuerdos son evidencia de que viviste algo que valió la pena.","Lo que fue bueno, fue real. Nada te quita eso.","La nostalgia es un puente entre quien fuiste y quien eres."],
+    };
+    const quotesForEmo = _qEmo && EMO_QUOTES[_qEmo] ? EMO_QUOTES[_qEmo] : DAILY_QUOTES;
+    qEl.textContent = "💬 " + quotesForEmo[new Date().getDate() % quotesForEmo.length];
+  }
   // Skeleton while loading
   ["st-sessions","st-emotion","st-goals","st-journal"].forEach(id => {
     const el = document.getElementById(id);
@@ -5745,7 +5761,30 @@ function newChat() {
     greeting = "🌙 Buenas noches";
     welcome = `${greeting}, ${name}. Soy Zyra 💙 A estas horas los pensamientos pueden pesar más. Cuéntame, ¿qué te tiene despierto/a?`;
   }
+  // Personalize welcome with today's check-in if available
+  const _todayEmo = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString());
+  const _emoWelcome = {
+    feliz:       `, y veo que hoy te sientes feliz 😊 ¡Qué bueno escuchar eso! ¿Qué te tiene así?`,
+    tranquilo:   `. Vi que hoy te sientes tranquilo/a 😌 — ese es un buen estado. ¿Quieres mantenerlo o hay algo que quieras explorar?`,
+    motivado:    `. Veo que hoy tienes energía 💪 ¿Qué te tiene tan motivado/a? Cuéntame.`,
+    ansioso:     `. Sé que hoy te has sentido ansioso/a 😰 Aquí estoy. ¿Quieres hablar de lo que te pesa o preferirías una respiración para empezar?`,
+    triste:      `. Veo que hoy no ha sido el mejor día 💙 No tienes que estar bien. ¿Qué está pasando?`,
+    enojado:     `. Noto que hoy algo te molestó 😤 Puedes contarme sin censura. Aquí no se juzga.`,
+    agotado:     `. Sé que hoy estás agotado/a 😮‍💨 Tu cuerpo y mente merecen descanso. ¿Qué te tiene así?`,
+    esperanzado: `. Vi que hoy te sientes esperanzado/a 🌟 ¡Me alegra! ¿Qué te genera esa esperanza?`,
+    confundido:  `. Hoy te sientes confundido/a 🤔 A veces hablar de lo que tenemos en la mente ayuda a ordenarlo.`,
+    nostalgico:  `. Noto que hoy hay algo nostálgico en ti 🌅 ¿Qué recuerdo o pensamiento se te vino hoy?`,
+  };
+  if (_todayEmo && _emoWelcome[_todayEmo]) {
+    welcome = welcome.replace("¿Cómo empezaste el día?", "").replace("¿Cómo va tu día hasta ahora?", "").replace("¿Cómo fue tu día?", "").replace("¿Qué te tiene despierto/a?", "");
+    welcome = welcome.trimEnd() + _emoWelcome[_todayEmo];
+  }
+
   addBotMsg(welcome);
+  // Show anxiety breathing nudge
+  if (_todayEmo === "ansioso" || _todayEmo === "enojado" || _todayEmo === "agotado") {
+    setTimeout(() => zyraToast("💡 Tip: /respirar para un ejercicio de respiración rápido", "info", 4000), 3000);
+  }
   // Time-aware prompt chips
   const CHIP_SETS = {
     morning: [["⚡","Necesito energía para hoy"],["📋","Quiero organizar mi día"],["😰","Me siento ansioso al despertar"],["💪","Quiero motivarme"],["🌟","Tengo una meta importante hoy"],["🧘","Guíame con respiración"]],
