@@ -3332,7 +3332,7 @@ async function loadAnalytics() {
 }
 
 function renderAnalytics(d, el) {
-  const { stats, emotionFrequency, dayOfWeekPattern, weeklyTrend, bestDay, worstDay, insight } = d;
+  const { stats, emotionFrequency, dayOfWeekPattern, weeklyTrend, bestDay, worstDay, insight, topWords } = d;
   const EMOTION_EMOJI = { feliz:"😊", tranquilo:"😌", ansioso:"😰", triste:"😢", enojado:"😤", confundido:"🤔", esperanzado:"🌟", agotado:"😮‍💨", motivado:"💪", nostalgico:"🌅" };
   const SCORE_COLOR = s => s === null ? "#6b7280" : s > 0.2 ? "#22c55e" : s > -0.2 ? "#f59e0b" : "#ef4444";
   const BAR_W = n => n > 0 ? Math.round((n / (emotionFrequency[0]?.count||1)) * 100) : 0;
@@ -3368,7 +3368,7 @@ function renderAnalytics(d, el) {
   </div>` : ""}
 
   <!-- Stats -->
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">
     <div class="card" style="padding:16px;text-align:center">
       <div style="font-size:26px;font-weight:800;color:${positivityColor}">${stats.positivityRate}%</div>
       <div style="font-size:11px;color:var(--text3);margin-top:4px">Positividad</div>
@@ -3392,6 +3392,18 @@ function renderAnalytics(d, el) {
     <div class="card" style="padding:16px;text-align:center">
       <div style="font-size:26px;font-weight:800;color:#0ea5e9">${stats.journalEntries}</div>
       <div style="font-size:11px;color:var(--text3);margin-top:4px">Diario entradas</div>
+    </div>
+    <div class="card" style="padding:16px;text-align:center">
+      <div style="font-size:26px;font-weight:800;color:#ec4899">${stats.peakHour}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Hora pico</div>
+    </div>
+    <div class="card" style="padding:16px;text-align:center">
+      <div style="font-size:26px;font-weight:800;color:#f59e0b">${stats.journalStreak}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Racha diario</div>
+    </div>
+    <div class="card" style="padding:16px;text-align:center">
+      <div style="font-size:26px;font-weight:800;color:#6366f1">${stats.avgIntensity}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Intensidad prom.</div>
     </div>
   </div>
 
@@ -3436,6 +3448,17 @@ function renderAnalytics(d, el) {
         </div>
       </div>`).join("")}
     </div>
+  </div>` : ""}
+
+  <!-- Palabras más frecuentes en el diario -->
+  ${topWords && topWords.length ? `<div class="card" style="margin-bottom:20px">
+    <div class="card-header"><span class="card-title">💭 Tus palabras más frecuentes</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:7px;padding-top:4px">${topWords.map(({word,count}) => {
+      const maxC = topWords[0].count;
+      const size = 11 + Math.round((count/maxC)*9);
+      const op = (0.45 + (count/maxC)*0.55).toFixed(2);
+      return `<span style="font-size:${size}px;color:var(--accent);opacity:${op};font-weight:${count>2?700:500};padding:2px 0">${word}</span>`;
+    }).join("")}</div>
   </div>` : ""}
 
   <!-- Hábitos (local) -->

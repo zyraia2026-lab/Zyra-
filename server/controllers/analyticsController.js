@@ -103,15 +103,32 @@ exports.getOverview = async (req, res) => {
 
     // ── Insight generado ──
     let insight = null;
+    const timeLabel = peakHour < 12 ? "mañanas" : peakHour < 17 ? "tardes" : "noches";
     if (bestDay && bestDay.score !== null && bestDay.score > 0) {
       insight = `Tiendes a sentirte mejor los ${bestDay.day.toLowerCase()}. Es un buen día para actividades importantes.`;
     } else if (worstDay && worstDay.score !== null && worstDay.score < 0) {
       insight = `Los ${worstDay.day.toLowerCase()} suelen ser más difíciles para ti. Puedes prepararte con algo especial ese día.`;
     } else if (positivityRate >= 60) {
       insight = `El ${positivityRate}% de tus registros son positivos. ¡Vas muy bien!`;
-    } else if (positivityRate > 0) {
-      insight = `Llevas un ${positivityRate}% de emociones positivas. Recuerda celebrar los días buenos.`;
+    } else if (history.length > 5) {
+      insight = `Registras más emociones por las ${timeLabel}. Eso dice mucho de cuándo procesas tu día.`;
     }
+
+    // ── Word frequency from journals ──
+    const STOP_WORDS = new Set([
+      "y","de","el","la","que","en","a","los","las","un","una","es","se","no","del","al",
+      "lo","me","mi","por","con","su","como","pero","más","ya","fue","ha","le","te","si",
+      "para","esto","hay","ser","muy","todo","también","cuando","porque","puede","tiene",
+      "hacer","hoy","día","días","siento","estoy","era","han","esta","este","son","tan"
+    ]);
+    const wordFreq = {};
+    journals.forEach(j => {
+      const text = ((j.title || "") + " " + (j.content || "")).toLowerCase();
+      text.replace(/[^a-záéíóúüñ\s]/gi, "").split(/\s+/).forEach(w => {
+        if (w.length >= 4 && !STOP_WORDS.has(w)) wordFreq[w] = (wordFreq[w] || 0) + 1;
+      });
+    });
+    const topWords = Object.entries(wordFreq).sort((a,b)=>b[1]-a[1]).slice(0,15).map(([word,count])=>({word,count}));
 
     res.json({
       success: true,
@@ -133,6 +150,7 @@ exports.getOverview = async (req, res) => {
       bestDay,
       worstDay,
       insight,
+      topWords,
     });
   } catch(e) {
     console.error("analytics:", e.message);
