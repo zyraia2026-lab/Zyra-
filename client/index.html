@@ -1733,6 +1733,8 @@
         <button id="journal-sort-btn" onclick="toggleJournalSort()" style="padding:9px 12px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;color:var(--text2);font-size:12px;cursor:pointer;white-space:nowrap">↓ Reciente</button>
       </div>
       <div id="journal-list"></div>
+      <!-- Tag cloud -->
+      <div id="journal-tag-cloud-wrap" style="display:none;margin-top:14px;border-top:1px solid var(--border);padding-top:14px"></div>
     </div>
   </div>
 
@@ -4688,6 +4690,7 @@ async function loadJournal() {
     if (btn) btn.textContent = "↓ Reciente";
     renderJournal(_journalAllEntries);
     renderJournalStreak(_journalAllEntries);
+    setTimeout(renderJournalTagCloud, 100);
   }
   catch(e) { if(el) el.innerHTML = `<div class="empty" style="color:var(--danger)">⚠ ${safeHtml(e.message||"Error al cargar el diario")}</div>`; }
 }
@@ -11262,6 +11265,75 @@ function renderHabitsTracker(el) {
     <button onclick="addHabitPrompt()" style="width:100%;background:rgba(99,102,241,.08);border:1.5px dashed var(--accent);color:var(--accent);border-radius:14px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;margin-top:4px">+ Añadir hábito</button>
     ${completedToday === habits.length && habits.length > 0 ? '<div style="text-align:center;margin-top:16px;padding:14px;background:linear-gradient(135deg,rgba(16,185,129,.1),rgba(99,102,241,.1));border:1px solid rgba(16,185,129,.25);border-radius:16px"><div style="font-size:20px;margin-bottom:4px">🎉</div><div style="font-size:14px;font-weight:700;color:#10b981">¡Todos los hábitos de hoy completos!</div><div style="font-size:12px;color:var(--text3);margin-top:4px">Eres increíble. Sigue así.</div></div>' : ""}
   </div>`;
+  if (completedToday === habits.length && habits.length > 0) {
+    const _ck = "zyra_habit_confetti_" + new Date().toDateString();
+    if (!sessionStorage.getItem(_ck)) { sessionStorage.setItem(_ck, "1"); launchHabitConfetti(); }
+  }
+}
+
+/* ══════════════════════════════════════════
+   CONFETTI CANVAS (habit completion burst)
+══════════════════════════════════════════ */
+function launchHabitConfetti() {
+  const canvas = document.createElement("canvas");
+  canvas.style.cssText = "position:fixed;inset:0;z-index:99999;pointer-events:none";
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext("2d");
+  const COLORS = ["#6366f1","#10b981","#f59e0b","#ec4899","#22c55e","#a78bfa","#38bdf8"];
+  const particles = Array.from({length: 80}, () => ({
+    x: Math.random() * canvas.width, y: -10,
+    vx: (Math.random() - 0.5) * 4, vy: Math.random() * 3 + 2,
+    r: Math.random() * 6 + 3, color: COLORS[Math.floor(Math.random() * COLORS.length)],
+    rot: Math.random() * Math.PI * 2, drot: (Math.random() - 0.5) * 0.2, alpha: 1
+  }));
+  let frame = 0;
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.rot += p.drot;
+      p.vy += 0.07;
+      if (frame > 80) p.alpha = Math.max(0, p.alpha - 0.015);
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.r, -p.r/2, p.r*2, p.r);
+      ctx.restore();
+    });
+    frame++;
+    if (frame < 180 && particles.some(p => p.alpha > 0)) requestAnimationFrame(draw);
+    else canvas.remove();
+  }
+  draw();
+}
+
+/* ══════════════════════════════════════════
+   JOURNAL TAG CLOUD
+══════════════════════════════════════════ */
+function renderJournalTagCloud() {
+  const entries = window._journalCacheForHeatmap || [];
+  if (!entries.length) return;
+  const tagCount = {};
+  entries.forEach(e => {
+    ((e.content || "").match(/#[\wÀ-ɏ]+/g) || []).forEach(tag => {
+      tagCount[tag.toLowerCase()] = (tagCount[tag.toLowerCase()] || 0) + 1;
+    });
+  });
+  const sorted = Object.entries(tagCount).sort((a,b) => b[1]-a[1]).slice(0,20);
+  if (!sorted.length) return;
+  const wrap = document.getElementById("journal-tag-cloud-wrap");
+  if (!wrap) return;
+  const maxCount = sorted[0][1];
+  wrap.innerHTML = `
+    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">🏷️ Tus temas frecuentes</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">${sorted.map(([tag, count]) => {
+      const size = 10 + Math.round((count / maxCount) * 8);
+      const opacity = 0.5 + (count / maxCount) * 0.5;
+      return `<button onclick="document.getElementById('journal-search-input').value='${tag}';filterJournal()" style="font-size:${size}px;padding:4px 10px;border-radius:20px;border:1px solid rgba(99,102,241,${opacity.toFixed(1)});background:rgba(99,102,241,${(opacity*0.15).toFixed(2)});color:var(--accent);cursor:pointer;opacity:${opacity.toFixed(2)};font-weight:${count>2?700:500};transition:all .15s" title="${count} veces">${tag}</button>`;
+    }).join("")}</div>`;
+  wrap.style.display = "";
 }
 
 </script>
