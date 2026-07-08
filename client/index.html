@@ -1915,6 +1915,11 @@
         <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Racha</div>
       </div>
     </div>
+    <!-- Habit stats row -->
+    <div id="prof-habit-stats" style="display:none;margin-top:12px;background:rgba(99,102,241,.07);border-radius:14px;padding:12px 14px">
+      <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">✅ Hábitos activos</div>
+      <div id="prof-habit-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+    </div>
   </div>
 
   <!-- ══ LOGROS + TIENDA ══ -->
@@ -3815,6 +3820,18 @@ async function loadProfile() {
 
     renderAvatarPicker(p.avatarEmoji, p.avatarColor);
 
+    // Habit stats on profile
+    const _hWrap = document.getElementById("prof-habit-stats");
+    const _hList = document.getElementById("prof-habit-list");
+    const _habits = getHabits();
+    if (_hWrap && _hList && _habits.length) {
+      _hList.innerHTML = _habits.map(h => {
+        const streak = getHabitStreak(h.id);
+        return `<span style="font-size:12px;padding:4px 10px;border-radius:20px;background:${h.color}22;color:${h.color};font-weight:600;border:1px solid ${h.color}44">${h.emoji} ${h.name}${streak > 0 ? " 🔥"+streak : ""}</span>`;
+      }).join("");
+      _hWrap.style.display = "";
+    }
+
     // Profile completeness bar
     const checks = [
       { done: !!(p.photoUrl || p.avatarEmoji), label: "Personaliza tu avatar o foto" },
@@ -4198,6 +4215,16 @@ async function loadDashboard() {
     renderJournalMemory(entries);
     window._journalCacheForHeatmap = entries;
     renderWeeklySummary(entries);
+    // Goal deadline nudges
+    const now = Date.now();
+    const soonGoals = goals.filter(g => !g.completed && g.dueDate && (new Date(g.dueDate).getTime() - now) < 3 * 86400000 && new Date(g.dueDate).getTime() > now);
+    if (soonGoals.length) {
+      setTimeout(() => zyraToast(`🎯 Tienes ${soonGoals.length} meta${soonGoals.length!==1?"s":""} con fecha límite próxima: "${soonGoals[0].title}"`, "info", 5000), 3500);
+    }
+    const overdueGoals = goals.filter(g => !g.completed && g.dueDate && new Date(g.dueDate).getTime() < now);
+    if (overdueGoals.length) {
+      setTimeout(() => zyraToast(`⚠️ ${overdueGoals.length} meta${overdueGoals.length!==1?"s":""} vencida${overdueGoals.length!==1?"s":""} — ¿las reprogramamos?`, "error", 5000), 5000);
+    }
   } catch(e) { console.error(e); }
   loadDailyChallenge();
   loadDailyIntention();
