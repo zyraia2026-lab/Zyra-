@@ -6662,6 +6662,20 @@ async function sendMsg() {
       addBotMsg(`🌿 Técnica de grounding 5-4-3-2-1:\n\nNombra en voz alta o en tu mente:\n• 5 cosas que puedes VER ahora\n• 4 cosas que puedes TOCAR\n• 3 sonidos que puedes OÍR\n• 2 olores que percibes\n• 1 sabor que sientes\n\nEsto te ayuda a conectar con el momento presente cuando la ansiedad aparece. 🍃`);
       return;
     }
+    if (cmd === "reflexion" || cmd === "reflexión") {
+      const REFL_SETS = [
+        ["¿Qué fue lo más significativo de hoy?", "¿Qué fue difícil y por qué?", "¿Qué quiero hacer diferente mañana?"],
+        ["¿En qué momento me sentí más yo mismo/a hoy?", "¿Qué aprendí sobre mí mismo/a?", "¿Qué agradezco de este día?"],
+        ["¿Qué emociones predominaron hoy?", "¿Las expresé o las guardé?", "¿Qué necesito para mañana?"],
+        ["¿Qué hice hoy que me enorgullece?", "¿En qué puse más energía: trabajo, relaciones o yo mismo/a?", "¿Qué me gustaría recordar de hoy?"],
+        ["¿Fui amable conmigo mismo/a hoy?", "¿Hubo un momento de paz o alegría?", "¿Qué suelto de hoy para poder descansar?"],
+        ["¿Qué conversación de hoy me marcó?", "¿Qué decisión tomé y cómo me siento con ella?", "¿Qué haría diferente si pudiera revivir hoy?"],
+        ["¿Cuál fue mi mayor reto de hoy?", "¿Cómo lo manejé?", "¿Qué fortaleza descubrí o usé?"],
+      ];
+      const set = REFL_SETS[new Date().getDay()];
+      addBotMsg(`🌙 Reflexión guiada de hoy:\n\nTómate un momento de calma y responde estas preguntas (puedes escribirlas en tu diario):\n\n1️⃣ ${set[0]}\n\n2️⃣ ${set[1]}\n\n3️⃣ ${set[2]}\n\nNo hay respuestas correctas. Solo tus propias verdades. 🌿`);
+      return;
+    }
     if (cmd === "inspiracion" || cmd === "inspiración") {
       const allAffs = [].concat(...Object.values(AFF_CATS).filter(a=>Array.isArray(a)));
       const aff = allAffs[Math.floor(Math.random()*allAffs.length)];
@@ -6675,7 +6689,7 @@ async function sendMsg() {
     if (cmd === "plan") { showPage("dashboard"); setTimeout(() => document.getElementById("today-plan-input")?.focus(), 300); return; }
     if (cmd === "habitos" || cmd === "hábitos") { showPage("wellness"); setTimeout(() => openWellness("habits"), 100); return; }
     if (cmd === "ayuda" || cmd === "help" || cmd === "?") {
-      addBotMsg(`Comandos rápidos disponibles:\n\n🧘 /respirar — Ejercicio de respiración\n⏱ /enfoque — Temporizador pomodoro\n😴 /sueño — Registro de sueño\n✅ /habitos — Tracker de hábitos\n💧 /agua — Tracker de hidratación\n🙏 /gratitud — Práctica de gratitud\n💫 /afirmacion — Afirmación aleatoria\n✨ /inspiracion — Dosis de inspiración\n🌿 /grounding — Técnica 5-4-3-2-1\n📔 /diario — Tu diario emocional\n🎵 /musica — Música terapéutica\n🎯 /metas — Tus metas\n📊 /analitica — Tu progreso\n✏️ /nota — Nota rápida\n📋 /plan — Plan del día\n🔄 /nuevo — Nueva conversación\n🏠 /inicio — Dashboard`);
+      addBotMsg(`Comandos rápidos disponibles:\n\n🧘 /respirar — Ejercicio de respiración\n⏱ /enfoque — Temporizador pomodoro\n😴 /sueño — Registro de sueño\n✅ /habitos — Tracker de hábitos\n💧 /agua — Tracker de hidratación\n🙏 /gratitud — Práctica de gratitud\n💫 /afirmacion — Afirmación aleatoria\n✨ /inspiracion — Dosis de inspiración\n🌙 /reflexion — Reflexión guiada diaria\n🌿 /grounding — Técnica 5-4-3-2-1\n📔 /diario — Tu diario emocional\n🎵 /musica — Música terapéutica\n🎯 /metas — Tus metas\n📊 /analitica — Tu progreso\n✏️ /nota — Nota rápida\n📋 /plan — Plan del día\n🔄 /nuevo — Nueva conversación\n🏠 /inicio — Dashboard`);
       return;
     }
     // Unknown command — show hint
