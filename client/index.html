@@ -5318,6 +5318,7 @@ function startBreath() {
           zyraToast("🌬️ Sesión de respiración completada 🎉", "success");
           if (navigator.vibrate) navigator.vibrate([30,20,60]);
           if (typeof triggerMission === "function") triggerMission('do_exercise');
+          renderTodayOverview(); renderWellbeingScore();
           return;
         }
         runPhase();
@@ -6661,11 +6662,20 @@ async function sendMsg() {
       addBotMsg(`🌿 Técnica de grounding 5-4-3-2-1:\n\nNombra en voz alta o en tu mente:\n• 5 cosas que puedes VER ahora\n• 4 cosas que puedes TOCAR\n• 3 sonidos que puedes OÍR\n• 2 olores que percibes\n• 1 sabor que sientes\n\nEsto te ayuda a conectar con el momento presente cuando la ansiedad aparece. 🍃`);
       return;
     }
+    if (cmd === "inspiracion" || cmd === "inspiración") {
+      const allAffs = [].concat(...Object.values(AFF_CATS).filter(a=>Array.isArray(a)));
+      const aff = allAffs[Math.floor(Math.random()*allAffs.length)];
+      const q = DAILY_QUOTES[Math.floor(Math.random()*DAILY_QUOTES.length)];
+      const exercises = ["Haz 5 respiraciones profundas ahora mismo","Sal a caminar aunque sea 5 minutos","Escribe una cosa por la que estás agradecido/a","Bebe un vaso de agua lentamente","Cierra los ojos y no hagas nada por 60 segundos"];
+      const ex = exercises[Math.floor(Math.random()*exercises.length)];
+      addBotMsg(`✨ Tu dosis de inspiración:\n\n💬 "${q}"\n\n💫 Afirmación: "${aff}"\n\n🌱 Mini-reto ahora: ${ex}\n\n¿Con cuál de estas te quedas hoy?`);
+      return;
+    }
     if (cmd === "nota" || cmd === "quicknote") { openQuickNote(); return; }
     if (cmd === "plan") { showPage("dashboard"); setTimeout(() => document.getElementById("today-plan-input")?.focus(), 300); return; }
     if (cmd === "habitos" || cmd === "hábitos") { showPage("wellness"); setTimeout(() => openWellness("habits"), 100); return; }
     if (cmd === "ayuda" || cmd === "help" || cmd === "?") {
-      addBotMsg(`Comandos rápidos disponibles:\n\n🧘 /respirar — Ejercicio de respiración\n⏱ /enfoque — Temporizador pomodoro\n😴 /sueño — Registro de sueño\n✅ /habitos — Tracker de hábitos\n💧 /agua — Tracker de hidratación\n🙏 /gratitud — Práctica de gratitud\n💫 /afirmacion — Afirmación aleatoria\n🌿 /grounding — Técnica 5-4-3-2-1\n📔 /diario — Tu diario emocional\n🎵 /musica — Música terapéutica\n🎯 /metas — Tus metas\n📊 /analitica — Tu progreso\n✏️ /nota — Nota rápida\n📋 /plan — Plan del día\n🔄 /nuevo — Nueva conversación\n🏠 /inicio — Dashboard`);
+      addBotMsg(`Comandos rápidos disponibles:\n\n🧘 /respirar — Ejercicio de respiración\n⏱ /enfoque — Temporizador pomodoro\n😴 /sueño — Registro de sueño\n✅ /habitos — Tracker de hábitos\n💧 /agua — Tracker de hidratación\n🙏 /gratitud — Práctica de gratitud\n💫 /afirmacion — Afirmación aleatoria\n✨ /inspiracion — Dosis de inspiración\n🌿 /grounding — Técnica 5-4-3-2-1\n📔 /diario — Tu diario emocional\n🎵 /musica — Música terapéutica\n🎯 /metas — Tus metas\n📊 /analitica — Tu progreso\n✏️ /nota — Nota rápida\n📋 /plan — Plan del día\n🔄 /nuevo — Nueva conversación\n🏠 /inicio — Dashboard`);
       return;
     }
     // Unknown command — show hint
