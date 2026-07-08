@@ -66,6 +66,7 @@ app.use("/api/push",          require("./routes/push"));
 app.use("/api/yt",            require("./routes/yt"));
 app.use("/api/memory",        require("./routes/memory"));
 app.use("/api/analytics",     require("./routes/analytics"));
+app.use("/api/habits",        require("./routes/habits"));
 app.use("/api/weekly-report", require("./routes/weeklyReport"));
 app.use("/api/referral",      require("./routes/referral"));
 app.use("/api/admin",         require("./routes/admin"));
