@@ -1731,6 +1731,7 @@
           <option value="nostalgico">🌅 Nostálgico</option>
         </select>
         <button id="journal-sort-btn" onclick="toggleJournalSort()" style="padding:9px 12px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;color:var(--text2);font-size:12px;cursor:pointer;white-space:nowrap">↓ Reciente</button>
+        <button id="journal-fav-btn" onclick="toggleFavFilter()" style="padding:9px 12px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;color:var(--text2);font-size:12px;cursor:pointer;white-space:nowrap">☆ Favoritas</button>
       </div>
       <div id="journal-list"></div>
       <!-- Tag cloud -->
@@ -4615,13 +4616,22 @@ function showJournalTab(tab) {
   if (!isList) renderMoodCalendar();
 }
 
+let _journalFavFilter = false;
+function toggleFavFilter() {
+  _journalFavFilter = !_journalFavFilter;
+  const btn = document.getElementById("journal-fav-btn");
+  if (btn) { btn.textContent = _journalFavFilter ? "⭐ Favoritas" : "☆ Favoritas"; btn.style.color = _journalFavFilter ? "#f59e0b" : "var(--text2)"; btn.style.borderColor = _journalFavFilter ? "#f59e0b" : "var(--border)"; }
+  filterJournal();
+}
 function filterJournal() {
   const q = (document.getElementById("journal-search-input")?.value || "").toLowerCase();
   const emo = document.getElementById("journal-filter-emotion")?.value || "";
+  const favs = _journalFavFilter ? new Set(JSON.parse(localStorage.getItem("zyra_fav_entries") || "[]")) : null;
   let filtered = _journalAllEntries.filter(e => {
     const matchText = !q || (e.title||"").toLowerCase().includes(q) || (e.content||"").toLowerCase().includes(q);
     const matchEmo  = !emo || e.emotion === emo;
-    return matchText && matchEmo;
+    const matchFav  = !favs || favs.has(e._id);
+    return matchText && matchEmo && matchFav;
   });
   if (_journalSortAsc) filtered = [...filtered].reverse();
   renderJournal(filtered, false);
@@ -4796,12 +4806,15 @@ function renderJournal(entries, updateCache = true) {
       : `<div class="empty"><span class="empty-icon">📔</span>Tu diario está vacío.<br><button class="btn-sm accent" style="margin-top:10px" onclick="toggleJournalForm()">Escribir primera entrada</button></div>`;
     return;
   }
+  const _favEntries = new Set(JSON.parse(localStorage.getItem("zyra_fav_entries") || "[]"));
   el.innerHTML = entries.map(e => {
     const em = EMOTIONS.find(x => x.key === e.emotion);
-    return `<div class="journal-item">
+    const isFav = _favEntries.has(e._id);
+    return `<div class="journal-item" id="jitem-${e._id}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div class="journal-title">${em?em.emoji+" ":""}${safeHtml(e.title||"Entrada sin título")}</div>
         <div style="display:flex;gap:6px">
+          <button class="btn-xs" title="${isFav?"Quitar de favoritas":"Guardar como favorita"}" onclick="toggleFavEntry('${e._id}')" style="color:${isFav?"#f59e0b":"var(--text3)"}">${isFav?"⭐":"☆"}</button>
           <button class="btn-xs" title="Copiar entrada" onclick="copyJournalEntry(${JSON.stringify(e.title||'')},${JSON.stringify(e.content||'')},this)">📋</button>
           <button class="btn-xs" onclick="openEditJournal('${e._id}')">✏</button>
           <button class="btn-xs" onclick="deleteJournal('${e._id}')">×</button>
@@ -10502,6 +10515,19 @@ function saveDailyIntention() {
 }
 
 /* ══════════════════════════════════════════
+   JOURNAL FAVORITES
+══════════════════════════════════════════ */
+function toggleFavEntry(id) {
+  const favs = new Set(JSON.parse(localStorage.getItem("zyra_fav_entries") || "[]"));
+  if (favs.has(id)) { favs.delete(id); zyraToast("Quitado de favoritas", "info"); }
+  else { favs.add(id); zyraToast("⭐ Guardada como favorita", "success"); }
+  localStorage.setItem("zyra_fav_entries", JSON.stringify([...favs]));
+  const btn = document.querySelector(`#jitem-${id} .btn-xs`);
+  const isFav = favs.has(id);
+  if (btn) { btn.textContent = isFav ? "⭐" : "☆"; btn.style.color = isFav ? "#f59e0b" : "var(--text3)"; btn.title = isFav ? "Quitar de favoritas" : "Guardar como favorita"; }
+}
+
+/* ══════════════════════════════════════════
    JOURNAL COPY
 ══════════════════════════════════════════ */
 async function copyJournalEntry(title, content, btn) {
@@ -10677,13 +10703,27 @@ function renderWeeklySummary(journalEntries) {
   wrap.style.display = "";
 }
 
+const MOOD_CHALLENGES = {
+  ansioso:     ["Practica la técnica 4-7-8 tres veces hoy.","Escribe qué es lo peor que podría pasar — y luego lo mejor.","Haz 5 min de grounding: 5 cosas que ves, 4 que tocas, 3 que oyes."],
+  triste:      ["Envía un mensaje de amor a alguien que te importa.","Escucha una canción que te suba el ánimo.","Sal a caminar 10 minutos y siente el sol (si hay)."],
+  enojado:     ["Escribe lo que te enojó y luego rompe (o borra) el papel.","Haz 10 respiraciones profundas antes de hablar de lo que pasó.","Muévete: camina, baila o haz estiramientos por 5 minutos."],
+  agotado:     ["Tómate una pausa de 10 min sin teléfono ni pantallas.","Bebe dos vasos de agua ahora mismo.","Duerme una siesta de 20 min si puedes — es medicina."],
+  motivado:    ["Avanza 30 min en una de tus metas hoy.","Escribe qué te da tanta energía y cómo sostenerla.","Comparte tu motivación: invita a alguien a hacer algo bueno."],
+  feliz:       ["Escribe 3 cosas específicas que te hacen sentir así.","Haz algo bueno por otra persona — la felicidad se multiplica.","Guarda este momento: escríbelo en tu diario."],
+  esperanzado: ["Escribe el primer paso concreto hacia algo que esperas.","Visualiza cómo luce tu vida en 1 año si las cosas van bien.","Cuéntale a alguien lo que te tiene esperanzado/a."],
+};
+
 function loadDailyChallenge() {
   const wrap = document.getElementById("daily-challenge-wrap");
   const textEl = document.getElementById("daily-challenge-text");
   const btn = document.getElementById("daily-challenge-btn");
   if (!wrap || !textEl) return;
   const todayKey = `zyra_challenge_done_${new Date().toDateString()}`;
-  const challenge = DAILY_CHALLENGES[new Date().getDate() % DAILY_CHALLENGES.length];
+  const emo = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString());
+  const moodChallenges = emo && MOOD_CHALLENGES[emo];
+  const challenge = moodChallenges
+    ? moodChallenges[new Date().getDay() % moodChallenges.length]
+    : DAILY_CHALLENGES[new Date().getDate() % DAILY_CHALLENGES.length];
   textEl.textContent = challenge;
   if (localStorage.getItem(todayKey)) {
     if (btn) { btn.textContent = "✓ Completado"; btn.classList.add("done"); btn.disabled = true; }
