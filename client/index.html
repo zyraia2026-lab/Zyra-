@@ -5242,7 +5242,11 @@ function showTestResult() {
    WELLNESS
 ════════════════════════════════════════ */
 let breathTimer = null, currentWTab = "breath";
-function loadWellness() { openWellness(currentWTab); }
+let _habitsSynced = false;
+function loadWellness() {
+  if (!_habitsSynced) { _habitsSynced = true; syncHabitsFromServer().then(() => openWellness(currentWTab)); }
+  else openWellness(currentWTab);
+}
 function openWellness(tab) {
   currentWTab = tab;
   ["breath","meditation","music","affirmations","gratitude","water","sleep","focus","habits"].forEach(t => {
@@ -11165,7 +11169,20 @@ function getHabits() {
   try { return JSON.parse(localStorage.getItem("zyra_habits") || "null") || HABIT_DEFAULTS; }
   catch { return HABIT_DEFAULTS; }
 }
-function saveHabits(h) { localStorage.setItem("zyra_habits", JSON.stringify(h)); }
+function saveHabits(h) {
+  localStorage.setItem("zyra_habits", JSON.stringify(h));
+  if (token) api("/habits", "PUT", { habits: h }).catch(() => {});
+}
+async function syncHabitsFromServer() {
+  if (!token) return;
+  try {
+    const d = await api("/habits");
+    if (d.habits && Array.isArray(d.habits) && d.habits.length > 0) {
+      const local = JSON.parse(localStorage.getItem("zyra_habits") || "null");
+      if (!local) { localStorage.setItem("zyra_habits", JSON.stringify(d.habits)); }
+    }
+  } catch(e) {}
+}
 
 function getHabitKey(id, d) {
   const dt = d || new Date().toDateString();
