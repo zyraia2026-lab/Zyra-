@@ -313,6 +313,7 @@
       <button class="nav-btn" onclick="showPage('assistant')">💬 Zyra IA</button>
     </div>
     <div class="nav-right">
+      <button class="btn-sm" onclick="showPage('analytics')" style="font-size:11px" title="Mi progreso">📊</button>
       <div class="avatar" id="nav-avatar-planes" onclick="showPage('profile')" style="cursor:pointer" title="Mi perfil">?</div>
       <button class="btn-logout" onclick="doLogout()">Salir</button>
     </div>
@@ -1495,6 +1496,7 @@
       <button class="nav-btn" onclick="showPage('assistant')">💬 Zyra IA</button>
     </div>
     <div class="nav-right">
+      <button class="btn-sm" onclick="showPage('analytics')" style="font-size:11px" title="Mi progreso">📊</button>
       <div class="avatar" id="nav-avatar-games" onclick="showPage('profile')" style="cursor:pointer">?</div>
       <button class="btn-logout" onclick="doLogout()">Salir</button>
     </div>
@@ -1558,6 +1560,7 @@
       <button class="nav-btn" onclick="showPage('assistant')">💬 Zyra IA</button>
     </div>
     <div class="nav-right">
+      <button class="btn-sm" onclick="showPage('analytics')" style="font-size:11px" title="Mi progreso">📊</button>
       <div class="avatar" id="nav-avatarw">?</div>
       <button class="btn-logout" onclick="doLogout()">Salir</button>
     </div>
@@ -1595,6 +1598,7 @@
       <button class="nav-btn" onclick="showPage('assistant')">💬 Zyra IA</button>
     </div>
     <div class="nav-right">
+      <button class="btn-sm" onclick="showPage('analytics')" style="font-size:11px" title="Mi progreso">📊</button>
       <div class="avatar" id="nav-avatar3">?</div>
       <button class="btn-logout" onclick="doLogout()">Salir</button>
     </div>
@@ -1663,6 +1667,7 @@
       <button class="nav-btn" onclick="showPage('assistant')">💬 Zyra IA</button>
     </div>
     <div class="nav-right">
+      <button class="btn-sm" onclick="showPage('analytics')" style="font-size:11px" title="Mi progreso">📊</button>
       <div class="avatar" id="nav-avatar4">?</div>
       <button class="btn-logout" onclick="doLogout()">Salir</button>
     </div>
@@ -1786,6 +1791,7 @@
       <button class="nav-btn active" onclick="showPage('assistant')">💬 Zyra IA</button>
     </div>
     <div class="nav-right">
+      <button class="btn-sm" onclick="showPage('analytics')" style="font-size:11px" title="Mi progreso">📊</button>
       <div class="avatar" id="nav-avatar2">?</div>
       <button class="btn-logout" onclick="doLogout()">Salir</button>
     </div>
@@ -1850,6 +1856,7 @@
       <button class="nav-btn" onclick="showPage('assistant')">💬 Zyra IA</button>
     </div>
     <div class="nav-right">
+      <button class="btn-sm" onclick="showPage('analytics')" style="font-size:11px" title="Mi progreso">📊</button>
       <div class="avatar" id="nav-avatarp">?</div>
       <button class="btn-logout" onclick="doLogout()">Salir</button>
     </div>
@@ -5525,28 +5532,42 @@ function playWellnessSong(title, artist, playerId) {
     return;
   }
 
-  // En desktop: embed normal
-  if(window.YT_ENABLED) {
-    player.innerHTML = `<div style="background:#000;border-radius:10px;overflow:hidden;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center"><div style="color:#fff;font-size:12px;opacity:.6">Cargando...</div></div>`;
+  // En desktop: intentar embed con YouTube API
+  const ytFallbackBtn = `<div style="text-align:center;margin-top:8px">
+    <a href="${ytSearch}" target="_blank" rel="noopener"
+       style="display:inline-flex;align-items:center;gap:8px;background:#ff0000;color:#fff;
+              padding:11px 22px;border-radius:12px;font-weight:700;font-size:13px;text-decoration:none">
+      ▶ Abrir en YouTube
+    </a>
+    <button onclick="document.getElementById('${playerId}').innerHTML=''"
+      style="display:block;margin:8px auto 0;background:none;border:none;cursor:pointer;font-size:11px;color:var(--text3)">✕ Cerrar</button>
+  </div>`;
+
+  if(token) {
+    player.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;text-align:center;margin-top:8px">
+      <div style="font-size:13px;color:var(--text3);margin-bottom:4px">🎵 ${title}</div>
+      <div style="font-size:11px;color:var(--text3);opacity:.7">${artist}</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:12px;opacity:.6">Cargando...</div>
+    </div>`;
     fetch(`/api/yt/search?q=${q}&maxResults=1`,{headers:{"Authorization":"Bearer "+token}})
-      .then(r=>r.json()).then(data=>{
-        const videoId = data.items?.[0]?.id?.videoId;
+      .then(r=>r.ok?r.json():null).then(data=>{
+        const videoId = data?.items?.[0]?.id?.videoId;
         if(videoId) {
-          player.innerHTML = `<div style="border-radius:10px;overflow:hidden;position:relative;padding-bottom:56.25%;height:0">
-            <iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1"
-              style="position:absolute;top:0;left:0;width:100%;height:100%;border:none"
-              allow="autoplay;encrypted-media" allowfullscreen></iframe>
-          </div>
-          <button onclick="document.getElementById('${playerId}').innerHTML=''"
-            style="margin-top:6px;background:none;border:none;cursor:pointer;font-size:11px;color:var(--text3)">✕ Cerrar</button>`;
+          player.innerHTML = `<div style="border-radius:12px;overflow:hidden;margin-top:8px">
+            <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:12px">
+              <iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1"
+                style="position:absolute;top:0;left:0;width:100%;height:100%;border:none"
+                allow="autoplay;encrypted-media" allowfullscreen></iframe>
+            </div>
+            <button onclick="document.getElementById('${playerId}').innerHTML=''"
+              style="margin-top:6px;background:none;border:none;cursor:pointer;font-size:11px;color:var(--text3)">✕ Cerrar</button>
+          </div>`;
         } else {
-          player.innerHTML = `<a href="${ytSearch}" target="_blank" style="font-size:12px;color:var(--sky)">▶ Ver en YouTube</a>`;
+          player.innerHTML = ytFallbackBtn;
         }
-      }).catch(()=>{
-        player.innerHTML = `<a href="${ytSearch}" target="_blank" style="font-size:12px;color:var(--sky)">▶ Ver en YouTube</a>`;
-      });
+      }).catch(()=>{ player.innerHTML = ytFallbackBtn; });
   } else {
-    player.innerHTML = `<a href="${ytSearch}" target="_blank" style="font-size:12px;color:var(--sky);font-weight:700">▶ Buscar en YouTube</a>`;
+    player.innerHTML = ytFallbackBtn;
   }
 }
 
@@ -5975,6 +5996,7 @@ function toggleAutoSpeak() {
   if(b) { b.textContent = autoSpeak ? "🔊" : "🔇"; b.title = autoSpeak ? "Desactivar voz" : "Activar voz"; }
   if(!autoSpeak) {
     window.speechSynthesis.cancel();
+    if(_chatSpeakAC) { _chatSpeakAC.abort(); _chatSpeakAC = null; }
     if(_chatAudio) { try { _chatAudio.pause(); } catch(e){} _chatAudio = null; }
     if(currentTTSBtn) { currentTTSBtn.classList.remove("speaking"); currentTTSBtn.textContent = "🔊"; currentTTSBtn = null; }
   }
@@ -7411,12 +7433,12 @@ async function vcElevenLabsFallback(clean, isGreeting) {
     // Polling D-ID en paralelo mientras el audio suena
     if (data.talkId) vcStartDIDPolling(data.talkId, myToken, audio);
 
-    audio.play().catch(() => { _vcAudioPlaying = null; vcUseBrowserTTS(clean, isGreeting); });
+    audio.play().catch(() => { _vcAudioPlaying = null; vcOnSpeakEnd(isGreeting); });
     audio.onended = () => { URL.revokeObjectURL(url); if(_vcAudioPlaying===audio) _vcAudioPlaying=null; vcOnSpeakEnd(isGreeting); };
     audio.onerror = () => { URL.revokeObjectURL(url); if(_vcAudioPlaying===audio) _vcAudioPlaying=null; vcOnSpeakEnd(isGreeting); };
   } catch(e) {
     if (vcDIDToken !== myToken) return;
-    vcUseBrowserTTS(clean, isGreeting);
+    vcOnSpeakEnd(isGreeting);
   }
 }
 
@@ -7478,30 +7500,36 @@ function vcUseBrowserTTS(clean, isGreeting) {
 
 /* ── ElevenLabs audio para el chat ── */
 let _chatAudio = null;
+let _chatSpeakAC = null; // abort controller for auto-speak fetch
 
 async function zyraChatSpeak(text) {
   if (!text) return;
   const clean = cleanTTS(text);
   if (!clean || clean.length < 3) return;
   window.speechSynthesis.cancel();
+  // Cancel any in-flight auto-speak fetch to prevent race with speakMsgEL
+  if (_chatSpeakAC) { _chatSpeakAC.abort(); _chatSpeakAC = null; }
   if (_chatAudio) { try { _chatAudio.pause(); } catch(e){} _chatAudio = null; }
   if (currentTTSBtn) { currentTTSBtn.classList.remove("speaking"); currentTTSBtn.textContent = "🔊"; currentTTSBtn = null; }
+  const ac = new AbortController();
+  _chatSpeakAC = ac;
   try {
     const r = await fetch('/api/tts/audio', {
-      method:  'POST',
+      method:  'POST', signal: ac.signal,
       headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
       body:    JSON.stringify({ text: clean }),
     });
-    if (!r.ok) return;
+    if (ac.signal.aborted || !r.ok) return;
     if (!autoSpeak) return;
-    const blob  = await r.blob();
+    const blob = await r.blob();
+    if (ac.signal.aborted || !autoSpeak) { return; }
     const url   = URL.createObjectURL(blob);
-    if (!autoSpeak) { URL.revokeObjectURL(url); return; }
     const audio = new Audio(url);
     _chatAudio  = audio;
     audio.play().catch(() => {});
     audio.onended = () => { URL.revokeObjectURL(url); if (_chatAudio === audio) _chatAudio = null; };
   } catch(e) { /* chat sigue funcionando sin audio */ }
+  finally { if (_chatSpeakAC === ac) _chatSpeakAC = null; }
 }
 
 let _ttsAbort = null;
@@ -7509,13 +7537,15 @@ async function speakMsgEL(btn, text) {
   // Si ya está cargando o hablando → parar todo
   if (btn && (btn.classList.contains("speaking") || btn.classList.contains("loading"))) {
     if (_ttsAbort) { _ttsAbort.abort(); _ttsAbort = null; }
+    if (_chatSpeakAC) { _chatSpeakAC.abort(); _chatSpeakAC = null; }
     if (_chatAudio) { try { _chatAudio.pause(); } catch(e){} _chatAudio = null; }
     if (btn) { btn.classList.remove("speaking","loading"); btn.textContent = "🔊"; }
     if (currentTTSBtn === btn) currentTTSBtn = null;
     return;
   }
-  // Parar cualquier audio previo
+  // Parar cualquier audio previo (incluyendo auto-speak en vuelo)
   if (_ttsAbort) { _ttsAbort.abort(); _ttsAbort = null; }
+  if (_chatSpeakAC) { _chatSpeakAC.abort(); _chatSpeakAC = null; }
   if (_chatAudio) { try { _chatAudio.pause(); } catch(e){} _chatAudio = null; }
   if (currentTTSBtn) { currentTTSBtn.classList.remove("speaking","loading"); currentTTSBtn.textContent = "🔊"; currentTTSBtn = null; }
   window.speechSynthesis.cancel();
@@ -10016,24 +10046,24 @@ function openGame(name) {
 function renderBreathGame(el) {
   el.innerHTML = `
     <div class="breath-game">
-      <div>
-        <div class="breath-phase-label" id="bp-label">Listo</div>
+      <div style="text-align:center">
+        <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px">Técnica 4·7·8</div>
+        <div class="breath-phase-label" id="bp-label">Listo para empezar</div>
         <div class="breath-timer-label" id="bp-timer">—</div>
-        <div class="breath-counter" id="bp-cycles">Ciclos: 0</div>
+        <div class="breath-counter" id="bp-cycles">Ciclos: 0 / 4</div>
       </div>
       <div class="breath-circle-wrap">
         <div class="breath-circle" id="game-breath-circle">
-          <span class="breath-inner-text" id="breath-inner">Pulsa inicio</span>
+          <span class="breath-inner-text" id="breath-inner">Toca iniciar</span>
         </div>
       </div>
-      <div style="font-size:13px;color:var(--text3);max-width:300px;text-align:center;line-height:1.6">
-        La técnica 4-7-8 activa tu sistema nervioso parasimpático para calmar la ansiedad en minutos.
+      <div style="font-size:12px;color:var(--text3);max-width:320px;text-align:center;line-height:1.7;padding:0 16px">
+        Inhala 4s → Mantén 7s → Exhala 8s<br>Activa el sistema nervioso parasimpático para calmar la ansiedad.
       </div>
       <div class="breath-controls">
-        <button class="btn-primary" style="padding:12px 28px" id="breath-start-btn" onclick="toggleBreathing()">▶ Iniciar</button>
-        <button class="btn-sm" onclick="resetBreathing()">↺ Reiniciar</button>
+        <button class="btn-primary" style="padding:13px 32px;font-size:15px;border-radius:16px" id="breath-start-btn" onclick="toggleBreathing()">▶ Iniciar</button>
+        <button class="btn-sm" style="padding:13px 20px" onclick="resetBreathing()">↺</button>
       </div>
-      <div style="font-size:12px;color:var(--text3)">Inhala 4s · Mantén 7s · Exhala 8s</div>
     </div>`;
 
   let phase = 0, tick = 0, cycles = 0, running = false, timer = null;
@@ -10062,7 +10092,7 @@ function renderBreathGame(el) {
       tick = 0; phase++;
       if (phase >= PHASES.length) { phase = 0; cycles++; }
       const cyc = document.getElementById('bp-cycles');
-      if (cyc) cyc.textContent = 'Ciclos: ' + cycles;
+      if (cyc) cyc.textContent = 'Ciclos: ' + cycles + ' / 4';
       if (cycles >= 4) { stopBreathing(); triggerMission('do_exercise'); }
     }
   }
@@ -10114,10 +10144,16 @@ function renderBubblesGame(el) {
   ];
   let popped = 0;
   el.innerHTML = `
-    <div style="padding:16px 0">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding:0 4px">
-        <span style="font-size:13px;color:var(--text3)">Toca las burbujas para liberar el estrés</span>
-        <span style="font-size:13px;font-weight:700;color:var(--accent)" id="bubbles-score">Liberadas: 0</span>
+    <div style="padding:8px 0">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding:12px 16px;background:var(--surface);border-radius:14px;border:1px solid var(--border)">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px">Burbujas Zen</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">Toca las burbujas para liberar el estrés</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:22px;font-weight:900;color:var(--accent)" id="bubbles-score">0</div>
+          <div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px">liberadas</div>
+        </div>
       </div>
       <div class="bubbles-game" id="bubbles-field"></div>
     </div>`;
@@ -10146,7 +10182,7 @@ function renderBubblesGame(el) {
       b.classList.add('bubble-pop');
       popped++;
       const sc = document.getElementById('bubbles-score');
-      if (sc) sc.textContent = 'Liberadas: ' + popped;
+      if (sc) sc.textContent = popped;
       setTimeout(() => b.remove(), 300);
       if (popped >= 10) triggerMission('do_exercise');
     };
@@ -10193,18 +10229,18 @@ function renderMemoryGame(el) {
           <div class="memory-stat"><div class="memory-stat-val" id="mem-matched">0/${cards.length/2}</div><div class="memory-stat-lbl">Pares</div></div>
           <div class="memory-stat"><div class="memory-stat-val" id="mem-timer">0s</div><div class="memory-stat-lbl">Tiempo</div></div>
         </div>
-        <div class="memory-grid" style="grid-template-columns:repeat(4,80px)">
+        <div class="memory-grid" style="grid-template-columns:repeat(${cards.length<=12?4:4},82px)">
           ${cards.map((emoji,i) => `
             <div class="mem-card" id="mc-${i}" onclick="flipCard(${i})">
               <div class="mem-card-inner">
-                <div class="mem-card-front">✦</div>
+                <div class="mem-card-front" style="font-size:22px">✦</div>
                 <div class="mem-card-back">${emoji}</div>
               </div>
             </div>`).join('')}
         </div>
         <div style="display:flex;gap:10px">
-          <button class="btn-sm" onclick="memStartGame(6)">6 pares (Fácil)</button>
-          <button class="btn-sm" onclick="memStartGame(8)">8 pares (Difícil)</button>
+          <button class="btn-sm" onclick="memStartGame(6)" style="flex:1;padding:10px">⭐ 6 pares</button>
+          <button class="btn-sm" onclick="memStartGame(8)" style="flex:1;padding:10px">🔥 8 pares</button>
         </div>
       </div>`;
   }
@@ -10256,12 +10292,17 @@ function renderZenGarden(el) {
 
   el.innerHTML = `
     <div style="padding:16px 0">
-      <div style="font-size:13px;color:var(--text3);margin-bottom:12px">Coloca elementos en tu jardín zen. Haz clic en el jardín para colocar, clic derecho para borrar.</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-        ${STONES.map(s => `<button class="zen-stone-btn ${s===selectedStone?'active':''}" onclick="selectZenStone('${s}')" style="font-size:22px;width:40px;height:40px;border-radius:10px;border:2px solid ${s===selectedStone?'var(--accent)':'var(--border)'};background:var(--surface2);cursor:pointer">${s}</button>`).join('')}
-        <button onclick="clearZenGarden()" style="padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text3);cursor:pointer;font-size:12px">🗑️ Limpiar</button>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px">Jardín Zen</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">Toca para colocar · Clic derecho para borrar</div>
+        </div>
+        <button onclick="clearZenGarden()" style="padding:8px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text3);cursor:pointer;font-size:12px;font-weight:600">🗑️ Limpiar</button>
       </div>
-      <canvas id="zen-canvas" class="zen-garden" width="800" height="420" style="width:100%;height:280px"></canvas>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;padding:10px;background:var(--surface);border-radius:14px;border:1px solid var(--border)">
+        ${STONES.map(s => `<button class="zen-stone-btn ${s===selectedStone?'active':''}" onclick="selectZenStone('${s}')" style="font-size:22px;width:44px;height:44px;border-radius:12px;border:2px solid ${s===selectedStone?'var(--accent)':'transparent'};background:${s===selectedStone?'rgba(99,102,241,.12)':'transparent'};cursor:pointer;transition:all .15s">${s}</button>`).join('')}
+      </div>
+      <canvas id="zen-canvas" class="zen-garden" width="800" height="420" style="width:100%;height:300px;border-radius:18px;box-shadow:0 4px 20px rgba(0,0,0,.1)"></canvas>
     </div>`;
 
   const canvas = document.getElementById('zen-canvas');

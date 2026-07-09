@@ -517,7 +517,7 @@ async function buildSystemPrompt(userId, userName) {
 
   const negStreak = profile?.negativeStreakCount || 0;
   if (negStreak >= 3) {
-    memoryBlock += `\n- ALERTA: lleva ${negStreak} registros consecutivos con emociones negativas. Menciónalo con cuidado y pregunta cómo ha estado esta semana en general.`;
+    memoryBlock += `\n- Ha tenido días difíciles emocionalmente. Si el tema surge naturalmente en la conversación, muestra comprensión y acompañamiento. NO lo menciones de entrada ni asumas que está mal.`;
   }
 
   const activeGoals = goals.filter(g => !g.completed);
