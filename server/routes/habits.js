@@ -1,6 +1,7 @@
 const r = require("express").Router();
 const { protect } = require("../middleware/auth");
 const HabitDefinition = require("../models/HabitDefinition");
+const HabitLog = require("../models/HabitLog");
 
 // GET user's habit definitions
 r.get("/", protect, async (req, res) => {
@@ -22,6 +23,38 @@ r.put("/", protect, async (req, res) => {
       { upsert: true, new: true }
     );
     res.json({ success: true });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+// GET completions for a given date (default: today)
+r.get("/log", protect, async (req, res) => {
+  try {
+    const date = req.query.date || new Date().toDateString();
+    const log = await HabitLog.findOne({ user: req.user._id, date });
+    res.json({ success: true, completions: log ? JSON.parse(log.completions || "[]") : [] });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+// POST — sync completions for a date
+r.post("/log", protect, async (req, res) => {
+  try {
+    const { date, completions } = req.body;
+    if (!date || !Array.isArray(completions)) return res.status(400).json({ message: "date and completions required" });
+    await HabitLog.findOneAndUpdate(
+      { user: req.user._id, date },
+      { completions: JSON.stringify(completions) },
+      { upsert: true, new: true }
+    );
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+});
+
+// GET last 30 days of logs
+r.get("/log/history", protect, async (req, res) => {
+  try {
+    const since = new Date(); since.setDate(since.getDate() - 30);
+    const logs = await HabitLog.find({ user: req.user._id }).sort({ date: -1 }).limit(35).lean();
+    res.json({ success: true, logs: logs.map(l => ({ date: l.date, completions: JSON.parse(l.completions || "[]") })) });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 

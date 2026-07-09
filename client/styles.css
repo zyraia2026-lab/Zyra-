@@ -1668,9 +1668,16 @@ textarea.chat-ta::placeholder{color:var(--placeholder);-webkit-text-fill-color:v
   .stat-card{padding:14px 12px}
   .goal-del{opacity:1}
   .btn-logout{font-size:12px;padding:6px 10px}
-  .wellness-tabs{width:100%}
-  .wellness-tab{font-size:11px;padding:9px 12px}
+  .wellness-tabs{width:100%;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .wellness-tabs::-webkit-scrollbar{display:none}
+  .wellness-tab{font-size:11px;padding:9px 12px;flex-shrink:0}
 }
+
+/* ══ NOTIFICATION BELL FAB ══ */
+.zyra-notif-fab{position:fixed;bottom:152px;right:20px;z-index:800;width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#f97316);border:none;color:#fff;font-size:20px;cursor:pointer;box-shadow:0 6px 24px rgba(245,158,11,.45);align-items:center;justify-content:center;transition:all .2s cubic-bezier(.34,1.56,.64,1)}
+.zyra-notif-fab:hover{transform:scale(1.12);box-shadow:0 10px 32px rgba(245,158,11,.55)}
+.zyra-notif-fab:active{transform:scale(.95)}
+.zyra-notif-count{position:absolute;top:-5px;right:-5px;background:#ef4444;color:#fff;font-size:9px;font-weight:800;min-width:18px;height:18px;border-radius:9px;padding:0 4px;display:none;align-items:center;justify-content:center;border:2px solid var(--bg,#fff);box-shadow:0 2px 8px rgba(0,0,0,.2)}
 @media(max-width:380px){
   .verify-card{padding:36px 20px}
   .hero h1{font-size:24px}
