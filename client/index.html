@@ -5896,37 +5896,54 @@ function newChat() {
   </div>`;
   const name = user ? safeHtml(user.name.split(" ")[0]) : "";
   const hour = new Date().getHours();
-  let greeting, welcome;
-  if (hour >= 6 && hour < 12) {
-    greeting = "☀️ Buenos días";
-    welcome = `${greeting}, ${name}. Soy Zyra 💙 ¿Cómo empezaste el día? ¿Hay algo que quieras procesar o simplemente quieres hablar?`;
-  } else if (hour >= 12 && hour < 17) {
-    greeting = "🌤️ Buenas tardes";
-    welcome = `${greeting}, ${name}. Soy Zyra 💙 ¿Cómo va tu día hasta ahora? Aquí puedes hablar sin filtros.`;
-  } else if (hour >= 17 && hour < 21) {
-    greeting = "🌅 Buenas tardes";
-    welcome = `${greeting}, ${name}. Soy Zyra 💙 ¿Cómo fue tu día? A veces hablar sobre él ayuda a cerrar bien la jornada.`;
-  } else {
-    greeting = "🌙 Buenas noches";
-    welcome = `${greeting}, ${name}. Soy Zyra 💙 A estas horas los pensamientos pueden pesar más. Cuéntame, ¿qué te tiene despierto/a?`;
-  }
-  // Personalize welcome with today's check-in if available
+  // Saludos variados para que no siempre diga lo mismo
+  const _mornGreets = [
+    `Buenos días, ${name} ☀️ ¿Cómo amaneciste?`,
+    `Ei, ${name}, buenos días 💙 ¿Cómo arrancó el día?`,
+    `Qué bueno que abriste esto, ${name} ☀️ ¿Cómo vas esta mañana?`,
+    `${name}, buenos días 💙 ¿Qué hay para hoy?`,
+  ];
+  const _afteGreets = [
+    `Ei, ${name} 💙 ¿Cómo va el día?`,
+    `${name}, qué bueno verte. ¿Cómo estás?`,
+    `Apareciéndome, ${name} 💙 ¿Qué tal la tarde?`,
+    `Hola, ${name} ☀️ ¿Qué fue, cómo estás?`,
+  ];
+  const _eveGreets = [
+    `${name}, qué fue, ¿cómo te fue hoy? 💙`,
+    `Ei, ${name} 🌅 ¿Cómo cerraste el día?`,
+    `Hola, ${name} 💙 Ya casi termina el día. ¿Cómo estás?`,
+    `${name}, buenas noches 🌅 ¿Cómo te fue?`,
+  ];
+  const _nightGreets = [
+    `${name} 🌙 A estas horas, ¿qué te tiene despierto/a?`,
+    `Ei, ${name}, qué tarde 🌙 ¿Todo bien?`,
+    `Aquí estoy, ${name} 💙 ¿Qué hay, no puedes dormir?`,
+    `${name} 🌙 A esta hora los pensamientos se sienten más pesados. ¿Qué está pasando?`,
+  ];
+  let welcome;
+  if (hour >= 6 && hour < 12)      welcome = _mornGreets[Math.floor(Math.random()*_mornGreets.length)];
+  else if (hour >= 12 && hour < 18) welcome = _afteGreets[Math.floor(Math.random()*_afteGreets.length)];
+  else if (hour >= 18 && hour < 22) welcome = _eveGreets[Math.floor(Math.random()*_eveGreets.length)];
+  else                               welcome = _nightGreets[Math.floor(Math.random()*_nightGreets.length)];
+
+  // Personalizar con la emoción del check-in de hoy (si existe)
   const _todayEmo = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString());
   const _emoWelcome = {
-    feliz:       `, y veo que hoy te sientes feliz 😊 ¡Qué bueno escuchar eso! ¿Qué te tiene así?`,
-    tranquilo:   `. Vi que hoy te sientes tranquilo/a 😌 — ese es un buen estado. ¿Quieres mantenerlo o hay algo que quieras explorar?`,
-    motivado:    `. Veo que hoy tienes energía 💪 ¿Qué te tiene tan motivado/a? Cuéntame.`,
-    ansioso:     `. Sé que hoy te has sentido ansioso/a 😰 Aquí estoy. ¿Quieres hablar de lo que te pesa o preferirías una respiración para empezar?`,
-    triste:      `. Veo que hoy no ha sido el mejor día 💙 No tienes que estar bien. ¿Qué está pasando?`,
-    enojado:     `. Noto que hoy algo te molestó 😤 Puedes contarme sin censura. Aquí no se juzga.`,
-    agotado:     `. Sé que hoy estás agotado/a 😮‍💨 Tu cuerpo y mente merecen descanso. ¿Qué te tiene así?`,
-    esperanzado: `. Vi que hoy te sientes esperanzado/a 🌟 ¡Me alegra! ¿Qué te genera esa esperanza?`,
-    confundido:  `. Hoy te sientes confundido/a 🤔 A veces hablar de lo que tenemos en la mente ayuda a ordenarlo.`,
-    nostalgico:  `. Noto que hoy hay algo nostálgico en ti 🌅 ¿Qué recuerdo o pensamiento se te vino hoy?`,
+    feliz:       ` Oye, vi que hoy te sientes bien 😊 ¿Qué fue lo que pasó?`,
+    tranquilo:   ` Vi que hoy estás tranquilo/a 😌 Qué bueno eso. ¿Cómo estás?`,
+    motivado:    ` Veo que hoy tienes energía 💪 ¿Qué te tiene así?`,
+    ansioso:     ` Sé que hoy has sentido algo de angustia 😰 Aquí estoy. ¿Quieres contarme qué pasa?`,
+    triste:      ` Veo que hoy no ha sido el mejor día 💙 No tienes que estar bien. ¿Qué está pasando?`,
+    enojado:     ` Parece que algo te molestó hoy 😤 Cuéntame, ¿qué fue?`,
+    agotado:     ` Sé que hoy estás agotado/a 😮‍💨 ¿Qué te tiene así?`,
+    esperanzado: ` Vi que hoy te sientes con esperanza 🌟 Me alegra. ¿Qué fue?`,
+    confundido:  ` Hoy te sientes confundido/a 🤔 ¿Qué está dando vueltas en tu cabeza?`,
+    nostalgico:  ` Noto algo de nostalgia hoy en ti 🌅 ¿Qué recuerdo o pensamiento se te vino?`,
   };
   if (_todayEmo && _emoWelcome[_todayEmo]) {
-    welcome = welcome.replace("¿Cómo empezaste el día?", "").replace("¿Cómo va tu día hasta ahora?", "").replace("¿Cómo fue tu día?", "").replace("¿Qué te tiene despierto/a?", "");
-    welcome = welcome.trimEnd() + _emoWelcome[_todayEmo];
+    // Reemplazar la pregunta del saludo para no hacer dos preguntas
+    welcome = welcome.replace(/¿[^?]+\?$/, "").trimEnd() + _emoWelcome[_todayEmo];
   }
 
   addBotMsg(welcome);
@@ -7181,17 +7198,18 @@ function openVoiceCall() {
     const hour = new Date().getHours();
     const timeOfDay = hour < 12 ? 'mañana' : hour < 18 ? 'tarde' : 'noche';
     const GREETINGS = [
-      `Qué bueno escucharte, ${name}. ¿Cómo llegaste a esta ${timeOfDay}?`,
-      `Hola ${name}, aquí estoy contigo. ¿Qué hay en tu mente ahora mismo?`,
-      `${name}, me alegra que me llames. ¿Cómo estás en este momento?`,
-      `Hola, ${name}. Lista para escucharte. ¿De qué quieres hablar hoy?`,
+      `Ei, ${name}, qué bueno escucharte. ¿Cómo vas?`,
+      `${name}, hola. ¿Qué hay?`,
+      `Aquí estoy, ${name}. ¿Qué fue?`,
+      `Hola, ${name}. ¿Cómo estás?`,
+      `${name}, qué bueno que llamaste. ¿Cómo estás?`,
     ];
     const EMOTION_GREETINGS = {
-      triste:    `${name}, te escucho. ¿Cómo has estado hoy?`,
-      ansioso:   `Hola ${name}. Respira. Estoy aquí. ¿Qué está pasando?`,
-      enojado:   `${name}, aquí estoy. ¿Qué fue lo que pasó?`,
-      feliz:     `¡Hola ${name}! Se nota buena energía. ¿Qué hay de bueno?`,
-      agotado:   `${name}, parece que fue un día largo. ¿Cómo te sientes?`,
+      triste:    `${name}, hola. ¿Cómo estás?`,
+      ansioso:   `${name}, hola. ¿Cómo vas?`,
+      enojado:   `Ei, ${name}. ¿Qué fue, cómo estás?`,
+      feliz:     `${name}, hola. ¿Qué hay?`,
+      agotado:   `Ei, ${name}. ¿Cómo estás?`,
     };
     const greeting = EMOTION_GREETINGS[emotion] || GREETINGS[Math.floor(Math.random()*GREETINGS.length)];
     vcAddMessage('bot', greeting);
