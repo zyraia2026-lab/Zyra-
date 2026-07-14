@@ -6927,18 +6927,18 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
   if (!div) return;
 
   const showFb = () => {
-    if (onFail) { onFail(); return; }
+    // Mostrar botón de fallback INMEDIATAMENTE — nunca dejar al usuario con negro
     const fb   = document.getElementById(fallbackId);
     const wrap = document.getElementById(divId + '-wrap');
     if (wrap) wrap.style.display = 'none';
     if (fb)   fb.style.display   = 'block';
+    // Intentar video alternativo en background (si encuentra uno mejor, reemplaza el card)
+    if (onFail) onFail();
   };
 
   window._ytActivators[divId] = () => {
     const d = document.getElementById(divId);
     if (!d) return;
-    // Iframe con position:absolute propio — evita el bug donde YT.Player reemplaza el div
-    // y el iframe queda sin posicionamiento → height:0 → pantalla negra
     const frameId = divId + '-if';
     d.innerHTML = `<iframe id="${frameId}"
       src="https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=1&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}"
@@ -6946,9 +6946,9 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
       allowfullscreen></iframe>`;
 
-    // Detectar si el video puede reproducirse via postMessage (enablejsapi=1)
     const frame = document.getElementById(frameId);
     let playing = false;
+
     const onMsg = (e) => {
       if (!frame || e.source !== frame.contentWindow) return;
       try {
@@ -6959,7 +6959,7 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
           showFb();
         }
         const st = data.info?.playerState ?? data.info;
-        if (st === 1 || st === 3) {   // 1=playing, 3=buffering
+        if (st === 1 || st === 3) {
           playing = true;
           window.removeEventListener('message', onMsg);
           clearTimeout(timer);
@@ -6967,11 +6967,23 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
       } catch(_) {}
     };
     window.addEventListener('message', onMsg);
-    // Si en 5s no hay señal → video bloqueado regionalmente → retryFn busca otro
+
+    // Inicializar canal postMessage + forzar play por si autoplay bloqueado por el browser
+    setTimeout(() => {
+      if (frame?.contentWindow) {
+        frame.contentWindow.postMessage('{"event":"listening","id":1}', '*');
+        setTimeout(() => {
+          if (!playing && frame?.contentWindow)
+            frame.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+        }, 500);
+      }
+    }, 300);
+
+    // Después de 4s sin reproducción → mostrar fallback YA (no esperar al retry)
     const timer = setTimeout(() => {
       window.removeEventListener('message', onMsg);
       if (!playing) showFb();
-    }, 5000);
+    }, 4000);
   };
 
   // Thumbnail del video con botón play perfectamente centrado
@@ -7040,19 +7052,16 @@ function buildYTPlayer(card, id) {
     const html = ytEmbedHTML(card, id, card.videoId);
     const ytUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(card.title+" "+card.artist)}`;
     const retryFn = window.YT_ENABLED ? async () => {
-      // Error 153: buscar video alternativo automáticamente
+      // Buscar video alternativo en background (el fallback ya está visible)
       try {
         const result = await findPlayableVideoId(card.title, card.artist);
-        const wrap = document.getElementById(id);
-        if (!wrap) return;
-        if (result?.videoId && result.videoId !== card.videoId) {
-          wrap.innerHTML = ytEmbedHTML(card, id, result.videoId);
-          ytInitPlayer(`yt-iframe-${id}`, result.videoId, `yt-fallback-${id}`);
-        } else { wrap.innerHTML = ytButtonHTML(card, id, ytUrl); }
-      } catch(_) {
-        const wrap = document.getElementById(id);
-        if (wrap) wrap.innerHTML = ytButtonHTML(card, id, ytUrl);
-      }
+        if (!result?.videoId || result.videoId === card.videoId) return;
+        // Si hay alternativa, reemplazar el card completo con el nuevo video
+        const outer = document.getElementById(id);
+        if (!outer) return;
+        outer.innerHTML = ytEmbedHTML(card, id, result.videoId);
+        ytInitPlayer(`yt-iframe-${id}`, result.videoId, `yt-fallback-${id}`);
+      } catch(_) {}
     } : null;
     setTimeout(() => ytInitPlayer(`yt-iframe-${id}`, card.videoId, `yt-fallback-${id}`, retryFn), 0);
     return html;
