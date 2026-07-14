@@ -167,6 +167,12 @@ function getArtistFromHistory(history) {
       const name = m2[1].trim();
       if (name && name.length > 1 && name !== "algo") return { key: name.toLowerCase(), name };
     }
+    // 3. Extraer artista desconocido mencionado en el texto libre del AI (ej: "Natalia Lafourcade")
+    const extracted = extractArtistName(msg.content || "");
+    if (extracted) {
+      const fmt = extracted.split(" ").map(w => w[0].toUpperCase()+w.slice(1)).join(" ");
+      return { key: extracted.toLowerCase(), name: fmt };
+    }
   }
   return null;
 }
@@ -209,6 +215,10 @@ function extractArtistName(message) {
     "hip hop","hiphop","electronica","electrónica","electronic","kpop","k-pop","jazz","blues",
     // décadas
     "los 80","los 90","los 2000","los 2010","años 80","años 90","años 2000","80s","90s",
+    // pronombres españoles — nunca son artistas
+    "ella","ellas","ellos","ello","esa","ese","eso","esto","esta","este",
+    "aquel","aquella","aquello","aquellos","aquellas","esas","esos","estas","estos",
+    "misma","mismo","todas","todos","nada","nadie","alguien",
   ]);
 
   const patterns = [
