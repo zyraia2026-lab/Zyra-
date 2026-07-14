@@ -96,6 +96,7 @@ exports.sendDailyReminders = async () => {
         body:  msg,
         icon:  "/Imagenes/icon-192.png",
         badge: "/Imagenes/icon-192.png",
+        tag:   "zyra-daily",
         data:  { url: "/?p=assistant" },
       });
       await Profile.updateOne({ _id: p._id }, { lastReminderSentAt: now });
@@ -137,6 +138,7 @@ exports.sendDailyReminders = async () => {
             body,
             icon:  "/Imagenes/icon-192.png",
             badge: "/Imagenes/icon-192.png",
+            tag:   "zyra-goals",
             data:  { url: "/?p=goals" },
           });
           goalNotifs++;

@@ -10,6 +10,7 @@
   "theme_color": "#6366f1",
   "orientation": "portrait-primary",
   "lang": "es",
+  "id": "com.zyra.app",
   "icons": [
     {
       "src": "/Imagenes/1000154669.png",
@@ -21,7 +22,13 @@
       "src": "/Imagenes/1000154669.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/Imagenes/1000154669.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "categories": ["health", "lifestyle"],
