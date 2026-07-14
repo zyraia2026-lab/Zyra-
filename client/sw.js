@@ -1,4 +1,4 @@
-// ══ ZYRA SERVICE WORKER v5.0 ══
+// ══ ZYRA SERVICE WORKER v5.1 ══
 const CACHE_NAME = 'zyra-v5';
 const STATIC_ASSETS = ['/', '/index.html', '/styles.css', '/manifest.json'];
 
@@ -16,7 +16,6 @@ self.addEventListener('activate', e => {
     caches.keys().then(names =>
       Promise.all(names.filter(n => n !== CACHE_NAME).map(n => caches.delete(n)))
     ).then(() => {
-      // Notify all open tabs that a new version is active
       return self.clients.matchAll({ type: 'window' }).then(clients => {
         clients.forEach(c => c.postMessage({ type: 'SW_UPDATED' }));
       });
@@ -29,7 +28,10 @@ self.addEventListener('fetch', e => {
   const { request } = e;
   const url = new URL(request.url);
 
-  // API calls — always network, no cache
+  // Solo interceptar requests del mismo origen — dejar pasar todo lo externo (YouTube, Kaspersky, etc.)
+  if (url.origin !== self.location.origin) return;
+
+  // API calls — siempre red, nunca caché
   if (url.pathname.startsWith('/api/')) {
     e.respondWith(
       fetch(request).catch(() =>
@@ -42,7 +44,7 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Static assets — stale-while-revalidate
+  // Assets estáticos — stale-while-revalidate con fallback seguro (nunca null)
   e.respondWith(
     caches.open(CACHE_NAME).then(cache =>
       cache.match(request).then(cached => {
@@ -53,7 +55,9 @@ self.addEventListener('fetch', e => {
           return res;
         }).catch(() => null);
 
-        return cached || network || caches.match('/index.html');
+        // Si hay caché, devolver inmediatamente; si no, esperar red con fallback a /index.html
+        if (cached) return cached;
+        return network.then(res => res || caches.match('/index.html'));
       })
     )
   );
@@ -82,7 +86,6 @@ self.addEventListener('notificationclick', e => {
       for (const client of clientList) {
         if (client.url.includes(self.location.origin) && 'focus' in client) {
           client.focus();
-          // Tell the app to navigate to the target page
           client.postMessage({ type: 'NAVIGATE', url: targetUrl });
           return;
         }
