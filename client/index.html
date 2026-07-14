@@ -6918,8 +6918,11 @@ window.onYouTubeIframeAPIReady = function() {
   document.head.appendChild(s);
 })();
 
-// Inicializa un reproductor YouTube; detecta videos con embedding bloqueado via onError
+// Muestra miniatura con botón play; al hacer clic carga el iframe con autoplay (user gesture)
 function ytInitPlayer(divId, videoId, fallbackId, onFail) {
+  const div = document.getElementById(divId);
+  if (!div) return;
+
   const showFb = () => {
     if (onFail) { onFail(); return; }
     const fb   = document.getElementById(fallbackId);
@@ -6928,34 +6931,38 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
     if (fb)   fb.style.display   = 'block';
   };
 
-  const create = () => {
-    const div = document.getElementById(divId);
-    if (!div) return;
-
+  const activatePlayer = () => {
+    div.innerHTML = '';
     if (!window.YT?.Player) {
-      div.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+      div.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=1" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
       return;
     }
-
+    let ok = false;
+    const safety = setTimeout(() => { if (!ok) showFb(); }, 8000);
     new window.YT.Player(div, {
-      videoId,
-      width: '100%', height: '100%',
-      playerVars: { rel: 0, modestbranding: 1, autoplay: 0, playsinline: 1, origin: window.location.origin },
+      videoId, width: '100%', height: '100%',
+      playerVars: { rel: 0, modestbranding: 1, autoplay: 1, playsinline: 1, origin: window.location.origin },
       events: {
         onStateChange: function(e) {
+          if (e.data === 3 || e.data === 1 || e.data === 2) { ok = true; clearTimeout(safety); }
           if (e.data === 1) { window._zyraActiveYTPlayer = e.target; _updateMiniPlayerState(); }
           if (e.data === 0) { if (window._zyraActiveYTPlayer === e.target) { window._zyraActiveYTPlayer = null; window._zyraCurrentSong = null; _updateMiniPlayerState(); } }
         },
-        onError: function(e) {
-          console.warn('[YT]', e.data, videoId);
-          showFb();
-        }
+        onError: function(e) { console.warn('[YT]', e.data, videoId); clearTimeout(safety); showFb(); }
       }
     });
   };
 
-  if (window._ytAPIReady) create();
-  else window._ytPlayerQueue.push(create);
+  // Mostrar miniatura con botón play
+  const thumb = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+  div.innerHTML = `
+    <div onclick="(${activatePlayer.toString()})()" style="position:absolute;inset:0;cursor:pointer;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden">
+      <img src="${thumb}" style="width:100%;height:100%;object-fit:cover;opacity:.9" loading="lazy"
+           onerror="this.style.display='none'">
+      <div style="position:absolute;width:64px;height:44px;background:#ff0000;border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 16px rgba(0,0,0,.6)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+      </div>
+    </div>`;
 }
 
 /* Buscar videoId embeddable para una canción o query libre */
