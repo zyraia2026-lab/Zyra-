@@ -1737,7 +1737,7 @@ textarea.chat-ta::placeholder{color:var(--placeholder);-webkit-text-fill-color:v
 .card-action { font-size: 11px; color: var(--text3); flex-shrink: 0; font-weight: 700; white-space: nowrap; margin-left: 4px; }
 
 /* YouTube player */
-.yt-player-wrap{margin-top:12px;border-radius:var(--r-md);overflow:hidden;background:#0f0f0f;width:100%;max-width:380px;border:2px solid #a7f3d0;box-shadow:var(--shadow-md);animation:msgPop .3s var(--bounce) both}
+.yt-player-wrap{margin-top:12px;border-radius:var(--r-md);overflow:hidden;background:#0f0f0f;width:100%;max-width:520px;border:2px solid #a7f3d0;box-shadow:var(--shadow-md);animation:msgPop .3s var(--bounce) both}
 .yt-player-header{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#ecfdf5;border-bottom:2px solid #a7f3d0}
 .yt-player-icon{font-size:18px}
 .yt-player-info{flex:1;min-width:0}
