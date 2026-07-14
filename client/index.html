@@ -6933,51 +6933,28 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
     if (!div) return;
 
     if (!window.YT?.Player) {
-      // IFrame API no disponible → iframe básico
-      div.innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=1" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none" allow="autoplay;encrypted-media" allowfullscreen></iframe>`;
+      // IFrame API no disponible → iframe básico sin autoplay
+      div.innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=0" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none" allow="encrypted-media" allowfullscreen></iframe>`;
       return;
     }
 
     let resolved = false;
-    let startedOk = false;
     const resolve = (ok) => { if (resolved) return; resolved = true; if (!ok) showFb(); };
-
-    // Timeout de seguridad: 6s para que el video empiece
-    const safety = setTimeout(() => { if (!resolved) resolve(false); else if (!startedOk) showFb(); }, 6000);
+    const safety = setTimeout(() => { if (!resolved) resolve(true); }, 8000);
 
     new window.YT.Player(div, {
       videoId,
       width: '100%', height: '100%',
-      // autoplay:1 necesario para distinguir Error 153 (estado -1) de video válido (estado 3/1)
-      // origin requerido para que postMessage funcione correctamente con el IFrame API
-      playerVars: { rel: 0, modestbranding: 1, autoplay: 1, playsinline: 1, origin: window.location.origin },
+      playerVars: { rel: 0, modestbranding: 1, autoplay: 0, playsinline: 1, origin: window.location.origin },
       events: {
-        onReady: function(e) {
-          // Tras 3s sin cambio de estado → Error 153 (video bloqueado silenciosamente)
-          setTimeout(() => {
-            if (resolved && startedOk) return;
-            try {
-              const s = e.target.getPlayerState();
-              // -1=unstarted, 5=cued → no inició → fallo
-              if (s === -1 || s === 5) { clearTimeout(safety); if (!resolved) resolve(false); else showFb(); }
-            } catch(_) { clearTimeout(safety); if (!resolved) resolve(false); else showFb(); }
-          }, 3000);
-        },
+        onReady: function() { clearTimeout(safety); resolve(true); },
         onStateChange: function(e) {
-          // 3=buffering, 1=playing, 2=paused → video cargando/cargado = OK
-          if (e.data === 3 || e.data === 1 || e.data === 2) {
-            clearTimeout(safety); resolve(true); startedOk = true;
-          }
-          // Track active player for mini-player
           if (e.data === 1) { window._zyraActiveYTPlayer = e.target; _updateMiniPlayerState(); }
           if (e.data === 0) { if (window._zyraActiveYTPlayer === e.target) { window._zyraActiveYTPlayer = null; window._zyraCurrentSong = null; _updateMiniPlayerState(); } }
-          // Estado -1 (unstarted) DESPUÉS de haber empezado → error de configuración
-          if (e.data === -1 && startedOk) { showFb(); }
         },
         onError: function(e) {
           console.warn('[YT]', e.data, videoId);
           clearTimeout(safety);
-          // Siempre mostrar fallback en error, incluso si ya se resolvió como OK
           if (!resolved) resolve(false); else showFb();
         }
       }
