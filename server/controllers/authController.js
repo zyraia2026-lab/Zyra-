@@ -48,7 +48,7 @@ exports.registerRequest = async (req, res) => {
     const code = generateCode();
     const hashedPassword = await bcrypt.hash(password, 12);
     await saveOTP(email, code, { email, name: String(name).trim(), password: hashedPassword, prehashed: true });
-    await sendVerificationCode(email, code, String(name).trim());
+    sendVerificationCode(email, code, String(name).trim()).catch(e => console.error("[email] registerRequest:", e.message));
     res.json({ success: true, message: "Código enviado a tu correo" });
   } catch (e) {
     console.error("registerRequest:", e.message);
@@ -104,7 +104,7 @@ exports.loginRequest = async (req, res) => {
 
     const code = generateCode();
     await saveOTP(`login_${email}`, code, { email, userId: user._id.toString() });
-    await sendVerificationCode(email, code, user.name);
+    sendVerificationCode(email, code, user.name).catch(e => console.error("[email] loginRequest:", e.message));
     res.json({ success: true, message: "Código enviado a tu correo" });
   } catch (e) {
     console.error("loginRequest:", e.message);
@@ -216,7 +216,7 @@ exports.forgotPasswordRequest = async (req, res) => {
     if (user) {
       const code = generateCode();
       await saveOTP(`reset_${email}`, code, { email, userId: user._id.toString() });
-      await sendPasswordResetCode(email, code, user.name);
+      sendPasswordResetCode(email, code, user.name).catch(e => console.error("[email] forgotPassword:", e.message));
     }
     res.json({ success: true, message: "Si ese correo existe, recibirás un código" });
   } catch(e) {
