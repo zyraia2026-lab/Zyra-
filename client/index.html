@@ -6918,37 +6918,17 @@ window.onYouTubeIframeAPIReady = function() {
   document.head.appendChild(s);
 })();
 
-// Registro global de activadores de player
-window._ytActivators = window._ytActivators || {};
-
-// Muestra miniatura; al hacer clic inyecta iframe con autoplay (sincrónico = user gesture garantizado)
+// Carga el iframe de YouTube directamente — YouTube muestra su propio thumbnail + botón play
+// Nunca muestra pantalla negra para videos embeddables
 function ytInitPlayer(divId, videoId, fallbackId, onFail) {
   if (!videoId) { if (onFail) onFail(); return; }
   const div = document.getElementById(divId);
   if (!div) return;
-
-  window._ytActivators[divId] = () => {
-    const d = document.getElementById(divId);
-    if (!d) return;
-    // Inyección sincrónica = el navegador trata esto como navegación iniciada por el usuario
-    // → autoplay garantizado sin necesitar la YT.Player API ni sus timeouts de gesture
-    d.innerHTML = `<iframe
-      src="https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=1&playsinline=1"
-      style="position:absolute;top:0;left:0;width:100%;height:100%;border:none"
-      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-      allowfullscreen></iframe>`;
-  };
-
-  const thumb = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
-  div.innerHTML = `
-    <div onclick="window._ytActivators['${divId}']&&window._ytActivators['${divId}']()"
-         style="position:absolute;inset:0;cursor:pointer;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden">
-      <img src="${thumb}" style="width:100%;height:100%;object-fit:cover;opacity:.85" loading="lazy"
-           onerror="this.style.display='none'">
-      <div style="position:absolute;width:64px;height:44px;background:#ff0000;border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 20px rgba(0,0,0,.7)">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
-      </div>
-    </div>`;
+  div.innerHTML = `<iframe
+    src="https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1"
+    style="position:absolute;top:0;left:0;width:100%;height:100%;border:none"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen></iframe>`;
 }
 
 /* Buscar videoId embeddable para una canción o query libre */
