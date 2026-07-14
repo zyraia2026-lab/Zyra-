@@ -20,6 +20,7 @@ r.get("/search", protect, ytLimiter, async (req, res) => {
 
     const params = new URLSearchParams({
       part: "snippet", q, type: "video", maxResults,
+      videoEmbeddable: "true", videoSyndicated: "true",
       key,
       ...(videoCategoryId ? { videoCategoryId } : {}),
     });

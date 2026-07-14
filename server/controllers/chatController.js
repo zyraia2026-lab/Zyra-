@@ -215,6 +215,8 @@ function extractArtistName(message) {
     /(?:ponme|pon|quiero escuchar|quiero o[ií]r|escuchar|escuchemos|canciones?|musica|algo)\s+(?:de|del?|una de|algo de)\s+(.+)/i,
     /(?:ponme|pon|escuchemos)\s+a\s+(.+)/i,
     /me pones?\s+(?:(?:de|una de|a|algo de)\s+)?(.+)/i,
+    // "ponme una cancion kimberly loaiza" (sin "de" antes del artista)
+    /(?:ponme|pon|escuchemos|quiero)\s+(?:una\s+)?cancion\s+(?:de\s+)?(.+)/i,
     /(?:de|del?)\s+(.+)/i,
   ];
   for (const re of patterns) {
@@ -224,6 +226,7 @@ function extractArtistName(message) {
         .replace(/^(?:m[uú]sica|canciones?)\s+de\s+/i, "")
         .replace(/(?:por favor|pls|please|ok|dale|ya|ahora|mismo).*$/i,"")
         .replace(/[.,!?].*$/,"")
+        .replace(/[^\x00-\xFF]/g, "")  // strip emoji / non-latin
         .trim();
       if (name.length >= 3 && name.length <= 50 && !GENERIC.has(name)) {
         return name;
@@ -1148,14 +1151,23 @@ exports.sendMessage = async (req, res) => {
               songCards = pickSongs(respArtist.key, 3, usedSongs, mood);
               if (!songCards.length) songCards = pickSongs(respArtist.key, 3, [], mood);
             }
+          } else {
+            // Artista desconocido mencionado en la respuesta ("de Kimberly Loaiza")
+            const aiArtist = extractArtistName(cleanText);
+            if (aiArtist) {
+              const ytSongs3 = await getSongsForUnknownArtist(aiArtist).catch(()=>null);
+              songCards = ytResultsToCards(ytSongs3, aiArtist);
+            }
           }
         }
-        // Sin artista → categoría genérica
-        if (!songCards.length) {
+        // Sin artista → categoría genérica (solo si no había ningún indicio de artista)
+        if (!songCards.length && !extractArtistName(message)) {
           const cat = detectCategory(message);
           songCards = pickSongs(cat, 3, usedSongs, null);
           if (!songCards.length) songCards = pickSongs(cat, 3, [], null);
         }
+        // Si había artista pero no encontramos canciones, dejar cards vacío
+        // (mejor no mostrar nada que canciones incorrectas)
       }
       if (songCards.length) {
         cards = [...songCards, ...cards];
