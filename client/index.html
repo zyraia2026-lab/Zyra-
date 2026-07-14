@@ -6918,17 +6918,44 @@ window.onYouTubeIframeAPIReady = function() {
   document.head.appendChild(s);
 })();
 
-// Inicializa un reproductor YouTube en un div con iframe directo
+// Inicializa un reproductor YouTube; detecta videos con embedding bloqueado via onError
 function ytInitPlayer(divId, videoId, fallbackId, onFail) {
-  const div = document.getElementById(divId);
-  if (!div) return;
-  div.innerHTML = `<iframe
-    src="https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&color=white"
-    style="position:absolute;top:0;left:0;width:100%;height:100%;border:none"
-    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-    allowfullscreen
-    loading="lazy">
-  </iframe>`;
+  const showFb = () => {
+    if (onFail) { onFail(); return; }
+    const fb   = document.getElementById(fallbackId);
+    const wrap = document.getElementById(divId + '-wrap');
+    if (wrap) wrap.style.display = 'none';
+    if (fb)   fb.style.display   = 'block';
+  };
+
+  const create = () => {
+    const div = document.getElementById(divId);
+    if (!div) return;
+
+    if (!window.YT?.Player) {
+      div.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+      return;
+    }
+
+    new window.YT.Player(div, {
+      videoId,
+      width: '100%', height: '100%',
+      playerVars: { rel: 0, modestbranding: 1, autoplay: 0, playsinline: 1, origin: window.location.origin },
+      events: {
+        onStateChange: function(e) {
+          if (e.data === 1) { window._zyraActiveYTPlayer = e.target; _updateMiniPlayerState(); }
+          if (e.data === 0) { if (window._zyraActiveYTPlayer === e.target) { window._zyraActiveYTPlayer = null; window._zyraCurrentSong = null; _updateMiniPlayerState(); } }
+        },
+        onError: function(e) {
+          console.warn('[YT]', e.data, videoId);
+          showFb();
+        }
+      }
+    });
+  };
+
+  if (window._ytAPIReady) create();
+  else window._ytPlayerQueue.push(create);
 }
 
 /* Buscar videoId embeddable para una canción o query libre */
