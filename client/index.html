@@ -8308,6 +8308,12 @@ async function loadAdminPanel() {
           </tbody>
         </table>
       </div>
+      <h2 style="color:var(--text);margin-bottom:12px;font-size:18px">📋 Historial global de pagos</h2>
+      <div class="card" style="margin-bottom:24px;padding:14px">
+        <div id="admin-all-payments-wrap">
+          <button onclick="adminLoadAllPayments(1)" class="btn-sm accent" style="padding:8px 18px">Ver todos los pagos</button>
+        </div>
+      </div>
       <button onclick="loadAdminPanel()" class="btn-sm" style="color:var(--text3)">↺ Actualizar</button>
     </div>`;
   } catch(e) {
@@ -8378,6 +8384,49 @@ async function adminSearch() {
       </div>`;
   } catch(e) {
     result.innerHTML = `<p style="color:var(--danger);font-size:13px">${e.status === 404 ? "Usuario no encontrado." : safeHtml(e.message)}</p>`;
+  }
+}
+
+async function adminLoadAllPayments(page) {
+  const wrap = document.getElementById('admin-all-payments-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = '<p style="color:var(--text3);font-size:13px;padding:8px 0">Cargando...</p>';
+  const fmtAmt = a => (a/100).toLocaleString('es-CO', {style:'currency',currency:'COP',maximumFractionDigits:0});
+  try {
+    const d = await api(`/admin/payments/all?page=${page}&limit=20`);
+    const rows = d.payments.length
+      ? d.payments.map(p => `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:7px 10px;font-size:11px;white-space:nowrap">${new Date(p.createdAt).toLocaleDateString('es')}</td>
+          <td style="padding:7px 10px;font-size:11px">${safeHtml(p.user?.name || '—')}</td>
+          <td style="padding:7px 10px;font-size:11px;color:var(--text3)">${safeHtml(p.user?.email || '—')}</td>
+          <td style="padding:7px 10px;font-size:11px">${adminPlanBadge(p.plan)}</td>
+          <td style="padding:7px 10px;font-size:11px;text-transform:capitalize">${p.period}</td>
+          <td style="padding:7px 10px;font-size:11px;text-align:right;font-variant-numeric:tabular-nums">${fmtAmt(p.amount)}</td>
+          <td style="padding:7px 10px;font-size:11px;color:#22c55e">${p.status}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="7" style="padding:14px;text-align:center;color:var(--text3);font-size:12px">Sin pagos reales registrados</td></tr>';
+    wrap.innerHTML = `
+      <div style="overflow-x:auto;border-radius:8px;border:1px solid var(--border);margin-bottom:10px">
+        <table style="width:100%;border-collapse:collapse;min-width:520px">
+          <thead><tr style="background:var(--surface2)">
+            <th style="padding:7px 10px;font-size:10px;font-weight:600;text-align:left;color:var(--text3)">Fecha</th>
+            <th style="padding:7px 10px;font-size:10px;font-weight:600;text-align:left;color:var(--text3)">Nombre</th>
+            <th style="padding:7px 10px;font-size:10px;font-weight:600;text-align:left;color:var(--text3)">Email</th>
+            <th style="padding:7px 10px;font-size:10px;font-weight:600;text-align:left;color:var(--text3)">Plan</th>
+            <th style="padding:7px 10px;font-size:10px;font-weight:600;text-align:left;color:var(--text3)">Periodo</th>
+            <th style="padding:7px 10px;font-size:10px;font-weight:600;text-align:right;color:var(--text3)">Monto</th>
+            <th style="padding:7px 10px;font-size:10px;font-weight:600;text-align:left;color:var(--text3)">Estado</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text3)">
+        ${d.page > 1 ? `<button onclick="adminLoadAllPayments(${d.page-1})" class="btn-sm" style="font-size:11px">← Anterior</button>` : ''}
+        <span>Página ${d.page} de ${d.pages} · ${d.total} pago${d.total !== 1 ? 's' : ''} totales</span>
+        ${d.page < d.pages ? `<button onclick="adminLoadAllPayments(${d.page+1})" class="btn-sm" style="font-size:11px">Siguiente →</button>` : ''}
+      </div>`;
+  } catch(e) {
+    wrap.innerHTML = `<p style="color:var(--danger);font-size:13px">${safeHtml(e.message)}</p>`;
   }
 }
 
