@@ -1168,8 +1168,8 @@ exports.sendMessage = async (req, res) => {
             }
           }
         }
-        // Sin artista → categoría genérica (solo si no había ningún indicio de artista)
-        if (!songCards.length && !extractArtistName(message)) {
+        // Sin artista → categoría genérica (solo si no había ningún indicio de artista en ningún lugar)
+        if (!songCards.length && !extractArtistName(message) && !extractArtistName(cleanText)) {
           const cat = detectCategory(message);
           songCards = pickSongs(cat, 3, usedSongs, null);
           if (!songCards.length) songCards = pickSongs(cat, 3, [], null);
@@ -1418,6 +1418,7 @@ exports.streamMessage = async (req, res) => {
           const ytSongs = await getSongsForUnknownArtist(artistName).catch(()=>null);
           songCards = ytResultsToCards2(ytSongs, artistName);
         }
+        let _aiArtist = null;
         if (!songCards.length && cleanText) {
           const respArtist = detectArtist(cleanText);
           if (respArtist) {
@@ -1428,9 +1429,18 @@ exports.streamMessage = async (req, res) => {
               songCards = pickSongs(respArtist.key, 3, usedSongs, mood);
               if (!songCards.length) songCards = pickSongs(respArtist.key, 3, [], mood);
             }
+          } else {
+            // Artista desconocido mencionado en la respuesta del AI (ej: Silvana Estrada)
+            _aiArtist = extractArtistName(cleanText);
+            if (_aiArtist) {
+              const ytSongs3 = await getSongsForUnknownArtist(_aiArtist).catch(()=>null);
+              songCards = ytResultsToCards2(ytSongs3, _aiArtist);
+              if (songCards.length) detected = { name: _aiArtist };
+            }
           }
         }
-        if (!songCards.length) {
+        // Genérico solo si no hubo artista en ningún lugar — nunca mezclar artistas con canciones equivocadas
+        if (!songCards.length && !extractArtistName(message) && !_aiArtist) {
           const cat = detectCategory(message);
           songCards = pickSongs(cat, 3, usedSongs, null);
           if (!songCards.length) songCards = pickSongs(cat, 3, [], null);

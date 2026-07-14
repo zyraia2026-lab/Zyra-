@@ -98,6 +98,22 @@ r.post("/user/:id/plan", protect, adminOnly, async (req, res) => {
   } catch(e) { res.status(500).json({ message: e.message }); }
 });
 
+/* GET /api/admin/payments/all?page=1&limit=20  — historial global paginado */
+r.get("/payments/all", protect, adminOnly, async (req, res) => {
+  try {
+    const page  = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit = Math.min(50, parseInt(req.query.limit) || 20);
+    const skip  = (page - 1) * limit;
+    const [payments, total] = await Promise.all([
+      Payment.find({ status: "paid", period: { $ne: "demo" } })
+        .sort({ createdAt: -1 }).skip(skip).limit(limit)
+        .populate("user", "name email").lean(),
+      Payment.countDocuments({ status: "paid", period: { $ne: "demo" } }),
+    ]);
+    res.json({ payments, total, page, pages: Math.ceil(total / limit) });
+  } catch(e) { res.status(500).json({ message: e.message }); }
+});
+
 /* GET /api/admin/user/:id/payments  — historial de pagos de un usuario */
 r.get("/user/:id/payments", protect, adminOnly, async (req, res) => {
   try {
