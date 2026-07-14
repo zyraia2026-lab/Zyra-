@@ -358,32 +358,38 @@ async function getSongsForUnknownArtist(artistName) {
     const makeUrl = (q) =>
       `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&videoCategoryId=10&videoEmbeddable=true&maxResults=10&key=${YT_KEY}`;
 
-    // Dos queries en PARALELO (en vez de 3 secuenciales) → ~3× más rápido
+    // Búsquedas en paralelo + checkEmbeddable en paralelo con la segunda búsqueda
+    // La Search API con videoEmbeddable=true no es 100% confiable (Error 153 igual pasa)
+    // → validar con Videos API para filtrar los que realmente no se pueden embeber
     const [d1, d2] = await Promise.all([
       fetch(makeUrl(`${artistName} canciones`)).then(r => r.json()).catch(() => null),
       fetch(makeUrl(`${artistName} official audio`)).then(r => r.json()).catch(() => null),
     ]);
 
+    // Juntar todos los candidatos y verificar embeddability de una sola vez
+    const allItems = [...(d1?.items || []), ...(d2?.items || [])];
+    const allIds   = allItems.map(it => it.id?.videoId).filter(Boolean);
+    const embeddableIds = new Set(
+      allIds.length ? (await checkEmbeddable(allIds).catch(() => null) || allIds) : []
+    );
+
     const results = [];
     const seenTitles = new Set();
 
-    for (const d of [d1, d2]) {
-      if (!d || d.error) continue;
-      for (const item of (d.items || [])) {
-        if (results.length >= 5) break;
-        const rawTitle = item.snippet.title;
-        const videoId  = item.id?.videoId;
-        if (!videoId) continue;
-        if (!isRelevantSong(rawTitle, artistName)) continue;
-
-        const { title, artist } = parseSongFromYT(rawTitle, artistName);
-        const titleLower = title.toLowerCase();
-        if (!seenTitles.has(titleLower) && title.length > 1) {
-          seenTitles.add(titleLower);
-          results.push({ title, artist, videoId });
-        }
-      }
+    for (const item of allItems) {
       if (results.length >= 5) break;
+      const videoId = item.id?.videoId;
+      if (!videoId) continue;
+      if (!embeddableIds.has(videoId)) continue; // filtrar Error 153 antes de mostrar
+      const rawTitle = item.snippet.title;
+      if (!isRelevantSong(rawTitle, artistName)) continue;
+
+      const { title, artist } = parseSongFromYT(rawTitle, artistName);
+      const titleLower = title.toLowerCase();
+      if (!seenTitles.has(titleLower) && title.length > 1) {
+        seenTitles.add(titleLower);
+        results.push({ title, artist, videoId });
+      }
     }
 
     if (results.length > 0) {
