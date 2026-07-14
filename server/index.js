@@ -30,7 +30,7 @@ app.use(helmet({
       imgSrc:         ["'self'", "data:", "https:", "blob:"],
       mediaSrc:       ["'self'", "https:", "blob:"],
       frameSrc:       ["https://www.youtube.com", "https://www.youtube-nocookie.com"],
-      connectSrc:     ["'self'", "https://api.groq.com", "https://api.streamelements.com"],
+      connectSrc:     ["'self'", "https://api.groq.com", "https://api.streamelements.com", "https://www.youtube.com", "https://www.youtube-nocookie.com", "https://i.ytimg.com"],
       objectSrc:      ["'none'"],
       baseUri:        ["'self'"],
       formAction:     ["'self'"],
