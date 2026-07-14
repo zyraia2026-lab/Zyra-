@@ -4,3 +4,4 @@ server/.env
 .vscode/
 .sixth/
 tmp_*.json
+apk-build/
