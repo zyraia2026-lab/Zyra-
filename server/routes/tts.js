@@ -11,8 +11,7 @@ const ttsLimiter = rateLimit({
   standardHeaders: true, legacyHeaders: false,
 });
 
-r.post("/speak",        protect, ttsLimiter, T.speak);
-r.post("/audio",        protect, ttsLimiter, T.audio);
-r.get("/video/:talkId", protect, T.pollVideo);
+r.post("/speak", protect, ttsLimiter, T.speak);
+r.post("/audio", protect, ttsLimiter, T.audio);
 
 module.exports = r;

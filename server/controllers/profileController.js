@@ -286,6 +286,18 @@ exports.deleteAccount = async (req, res) => {
     const PushSub      = require("../models/PushSubscription");
     const Memory       = require("../models/Memory");
 
+    // Cancelar suscripción Stripe activa si existe
+    const user = await User.findById(req.user._id).select("stripeCustomerId plan").lean();
+    if (user?.stripeCustomerId && user.plan !== "free") {
+      try {
+        const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+        const subs = await stripe.subscriptions.list({ customer: user.stripeCustomerId, status: "active", limit: 5 });
+        await Promise.all(subs.data.map(s => stripe.subscriptions.cancel(s.id)));
+      } catch(stripeErr) {
+        console.warn("[deleteAccount] Stripe cancel error:", stripeErr.message);
+      }
+    }
+
     await Promise.all([
       Profile.deleteOne({ user: req.user._id }),
       Goal.deleteMany({ user: req.user._id }),

@@ -7325,13 +7325,13 @@ function addBotMsg(text, ts, cards) {
     <div class="msg-bubble">
       ${renderMarkdown(text)}
       ${cHTML}
-      <div style="display:flex;align-items:center;gap:6px;margin-top:6px">
-        <div class="msg-time">${time}</div>
+      <div class="msg-actions">
+        <span class="msg-time">${time}</span>
         <button class="btn-tts" onclick="speakMsgEL(this,decodeURIComponent(this.dataset.t))" data-t="${encodeURIComponent(text)}" title="Escuchar">🔊</button>
-        <button class="btn-feedback" onclick="copyMsg(this,decodeURIComponent(this.dataset.t))" data-t="${encodeURIComponent(text)}" title="Copiar mensaje">📋</button>
+        <button class="btn-feedback" onclick="copyMsg(this,decodeURIComponent(this.dataset.t))" data-t="${encodeURIComponent(text)}" title="Copiar">📋</button>
         <button class="btn-feedback" onclick="rateMsg(this,'up')" title="Útil">👍</button>
         <button class="btn-feedback" onclick="rateMsg(this,'down')" title="No útil">👎</button>
-        <button class="btn-feedback" onclick="saveZyraMsg(this,decodeURIComponent(this.dataset.t))" data-t="${encodeURIComponent(text)}" title="Guardar mensaje">🔖</button>
+        <button class="btn-feedback" onclick="saveZyraMsg(this,decodeURIComponent(this.dataset.t))" data-t="${encodeURIComponent(text)}" title="Guardar">🔖</button>
       </div>
     </div>`;
   msgs.insertBefore(div, typing); msgs.scrollTop = msgs.scrollHeight;
