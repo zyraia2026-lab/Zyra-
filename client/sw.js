@@ -1,5 +1,5 @@
-// ══ ZYRA SERVICE WORKER v4.0 ══
-const CACHE_NAME = 'zyra-v4';
+// ══ ZYRA SERVICE WORKER v5.0 ══
+const CACHE_NAME = 'zyra-v5';
 const STATIC_ASSETS = ['/', '/index.html', '/styles.css', '/manifest.json'];
 
 self.addEventListener('install', e => {
