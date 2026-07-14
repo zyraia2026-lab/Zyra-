@@ -381,8 +381,9 @@ async function getSongsForUnknownArtist(artistName) {
       const videoId = item.id?.videoId;
       if (!videoId) continue;
       if (!embeddableIds.has(videoId)) continue; // filtrar Error 153 antes de mostrar
-      const rawTitle = item.snippet.title;
-      if (!isRelevantSong(rawTitle, artistName)) continue;
+      const rawTitle     = item.snippet.title;
+      const channelTitle = item.snippet.channelTitle || "";
+      if (!isRelevantSong(rawTitle, artistName, channelTitle)) continue;
 
       const { title, artist } = parseSongFromYT(rawTitle, artistName);
       const titleLower = title.toLowerCase();
@@ -453,10 +454,14 @@ function parseSongFromYT(ytTitle, requestedArtist) {
   return { title: clean, artist: artistFmt };
 }
 
-function isRelevantSong(ytTitle, artistName) {
+function isRelevantSong(ytTitle, artistName, channelTitle = "") {
   const t = ytTitle.toLowerCase();
+  const c = channelTitle.toLowerCase();
   if (/reaction|reaccion|cover by|tutorial|karaoke|learn|aprender/.test(t)) return false;
   if (/top \d+|mejores \d+|all songs|discografia completa/.test(t)) return false;
+  // Verificar que el video sea del artista — el título o el canal debe mencionarlo
+  const artistWords = artistName.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+  if (artistWords.length > 0 && !artistWords.some(w => t.includes(w) || c.includes(w))) return false;
   return true;
 }
 
