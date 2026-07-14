@@ -20,6 +20,14 @@ app.set("trust proxy", 1);
 // ── Seguridad: cabeceras HTTP
 app.use(helmet({
   crossOriginEmbedderPolicy: false,
+  // Permitir compute-pressure para iframes de YouTube (base.js lo necesita para optimizar reproducción)
+  permissionsPolicy: {
+    features: {
+      computePressure: ["*"],
+      autoplay:        ["*"],
+      fullscreen:      ["*"],
+    }
+  },
   contentSecurityPolicy: {
     directives: {
       defaultSrc:     ["'self'"],

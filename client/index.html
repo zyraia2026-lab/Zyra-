@@ -6940,11 +6940,19 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
     const d = document.getElementById(divId);
     if (!d) return;
     const frameId = divId + '-if';
-    d.innerHTML = `<iframe id="${frameId}"
-      src="https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=1&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}"
-      style="position:absolute;top:0;left:0;width:100%;height:100%;border:none"
-      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-      allowfullscreen></iframe>`;
+    const ytLink  = `https://www.youtube.com/watch?v=${videoId}`;
+
+    // compute-pressure + fullscreen + autoplay en allow para evitar Permissions-Policy violations
+    d.innerHTML = `
+      <iframe id="${frameId}"
+        src="https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=1&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}"
+        style="position:absolute;top:0;left:0;width:100%;height:100%;border:none"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen; compute-pressure"
+        allowfullscreen></iframe>
+      <a id="${frameId}-btn" href="${ytLink}" target="_blank" rel="noopener"
+         style="position:absolute;bottom:10px;right:10px;background:rgba(220,0,0,.88);color:#fff;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:800;text-decoration:none;z-index:10;box-shadow:0 2px 12px rgba(0,0,0,.5)">
+        ▶ YouTube
+      </a>`;
 
     const frame = document.getElementById(frameId);
     let playing = false;
@@ -6963,27 +6971,28 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
           playing = true;
           window.removeEventListener('message', onMsg);
           clearTimeout(timer);
+          document.getElementById(frameId + '-btn')?.remove();
         }
       } catch(_) {}
     };
     window.addEventListener('message', onMsg);
 
-    // Inicializar canal postMessage + forzar play por si autoplay bloqueado por el browser
-    setTimeout(() => {
-      if (frame?.contentWindow) {
-        frame.contentWindow.postMessage('{"event":"listening","id":1}', '*');
-        setTimeout(() => {
-          if (!playing && frame?.contentWindow)
-            frame.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-        }, 500);
-      }
-    }, 300);
+    // Inicializar canal postMessage cuando el iframe termina de cargar (más confiable que setTimeout)
+    frame.addEventListener('load', () => {
+      if (!frame.contentWindow) return;
+      frame.contentWindow.postMessage('{"event":"listening","id":1}', '*');
+      // Forzar play en caso de que autoplay esté bloqueado por el browser
+      setTimeout(() => {
+        if (!playing && frame.contentWindow)
+          frame.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+      }, 300);
+    });
 
-    // Después de 4s sin reproducción → mostrar fallback YA (no esperar al retry)
+    // Timeout más generoso: 8s para conexiones lentas
     const timer = setTimeout(() => {
       window.removeEventListener('message', onMsg);
       if (!playing) showFb();
-    }, 4000);
+    }, 8000);
   };
 
   // Thumbnail del video con botón play perfectamente centrado
