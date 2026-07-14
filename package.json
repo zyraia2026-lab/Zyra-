@@ -1,8 +1,13 @@
 {
   "name": "zyra-app",
-  "version": "1.0.0",
+  "version": "5.0.0",
+  "description": "Zyra — App de bienestar emocional con IA",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
     "cap:sync": "npx cap sync android",
     "cap:open": "npx cap open android",
     "cap:build": "npx cap sync android && npx cap open android"

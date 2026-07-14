@@ -37,18 +37,6 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // CDN resources (Three.js, Fonts) — cache first
-  if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com' || url.hostname === 'cdnjs.cloudflare.com') {
-    e.respondWith(
-      caches.match(request).then(cached => cached || fetch(request).then(res => {
-        const clone = res.clone();
-        caches.open(CACHE_NAME).then(c => c.put(request, clone));
-        return res;
-      }))
-    );
-    return;
-  }
-
   // Static assets — stale-while-revalidate
   e.respondWith(
     caches.open(CACHE_NAME).then(cache =>
@@ -74,7 +62,7 @@ self.addEventListener('push', e => {
       body: data.body || 'Tienes un mensaje de Zyra',
       icon: '/Imagenes/1000154669.png',
       badge: '/Imagenes/1000154669.png',
-      tag: 'zyra-notification',
+      tag: data.tag || ('zyra-' + Date.now()),
       vibrate: [100, 50, 100],
       data: { url: data.url || '/' }
     })
