@@ -12,45 +12,63 @@ services:
         value: production
       - key: PORT
         value: 10000
+
+      # ── Base de datos ──────────────────────────────────
       - key: MONGODB_URI
-        sync: false
+        sync: false                # mongodb+srv://usuario:pass@cluster.mongodb.net/zyra
+
+      # ── Autenticación ──────────────────────────────────
       - key: JWT_SECRET
-        sync: false
+        sync: false                # clave larga aleatoria, ej: openssl rand -hex 32
       - key: JWT_EXPIRE
         value: 7d
-      - key: GROQ_API_KEY
-        sync: false
-      - key: EMAIL_USER
-        sync: false
-      - key: EMAIL_PASS
-        sync: false
-      - key: YT_API_KEY
-        sync: false
-      - key: STRIPE_SECRET_KEY
-        sync: false
-      - key: STRIPE_WEBHOOK_SECRET
-        sync: false
+
+      # ── URLs (cambiar por tu dominio Render) ──────────
       - key: APP_URL
-        sync: false
-      - key: ELEVENLABS_API_KEY
-        sync: false
-      - key: ELEVENLABS_VOICE_ID
-        sync: false
-      - key: DID_API_KEY
-        sync: false
+        sync: false                # https://zyra-app.onrender.com
+      - key: ALLOWED_ORIGINS
+        sync: false                # https://zyra-app.onrender.com
+
+      # ── IA (Groq) ──────────────────────────────────────
+      - key: GROQ_API_KEY
+        sync: false                # gsk_...
+
+      # ── Email (OTP / verificación) ─────────────────────
+      - key: EMAIL_USER
+        sync: false                # tu@gmail.com
+      - key: EMAIL_PASS
+        sync: false                # contraseña de aplicación de Gmail
+
+      # ── Admin ──────────────────────────────────────────
+      - key: ADMIN_EMAIL
+        sync: false                # tu@gmail.com (el que usas para entrar al panel admin)
+
+      # ── Push Notifications (VAPID) ─────────────────────
       - key: VAPID_PUBLIC_KEY
         sync: false
       - key: VAPID_PRIVATE_KEY
         sync: false
       - key: VAPID_EMAIL
-        sync: false
-      - key: PYTHON_SERVICE
-        sync: false
+        value: mailto:soporte@zyra.app
+
+      # ── Pagos Stripe ───────────────────────────────────
+      - key: STRIPE_SECRET_KEY
+        sync: false                # sk_live_... (o sk_test_... para pruebas)
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false                # whsec_...
       - key: STRIPE_PRICE_BASIC_M
-        sync: false
+        sync: false                # price_... (Plan Básico mensual)
       - key: STRIPE_PRICE_BASIC_Y
-        sync: false
+        sync: false                # price_... (Plan Básico anual)
       - key: STRIPE_PRICE_PREMIUM_M
-        sync: false
+        sync: false                # price_... (Plan Premium mensual)
       - key: STRIPE_PRICE_PREMIUM_Y
+        sync: false                # price_... (Plan Premium anual)
+
+      # ── YouTube API ────────────────────────────────────
+      - key: YT_API_KEY
+        sync: false                # AIza...
+
+      # ── D-ID video avatar (opcional) ──────────────────
+      - key: DID_API_KEY
         sync: false

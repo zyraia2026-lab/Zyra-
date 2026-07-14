@@ -4,8 +4,9 @@
   "webDir": "client",
   "bundledWebRuntime": false,
   "server": {
+    "url": "https://zyra-app.onrender.com",
     "androidScheme": "https",
-    "cleartext": true
+    "cleartext": false
   },
   "plugins": {
     "SplashScreen": {
@@ -22,6 +23,6 @@
     "minSdkVersion": 22,
     "targetSdkVersion": 34,
     "buildVersion": "1.0.0",
-    "allowMixedContent": true
+    "allowMixedContent": false
   }
 }
