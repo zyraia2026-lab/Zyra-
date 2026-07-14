@@ -1957,6 +1957,36 @@
     </div>
   </div>
 
+  <!-- ══ NOTAS DEL FUTURO ══ -->
+  <div class="card" id="future-notes-card" style="margin-top:20px;background:linear-gradient(135deg,rgba(139,92,246,.08),rgba(99,102,241,.04));border:1.5px solid rgba(139,92,246,.2)">
+    <div class="card-header">
+      <span class="card-title">📬 Notas para mi futuro yo</span>
+      <button class="btn-sm accent" onclick="toggleFutureNoteForm()">+ Escribir</button>
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin:0 0 12px;line-height:1.6">Escríbete un mensaje — Zyra te lo entregará en la fecha que elijas.</p>
+
+    <!-- Form -->
+    <div id="future-note-form" style="display:none;margin-bottom:16px">
+      <textarea id="fn-message" placeholder="Querido yo del futuro... ¿qué quieres recordarte?" maxlength="1000" style="width:100%;min-height:90px;padding:12px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:13px;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box;margin-bottom:10px" oninput="fnUpdateCount(this)"></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span id="fn-char-count" style="font-size:11px;color:var(--text3)">0 / 1000</span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <button onclick="fnSetDate(7)" style="flex:1;min-width:80px;padding:9px 8px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;color:var(--text2);font-size:12px;cursor:pointer;font-weight:600">1 semana</button>
+        <button onclick="fnSetDate(30)" style="flex:1;min-width:80px;padding:9px 8px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;color:var(--text2);font-size:12px;cursor:pointer;font-weight:600">1 mes</button>
+        <button onclick="fnSetDate(90)" style="flex:1;min-width:80px;padding:9px 8px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;color:var(--text2);font-size:12px;cursor:pointer;font-weight:600">3 meses</button>
+        <button onclick="fnSetDate(365)" style="flex:1;min-width:80px;padding:9px 8px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;color:var(--text2);font-size:12px;cursor:pointer;font-weight:600">1 año</button>
+      </div>
+      <input type="date" id="fn-date" style="width:100%;padding:10px 13px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:13px;outline:none;box-sizing:border-box;margin-bottom:12px" onchange="fnHighlightDate()"/>
+      <button class="btn-primary" style="width:100%;padding:12px;font-size:13px" onclick="saveFutureNote()">Guardar — la recibiré el <span id="fn-date-preview">…</span></button>
+    </div>
+
+    <!-- Lista de notas -->
+    <div id="future-notes-list" style="display:flex;flex-direction:column;gap:8px">
+      <div style="text-align:center;padding:20px 0;color:var(--text3);font-size:13px;opacity:.6">Cargando...</div>
+    </div>
+  </div>
+
   <!-- Vista: calendario de ánimo -->
   <div id="journal-view-calendar" style="display:none">
     <div class="card">
@@ -3283,7 +3313,7 @@ function showPage(name) {
   if(name === "assistant") { loadAssistant(); setTimeout(showDailyCheckin, 900); setTimeout(updateNotifBadge, 600); }
   if(name === "goals")     { loadGoals(); }
   if(name === "planes")    setTimeout(function(){ if(typeof loadPlanesPage==="function") loadPlanesPage(); }, 150);
-  if(name === "journal")   loadJournal();
+  if(name === "journal")   { loadJournal(); loadFutureNotes(); }
   if(name === "wellness")  loadWellness();
   if(name === "profile")   loadProfile();
   if(name === "analytics") loadAnalytics();
@@ -4804,11 +4834,41 @@ async function loadDashboard() {
     if (waterToday < 4) setTimeout(() => zyraToast("💧 Solo "+waterToday+" vasos hoy — no se te olvide tomar agua", "info"), 2000);
     else if (waterToday < 8 && hour >= 19) setTimeout(() => zyraToast("💧 "+waterToday+"/8 vasos — casi llegas", "info"), 2000);
   }
+  // Check for delivered future notes
+  checkDeliveredFutureNotes();
   // Show daily mood check-in if not done today
   setTimeout(showDailyCheckin, 1500);
   renderTodayOverview();
   renderWellbeingScore();
 }
+async function checkDeliveredFutureNotes() {
+  if (!token) return;
+  const key = "zyra_fn_seen_" + new Date().toDateString();
+  if (sessionStorage.getItem(key)) return;
+  try {
+    const { notes } = await api("/future-notes");
+    const recentDelivered = notes.filter(n => {
+      if (!n.delivered) return false;
+      const d = new Date(n.deliveredAt || n.deliverAt);
+      return (Date.now() - d.getTime()) < 3 * 86400000;
+    });
+    if (!recentDelivered.length) return;
+    sessionStorage.setItem(key, "1");
+    const note = recentDelivered[0];
+    // Show a toast nudge + inject card above zyra-rec-card
+    const card = document.createElement("div");
+    card.style.cssText = "background:linear-gradient(135deg,rgba(139,92,246,.12),rgba(99,102,241,.07));border:1.5px solid rgba(139,92,246,.35);border-radius:20px;padding:22px 24px;margin-bottom:24px;position:relative";
+    card.innerHTML = `
+      <button onclick="this.parentNode.remove()" style="position:absolute;top:12px;right:14px;background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;line-height:1">✕</button>
+      <div style="font-size:11px;font-weight:800;color:#a78bfa;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">📬 Una nota de tu pasado llegó</div>
+      <p style="font-size:14px;color:var(--text);line-height:1.65;margin:0 0 14px">${safeHtml(note.message)}</p>
+      <button onclick="showPage('journal')" style="font-size:12px;padding:7px 16px;background:rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.35);border-radius:20px;color:#c4b5fd;cursor:pointer;font-weight:700">Ver en el diario →</button>
+    `;
+    const rec = document.getElementById("zyra-rec-card");
+    if (rec && rec.parentNode) rec.parentNode.insertBefore(card, rec);
+  } catch(e) {}
+}
+
 function renderJournalMemory(entries) {
   const wrap = document.getElementById("journal-memory-wrap");
   if (!wrap || !entries || !entries.length) return;
@@ -4835,7 +4895,7 @@ function renderMoodMiniTrend(history) {
   if (!wrap || !bars || history.length < 3) { if(wrap) wrap.style.display="none"; return; }
   wrap.style.display = "";
   const last7 = history.slice(-7);
-  const COLORS = {feliz:"#22c55e",tranquilo:"#0ea5e9",motivado:"#8b5cf6",emocionado:"#f59e0b",ansioso:"#f97316",estresado:"#ef4444",triste:"#6366f1",enojado:"#dc2626",cansado:"#94a3b8",solo:"#a78bfa"};
+  const COLORS = {feliz:"#22c55e",tranquilo:"#0ea5e9",motivado:"#8b5cf6",esperanzado:"#f59e0b",ansioso:"#f97316",confundido:"#fb923c",triste:"#60a5fa",enojado:"#ef4444",agotado:"#94a3b8",nostalgico:"#e879f9"};
   bars.innerHTML = last7.map(h => {
     const em = EMOTIONS.find(e=>e.key===h.emotion)||EMOTIONS[1];
     const clr = COLORS[h.emotion]||"#6366f1";
@@ -5590,6 +5650,91 @@ async function addJournalEntry() {
   }
 }
 async function deleteJournal(id) { deferredDelete("/journal", id, "Entrada del diario", loadJournal); }
+
+/* ════════════════════════════════════════
+   NOTAS PARA EL FUTURO YO
+════════════════════════════════════════ */
+function toggleFutureNoteForm() {
+  const f = document.getElementById("future-note-form");
+  f.style.display = f.style.display === "none" ? "block" : "none";
+  if (f.style.display === "block") {
+    fnSetDate(30); // default: 1 mes
+    document.getElementById("fn-message").focus();
+  }
+}
+function fnUpdateCount(el) {
+  const c = document.getElementById("fn-char-count");
+  if (c) c.textContent = el.value.length + " / 1000";
+}
+function fnSetDate(days) {
+  const d = new Date(); d.setDate(d.getDate() + days);
+  const iso = d.toISOString().split("T")[0];
+  document.getElementById("fn-date").value = iso;
+  fnHighlightDate();
+}
+function fnHighlightDate() {
+  const val = document.getElementById("fn-date").value;
+  const prev = document.getElementById("fn-date-preview");
+  if (!prev) return;
+  if (!val) { prev.textContent = "…"; return; }
+  const d = new Date(val + "T12:00:00");
+  prev.textContent = d.toLocaleDateString("es-CO", { day:"numeric", month:"long", year:"numeric" });
+}
+async function saveFutureNote() {
+  const msg  = (document.getElementById("fn-message").value || "").trim();
+  const date = document.getElementById("fn-date").value;
+  if (!msg) return zyraToast("Escribe algo primero", "error");
+  if (!date) return zyraToast("Elige una fecha", "error");
+  try {
+    await api("/future-notes", "POST", { message: msg, deliverAt: date + "T09:00:00" });
+    zyraToast("✉️ Guardado — te lo entregaremos cuando llegue el día", "success", 4000);
+    document.getElementById("fn-message").value = "";
+    document.getElementById("fn-char-count").textContent = "0 / 1000";
+    document.getElementById("future-note-form").style.display = "none";
+    loadFutureNotes();
+  } catch(e) { zyraToast(e.message || "Error guardando la nota", "error"); }
+}
+async function loadFutureNotes() {
+  const list = document.getElementById("future-notes-list");
+  if (!list || !token) return;
+  try {
+    const { notes } = await api("/future-notes");
+    if (!notes.length) {
+      list.innerHTML = '<div style="text-align:center;padding:16px 0;color:var(--text3);font-size:13px">Todavía no tienes notas. Escríbete algo.</div>';
+      return;
+    }
+    const now = new Date();
+    list.innerHTML = notes.map(n => {
+      const d = new Date(n.deliverAt);
+      const daysLeft = Math.max(0, Math.ceil((d - now) / 86400000));
+      const isDelivered = n.delivered || d <= now;
+      return `<div style="background:${isDelivered?"rgba(16,185,129,.06)":"var(--surface)"};border:1px solid ${isDelivered?"rgba(16,185,129,.2)":"var(--border)"};border-radius:12px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px">
+        <div style="font-size:20px;flex-shrink:0">${isDelivered?"📬":"📭"}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;color:${isDelivered?"#34d399":"var(--accent)"};font-weight:700;margin-bottom:4px">
+            ${isDelivered ? "✓ Entregada" : "Se entrega en " + (daysLeft===0?"hoy":daysLeft+" días") + " · " + d.toLocaleDateString("es-CO",{day:"numeric",month:"short",year:"numeric"})}
+          </div>
+          ${isDelivered
+            ? `<div style="font-size:13px;color:var(--text);line-height:1.5">${safeHtml(n.message)}</div>`
+            : `<div style="font-size:13px;color:var(--text2);font-style:italic;opacity:.7">Mensaje sellado — se abrirá el ${d.toLocaleDateString("es-CO",{day:"numeric",month:"long"})}</div>`
+          }
+        </div>
+        ${!isDelivered ? `<button onclick="deleteFutureNote('${n._id}')" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:0;flex-shrink:0" title="Eliminar">✕</button>` : ""}
+      </div>`;
+    }).join("");
+  } catch(e) {
+    list.innerHTML = "";
+  }
+}
+async function deleteFutureNote(id) {
+  if (!confirm("¿Eliminar esta nota? No se puede deshacer.")) return;
+  try {
+    await api("/future-notes/" + id, "DELETE");
+    loadFutureNotes();
+    zyraToast("Nota eliminada", "info");
+  } catch(e) { zyraToast(e.message || "Error", "error"); }
+}
+
 async function exportJournalPDF() {
   const plan = _zyraCurrentPlan || localStorage.getItem("zyra_plan") || "free";
   if (plan !== "premium") { return showUpgradePrompt('pdf', 'premium'); }
@@ -10611,7 +10756,7 @@ if ('serviceWorker' in navigator) {
       console.log('✦ Zyra SW registered:', reg.scope);
     }).catch(err => console.warn('SW error:', err));
 
-    // Handle navigation messages from SW (notification click while app is open)
+    // Handle messages from SW
     navigator.serviceWorker.addEventListener('message', e => {
       if (e.data?.type === 'NAVIGATE' && e.data.url) {
         try {
@@ -10619,6 +10764,14 @@ if ('serviceWorker' in navigator) {
           const page = params.get('p');
           if (page) showPage(page);
         } catch(_) {}
+      }
+      if (e.data?.type === 'SW_UPDATED') {
+        // Show update toast with reload option
+        const t = document.createElement('div');
+        t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1e1b4b;border:1.5px solid rgba(99,102,241,.5);border-radius:14px;padding:12px 20px;display:flex;align-items:center;gap:12px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.4);font-size:13px;color:#e8eaf6;white-space:nowrap;animation:slideUp .3s ease';
+        t.innerHTML = '✨ Nueva versión disponible <button onclick="location.reload()" style="background:#6366f1;border:none;color:#fff;padding:5px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-left:4px">Actualizar</button><button onclick="this.parentNode.remove()" style="background:none;border:none;color:#6b7280;font-size:16px;cursor:pointer;padding:0 0 0 6px">✕</button>';
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 20000);
       }
     });
   });

@@ -91,6 +91,7 @@ app.use("/api/analytics",     require("./routes/analytics"));
 app.use("/api/habits",        require("./routes/habits"));
 app.use("/api/weekly-report", require("./routes/weeklyReport"));
 app.use("/api/referral",      require("./routes/referral"));
+app.use("/api/future-notes",  require("./routes/futureNotes"));
 app.use("/api/admin",         require("./routes/admin"));
 
 app.get("/api/health", (req, res) => res.json({ status: "OK", ai: "Zyra/Groq", version: "5.0" }));
@@ -108,6 +109,28 @@ setInterval(() => {
     require("./controllers/weeklyReportController").cronGenerateAll().catch(() => {});
   }
 }, 60_000);
+
+// ── Cron: entregar notas del futuro cada hora
+setInterval(async () => {
+  try {
+    const FutureNote = require("./models/FutureNote");
+    const { sendToUser } = require("./controllers/pushController");
+    const now = new Date();
+    const due = await FutureNote.find({ delivered: false, deliverAt: { $lte: now } }).lean();
+    for (const note of due) {
+      await sendToUser(note.user, {
+        title: "📬 Una nota de tu pasado llegó",
+        body: note.message.length > 100 ? note.message.slice(0, 97) + "…" : note.message,
+        icon: "/Imagenes/icon-192.png",
+        badge: "/Imagenes/icon-192.png",
+        tag: "zyra-future-note",
+        data: { url: "/?p=journal" },
+      });
+      await FutureNote.updateOne({ _id: note._id }, { delivered: true, deliveredAt: now });
+    }
+    if (due.length) console.log(`[FutureNotes] Entregadas: ${due.length}`);
+  } catch(e) { console.error("[FutureNotes] cron error:", e.message); }
+}, 60 * 60_000);
 
 // ── Cron: auto-expirar planes vencidos cada hora
 setInterval(async () => {
