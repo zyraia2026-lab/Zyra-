@@ -3719,7 +3719,7 @@ async function loadAnalytics() {
 }
 
 function renderAnalytics(d, el) {
-  const { stats, emotionFrequency, dayOfWeekPattern, weeklyTrend, bestDay, worstDay, insight, topWords } = d;
+  const { stats, emotionFrequency, dayOfWeekPattern, weeklyTrend, bestDay, worstDay, insight, topWords, activityDates } = d;
   const EMOTION_EMOJI = { feliz:"😊", tranquilo:"😌", ansioso:"😰", triste:"😢", enojado:"😤", confundido:"🤔", esperanzado:"🌟", agotado:"😮‍💨", motivado:"💪", nostalgico:"🌅" };
   const SCORE_COLOR = s => s === null ? "#6b7280" : s > 0.2 ? "#22c55e" : s > -0.2 ? "#f59e0b" : "#ef4444";
   const BAR_W = n => n > 0 ? Math.round((n / (emotionFrequency[0]?.count||1)) * 100) : 0;
@@ -3860,6 +3860,9 @@ function renderAnalytics(d, el) {
   <!-- Correlación sueño-emoción -->
   <div id="analytics-sleep-emotion-card" style="margin-bottom:20px"></div>
 
+  <!-- Mapa de racha (contribución) -->
+  <div class="card" style="margin-bottom:20px" id="analytics-streak-map"></div>
+
   <!-- Reporte semanal -->
   <div class="card" style="margin-bottom:20px;background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.05));border-color:rgba(99,102,241,.2)">
     <div class="card-header"><span class="card-title">📋 Tu semana con Zyra</span></div>
@@ -3867,9 +3870,22 @@ function renderAnalytics(d, el) {
     <button class="btn-primary" style="padding:12px;width:100%" onclick="openWeeklyReport()">✨ Ver mi reporte de la semana</button>
   </div>
 
+  <!-- PDF Premium -->
+  ${(user?.plan === 'premium') ? `
+  <div class="card" style="margin-bottom:20px;background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(251,146,60,.04));border-color:rgba(245,158,11,.25)">
+    <div class="card-header"><span class="card-title">📄 Reporte en PDF</span><span style="font-size:10px;background:linear-gradient(135deg,#f59e0b,#fb923c);color:#fff;padding:2px 8px;border-radius:20px;font-weight:700">PREMIUM</span></div>
+    <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.6">Descarga un PDF completo de tu progreso emocional para compartir con tu terapeuta o guardarlo.</p>
+    <button class="btn-primary" style="padding:12px;width:100%;background:linear-gradient(135deg,#f59e0b,#fb923c);border-color:transparent" onclick="downloadAnalyticsPDF()">⬇️ Descargar PDF de mi progreso</button>
+  </div>` : `
+  <div class="card" style="margin-bottom:20px;opacity:.7;border-color:rgba(245,158,11,.15)">
+    <div class="card-header"><span class="card-title" style="color:var(--text3)">📄 Reporte en PDF</span><span style="font-size:10px;background:rgba(245,158,11,.2);color:#f59e0b;padding:2px 8px;border-radius:20px;font-weight:700">PREMIUM</span></div>
+    <p style="font-size:13px;color:var(--text3);margin-bottom:12px;line-height:1.6">Disponible en Plan Premium. Descarga tu historial emocional en PDF.</p>
+    <button class="btn-sm" style="opacity:.5;cursor:default" disabled>🔒 Requiere Plan Premium</button>
+  </div>`}
+
 </div>`;
   // Render local cards after HTML is set
-  setTimeout(() => { renderCheckinHistory(); renderHabitAnalytics(); renderEmotionHeatmap(d); renderSleepEmotionCorrelation(d); }, 0);
+  setTimeout(() => { renderCheckinHistory(); renderHabitAnalytics(); renderEmotionHeatmap(d); renderSleepEmotionCorrelation(d); renderStreakMap(activityDates || []); }, 0);
 }
 
 function renderCheckinHistory() {
@@ -4022,6 +4038,68 @@ function renderEmotionHeatmap(d) {
       ${Object.entries(EMOTION_COLOR).map(([e,c])=>`<div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:2px;background:${c};flex-shrink:0"></div><span style="font-size:10px;color:var(--text3)">${EMOTION_EMOJI[e]||""} ${e}</span></div>`).join("")}
       <div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:2px;background:var(--border);flex-shrink:0;opacity:.4"></div><span style="font-size:10px;color:var(--text3)">sin registro</span></div>
     </div>`;
+}
+
+/* ── Streak Contribution Map ── */
+function renderStreakMap(activityDates) {
+  const wrap = document.getElementById("analytics-streak-map");
+  if (!wrap) return;
+  const activeSet = new Set(activityDates);
+  const today = new Date(); today.setHours(0,0,0,0);
+  // Build last 91 days (13 full weeks)
+  const days = [];
+  for (let i = 90; i >= 0; i--) { const d = new Date(today); d.setDate(today.getDate()-i); days.push(d); }
+  // Pad beginning to align to Sunday
+  const padStart = days[0].getDay();
+  const MONTH_LABELS = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+  const DAY_LABELS = ["D","L","M","M","J","V","S"];
+  // Group into weeks
+  const allSlots = [...Array(padStart).fill(null), ...days];
+  const weeks = [];
+  for (let i = 0; i < allSlots.length; i += 7) weeks.push(allSlots.slice(i, i+7));
+  // Month header
+  let monthRow = "";
+  let lastMonth = -1;
+  weeks.forEach((w, wi) => {
+    const d = w.find(Boolean);
+    if (d && d.getMonth() !== lastMonth) {
+      lastMonth = d.getMonth();
+      monthRow += `<div style="grid-column:${wi+2};grid-row:1;font-size:9px;color:var(--text3);white-space:nowrap;padding-bottom:2px">${MONTH_LABELS[d.getMonth()]}</div>`;
+    }
+  });
+  const dayLabels = DAY_LABELS.map((l,i) => `<div style="grid-column:1;grid-row:${i+2};font-size:9px;color:var(--text3);display:flex;align-items:center;justify-content:flex-end;padding-right:4px;height:13px">${i%2===1?l:""}</div>`).join("");
+  const cells = weeks.map((w, wi) => w.map((d, di) => {
+    if (!d) return `<div style="grid-column:${wi+2};grid-row:${di+2};width:13px;height:13px"></div>`;
+    const key = d.toISOString().slice(0,10);
+    const active = activeSet.has(key);
+    const isToday = d.getTime() === today.getTime();
+    const label = d.toLocaleDateString("es-CO", {day:"numeric",month:"short"}) + (active ? " · activo" : "");
+    const bg = active ? "rgba(99,102,241,.85)" : "var(--border)";
+    const border = isToday ? "0 0 0 2px #6366f1,0 0 0 3px rgba(99,102,241,.3)" : "none";
+    return `<div title="${label}" style="grid-column:${wi+2};grid-row:${di+2};width:13px;height:13px;border-radius:3px;background:${bg};opacity:${active?1:.3};box-shadow:${border};cursor:default;transition:transform .1s" onmouseenter="this.style.transform='scale(1.4)'" onmouseleave="this.style.transform='scale(1)'"></div>`;
+  }).join("")).join("");
+  const totalActive = activeSet.size;
+  wrap.innerHTML = `
+    <div class="card-header"><span class="card-title">🔥 Actividad (últimos 90 días)</span><span style="font-size:12px;color:var(--accent);font-weight:700">${totalActive} días activos</span></div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+      <div style="display:inline-grid;grid-template-columns:18px repeat(${weeks.length},15px);grid-template-rows:16px repeat(7,15px);gap:3px;padding:4px 0 4px">
+        ${monthRow}${dayLabels}${cells}
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+      <div style="width:13px;height:13px;border-radius:3px;background:var(--border);opacity:.3"></div>
+      <span style="font-size:10px;color:var(--text3)">Sin actividad</span>
+      <div style="width:13px;height:13px;border-radius:3px;background:rgba(99,102,241,.85);margin-left:8px"></div>
+      <span style="font-size:10px;color:var(--text3)">Día activo</span>
+    </div>`;
+}
+
+/* ── PDF Download (Premium) ── */
+function downloadAnalyticsPDF() {
+  const prev = document.title;
+  document.title = "Zyra — Mi Progreso Emocional";
+  window.print();
+  setTimeout(() => { document.title = prev; }, 1000);
 }
 
 /* ── Weekly Report ── */
