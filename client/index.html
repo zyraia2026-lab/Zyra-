@@ -6918,75 +6918,34 @@ window.onYouTubeIframeAPIReady = function() {
   document.head.appendChild(s);
 })();
 
-// Registro global de activadores de player (evita el bug de closure con .toString())
+// Registro global de activadores de player
 window._ytActivators = window._ytActivators || {};
 
-// Muestra miniatura con botón play; al hacer clic carga el iframe con autoplay (user gesture)
+// Muestra miniatura; al hacer clic inyecta iframe con autoplay (sincrónico = user gesture garantizado)
 function ytInitPlayer(divId, videoId, fallbackId, onFail) {
+  if (!videoId) { if (onFail) onFail(); return; }
   const div = document.getElementById(divId);
   if (!div) return;
 
-  const showFb = () => {
-    if (onFail) { onFail(); return; }
-    const fb   = document.getElementById(fallbackId);
-    const wrap = document.getElementById(divId + '-wrap');
-    if (wrap) wrap.style.display = 'none';
-    if (fb)   fb.style.display   = 'block';
-  };
-
-  // Guardamos la función en el registro global para que el onclick pueda llamarla
   window._ytActivators[divId] = () => {
     const d = document.getElementById(divId);
     if (!d) return;
-    d.innerHTML = '';
-    if (!window.YT?.Player) {
-      d.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=1" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-      return;
-    }
-    let ok = false;
-    const safety = setTimeout(() => { if (!ok) showFb(); }, 8000);
-    new window.YT.Player(d, {
-      videoId, width: '100%', height: '100%',
-      playerVars: { rel: 0, modestbranding: 1, autoplay: 1, playsinline: 1, origin: window.location.origin },
-      events: {
-        onStateChange: function(e) {
-          if (e.data === 3 || e.data === 1 || e.data === 2) { ok = true; clearTimeout(safety); }
-          if (e.data === 1) {
-            window._zyraActiveYTPlayer = e.target;
-            _updateMiniPlayerState();
-            // Actualizar título con el dato real del video que está reproduciendo
-            try {
-              const vd = e.target.getVideoData();
-              if (vd?.title) {
-                const playerWrap = e.target.getIframe()?.parentElement?.parentElement?.parentElement;
-                if (playerWrap) {
-                  const titleEl  = playerWrap.querySelector('.yt-player-title');
-                  const artistEl = playerWrap.querySelector('.yt-player-artist');
-                  if (titleEl)  titleEl.textContent  = vd.title;
-                  if (artistEl && vd.author) artistEl.textContent = vd.author;
-                }
-                if (window._zyraCurrentSong) {
-                  window._zyraCurrentSong.title  = vd.title;
-                  if (vd.author) window._zyraCurrentSong.artist = vd.author;
-                  _updateMiniPlayerState();
-                }
-              }
-            } catch(_) {}
-          }
-          if (e.data === 0) { if (window._zyraActiveYTPlayer === e.target) { window._zyraActiveYTPlayer = null; window._zyraCurrentSong = null; _updateMiniPlayerState(); } }
-        },
-        onError: function(e) { console.warn('[YT]', e.data, videoId); clearTimeout(safety); showFb(); }
-      }
-    });
+    // Inyección sincrónica = el navegador trata esto como navegación iniciada por el usuario
+    // → autoplay garantizado sin necesitar la YT.Player API ni sus timeouts de gesture
+    d.innerHTML = `<iframe
+      src="https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=1&playsinline=1"
+      style="position:absolute;top:0;left:0;width:100%;height:100%;border:none"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen></iframe>`;
   };
 
-  // Mostrar miniatura con botón play (onclick llama al registro, no al .toString() del closure)
   const thumb = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
   div.innerHTML = `
-    <div onclick="window._ytActivators['${divId}']&&window._ytActivators['${divId}']()" style="position:absolute;inset:0;cursor:pointer;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden">
-      <img src="${thumb}" style="width:100%;height:100%;object-fit:cover;opacity:.9" loading="lazy"
+    <div onclick="window._ytActivators['${divId}']&&window._ytActivators['${divId}']()"
+         style="position:absolute;inset:0;cursor:pointer;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden">
+      <img src="${thumb}" style="width:100%;height:100%;object-fit:cover;opacity:.85" loading="lazy"
            onerror="this.style.display='none'">
-      <div style="position:absolute;width:64px;height:44px;background:#ff0000;border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 16px rgba(0,0,0,.6)">
+      <div style="position:absolute;width:64px;height:44px;background:#ff0000;border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 20px rgba(0,0,0,.7)">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
       </div>
     </div>`;
