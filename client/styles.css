@@ -1677,14 +1677,14 @@ nav {
 @keyframes dotBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-8px)}}
 .chat-input{padding:16px 22px;border-top:2px solid var(--border);background:white}
 .input-row{display:flex;gap:10px;align-items:flex-end}
-.btn-voice{width:46px;height:46px;border-radius:var(--r-md);border:2px solid var(--border);cursor:pointer;font-size:18px;flex-shrink:0;background:var(--surface);display:flex;align-items:center;justify-content:center;transition:all .2s;color:var(--text2)}
+.btn-voice{width:56px;height:56px;border-radius:var(--r-md);border:2px solid var(--border);cursor:pointer;font-size:20px;flex-shrink:0;background:var(--surface);display:flex;align-items:center;justify-content:center;transition:all .2s;color:var(--text2)}
 .btn-voice:hover{background:#f0f9ff;border-color:var(--celeste)}
 .btn-voice.listening{background:#fef2f2;border-color:#fecaca;animation:listenPulse 1s infinite}
 @keyframes listenPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
-textarea.chat-ta{flex:1;padding:13px 18px;border:2px solid var(--border);border-radius:var(--r-md);font-size:14px;resize:none;height:46px;max-height:120px;outline:none;background:var(--surface);color:var(--text);line-height:1.6;transition:all .2s;-webkit-text-fill-color:var(--text)}
+textarea.chat-ta{flex:1;padding:14px 18px;border:2px solid var(--border);border-radius:var(--r-md);font-size:15px;resize:none;height:56px;max-height:160px;outline:none;background:var(--surface);color:var(--text);line-height:1.6;transition:all .2s;-webkit-text-fill-color:var(--text)}
 textarea.chat-ta:focus{border-color:var(--sky);background:white;box-shadow:var(--shadow-glow)}
 textarea.chat-ta::placeholder{color:var(--placeholder);-webkit-text-fill-color:var(--placeholder)}
-.btn-send{width:46px;height:46px;border-radius:var(--r-md);border:none;font-size:18px;flex-shrink:0;background:var(--surface);cursor:not-allowed;display:flex;align-items:center;justify-content:center;color:var(--text4);transition:all .25s var(--bounce)}
+.btn-send{width:56px;height:56px;border-radius:var(--r-md);border:none;font-size:20px;flex-shrink:0;background:var(--surface);cursor:not-allowed;display:flex;align-items:center;justify-content:center;color:var(--text4);transition:all .25s var(--bounce)}
 .btn-send.ready{background:var(--grad);cursor:pointer;color:white;box-shadow:var(--shadow-blue)}
 .btn-send.ready:hover{transform:scale(1.1);box-shadow:0 8px 28px rgba(14,165,233,.4)}
 .disclaimer{font-size:10px;color:var(--text4);margin-top:8px;text-align:center;letter-spacing:.2px}
