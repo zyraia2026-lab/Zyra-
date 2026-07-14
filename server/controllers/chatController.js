@@ -288,7 +288,8 @@ async function checkEmbeddable(videoIds) {
   try {
     const ids = videoIds.slice(0, 10).join(",");
     const r = await fetch(
-      `https://www.googleapis.com/youtube/v3/videos?part=status,contentDetails&id=${ids}&key=${process.env.YT_API_KEY}`
+      `https://www.googleapis.com/youtube/v3/videos?part=status,contentDetails&id=${ids}&key=${process.env.YT_API_KEY}`,
+      { signal: AbortSignal.timeout(4000) }
     );
     const d = await r.json();
     if (d.error) return null;
@@ -377,11 +378,13 @@ async function getSongsForUnknownArtist(artistName) {
       `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&videoCategoryId=10&videoEmbeddable=true&maxResults=10&key=${YT_KEY}`;
 
     // Búsquedas en paralelo + checkEmbeddable en paralelo con la segunda búsqueda
-    // La Search API con videoEmbeddable=true no es 100% confiable (Error 153 igual pasa)
-    // → validar con Videos API para filtrar los que realmente no se pueden embeber
+    // Timeout 5s por llamada para no colgar el stream si YouTube tarda
+    const ytFetch = (url) =>
+      fetch(url, { signal: AbortSignal.timeout(5000) }).then(r => r.json()).catch(() => null);
+
     const [d1, d2] = await Promise.all([
-      fetch(makeUrl(`${artistName} canciones`)).then(r => r.json()).catch(() => null),
-      fetch(makeUrl(`${artistName} official audio`)).then(r => r.json()).catch(() => null),
+      ytFetch(makeUrl(`${artistName} canciones`)),
+      ytFetch(makeUrl(`${artistName} official audio`)),
     ]);
 
     // Juntar todos los candidatos y verificar embeddability de una sola vez
@@ -1362,6 +1365,12 @@ exports.streamMessage = async (req, res) => {
       ? `Va, te pongo algo de ${_earlyArtist.name} 🎵`
       : (musicFollowUp ? `Va, dale 🎵` : null);
 
+    // ── Para artistas desconocidos en el mensaje: arrancar YouTube YA, en paralelo con Groq ──
+    const _earlyUnknownArtist = (musicReq && !incompleteMusicReq && !_earlyArtist)
+      ? extractArtistName(message) : null;
+    const _earlyUnknownYT = _earlyUnknownArtist
+      ? getSongsForUnknownArtist(_earlyUnknownArtist).catch(() => null) : null;
+
     // ── Negative streak prefix (antes del stream para que el cliente lo vea) ──
     let rawResponse = "";
     let streakPrefix = "";
@@ -1438,7 +1447,10 @@ exports.streamMessage = async (req, res) => {
       } else {
         const artistName = extractArtistName(message);
         if (artistName) {
-          const ytSongs = await getSongsForUnknownArtist(artistName).catch(()=>null);
+          // Reusar la búsqueda YT que arrancó en paralelo con Groq (si aplica) — ya está lista
+          const ytSongs = (artistName === _earlyUnknownArtist && _earlyUnknownYT)
+            ? await _earlyUnknownYT
+            : await getSongsForUnknownArtist(artistName).catch(()=>null);
           songCards = ytResultsToCards2(ytSongs, artistName);
         }
         let _aiArtist = null;
