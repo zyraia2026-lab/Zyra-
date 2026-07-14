@@ -6918,7 +6918,7 @@ window.onYouTubeIframeAPIReady = function() {
   document.head.appendChild(s);
 })();
 
-// Registro global de activadores (evita bug de closure con .toString())
+// Registro global de activadores
 window._ytActivators = window._ytActivators || {};
 
 function ytInitPlayer(divId, videoId, fallbackId, onFail) {
@@ -6937,36 +6937,52 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
   window._ytActivators[divId] = () => {
     const d = document.getElementById(divId);
     if (!d) return;
-    d.innerHTML = '';
-    if (!window.YT?.Player) {
-      // YT API no cargada todavía → iframe directo sin autoplay
-      d.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-      return;
-    }
-    let ok = false;
-    // Si en 7s no hay señal de reproducción → video bloqueado → retryFn busca otro
-    const safety = setTimeout(() => { if (!ok) showFb(); }, 7000);
-    new window.YT.Player(d, {
-      videoId, width: '100%', height: '100%',
-      playerVars: { rel: 0, modestbranding: 1, autoplay: 1, playsinline: 1, origin: location.origin },
-      events: {
-        onStateChange(e) {
-          if (e.data === 3 || e.data === 1 || e.data === 2) { ok = true; clearTimeout(safety); }
-        },
-        onError(e) { console.warn('[YT]', e.data, videoId); clearTimeout(safety); showFb(); }
-      }
-    });
+    // Iframe con position:absolute propio — evita el bug donde YT.Player reemplaza el div
+    // y el iframe queda sin posicionamiento → height:0 → pantalla negra
+    const frameId = divId + '-if';
+    d.innerHTML = `<iframe id="${frameId}"
+      src="https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=1&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}"
+      style="position:absolute;top:0;left:0;width:100%;height:100%;border:none"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen></iframe>`;
+
+    // Detectar si el video puede reproducirse via postMessage (enablejsapi=1)
+    const frame = document.getElementById(frameId);
+    let playing = false;
+    const onMsg = (e) => {
+      if (!frame || e.source !== frame.contentWindow) return;
+      try {
+        const data = JSON.parse(e.data);
+        if (data.event === 'onError') {
+          window.removeEventListener('message', onMsg);
+          clearTimeout(timer);
+          showFb();
+        }
+        const st = data.info?.playerState ?? data.info;
+        if (st === 1 || st === 3) {   // 1=playing, 3=buffering
+          playing = true;
+          window.removeEventListener('message', onMsg);
+          clearTimeout(timer);
+        }
+      } catch(_) {}
+    };
+    window.addEventListener('message', onMsg);
+    // Si en 5s no hay señal → video bloqueado regionalmente → retryFn busca otro
+    const timer = setTimeout(() => {
+      window.removeEventListener('message', onMsg);
+      if (!playing) showFb();
+    }, 5000);
   };
 
-  // Thumbnail con botón play centrado; click carga el player via registro global
+  // Thumbnail del video con botón play perfectamente centrado
   const thumb = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
   div.innerHTML = `
     <div onclick="window._ytActivators['${divId}']&&window._ytActivators['${divId}']()"
          style="position:absolute;inset:0;cursor:pointer;background:#111;overflow:hidden">
-      <img src="${thumb}" loading="eager" style="width:100%;height:100%;object-fit:cover;opacity:.85"
+      <img src="${thumb}" loading="eager" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.85"
            onerror="this.style.display='none'">
-      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
-        <div style="width:64px;height:44px;background:#ff0000;border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 20px rgba(0,0,0,.6)">
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
+        <div style="width:64px;height:44px;background:#ff0000;border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 24px rgba(0,0,0,.7);pointer-events:none">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
         </div>
       </div>
