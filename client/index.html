@@ -10895,6 +10895,19 @@ function showInstallGuide() {
   if (m) { m.style.display = 'flex'; }
 }
 
+async function checkApkAvailable(e) {
+  try {
+    const r = await fetch('/Zyra.apk', { method: 'HEAD' });
+    if (!r.ok) {
+      e.preventDefault();
+      zyraToast('El APK aún no está disponible. Usa la opción de Chrome por ahora.', 'info');
+    }
+  } catch(_) {
+    e.preventDefault();
+    zyraToast('El APK aún no está disponible. Usa la opción de Chrome por ahora.', 'info');
+  }
+}
+
 // ══ SERVICE WORKER REGISTRATION ══
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -11209,12 +11222,19 @@ document.addEventListener('DOMContentLoaded', () => {
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:28px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto;position:relative">
     <button onclick="document.getElementById('modal-install').style.display='none'" aria-label="Cerrar" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.08);border:none;color:var(--text);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px">✕</button>
     <div style="font-size:40px;text-align:center;margin-bottom:12px">📱</div>
-    <h2 style="color:var(--text);font-size:18px;font-weight:800;text-align:center;margin:0 0 6px">Instalar Zyra como App</h2>
-    <p style="color:var(--text3);font-size:13px;text-align:center;margin:0 0 20px;line-height:1.5">Sin pasar por Play Store — funciona como una app real</p>
+    <h2 style="color:var(--text);font-size:18px;font-weight:800;text-align:center;margin:0 0 6px">Instalar Zyra en tu celular</h2>
+    <p style="color:var(--text3);font-size:13px;text-align:center;margin:0 0 20px;line-height:1.5">Elige cómo quieres instalarla</p>
+
+    <!-- APK descargable -->
+    <div style="background:linear-gradient(135deg,rgba(34,197,94,.1),rgba(16,185,129,.06));border:1px solid rgba(34,197,94,.25);border-radius:16px;padding:16px;margin-bottom:20px">
+      <div style="font-weight:700;color:#22c55e;font-size:13px;margin-bottom:8px">⬇️ Descargar APK (Android)</div>
+      <p style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.5">Instala Zyra como app nativa en tu Android. Permite instalaciones de fuentes desconocidas primero en Ajustes → Seguridad.</p>
+      <a href="/Zyra.apk" download="Zyra.apk" style="display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;border-radius:12px;padding:12px 16px;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;width:100%;box-sizing:border-box" onclick="checkApkAvailable(event)">⬇️ Descargar Zyra.apk</a>
+    </div>
 
     <!-- Android Chrome -->
     <div style="margin-bottom:20px">
-      <div style="font-weight:700;color:#22c55e;font-size:13px;margin-bottom:10px">🤖 Android (Chrome)</div>
+      <div style="font-weight:700;color:#818cf8;font-size:13px;margin-bottom:10px">🤖 O instala desde Chrome (PWA)</div>
       <div class="apk-steps">
         <div class="apk-step"><div class="apk-step-num">1</div><div class="apk-step-text">Abre Zyra en <strong>Google Chrome</strong> en tu Android</div></div>
         <div class="apk-step"><div class="apk-step-num">2</div><div class="apk-step-text">Toca el menú <strong>⋮</strong> (tres puntos) arriba a la derecha</div></div>
