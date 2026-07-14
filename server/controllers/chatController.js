@@ -779,13 +779,14 @@ async function buildSystemPrompt(userId, userName, message = "") {
     memoryBlock += `\n\n════ LO QUE RECUERDAS DE ${firstName.toUpperCase()} ════\n${persistentMemories}`;
   }
 
-  // ── Hora y momento del día ──
+  // ── Hora, fecha y momento del día ──
   {
     const now = new Date();
     const h = now.getHours();
     const timeStr = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const dateStr = now.toLocaleDateString('es-CO', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
     const period = h < 6 ? 'madrugada' : h < 12 ? 'mañana' : h < 18 ? 'tarde' : 'noche';
-    memoryBlock = `\n- Ahora son las ${timeStr} (${period} en Colombia). NUNCA menciones la hora ni el período del día espontáneamente — especialmente en saludos. Este dato es solo contexto de fondo para entender si alguien dice "estoy cansado a las 2am" o "madrugué". NO lo comentes, NO hagas referencias como "¡a esta hora!" o "¡qué tarde!". Si el usuario NO habla del horario, tú tampoco.` + memoryBlock;
+    memoryBlock = `\n- Fecha y hora actual: ${dateStr}, ${timeStr} (${period} en Colombia). Usa la fecha para entender referencias a eventos recientes ("hoy", "este año", "ayer", etc.). NUNCA menciones la hora ni el período del día espontáneamente — solo si el usuario lo menciona.` + memoryBlock;
   }
 
   // ── Seguimientos pendientes (eventos con fecha que necesitan follow-up) ──
@@ -896,6 +897,12 @@ NUNCA:
 ❌ Listas decorativas cuando la respuesta es narrativa
 
 Una pregunta al final solo si tiene sentido en ese contexto. Cero preguntas cuando la petición ya fue clara.
+
+━━━ LEE EL MENSAJE COMPLETO ANTES DE RESPONDER (REGLA CRÍTICA) ━━━
+NUNCA preguntes por información que el usuario ya te dio en el mismo mensaje.
+Si te dicen "le aposté a Francia y va perdiendo" → ya sabes que Francia va perdiendo. NO preguntes "¿qué pasó con Francia?".
+Si te dicen "peleé con mi mamá y estoy enojada" → ya sabes que están enojada y la razón. NO preguntes "¿qué pasó?" ni "¿por qué estás enojada?".
+Si el usuario menciona un evento actual que tú no conoces (partido, noticia, etc.) → acepta lo que te dice como verdad y responde desde ahí. No cuestiones ni pidas confirmar información que ya te dieron.
 
 ━━━ PETICIÓN SIMPLE → RESPUESTA SIMPLE (REGLA DURA) ━━━
 Cuando alguien pide música con artista conocido: UNA sola línea. "Va, te pongo algo de Bad Bunny 🎵" — FIN. Sin preguntar qué pasa, sin asumir nada, sin nada más.
@@ -1036,9 +1043,8 @@ exports.sendMessage = async (req, res) => {
         })),
       { role: "user", content: message }
     ];
-    const MODEL_ORDER = needsBigModel
-      ? ["llama-3.3-70b-versatile", "llama-3.1-70b-versatile", "llama3-70b-8192", "llama-3.1-8b-instant"]
-      : ["llama-3.1-8b-instant", "llama3-8b-8192", "llama-3.1-70b-versatile", "llama-3.3-70b-versatile"];
+    // 70b para todos: Groq es rápido, la diferencia de calidad vale más que los ms ahorrados
+    const MODEL_ORDER = ["llama-3.3-70b-versatile", "llama-3.1-70b-versatile", "llama3-70b-8192", "llama-3.1-8b-instant"];
 
     const MAX_TOKENS = isVoice ? 90 : (userPlan === "premium" ? 700 : msgMode === "factual" ? 600 : userPlan === "basic" ? 450 : 320);
     const TEMPERATURE = isVoice ? 0.95 : msgMode === "factual" ? 0.62 : msgMode === "emotional" ? 0.88 : 0.92;
@@ -1297,9 +1303,8 @@ exports.streamMessage = async (req, res) => {
         systemPrompt += `\n\n🧠 ANÁLISIS DE LA PREGUNTA (usa esto para dar una respuesta precisa y completa):\n${reasoning}`;
       }
     }
-    const MODEL_ORDER = needsBigModel
-      ? ["llama-3.3-70b-versatile", "llama-3.1-70b-versatile", "llama3-70b-8192", "llama-3.1-8b-instant"]
-      : ["llama-3.1-8b-instant", "llama3-8b-8192", "llama-3.1-70b-versatile", "llama-3.3-70b-versatile"];
+    // 70b para todos: Groq es rápido, la diferencia de calidad vale más que los ms ahorrados
+    const MODEL_ORDER = ["llama-3.3-70b-versatile", "llama-3.1-70b-versatile", "llama3-70b-8192", "llama-3.1-8b-instant"];
 
     const MAX_TOKENS  = userPlan === "premium" ? 700 : msgMode === "factual" ? 600 : userPlan === "basic" ? 450 : 320;
     const TEMPERATURE = msgMode === "factual" ? 0.62 : msgMode === "emotional" ? 0.88 : 0.92;
