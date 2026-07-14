@@ -167,11 +167,19 @@ function getArtistFromHistory(history) {
       const name = m2[1].trim();
       if (name && name.length > 1 && name !== "algo") return { key: name.toLowerCase(), name };
     }
-    // 3. Extraer artista desconocido mencionado en el texto libre del AI (ej: "Natalia Lafourcade")
-    const extracted = extractArtistName(msg.content || "");
-    if (extracted) {
-      const fmt = extracted.split(" ").map(w => w[0].toUpperCase()+w.slice(1)).join(" ");
-      return { key: extracted.toLowerCase(), name: fmt };
+    // 3. Extraer artista desconocido mencionado en el AI solo cuando anuncia música explícitamente
+    const c3 = msg.content || "";
+    if (/pong[oa]|ponerte|poniendo|canciones?\s+de|m[uú]sica\s+de/i.test(c3)) {
+      try {
+        const extracted = extractArtistName(c3);
+        if (extracted) {
+          const words = extracted.split(/\s+/).filter(Boolean);
+          if (words.length >= 1 && words.length <= 4) {
+            const fmt = words.map(w => w[0].toUpperCase() + w.slice(1)).join(" ");
+            return { key: extracted.toLowerCase(), name: fmt };
+          }
+        }
+      } catch(_) {}
     }
   }
   return null;
