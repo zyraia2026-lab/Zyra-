@@ -12,8 +12,11 @@ exports.getEntries = async (req, res) => {
 
 exports.createEntry = async (req, res) => {
   try {
-    const { title, content, emotion, tags } = req.body;
+    const { emotion, tags } = req.body;
+    const title   = String(req.body.title || "").trim().substring(0, 200);
+    const content = String(req.body.content || "").trim();
     if (!content) return res.status(400).json({ message: "El contenido es requerido" });
+    if (content.length > 20000) return res.status(400).json({ message: "Entrada demasiado larga (máx. 20.000 caracteres)" });
 
     const { limits } = getPlan(req.user);
     if (limits.journal !== Infinity) {
@@ -30,7 +33,7 @@ exports.createEntry = async (req, res) => {
       }
     }
 
-    const entry = await Journal.create({ user: req.user._id, title, content, emotion, tags });
+    const entry = await Journal.create({ user: req.user._id, title, content: content.substring(0,20000), emotion, tags });
 
     // Verificar logro journal_10 en background
     Journal.countDocuments({ user: req.user._id }).then(async (total) => {
@@ -52,11 +55,14 @@ exports.createEntry = async (req, res) => {
 
 exports.updateEntry = async (req, res) => {
   try {
-    const { title, content, emotion, tags } = req.body;
-    if (!content?.trim()) return res.status(400).json({ message: "El contenido es requerido" });
+    const { emotion, tags } = req.body;
+    const title   = String(req.body.title || "").trim().substring(0, 200);
+    const content = String(req.body.content || "").trim();
+    if (!content) return res.status(400).json({ message: "El contenido es requerido" });
+    if (content.length > 20000) return res.status(400).json({ message: "Entrada demasiado larga" });
     const entry = await Journal.findOneAndUpdate(
       { _id: req.params.id, user: req.user._id },
-      { title: title?.trim(), content: content.trim(), emotion, tags, updatedAt: new Date() },
+      { title, content: content.substring(0,20000), emotion, tags, updatedAt: new Date() },
       { new: true }
     );
     if (!entry) return res.status(404).json({ message: "Entrada no encontrada" });

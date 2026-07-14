@@ -38,9 +38,10 @@ const S = new mongoose.Schema({
   pinEnabled: { type: Boolean, default: false },
 
   // ── Recordatorio diario ──
-  reminderEnabled: { type: Boolean, default: false },
-  reminderHour:    { type: Number, default: 9 },   // hora 0-23
-  reminderMinute:  { type: Number, default: 0 },
+  reminderEnabled:    { type: Boolean, default: false },
+  reminderHour:       { type: Number, default: 9 },   // hora 0-23
+  reminderMinute:     { type: Number, default: 0 },
+  lastReminderSentAt: { type: Date, default: null },
 
   // ── Personalización ──
   theme: { type: String, enum: ["default","ocean","forest","sunset","midnight"], default: "default" },

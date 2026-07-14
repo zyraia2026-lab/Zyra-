@@ -41,7 +41,7 @@ r.get("/stats", protect, adminOnly, async (req, res) => {
 
     // Últimos 10 usuarios
     const recentUsers = await User.find().sort({ createdAt: -1 }).limit(10)
-      .select("name email plan createdAt planExpiresAt").lean();
+      .select("name email plan createdAt planExpiresAt isDisabled").lean();
 
     // Últimos 5 pagos reales
     const recentPayments = await Payment.find({ status: "paid", period: { $ne: "demo" } })
@@ -58,6 +58,65 @@ r.get("/stats", protect, adminOnly, async (req, res) => {
   } catch(e) {
     res.status(500).json({ message: e.message });
   }
+});
+
+/* GET /api/admin/search?email=... */
+r.get("/search", protect, adminOnly, async (req, res) => {
+  try {
+    const email = (req.query.email || "").trim().toLowerCase();
+    if (!email) return res.status(400).json({ message: "Email requerido" });
+    const user = await User.findOne({ email })
+      .select("name email plan planExpiresAt planActivatedAt createdAt isDisabled messagesUsedToday").lean();
+    if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
+    const profile = await Profile.findOne({ user: user._id })
+      .select("streakDays coins achievements unlockedItems").lean();
+    const convCount = await Conversation.countDocuments({ user: user._id });
+    res.json({ user, profile, convCount });
+  } catch(e) { res.status(500).json({ message: e.message }); }
+});
+
+/* POST /api/admin/user/:id/plan  { plan: "free"|"basic"|"premium", days: 30 } */
+r.post("/user/:id/plan", protect, adminOnly, async (req, res) => {
+  try {
+    const { plan, days } = req.body;
+    if (!["free","basic","premium"].includes(plan)) {
+      return res.status(400).json({ message: "Plan inválido" });
+    }
+    const update = { plan };
+    if (plan !== "free") {
+      const d = parseInt(days) || 30;
+      update.planExpiresAt   = new Date(Date.now() + d * 86400000);
+      update.planActivatedAt = new Date();
+    } else {
+      update.planExpiresAt   = null;
+      update.planActivatedAt = null;
+    }
+    const user = await User.findByIdAndUpdate(req.params.id, update, { new: true })
+      .select("name email plan planExpiresAt");
+    if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
+    res.json({ success: true, user });
+  } catch(e) { res.status(500).json({ message: e.message }); }
+});
+
+/* GET /api/admin/user/:id/payments  — historial de pagos de un usuario */
+r.get("/user/:id/payments", protect, adminOnly, async (req, res) => {
+  try {
+    const payments = await Payment.find({ user: req.params.id })
+      .sort({ createdAt: -1 }).limit(50).lean();
+    res.json({ payments });
+  } catch(e) { res.status(500).json({ message: e.message }); }
+});
+
+/* POST /api/admin/user/:id/disable  — toggle suspend/unsuspend */
+r.post("/user/:id/disable", protect, adminOnly, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select("name email isDisabled");
+    if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
+    user.isDisabled = !user.isDisabled;
+    user.disabledAt = user.isDisabled ? new Date() : null;
+    await user.save();
+    res.json({ success: true, isDisabled: user.isDisabled, name: user.name });
+  } catch(e) { res.status(500).json({ message: e.message }); }
 });
 
 module.exports = r;

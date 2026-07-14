@@ -105,13 +105,13 @@ exports.getOverview = async (req, res) => {
     let insight = null;
     const timeLabel = peakHour < 12 ? "mañanas" : peakHour < 17 ? "tardes" : "noches";
     if (bestDay && bestDay.score !== null && bestDay.score > 0) {
-      insight = `Tiendes a sentirte mejor los ${bestDay.day.toLowerCase()}. Es un buen día para actividades importantes.`;
+      insight = `Los ${bestDay.day.toLowerCase()} tienden a ser tus mejores días. Cuando puedas, aprovéchalos.`;
     } else if (worstDay && worstDay.score !== null && worstDay.score < 0) {
-      insight = `Los ${worstDay.day.toLowerCase()} suelen ser más difíciles para ti. Puedes prepararte con algo especial ese día.`;
+      insight = `Los ${worstDay.day.toLowerCase()} suelen ser más pesados. Vale la pena cuidarte un poco más ese día.`;
     } else if (positivityRate >= 60) {
-      insight = `El ${positivityRate}% de tus registros son positivos. ¡Vas muy bien!`;
+      insight = `El ${positivityRate}% de tus registros han sido positivos. Eso no es poca cosa.`;
     } else if (history.length > 5) {
-      insight = `Registras más emociones por las ${timeLabel}. Eso dice mucho de cuándo procesas tu día.`;
+      insight = `Registras más por las ${timeLabel}. Es cuando más procesas el día — y eso tiene sentido.`;
     }
 
     // ── Word frequency from journals ──

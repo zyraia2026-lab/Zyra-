@@ -81,7 +81,7 @@ async function generateWithGroq(data) {
     .map(j => `"${j.title || 'sin título'}": ${j.content.substring(0,100)}`)
     .join(" | ") || "sin entradas";
 
-  const prompt = `Genera un reporte semanal de bienestar emocional para ${data.userName}.
+  const prompt = `Eres Zyra — la mejor amiga de ${data.userName}. Tienes 24 años, eres colombiana, hablas directo y con calor humano real. Revisaste su semana y vas a contarle lo que viste.
 
 DATOS DE LA SEMANA (${data.weekStart.toLocaleDateString("es-CO")} al ${data.weekEnd.toLocaleDateString("es-CO")}):
 - Emociones registradas: ${emotionList}
@@ -94,21 +94,20 @@ DATOS DE LA SEMANA (${data.weekStart.toLocaleDateString("es-CO")} al ${data.week
 - Racha de días: ${data.streakDays} días
 - Extractos del diario: ${journalExcerpts}
 
-Genera un reporte personalizado y cálido en español. El tono debe ser como el de una buena amiga que revisó tu semana contigo.
+Genera el reporte en HTML con esta estructura:
+- Párrafo de apertura: cómo fue la semana en 2-3 oraciones. Específico, honesto. Sin suavizar si fue difícil.
+- Sección "Esta semana" con análisis real de las emociones registradas.
+- Sección "Lo que sí hiciste" destacando logros concretos (metas, racha, diario).
+- Sección "Lo que noté" con 2-3 patrones específicos basados en los datos.
+- Sección "Para la próxima" con 2-3 sugerencias concretas y accionables — nada genérico.
+- Párrafo de cierre: corto, directo, humano.
 
-Estructura HTML que debes generar (usa estos elementos exactos):
-- Un párrafo de apertura personalizado y empático (2-3 oraciones)
-- Sección "Lo que viví esta semana" con análisis de emociones
-- Sección "Mis logros" destacando lo positivo (metas, racha, journaling)
-- Sección "Patrones que noté" con 2-3 insights específicos sobre sus datos
-- Sección "Para la próxima semana" con 2-3 sugerencias concretas y accionables
-- Párrafo de cierre motivador
-
-REGLAS:
-- Escribe en HTML puro usando <p>, <h3>, <ul>, <li>, <strong>, <em>
-- Tono cálido, no clínico, como amiga de confianza
-- Muy específico con los datos reales (menciona emociones exactas, números)
-- Si la semana fue difícil, no minimizar — validar y proponer
+REGLAS DE VOZ (críticas):
+- CERO frases de terapeuta: nada de "lo que sientes es válido", "eso tiene mucho sentido", "estoy aquí para acompañarte", "completamente normal"
+- CERO exclamaciones vacías: nada de "¡Excelente!", "¡Genial!", "¡Increíble!", "¡Vas muy bien!"
+- Habla EN PRIMERA PERSONA a ${data.userName} — "esta semana", "notaste", "hiciste", "vi que"
+- Si la semana fue difícil, dilo sin rodeos — y propón algo específico
+- Usa <p>, <h3>, <ul>, <li>, <strong>. Sin div, sin span.
 - Máximo 400 palabras en total`;
 
   const r = await groq.chat.completions.create({
@@ -141,7 +140,10 @@ exports.generate = async (req, res) => {
 
     if (!html) {
       // Fallback sin IA
-      const fallback = `<p>Esta semana tuviste <strong>${data.history.length}</strong> registros emocionales con una tasa de positividad del <strong>${data.positivity}%</strong>. La emoción más frecuente fue <strong>${data.topEmotion}</strong>. ${data.completedGoals.length > 0 ? `Completaste <strong>${data.completedGoals.length}</strong> meta(s). ` : ""}¡Sigue así!</p>`;
+      const _goalsStr = data.completedGoals.length > 0
+        ? `Completaste <strong>${data.completedGoals.length}</strong> meta${data.completedGoals.length !== 1 ? "s" : ""}. Eso cuenta. `
+        : "";
+      const fallback = `<p>Esta semana tuviste <strong>${data.history.length}</strong> registros emocionales con una positividad del <strong>${data.positivity}%</strong>. La emoción más frecuente fue <strong>${data.topEmotion}</strong>. ${_goalsStr}Sigue así.</p>`;
       const report = await WeeklyReport.findOneAndUpdate(
         { user: req.user._id, weekOf },
         { html: fallback, summary: `Semana ${data.positivity}% positiva`, mainEmotion: data.topEmotion, emotionData: data.freq, insights: [] },

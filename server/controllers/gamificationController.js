@@ -4,23 +4,27 @@ const Profile = require("../models/Profile");
    CATÁLOGOS ESTÁTICOS
 ════════════════════════════════════════ */
 const DAILY_MISSIONS = [
-  { id: "log_emotion",   label: "Registra tu emoción del día",   emoji: "😊", coins: 10 },
-  { id: "write_journal", label: "Escribe en tu diario",           emoji: "📔", coins: 15 },
-  { id: "chat_zyra",     label: "Habla con Zyra (5+ mensajes)",  emoji: "💬", coins: 20 },
-  { id: "do_exercise",   label: "Haz un ejercicio de bienestar", emoji: "🧘", coins: 15 },
-  { id: "check_goals",   label: "Revisa tus metas",               emoji: "🎯", coins: 10 },
+  { id: "log_emotion",     label: "¿Cómo te sientes hoy?",           emoji: "😊", coins: 10 },
+  { id: "write_journal",   label: "Escribe algo en tu diario",       emoji: "📔", coins: 15 },
+  { id: "chat_zyra",       label: "Habla con Zyra (5+ mensajes)",    emoji: "💬", coins: 20 },
+  { id: "do_exercise",     label: "Haz un ejercicio de bienestar",   emoji: "🧘", coins: 15 },
+  { id: "check_goals",     label: "Revisa en qué vas con tus metas", emoji: "🎯", coins: 10 },
+  { id: "complete_plan",   label: "Completa una tarea del día",      emoji: "✅", coins: 10 },
+  { id: "daily_challenge", label: "Completa el reto diario",         emoji: "⚡", coins: 15 },
+  { id: "water",           label: "Toma 8 vasos de agua",            emoji: "💧", coins: 10 },
+  { id: "gratitude",       label: "Practica la gratitud",            emoji: "🙏", coins: 10 },
 ];
 
 const ACHIEVEMENTS = [
-  { id: "first_login",  label: "Primer paso",      emoji: "🌱", desc: "Abriste Zyra por primera vez" },
-  { id: "streak_3",     label: "En racha",          emoji: "🔥", desc: "3 días seguidos con Zyra" },
-  { id: "streak_7",     label: "Una semana",        emoji: "⚡", desc: "7 días seguidos" },
-  { id: "streak_14",    label: "Dos semanas",       emoji: "🌙", desc: "14 días seguidos" },
-  { id: "streak_30",    label: "Un mes entero",     emoji: "👑", desc: "30 días seguidos" },
-  { id: "coins_50",     label: "Primera cosecha",   emoji: "🌾", desc: "Acumulaste 50 monedas" },
-  { id: "coins_200",    label: "Coleccionista",     emoji: "💰", desc: "Acumulaste 200 monedas" },
-  { id: "all_missions", label: "Día perfecto",      emoji: "🌟", desc: "Completaste todas las misiones del día" },
-  { id: "journal_10",   label: "Escritor",          emoji: "📚", desc: "10 entradas en el diario" },
+  { id: "first_login",  label: "Primer paso",      emoji: "🌱", desc: "El día que todo empezó" },
+  { id: "streak_3",     label: "En racha",          emoji: "🔥", desc: "3 días seguidos — eso ya es disciplina" },
+  { id: "streak_7",     label: "Una semana",        emoji: "⚡", desc: "7 días sin fallar. Vas en serio." },
+  { id: "streak_14",    label: "Dos semanas",       emoji: "🌙", desc: "14 días y contando" },
+  { id: "streak_30",    label: "Un mes entero",     emoji: "👑", desc: "30 días. Esto ya es un estilo de vida." },
+  { id: "coins_50",     label: "Primera cosecha",   emoji: "🌾", desc: "50 monedas — el principio de algo" },
+  { id: "coins_200",    label: "Coleccionista",     emoji: "💰", desc: "200 monedas. Alguien aquí es constante." },
+  { id: "all_missions", label: "Día perfecto",      emoji: "🌟", desc: "Completaste todo lo que había que hacer hoy" },
+  { id: "journal_10",   label: "Escritor/a",        emoji: "📚", desc: "10 entradas en el diario — eso requiere valor" },
 ];
 
 const REWARDS = [

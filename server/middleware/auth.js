@@ -9,6 +9,7 @@ const protect = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = await User.findById(decoded.id);
     if (!req.user) return res.status(401).json({ message: "Usuario no encontrado" });
+    if (req.user.isDisabled) return res.status(403).json({ message: "Cuenta suspendida. Contacta soporte.", disabled: true });
     next();
   } catch { return res.status(401).json({ message: "Token invalido" }); }
 };

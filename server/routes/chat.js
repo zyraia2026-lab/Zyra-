@@ -9,7 +9,7 @@ const { checkMessageLimit } = require("../middleware/planGate");
 const chatLimiter = rateLimit({
   windowMs: 60_000,
   max: 30,
-  keyGenerator: (req) => req.user?._id?.toString() || ipKeyGenerator(req.ip),
+  keyGenerator: (req) => req.user?._id?.toString() || ipKeyGenerator(req),
   message: { message: "Demasiados mensajes seguidos. Espera un momento." },
   standardHeaders: true,
   legacyHeaders: false,

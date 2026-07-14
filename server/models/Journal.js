@@ -5,7 +5,8 @@ const S = new mongoose.Schema({
   content:   { type: String, required: true },
   emotion:   { type: String, default: "" },
   tags:      [String],
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
 });
 S.index({ user: 1, createdAt: -1 });
 module.exports = mongoose.model("Journal", S);
