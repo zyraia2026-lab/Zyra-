@@ -64,35 +64,86 @@ exports.sendToUser = sendToUser;
 /* Cron diario: enviar recordatorios a usuarios con reminder activado */
 exports.sendDailyReminders = async () => {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
+  const Goal = require("../models/Goal");
   try {
     const now  = new Date();
     const hour = now.getHours();
     const min  = now.getMinutes();
 
+    // ── 1. Recordatorio diario personalizado ──
     const profiles = await Profile.find({
       reminderEnabled: true,
       reminderHour:    hour,
-      reminderMinute:  { $gte: min - 1, $lte: min + 1 },
-    }).select("user");
+      reminderMinute:  min,
+    }).select("user lastReminderSentAt");
 
     const MESSAGES = [
-      "¿Cómo estás hoy? Zyra te está esperando 💜",
-      "Un momento contigo misma puede cambiarlo todo 🌟",
-      "Tu bienestar importa. Hablemos un momento 💬",
-      "Zyra quiere saber cómo te fue hoy 🌙",
+      "Ey, ¿cómo vas hoy? Cuéntame 💙",
+      "Llevo un rato sin saber de ti. ¿Todo bien? 🌿",
+      "Acá estoy cuando quieras hablar 💜",
+      "¿Cómo terminó el día? Quiero saber 🌙",
+      "¿Qué tal estuvo hoy? 💬",
+      "Oye, te estoy pensando. ¿Cómo estás? 💙",
     ];
 
+    const DEDUP_MS = 50 * 60 * 1000;
+    let sent = 0;
     for (const p of profiles) {
+      if (p.lastReminderSentAt && (now - new Date(p.lastReminderSentAt)) < DEDUP_MS) continue;
       const msg = MESSAGES[Math.floor(Math.random() * MESSAGES.length)];
       await sendToUser(p.user, {
-        title: "Hola, soy Zyra 💜",
+        title: "Zyra te habló 💜",
         body:  msg,
         icon:  "/Imagenes/icon-192.png",
         badge: "/Imagenes/icon-192.png",
         data:  { url: "/?p=assistant" },
       });
+      await Profile.updateOne({ _id: p._id }, { lastReminderSentAt: now });
+      sent++;
     }
-    if (profiles.length) console.log(`[Push] Recordatorios enviados: ${profiles.length}`);
+    if (sent) console.log(`[Push] Recordatorios enviados: ${sent}`);
+
+    // ── 2. Alertas de metas que vencen hoy o mañana (solo a las 9am) ──
+    if (hour === 9 && min < 5) {
+      const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
+      const tomorrowEnd = new Date(todayStart); tomorrowEnd.setDate(tomorrowEnd.getDate() + 2);
+
+      const dueGoals = await Goal.find({
+        completed: false,
+        dueDate:   { $gte: todayStart, $lt: tomorrowEnd },
+      }).select("user title dueDate").lean();
+
+      if (dueGoals.length) {
+        // Agrupar por usuario
+        const byUser = {};
+        dueGoals.forEach(g => {
+          const uid = g.user.toString();
+          if (!byUser[uid]) byUser[uid] = { today: [], tomorrow: [] };
+          const d = new Date(g.dueDate);
+          d.setHours(23, 59, 59, 999);
+          if (d < tomorrowEnd && d >= todayStart) {
+            const isToday = d.toDateString() === now.toDateString();
+            (isToday ? byUser[uid].today : byUser[uid].tomorrow).push(g.title);
+          }
+        });
+
+        let goalNotifs = 0;
+        for (const [uid, { today, tomorrow }] of Object.entries(byUser)) {
+          const todayPart  = today.length  ? `Hoy: ${today.slice(0,2).map(t=>`"${t}"`).join(", ")}${today.length>2?` y ${today.length-2} más`:""}` : "";
+          const tomorPart  = tomorrow.length ? `Mañana: ${tomorrow.slice(0,2).map(t=>`"${t}"`).join(", ")}${tomorrow.length>2?` y ${tomorrow.length-2} más`:""}` : "";
+          const body = [todayPart, tomorPart].filter(Boolean).join(" · ");
+          await sendToUser(uid, {
+            title: today.length ? "⚠️ Meta que vence hoy" : "🔔 Meta que vence mañana",
+            body,
+            icon:  "/Imagenes/icon-192.png",
+            badge: "/Imagenes/icon-192.png",
+            data:  { url: "/?p=goals" },
+          });
+          goalNotifs++;
+        }
+        if (goalNotifs) console.log(`[Push] Alertas de metas enviadas: ${goalNotifs} usuarios`);
+      }
+    }
   } catch(e) {
     console.error("[Push] sendDailyReminders error:", e.message);
   }

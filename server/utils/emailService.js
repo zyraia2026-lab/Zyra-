@@ -1,5 +1,14 @@
 const nodemailer = require("nodemailer");
 
+function esc(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -35,7 +44,7 @@ function wrap(body) {
 }
 
 const sendVerificationCode = async (toEmail, code, userName = "") => {
-  const nameHtml = userName ? ` <strong style="color:#f0f0ff">${userName}</strong>` : "";
+  const nameHtml = userName ? ` <strong style="color:#f0f0ff">${esc(userName)}</strong>` : "";
   await transporter.sendMail({
     from: `"Zyra 🌊" <${process.env.EMAIL_USER}>`,
     to: toEmail,
@@ -56,18 +65,18 @@ const sendWelcomeEmail = async (toEmail, userName = "") => {
     await transporter.sendMail({
       from: `"Zyra 🌊" <${process.env.EMAIL_USER}>`,
       to: toEmail,
-      subject: "Bienvenida a Zyra — Tu viaje de bienestar comienza hoy",
+      subject: `Hola, ${esc(userName)} — Zyra ya está lista para ti`,
       html: wrap(`
         <div style="text-align:center;margin-bottom:24px;">
           <div style="font-size:48px;margin-bottom:8px;">🌊</div>
-          <h2 style="color:#f0f0ff;margin:0;font-size:22px;">¡Hola, ${userName}!</h2>
-          <p style="color:#a8a8c8;font-size:15px;margin:12px 0 0;">Tu cuenta en Zyra está lista. Estamos aquí para acompañarte.</p>
+          <h2 style="color:#f0f0ff;margin:0;font-size:22px;">Hola, ${esc(userName)}</h2>
+          <p style="color:#a8a8c8;font-size:15px;margin:12px 0 0;">Tu cuenta ya está lista. Cuando quieras hablar, aquí estoy.</p>
         </div>
         <div style="background:rgba(99,102,241,0.08);border-radius:14px;padding:20px;margin-bottom:20px;">
           <p style="color:#c8c8e8;font-size:13px;margin:0 0 12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Con tu plan Gratis puedes:</p>
           <div style="color:#a8a8c8;font-size:13px;line-height:2;">
-            💬 20 mensajes diarios con Zyra IA<br/>
-            📔 Hasta 5 entradas en tu diario<br/>
+            💬 15 mensajes diarios con Zyra IA<br/>
+            📔 Hasta 10 entradas en tu diario<br/>
             🎯 Hasta 3 metas activas<br/>
             🧘 Ejercicios de meditación y respiración<br/>
             🎵 Música para el bienestar
@@ -89,7 +98,7 @@ const sendWelcomeEmail = async (toEmail, userName = "") => {
 };
 
 const sendPasswordResetCode = async (toEmail, code, userName = "") => {
-  const nameHtml = userName ? ` <strong style="color:#f0f0ff">${userName}</strong>` : "";
+  const nameHtml = userName ? ` <strong style="color:#f0f0ff">${esc(userName)}</strong>` : "";
   await transporter.sendMail({
     from: `"Zyra 🌊" <${process.env.EMAIL_USER}>`,
     to: toEmail,
@@ -115,7 +124,7 @@ const sendWeeklyReport = async (toEmail, userName, html, data) => {
     html: wrap(`
       <div style="text-align:center;margin-bottom:24px;">
         <div style="font-size:40px;margin-bottom:8px;">${topEmoji}</div>
-        <h2 style="color:#f0f0ff;margin:0;font-size:20px;">Reporte de la semana, ${userName}</h2>
+        <h2 style="color:#f0f0ff;margin:0;font-size:20px;">Reporte de la semana, ${esc(userName)}</h2>
         <p style="color:#7a7a9a;font-size:13px;margin:8px 0 0;">
           ${new Date(data.weekStart).toLocaleDateString("es-CO")} – ${new Date(data.weekEnd).toLocaleDateString("es-CO")}
         </p>
@@ -153,11 +162,11 @@ const sendCrisisAlert = async (toEmail, contactName, userName, message) => {
       html: wrap(`
         <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:16px;padding:24px;margin-bottom:20px">
           <h2 style="color:#f87171;margin:0 0 8px;font-size:18px">⚠️ Alerta de bienestar emocional</h2>
-          <p style="color:#fca5a5;font-size:13px;margin:0">Zyra ha detectado que <strong>${userName}</strong> podría estar pasando por un momento difícil.</p>
+          <p style="color:#fca5a5;font-size:13px;margin:0">Zyra ha detectado que <strong>${esc(userName)}</strong> podría estar pasando por un momento difícil.</p>
         </div>
-        <p style="color:#c8c8e8;font-size:14px;line-height:1.7">Hola ${contactName},</p>
-        <p style="color:#a8a8c8;font-size:14px;line-height:1.7">${userName} te registró como contacto de emergencia en Zyra. Hemos detectado una posible situación de crisis y te notificamos para que puedas estar disponible si te necesita.</p>
-        <p style="color:#a8a8c8;font-size:14px;line-height:1.7">Por favor intenta ponerte en contacto con ${userName} pronto. Si crees que está en peligro inmediato, contacta los servicios de emergencia.</p>
+        <p style="color:#c8c8e8;font-size:14px;line-height:1.7">Hola ${esc(contactName)},</p>
+        <p style="color:#a8a8c8;font-size:14px;line-height:1.7">${esc(userName)} te registró como contacto de emergencia en Zyra. Hemos detectado una posible situación de crisis y te notificamos para que puedas estar disponible si te necesita.</p>
+        <p style="color:#a8a8c8;font-size:14px;line-height:1.7">Por favor intenta ponerte en contacto con ${esc(userName)} pronto. Si crees que está en peligro inmediato, contacta los servicios de emergencia.</p>
         <div style="background:rgba(99,102,241,.08);border-radius:12px;padding:16px;margin:20px 0">
           <p style="color:#818cf8;font-size:13px;margin:0;font-weight:700">Líneas de crisis:</p>
           <p style="color:#a8a8c8;font-size:13px;margin:8px 0 0;line-height:1.8">🇨🇴 Colombia: Línea 106 (Salud Mental) · 123 (Emergencias)<br/>🇪🇸 España: 024 (Suicidio) · 112 (Emergencias)<br/>🌎 Internacional: befrienders.org</p>

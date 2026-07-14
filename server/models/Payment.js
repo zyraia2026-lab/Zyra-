@@ -6,7 +6,7 @@ const S = new mongoose.Schema({
   amount:    { type: Number, default: 0 },
   currency:  { type: String, default: "cop" },
   status:    { type: String, enum: ["paid","refunded","cancelled"], default: "paid" },
-  stripeSessionId: { type: String, default: null, sparse: true },
+  stripeSessionId: { type: String, default: null },
   createdAt: { type: Date, default: Date.now },
 });
 S.index({ user: 1, createdAt: -1 });

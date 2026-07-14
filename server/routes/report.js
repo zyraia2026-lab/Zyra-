@@ -1,6 +1,7 @@
 const express = require("express");
 const router  = express.Router();
-const { protect } = require("../middleware/auth");
+const { protect }      = require("../middleware/auth");
+const { requirePlan }  = require("../middleware/planGate");
 const Profile      = require("../models/Profile");
 const Conversation = require("../models/Conversation");
 const Goal         = require("../models/Goal");
@@ -16,7 +17,7 @@ const EMOTION_EMOJIS = {
   estresado:"😤", emocionado:"🤩", cansado:"😴", motivado:"💪", solo:"🥺",
 };
 
-router.post("/pdf", protect, async (req, res) => {
+router.post("/pdf", protect, requirePlan("premium"), async (req, res) => {
   try {
     let PDFDocument;
     try {
@@ -49,7 +50,7 @@ router.post("/pdf", protect, async (req, res) => {
     // ── Header
     doc.rect(0, 0, 595, 90).fill("#6366f1");
     doc.fillColor("white").fontSize(26).font("Helvetica-Bold").text("Zyra", 50, 25);
-    doc.fontSize(11).font("Helvetica").text("Tu compañero de bienestar emocional", 50, 55);
+    doc.fontSize(11).font("Helvetica").text("Tu resumen personal de bienestar", 50, 55);
     doc.fontSize(9).text(`Generado el ${dateStr}`, 50, 70);
     doc.fillColor("#1e293b");
 
@@ -135,7 +136,7 @@ router.post("/pdf", protect, async (req, res) => {
     doc.rect(0, footerY, 595, 62).fill("#f8fafc");
     doc.fontSize(8).font("Helvetica").fillColor("#94a3b8")
        .text("Este reporte es generado automáticamente por Zyra IA y no reemplaza el consejo de un profesional de salud mental.", 50, footerY + 10, { align: "center", width: 495 })
-       .text("Zyra IA — Tu bienestar emocional importa 💙", 50, footerY + 26, { align: "center", width: 495 });
+       .text("Zyra IA — Aquí estoy, siempre 💙", 50, footerY + 26, { align: "center", width: 495 });
 
     doc.end();
   } catch(e) {

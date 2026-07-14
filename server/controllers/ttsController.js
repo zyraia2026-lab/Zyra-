@@ -4,8 +4,6 @@ const { randomUUID } = require("crypto");
 
 const DID_BASE = "https://api.d-id.com";
 const DID_KEY  = () => process.env.DID_API_KEY;
-const EL_KEY   = () => process.env.ELEVENLABS_API_KEY;
-const EL_VOICE = () => process.env.ELEVENLABS_VOICE_ID || "EXAVITQu4vr4xnSDxMaL";
 const DID_AUTH = () => `Basic ${Buffer.from(DID_KEY()).toString("base64")}`;
 
 // Cache de URL de imagen subida a D-ID
@@ -53,22 +51,28 @@ function normalizeTTSText(text) {
     .trim();
 }
 
-async function elevenLabsAudio(text) {
-  const normalized = normalizeTTSText(text);
-  const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${EL_VOICE()}`, {
-    method: "POST",
-    headers: {
-      "xi-api-key":   EL_KEY(),
-      "Content-Type": "application/json",
-      Accept:         "audio/mpeg",
-    },
-    body: JSON.stringify({
-      text: normalized,
-      model_id: "eleven_multilingual_v2",
-      voice_settings: { stability: 0.35, similarity_boost: 0.75, style: 0.5, use_speaker_boost: true },
-    }),
+async function streamElementsAudio(text) {
+  const clean = normalizeTTSText(text).substring(0, 280);
+  const url = `https://api.streamelements.com/kappa/v2/speech?voice=es-MX-DaliaNeural&text=${encodeURIComponent(clean)}`;
+  const r = await fetch(url, {
+    signal: AbortSignal.timeout(8000),
+    headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36", "Referer": "https://streamelements.com/" },
   });
-  if (!r.ok) throw new Error("ElevenLabs " + r.status + ": " + await r.text().catch(() => ""));
+  if (!r.ok) throw new Error("StreamElements " + r.status);
+  return r;
+}
+
+async function googleTTSAudio(text) {
+  const short = normalizeTTSText(text).substring(0, 200);
+  const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(short)}&tl=es&total=1&idx=0&textlen=${short.length}&client=tw-ob`;
+  const r = await fetch(url, {
+    signal: AbortSignal.timeout(8000),
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Referer": "https://translate.google.com/",
+    },
+  });
+  if (!r.ok) throw new Error("Google TTS " + r.status);
   return r;
 }
 
@@ -145,35 +149,50 @@ function bgPollDID(realTalkId, localId) {
   })();
 }
 
-/* ── POST /api/tts/speak ── Audio ElevenLabs inmediato + D-ID en background real */
+/* ── POST /api/tts/speak ── StreamElements Dalia Neural → Google TTS + D-ID en background */
 exports.speak = async (req, res) => {
   try {
     const { text } = req.body;
     if (!text?.trim()) return res.status(400).json({ message: "Texto requerido" });
-    if (!EL_KEY())    return res.status(503).json({ message: "ElevenLabs no configurado" });
 
-    // 1. Generar audio ElevenLabs (~1s)
-    const elRes       = await elevenLabsAudio(text);
-    const audioBuffer = Buffer.from(await elRes.arrayBuffer());
+    // 1. Generar audio: StreamElements → Google TTS
+    let audioBuffer = null;
+    let provider = "streamelements";
+    try {
+      const r = await streamElementsAudio(text);
+      audioBuffer = Buffer.from(await r.arrayBuffer());
+    } catch(e) {
+      console.warn("[TTS/speak] StreamElements:", e.message, "→ Google TTS");
+      provider = "google";
+      try {
+        const r = await googleTTSAudio(text);
+        audioBuffer = Buffer.from(await r.arrayBuffer());
+      } catch(e2) {
+        throw new Error("TTS no disponible: " + e2.message);
+      }
+    }
+
     const audioBase64 = audioBuffer.toString("base64");
 
-    // 2. Generar ID local para que el cliente pueda hacer poll ANTES de que D-ID responda
+    // 2. Generar ID local para D-ID polling
     const localId = DID_KEY() ? randomUUID() : null;
     if (localId) pendingDID.set(localId, { done: false, url: null, error: false });
 
     // 3. Responder INMEDIATAMENTE con el audio
-    res.json({ audioBase64, audioMime: "audio/mpeg", talkId: localId });
+    res.json({ audioBase64, audioMime: "audio/mpeg", talkId: localId, provider });
 
-    // 4. D-ID en background real
+    // 4. D-ID en background
     if (localId) {
+      const _didCleanup = (id) => setTimeout(() => pendingDID.delete(id), 30_000);
       startDIDTalk(audioBuffer, text)
         .then(realTalkId => {
           if (realTalkId) bgPollDID(realTalkId, localId);
-          else pendingDID.set(localId, { done: true, url: null, error: true });
+          else { pendingDID.set(localId, { done: true, url: null, error: true }); _didCleanup(localId); }
         })
         .catch(e => {
           console.warn("[D-ID] bg error:", e.message);
           pendingDID.set(localId, { done: true, url: null, error: true });
+          _didCleanup(localId);
         });
     }
   } catch(e) {
@@ -192,16 +211,24 @@ exports.pollVideo = (req, res) => {
   return res.json({ status: "done", videoUrl: entry.url });
 };
 
-/* ── POST /api/tts/audio ── Solo audio ElevenLabs (chat y voz rápida) */
+/* ── POST /api/tts/audio ── StreamElements Dalia Neural → Google TTS */
 exports.audio = async (req, res) => {
   try {
     const { text } = req.body;
     if (!text?.trim()) return res.status(400).json({ message: "Texto requerido" });
-    if (!EL_KEY())    return res.status(503).json({ message: "ElevenLabs no configurado" });
 
-    const elRes = await elevenLabsAudio(text);
+    try {
+      const r = await streamElementsAudio(text);
+      res.set("Content-Type", "audio/mpeg");
+      res.set("X-TTS-Provider", "streamelements");
+      res.send(Buffer.from(await r.arrayBuffer()));
+      return;
+    } catch(e) { console.warn("[TTS] StreamElements:", e.message, "→ Google TTS"); }
+
+    const r = await googleTTSAudio(text);
     res.set("Content-Type", "audio/mpeg");
-    res.send(Buffer.from(await elRes.arrayBuffer()));
+    res.set("X-TTS-Provider", "google");
+    res.send(Buffer.from(await r.arrayBuffer()));
   } catch(e) {
     console.error("tts/audio error:", e.message);
     res.status(500).json({ message: e.message });

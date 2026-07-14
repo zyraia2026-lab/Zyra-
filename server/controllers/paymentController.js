@@ -57,7 +57,7 @@ exports.createCheckout = async (req, res) => {
       return res.json({ demo: true, plan, message: "Plan actualizado en modo demo" });
     }
 
-    const appUrl = process.env.APP_URL || "http://localhost:438";
+    const appUrl = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
     const p      = PLANS[plan];
     const amount = isAnnual ? p.annual : p.monthly;
     const label  = isAnnual ? `${p.name} — Anual` : `${p.name} — Mensual`;
@@ -177,6 +177,7 @@ exports.webhook = async (req, res) => {
 
   const sig = req.headers["stripe-signature"];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) return res.status(200).json({ received: true, warning: "webhook secret not configured" });
 
   let event;
   try {
@@ -275,7 +276,7 @@ exports.billingPortal = async (req, res) => {
     if (!user.stripeCustomerId) {
       return res.status(400).json({ message: "No tienes una suscripción activa de Stripe. Contáctanos en soporte@zyra.app" });
     }
-    const appUrl = process.env.APP_URL || "http://localhost:438";
+    const appUrl = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
     const session = await stripe.billingPortal.sessions.create({
       customer:   user.stripeCustomerId,
       return_url: appUrl + "/",

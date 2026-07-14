@@ -27,6 +27,10 @@ const S = new mongoose.Schema({
   referredBy:         { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   referralCount:      { type: Number, default: 0 },
   referralRewardUsed: { type: Boolean, default: false },
+
+  // ── Admin ──
+  isDisabled: { type: Boolean, default: false },
+  disabledAt: { type: Date, default: null },
 });
 
 S.pre("save", async function(next) {

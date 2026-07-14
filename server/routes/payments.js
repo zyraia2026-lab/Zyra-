@@ -6,7 +6,7 @@ const P = require("../controllers/paymentController");
 const checkoutLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hora
   max: 10,
-  keyGenerator: (req) => req.user?._id?.toString() || ipKeyGenerator(req.ip),
+  keyGenerator: (req) => req.user?._id?.toString() || ipKeyGenerator(req),
   message: { message: "Demasiados intentos de pago. Espera antes de intentar de nuevo." },
   standardHeaders: true, legacyHeaders: false,
 });
@@ -14,7 +14,7 @@ const checkoutLimiter = rateLimit({
 const verifyLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 20,
-  keyGenerator: (req) => req.user?._id?.toString() || ipKeyGenerator(req.ip),
+  keyGenerator: (req) => req.user?._id?.toString() || ipKeyGenerator(req),
   message: { message: "Demasiadas verificaciones. Espera un momento." },
   standardHeaders: true, legacyHeaders: false,
 });

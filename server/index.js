@@ -14,11 +14,33 @@ const auth = typeof authModule === "function" ? authModule : (authModule.auth ||
 const app = express();
 connectDB();
 
+// ── Confiar en el proxy de Render/Nginx para rate limiting correcto
+app.set("trust proxy", 1);
+
 // ── Seguridad: cabeceras HTTP
 app.use(helmet({
-  contentSecurityPolicy: false, // SPA con inline scripts requiere ajuste fino
   crossOriginEmbedderPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc:     ["'self'"],
+      scriptSrc:      ["'self'", "'unsafe-inline'", "https://www.youtube.com", "https://s.ytimg.com"],
+      scriptSrcAttr:  ["'unsafe-inline'"],
+      styleSrc:       ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc:        ["'self'", "https://fonts.gstatic.com", "data:"],
+      imgSrc:         ["'self'", "data:", "https:", "blob:"],
+      mediaSrc:       ["'self'", "https:", "blob:"],
+      frameSrc:       ["https://www.youtube.com", "https://www.youtube-nocookie.com"],
+      connectSrc:     ["'self'", "https://api.groq.com", "https://api.streamelements.com"],
+      objectSrc:      ["'none'"],
+      baseUri:        ["'self'"],
+      formAction:     ["'self'"],
+      frameAncestors: ["'none'"],
+    },
+  },
 }));
+
+// ── Ocultar versión de Express
+app.disable("x-powered-by");
 
 // ── CORS: restringir a dominio propio en producción
 const allowedOrigins = process.env.ALLOWED_ORIGINS
@@ -48,7 +70,7 @@ app.use(express.urlencoded({ extended: false, limit: "2mb" }));
 app.use(mongoSanitize());
 
 app.use(express.static(path.join(__dirname, "../client"), {
-  maxAge: "1d",
+  maxAge: process.env.NODE_ENV === "production" ? "1d" : 0,
   etag: true,
 }));
 
@@ -79,16 +101,35 @@ setInterval(() => {
   require("./controllers/pushController").sendDailyReminders().catch(() => {});
 }, 60_000);
 
-// ── Cron: reportes semanales cada lunes a las 9am (verificar cada hora)
+// ── Cron: reportes semanales cada lunes a las 9:00am exacto
 setInterval(() => {
   const now = new Date();
-  if (now.getDay() === 1 && now.getHours() === 9 && now.getMinutes() < 2) {
+  if (now.getDay() === 1 && now.getHours() === 9 && now.getMinutes() === 0) {
     require("./controllers/weeklyReportController").cronGenerateAll().catch(() => {});
   }
 }, 60_000);
 
-// ── SPA fallback
-app.get("*", (req, res) => res.sendFile(path.join(__dirname, "../client/index.html")));
+// ── Cron: auto-expirar planes vencidos cada hora
+setInterval(async () => {
+  try {
+    const User = require("./models/User");
+    const result = await User.updateMany(
+      { plan: { $ne: "free" }, planExpiresAt: { $lt: new Date() } },
+      { $set: { plan: "free", planExpiresAt: null } }
+    );
+    if (result.modifiedCount > 0) {
+      console.log(`[cron] Auto-expired ${result.modifiedCount} plan(s)`);
+    }
+  } catch(e) {
+    console.error("[cron] plan-expiry:", e.message);
+  }
+}, 60 * 60_000);
+
+// ── SPA fallback — sin caché en index.html
+app.get("*", (req, res) => {
+  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+  res.sendFile(path.join(__dirname, "../client/index.html"));
+});
 
 // ── Error handler global
 app.use((err, req, res, next) => {
@@ -116,7 +157,7 @@ if (process.env.NODE_ENV === "production") {
   }, 13 * 60 * 1000);
 }
 
-app.listen(PORT, "0.0.0.0", () => {
+const server = app.listen(PORT, "0.0.0.0", () => {
   const ip = getLocalIP();
   console.log("🌊 ════════════════════════════════════");
   console.log("🌊  ZYRA v5.0 — Servidor activo");
@@ -124,4 +165,40 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log("💻  PC:      http://localhost:" + PORT);
   console.log("📱  CELULAR: http://" + ip + ":" + PORT);
   console.log("🌊 ════════════════════════════════════");
+});
+
+server.on("error", (err) => {
+  if (err.code === "EADDRINUSE") {
+    console.log(`⚠️  Puerto ${PORT} ocupado — matando proceso anterior...`);
+    const { execSync } = require("child_process");
+    try {
+      if (process.platform === "win32") {
+        const out = execSync(`netstat -ano | findstr :${PORT}`).toString();
+        const match = out.match(/LISTENING\s+(\d+)/);
+        if (match) { execSync(`taskkill /F /PID ${match[1]}`); console.log(`✅ Proceso ${match[1]} terminado`); }
+      } else {
+        execSync(`fuser -k ${PORT}/tcp`);
+      }
+      // Crear servidor nuevo en lugar de reusar el que falló
+      setTimeout(() => {
+        const newServer = app.listen(PORT, "0.0.0.0", () => {
+          console.log(`✅ Servidor reiniciado en puerto ${PORT}`);
+        });
+        newServer.on("error", (e) => console.error("Error al reiniciar:", e.message));
+      }, 600);
+    } catch(e) {
+      console.error("No se pudo liberar el puerto:", e.message);
+      process.exit(1);
+    }
+  } else {
+    console.error("Error de servidor:", err.message);
+  }
+});
+
+// ── Evitar que el proceso muera por errores no capturados ──
+process.on("uncaughtException", (err) => {
+  console.error("⚠️  uncaughtException (proceso sigue vivo):", err.message);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("⚠️  unhandledRejection (proceso sigue vivo):", reason?.message || reason);
 });

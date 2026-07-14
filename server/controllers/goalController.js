@@ -10,8 +10,10 @@ exports.getGoals = async (req, res) => {
 
 exports.createGoal = async (req, res) => {
   try {
-    const { title, category, reminder, dueDate, priority } = req.body;
+    const { category, reminder, dueDate, priority } = req.body;
+    const title = String(req.body.title || "").trim();
     if (!title) return res.status(400).json({ message: "El título es requerido" });
+    if (title.length > 200) return res.status(400).json({ message: "Título demasiado largo (máx. 200 caracteres)" });
 
     const { limits } = getPlan(req.user);
     if (limits.goals !== Infinity) {
@@ -26,7 +28,7 @@ exports.createGoal = async (req, res) => {
       }
     }
 
-    const goal = await Goal.create({ user: req.user._id, title, category, reminder, dueDate, priority });
+    const goal = await Goal.create({ user: req.user._id, title: title.substring(0,200), category, reminder, dueDate, priority });
     res.status(201).json({ success: true, goal });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
@@ -66,11 +68,12 @@ exports.deleteGoal = async (req, res) => {
 
 exports.addGoalNote = async (req, res) => {
   try {
-    const { text } = req.body;
-    if (!text?.trim()) return res.status(400).json({ message: "El texto de la nota es requerido" });
+    const text = String(req.body.text || "").trim();
+    if (!text) return res.status(400).json({ message: "El texto de la nota es requerido" });
+    if (text.length > 1000) return res.status(400).json({ message: "Nota demasiado larga (máx. 1000 caracteres)" });
     const goal = await Goal.findOne({ _id: req.params.id, user: req.user._id });
     if (!goal) return res.status(404).json({ message: "Meta no encontrada" });
-    goal.notes.push({ text: text.trim(), date: new Date() });
+    goal.notes.push({ text: text.substring(0,1000), date: new Date() });
     await goal.save();
     res.json({ success: true, goal });
   } catch (e) { res.status(500).json({ message: e.message }); }

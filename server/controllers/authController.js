@@ -8,6 +8,8 @@ const { sendVerificationCode, sendWelcomeEmail, sendPasswordResetCode } = requir
 const tk = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || "7d" });
 const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
 const expiresAt = () => new Date(Date.now() + 10 * 60 * 1000);
+const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,253}\.[^\s@]{2,}$/;
+const isValidEmail = (e) => EMAIL_RE.test(String(e || "").toLowerCase());
 
 async function saveOTP(key, code, data = {}) {
   await OTP.findOneAndUpdate(
@@ -32,19 +34,25 @@ exports.registerRequest = async (req, res) => {
     const { name, email, password } = req.body;
     if (!name || !email || !password)
       return res.status(400).json({ message: "Todos los campos son requeridos" });
+    if (String(name).trim().length > 100)
+      return res.status(400).json({ message: "El nombre es demasiado largo (máx. 100 caracteres)" });
+    if (!isValidEmail(email))
+      return res.status(400).json({ message: "Formato de correo inválido" });
     if (password.length < 8)
       return res.status(400).json({ message: "La contraseña debe tener al menos 8 caracteres" });
+    if (password.length > 128)
+      return res.status(400).json({ message: "La contraseña es demasiado larga" });
     if (await User.findOne({ email }))
       return res.status(400).json({ message: "Este correo ya está registrado" });
 
     const code = generateCode();
     const hashedPassword = await bcrypt.hash(password, 12);
-    await saveOTP(email, code, { email, name, password: hashedPassword, prehashed: true });
-    await sendVerificationCode(email, code, name);
+    await saveOTP(email, code, { email, name: String(name).trim(), password: hashedPassword, prehashed: true });
+    await sendVerificationCode(email, code, String(name).trim());
     res.json({ success: true, message: "Código enviado a tu correo" });
   } catch (e) {
     console.error("registerRequest:", e.message);
-    res.status(500).json({ message: "Error al enviar el código: " + e.message });
+    res.status(500).json({ message: "Error al enviar el código. Inténtalo de nuevo." });
   }
 };
 
@@ -87,6 +95,8 @@ exports.loginRequest = async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password)
       return res.status(400).json({ message: "Email y contraseña requeridos" });
+    if (!isValidEmail(email))
+      return res.status(400).json({ message: "Formato de correo inválido" });
 
     const user = await User.findOne({ email }).select("+password");
     if (!user || !(await user.matchPassword(password)))
@@ -98,7 +108,7 @@ exports.loginRequest = async (req, res) => {
     res.json({ success: true, message: "Código enviado a tu correo" });
   } catch (e) {
     console.error("loginRequest:", e.message);
-    res.status(500).json({ message: "Error al enviar el código: " + e.message });
+    res.status(500).json({ message: "Error al enviar el código. Inténtalo de nuevo." });
   }
 };
 
@@ -122,7 +132,7 @@ exports.loginVerify = async (req, res) => {
     });
   } catch (e) {
     console.error("loginVerify:", e.message);
-    res.status(500).json({ message: "Error loginVerify: " + (e?.message || "desconocido") });
+    res.status(500).json({ message: "Error al verificar el código. Inténtalo de nuevo." });
   }
 };
 
@@ -139,7 +149,8 @@ exports.resendCode = async (req, res) => {
     await sendVerificationCode(email, code, existing.data?.name || "");
     res.json({ success: true, message: "Código reenviado" });
   } catch (e) {
-    res.status(500).json({ message: "Error al reenviar: " + e.message });
+    console.error("resendCode:", e.message);
+    res.status(500).json({ message: "Error al reenviar el código. Inténtalo de nuevo." });
   }
 };
 
@@ -147,7 +158,9 @@ exports.resendCode = async (req, res) => {
 exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-    res.json({ success: true, user: { id: user._id, name: user.name, email: user.email, darkMode: user.darkMode } });
+    if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
+    const isAdmin = !!(process.env.ADMIN_EMAIL && user.email === process.env.ADMIN_EMAIL);
+    res.json({ success: true, user: { id: user._id, name: user.name, email: user.email, darkMode: user.darkMode, isAdmin } });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
 
@@ -157,6 +170,7 @@ exports.updateSettings = async (req, res) => {
     const user = await User.findByIdAndUpdate(
       req.user._id, { darkMode: req.body.darkMode }, { new: true }
     );
+    if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
     res.json({ success: true, user: { id: user._id, name: user.name, email: user.email, darkMode: user.darkMode } });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
@@ -164,9 +178,13 @@ exports.updateSettings = async (req, res) => {
 // ── UPDATE PROFILE ──
 exports.updateProfile = async (req, res) => {
   try {
+    const name = String(req.body.name || "").trim();
+    if (!name) return res.status(400).json({ message: "El nombre es requerido" });
+    if (name.length > 100) return res.status(400).json({ message: "El nombre es demasiado largo (máx. 100 caracteres)" });
     const user = await User.findByIdAndUpdate(
-      req.user._id, { name: req.body.name }, { new: true }
+      req.user._id, { name }, { new: true }
     );
+    if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
     res.json({ success: true, user: { id: user._id, name: user.name, email: user.email } });
   } catch(e) { res.status(500).json({ message: e.message }); }
 };
@@ -180,12 +198,13 @@ exports.updatePassword = async (req, res) => {
     if (password.length < 8)
       return res.status(400).json({ message: "La nueva contraseña debe tener mínimo 8 caracteres" });
     const user = await User.findById(req.user._id).select("+password");
+    if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
     if (!(await user.matchPassword(currentPassword)))
       return res.status(401).json({ message: "Contraseña actual incorrecta" });
     user.password = password;
     await user.save();
     res.json({ success: true });
-  } catch(e) { res.status(500).json({ message: e.message }); }
+  } catch(e) { res.status(500).json({ message: "Error al actualizar la contraseña. Inténtalo de nuevo." }); }
 };
 
 // ── OLVIDÉ MI CONTRASEÑA — Paso 1 ──
@@ -202,7 +221,7 @@ exports.forgotPasswordRequest = async (req, res) => {
     res.json({ success: true, message: "Si ese correo existe, recibirás un código" });
   } catch(e) {
     console.error("forgotPasswordRequest:", e.message);
-    res.status(500).json({ message: "Error al enviar código" });
+    res.status(500).json({ message: "Error al procesar la solicitud. Inténtalo de nuevo." });
   }
 };
 
@@ -225,7 +244,7 @@ exports.forgotPasswordReset = async (req, res) => {
     res.json({ success: true, message: "Contraseña actualizada correctamente" });
   } catch(e) {
     console.error("forgotPasswordReset:", e.message);
-    res.status(500).json({ message: e.message });
+    res.status(500).json({ message: "Error al actualizar la contraseña. Inténtalo de nuevo." });
   }
 };
 

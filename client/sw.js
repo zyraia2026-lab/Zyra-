@@ -83,14 +83,18 @@ self.addEventListener('push', e => {
 
 self.addEventListener('notificationclick', e => {
   e.notification.close();
+  const targetUrl = e.notification.data?.url || '/';
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
       for (const client of clientList) {
         if (client.url.includes(self.location.origin) && 'focus' in client) {
-          return client.focus();
+          client.focus();
+          // Tell the app to navigate to the target page
+          client.postMessage({ type: 'NAVIGATE', url: targetUrl });
+          return;
         }
       }
-      return clients.openWindow(e.notification.data?.url || '/');
+      return clients.openWindow(targetUrl);
     })
   );
 });

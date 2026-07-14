@@ -6,7 +6,7 @@ const T = require("../controllers/ttsController");
 const ttsLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 30,
-  keyGenerator: (req) => req.user?._id?.toString() || ipKeyGenerator(req.ip),
+  keyGenerator: (req) => req.user?._id?.toString() || ipKeyGenerator(req),
   message: { message: "Demasiadas peticiones de voz. Espera un momento." },
   standardHeaders: true, legacyHeaders: false,
 });
