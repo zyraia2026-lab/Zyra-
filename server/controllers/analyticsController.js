@@ -130,6 +130,15 @@ exports.getOverview = async (req, res) => {
     });
     const topWords = Object.entries(wordFreq).sort((a,b)=>b[1]-a[1]).slice(0,15).map(([word,count])=>({word,count}));
 
+    // ── Activity dates (last 90 days) for streak heatmap ──
+    const cutoff90 = new Date(Date.now() - 90 * 86400000);
+    const toDateStr = d => new Date(d).toISOString().slice(0, 10);
+    const activeDatesSet = new Set();
+    conversations.forEach(c => { if (new Date(c.updatedAt) >= cutoff90) activeDatesSet.add(toDateStr(c.updatedAt)); });
+    journals.forEach(j => { if (new Date(j.createdAt) >= cutoff90) activeDatesSet.add(toDateStr(j.createdAt)); });
+    history.forEach(h => { if (new Date(h.date) >= cutoff90) activeDatesSet.add(toDateStr(h.date)); });
+    const activityDates = [...activeDatesSet];
+
     res.json({
       success: true,
       stats: {
@@ -151,6 +160,7 @@ exports.getOverview = async (req, res) => {
       worstDay,
       insight,
       topWords,
+      activityDates,
     });
   } catch(e) {
     console.error("analytics:", e.message);

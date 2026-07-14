@@ -3698,3 +3698,16 @@ body {
   border-radius: 14px;
   box-shadow: 0 0 0 4px rgba(99,102,241,.15);
 }
+
+/* ── Print / PDF ── */
+@media print {
+  nav, .nav-inner, #page-analytics > nav, .btn-logout, .back-btn,
+  #analytics-habits-card, #analytics-sleep-emotion-card,
+  .card:has(.btn-primary[onclick*="openWeeklyReport"]),
+  .card:has([onclick*="downloadAnalyticsPDF"]) { display: none !important; }
+  body { background: #fff !important; color: #111 !important; }
+  .page { position: static !important; height: auto !important; overflow: visible !important; }
+  .page-content { overflow: visible !important; height: auto !important; }
+  .card { break-inside: avoid; box-shadow: none !important; border: 1px solid #e5e7eb !important; }
+  :root { --text: #111; --text3: #555; --bg: #fff; --bg2: #f9fafb; --border: #e5e7eb; --card: #fff; --accent: #6366f1; }
+}

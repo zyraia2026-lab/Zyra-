@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.zyra.app",
+    "sha256_cert_fingerprints": [
+      "AF:B8:D3:06:77:47:C3:8D:7A:2D:01:B2:07:0F:A9:FE:9A:C1:9C:59:E8:61:90:F2:1A:02:8C:A0:58:79:B3:40"
+    ]
+  }
+}]
