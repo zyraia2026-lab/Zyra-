@@ -1,5 +1,3 @@
-const nodemailer = require("nodemailer");
-
 function esc(str) {
   return String(str || "")
     .replace(/&/g, "&amp;")
@@ -8,19 +6,6 @@ function esc(str) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
-
-const transporter = nodemailer.createTransport({
-  host: "smtp-relay.brevo.com",
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.BREVO_USER,
-    pass: process.env.BREVO_PASS,
-  },
-  connectionTimeout: 10000,
-  greetingTimeout: 5000,
-  socketTimeout: 20000,
-});
 
 const BRAND_HEADER = `
   <div style="background:linear-gradient(135deg,#7c5cfc,#4a9eff);padding:32px;text-align:center;">
@@ -48,10 +33,30 @@ function wrap(body) {
   </body></html>`;
 }
 
+async function sendBrevoEmail({ to, subject, html }) {
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "accept": "application/json",
+      "api-key": process.env.BREVO_API_KEY,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      sender: { name: "Zyra 🌊", email: process.env.EMAIL_USER },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Brevo API ${res.status}: ${err}`);
+  }
+}
+
 const sendVerificationCode = async (toEmail, code, userName = "") => {
   const nameHtml = userName ? ` <strong style="color:#f0f0ff">${esc(userName)}</strong>` : "";
-  await transporter.sendMail({
-    from: `"Zyra 🌊" <${process.env.EMAIL_USER}>`,
+  await sendBrevoEmail({
     to: toEmail,
     subject: "Tu código de verificación — Zyra",
     html: wrap(`
@@ -67,8 +72,7 @@ const sendVerificationCode = async (toEmail, code, userName = "") => {
 
 const sendWelcomeEmail = async (toEmail, userName = "") => {
   try {
-    await transporter.sendMail({
-      from: `"Zyra 🌊" <${process.env.EMAIL_USER}>`,
+    await sendBrevoEmail({
       to: toEmail,
       subject: `Hola, ${esc(userName)} — Zyra ya está lista para ti`,
       html: wrap(`
@@ -93,7 +97,7 @@ const sendWelcomeEmail = async (toEmail, userName = "") => {
           </p>
         </div>
         <div style="text-align:center;">
-          <a href="https://zyra-app.onrender.com" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;">Abrir Zyra →</a>
+          <a href="https://zyra-app-8qva.onrender.com" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;">Abrir Zyra →</a>
         </div>
       `),
     });
@@ -104,8 +108,7 @@ const sendWelcomeEmail = async (toEmail, userName = "") => {
 
 const sendPasswordResetCode = async (toEmail, code, userName = "") => {
   const nameHtml = userName ? ` <strong style="color:#f0f0ff">${esc(userName)}</strong>` : "";
-  await transporter.sendMail({
-    from: `"Zyra 🌊" <${process.env.EMAIL_USER}>`,
+  await sendBrevoEmail({
     to: toEmail,
     subject: "Restablecer contraseña — Zyra",
     html: wrap(`
@@ -122,8 +125,7 @@ const sendPasswordResetCode = async (toEmail, code, userName = "") => {
 const sendWeeklyReport = async (toEmail, userName, html, data) => {
   const EMOTION_EMOJI = { feliz:"😊", tranquilo:"😌", ansioso:"😰", triste:"😢", enojado:"😤", confundido:"🤔", esperanzado:"🌟", agotado:"😮‍💨", motivado:"💪", nostalgico:"🌅" };
   const topEmoji = EMOTION_EMOJI[data.topEmotion] || "💙";
-  await transporter.sendMail({
-    from: `"Zyra 🌊" <${process.env.EMAIL_USER}>`,
+  await sendBrevoEmail({
     to: toEmail,
     subject: `Tu reporte semanal Zyra ${topEmoji} — ${new Date(data.weekStart).toLocaleDateString("es-CO")}`,
     html: wrap(`
@@ -152,7 +154,7 @@ const sendWeeklyReport = async (toEmail, userName, html, data) => {
         ${html}
       </div>
       <div style="text-align:center;margin-top:20px">
-        <a href="https://zyra-app.onrender.com" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:700;font-size:14px;display:inline-block">Ver mi progreso en Zyra →</a>
+        <a href="https://zyra-app-8qva.onrender.com" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:700;font-size:14px;display:inline-block">Ver mi progreso en Zyra →</a>
       </div>
     `),
   });
@@ -160,8 +162,7 @@ const sendWeeklyReport = async (toEmail, userName, html, data) => {
 
 const sendCrisisAlert = async (toEmail, contactName, userName, message) => {
   try {
-    await transporter.sendMail({
-      from: `"Zyra — Alerta de Bienestar" <${process.env.EMAIL_USER}>`,
+    await sendBrevoEmail({
       to: toEmail,
       subject: `⚠️ Alerta de bienestar — ${userName} podría necesitar apoyo`,
       html: wrap(`
