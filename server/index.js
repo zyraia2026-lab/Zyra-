@@ -80,6 +80,13 @@ app.use(mongoSanitize());
 app.use(express.static(path.join(__dirname, "../client"), {
   maxAge: process.env.NODE_ENV === "production" ? "1d" : 0,
   etag: true,
+  setHeaders(res, filePath) {
+    if (filePath.endsWith(".apk")) {
+      res.setHeader("Content-Type", "application/vnd.android.package-archive");
+      res.setHeader("Content-Disposition", 'attachment; filename="Zyra.apk"');
+      res.setHeader("Cache-Control", "no-cache");
+    }
+  }
 }));
 
 app.use("/api/auth",          require("./routes/auth"));
