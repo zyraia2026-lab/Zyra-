@@ -180,7 +180,8 @@ exports.getHistory = async (req, res) => {
     const reports = await WeeklyReport.find({ user: req.user._id })
       .sort({ weekOf: -1 })
       .limit(12)
-      .select("-html");
+      .select("-html")
+      .lean();
     res.json({ success: true, reports });
   } catch(e) { res.status(500).json({ message: e.message }); }
 };
@@ -188,7 +189,7 @@ exports.getHistory = async (req, res) => {
 /* ── Obtener un reporte específico ── */
 exports.getOne = async (req, res) => {
   try {
-    const r = await WeeklyReport.findOne({ _id: req.params.id, user: req.user._id });
+    const r = await WeeklyReport.findOne({ _id: req.params.id, user: req.user._id }).lean();
     if (!r) return res.status(404).json({ message: "Reporte no encontrado" });
     res.json({ success: true, report: r });
   } catch(e) { res.status(500).json({ message: e.message }); }

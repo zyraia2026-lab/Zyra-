@@ -77,8 +77,8 @@ function checkAchievements(p, newStreak, newCoins, completedMissions, journalCou
 /* GET /api/gamification/status */
 exports.getStatus = async (req, res) => {
   try {
-    let p = await Profile.findOne({ user: req.user._id });
-    if (!p) p = await Profile.create({ user: req.user._id });
+    let p = await Profile.findOne({ user: req.user._id }).lean();
+    if (!p) p = (await Profile.create({ user: req.user._id })).toObject();
 
     const needsReset = isMissionsReset(p);
     const completedToday = needsReset ? [] : (p.missionsCompletedToday || []);
@@ -105,8 +105,8 @@ exports.getStatus = async (req, res) => {
 /* POST /api/gamification/visit  — llamar al abrir la app (actualiza racha) */
 exports.recordVisit = async (req, res) => {
   try {
-    let p = await Profile.findOne({ user: req.user._id });
-    if (!p) p = await Profile.create({ user: req.user._id });
+    let p = await Profile.findOne({ user: req.user._id }).lean();
+    if (!p) p = (await Profile.create({ user: req.user._id })).toObject();
 
     const now  = new Date();
     const last = p.lastActiveDate ? new Date(p.lastActiveDate) : null;
@@ -164,8 +164,8 @@ exports.completeMission = async (req, res) => {
     const mission = DAILY_MISSIONS.find(m => m.id === req.params.id);
     if (!mission) return res.status(400).json({ message: "Misión desconocida" });
 
-    let p = await Profile.findOne({ user: req.user._id });
-    if (!p) p = await Profile.create({ user: req.user._id });
+    let p = await Profile.findOne({ user: req.user._id }).lean();
+    if (!p) p = (await Profile.create({ user: req.user._id })).toObject();
 
     const needsReset  = isMissionsReset(p);
     const completed   = needsReset ? [] : (p.missionsCompletedToday || []);
@@ -214,7 +214,7 @@ exports.redeemReward = async (req, res) => {
     const reward = REWARDS.find(r => r.id === req.params.id);
     if (!reward) return res.status(400).json({ message: "Recompensa desconocida" });
 
-    let p = await Profile.findOne({ user: req.user._id });
+    let p = await Profile.findOne({ user: req.user._id }).lean();
     if (!p) return res.status(404).json({ message: "Perfil no encontrado" });
 
     if ((p.unlockedItems || []).includes(reward.id)) {
@@ -238,7 +238,7 @@ exports.redeemReward = async (req, res) => {
 /* POST /api/gamification/equip/:itemId  — equipar badge */
 exports.equipItem = async (req, res) => {
   try {
-    let p = await Profile.findOne({ user: req.user._id });
+    let p = await Profile.findOne({ user: req.user._id }).select("unlockedItems").lean();
     if (!p) return res.status(404).json({ message: "Perfil no encontrado" });
     const item = REWARDS.find(r => r.id === req.params.itemId && r.type === "badge");
     if (!item) return res.status(400).json({ message: "Ítem no encontrado" });
