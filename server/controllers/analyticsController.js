@@ -156,6 +156,7 @@ exports.getOverview = async (req, res) => {
         avgIntensity,
         peakHour: `${peakHour}:00`,
       },
+      profile: { emotionHistory: history },
       emotionFrequency,
       dayOfWeekPattern,
       weeklyTrend,
