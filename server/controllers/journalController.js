@@ -69,7 +69,8 @@ exports.updateEntry = async (req, res) => {
 
 exports.deleteEntry = async (req, res) => {
   try {
-    await Journal.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+    const { deletedCount } = await Journal.deleteOne({ _id: req.params.id, user: req.user._id });
+    if (!deletedCount) return res.status(404).json({ message: "Entrada no encontrada" });
     res.json({ success: true });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };

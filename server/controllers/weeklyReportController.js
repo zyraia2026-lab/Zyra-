@@ -34,9 +34,9 @@ async function buildReportData(userId, userName) {
   const weekEnd   = getMondayOf();
 
   const [profile, goals, journals, sessionCount] = await Promise.all([
-    Profile.findOne({ user: userId }).lean(),
-    Goal.find({ user: userId }).lean(),
-    Journal.find({ user: userId, createdAt: { $gte: weekStart, $lt: weekEnd } }).lean(),
+    Profile.findOne({ user: userId }).select("emotionHistory streakDays").lean(),
+    Goal.find({ user: userId }).select("title completed updatedAt").lean(),
+    Journal.find({ user: userId, createdAt: { $gte: weekStart, $lt: weekEnd } }).select("title content createdAt").lean(),
     Conversation.countDocuments({ user: userId, updatedAt: { $gte: weekStart, $lt: weekEnd } }),
   ]);
 
@@ -198,7 +198,7 @@ exports.getOne = async (req, res) => {
 /* ── Cron: generar reportes automáticos cada lunes ── */
 exports.cronGenerateAll = async () => {
   const User = require("../models/User");
-  const users = await User.find({ plan: { $in: ["basic","premium"] } }).lean();
+  const users = await User.find({ plan: { $in: ["basic","premium"] } }).select("_id name email").lean();
   console.log(`📊 Generando reportes semanales para ${users.length} usuarios...`);
   let ok = 0;
   for (const u of users) {
