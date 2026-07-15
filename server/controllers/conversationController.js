@@ -17,7 +17,8 @@ exports.getConversation = async (req, res) => {
 
 exports.deleteConversation = async (req, res) => {
   try {
-    await Conversation.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+    const { deletedCount } = await Conversation.deleteOne({ _id: req.params.id, user: req.user._id });
+    if (!deletedCount) return res.status(404).json({ message: "No encontrada" });
     res.json({ success: true });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };

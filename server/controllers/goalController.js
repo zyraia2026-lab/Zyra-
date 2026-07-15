@@ -63,7 +63,8 @@ exports.updateGoal = async (req, res) => {
 
 exports.deleteGoal = async (req, res) => {
   try {
-    await Goal.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+    const { deletedCount } = await Goal.deleteOne({ _id: req.params.id, user: req.user._id });
+    if (!deletedCount) return res.status(404).json({ message: "Meta no encontrada" });
     res.json({ success: true });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };

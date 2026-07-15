@@ -22,9 +22,9 @@ exports.getOverview = async (req, res) => {
   try {
     const cutoff90 = new Date(Date.now() - 90 * 86400000);
     const [profile, goals, journals, conversations, totalConvs] = await Promise.all([
-      Profile.findOne({ user: req.user._id }).lean(),
-      Goal.find({ user: req.user._id }).lean(),
-      Journal.find({ user: req.user._id }).sort({ createdAt: -1 }).limit(90).lean(),
+      Profile.findOne({ user: req.user._id }).select("emotionHistory sessionsCount streakDays").lean(),
+      Goal.find({ user: req.user._id }).select("completed").lean(),
+      Journal.find({ user: req.user._id }).sort({ createdAt: -1 }).limit(90).select("title content createdAt").lean(),
       // Only fetch last-90-day conversations (for heatmap) — avoids scanning full history
       Conversation.find({ user: req.user._id, updatedAt: { $gte: cutoff90 } }).select('updatedAt').lean(),
       Conversation.countDocuments({ user: req.user._id }),

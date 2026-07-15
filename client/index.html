@@ -5064,8 +5064,26 @@ function renderDashGoals(goals) {
     </div>`).join("");
 }
 async function toggleGoalDash(id) {
-  const goal = (_goalsAllItems||[]).find(g=>g._id===id);
-  try { const d = await api("/goals/"+id+"/toggle","PUT"); if ((d.goal?.completed ?? !goal?.completed) && !goal?.completed) zyraCelebrate(); loadDashboard(); } catch(e) {}
+  const idx = (_goalsAllItems||[]).findIndex(g=>g._id===id);
+  if (idx < 0) return;
+  const prev = _goalsAllItems[idx];
+  // Optimistic update — no loadDashboard() needed
+  _goalsAllItems[idx] = { ...prev, completed: !prev.completed };
+  renderDashGoals(_goalsAllItems);
+  const stGoals = document.getElementById("st-goals");
+  if (stGoals) stGoals.textContent = _goalsAllItems.filter(g=>!g.completed).length;
+  try {
+    const d = await api("/goals/"+id+"/toggle","PUT");
+    if (d.goal) _goalsAllItems[idx] = d.goal;
+    if ((d.goal?.completed ?? !prev.completed) && !prev.completed) zyraCelebrate();
+    renderDashGoals(_goalsAllItems);
+    if (stGoals) stGoals.textContent = _goalsAllItems.filter(g=>!g.completed).length;
+  } catch(e) {
+    _goalsAllItems[idx] = prev;
+    renderDashGoals(_goalsAllItems);
+    if (stGoals) stGoals.textContent = _goalsAllItems.filter(g=>!g.completed).length;
+    zyraToast("Error al actualizar la meta", "error");
+  }
 }
 
 /* ── GOALS ── */
@@ -5184,7 +5202,7 @@ function renderGoals(goals) {
 }
 function toggleGoalNotes(id) {
   _goalNotesOpen = _goalNotesOpen === id ? null : id;
-  renderGoals(_goalsAllItems);
+  filterGoalsCat(_goalsCurrentFilter);
   setTimeout(() => { const item = document.getElementById("goal-item-"+id); if(item) item.scrollIntoView({behavior:"smooth",block:"nearest"}); }, 50);
 }
 
@@ -5199,7 +5217,7 @@ async function quickGoalProgress(id, pct) {
     const idx = _goalsAllItems.findIndex(g => g._id === id);
     if (idx >= 0) _goalsAllItems[idx] = updated.goal;
     renderGoalsStats(_goalsAllItems);
-    renderGoals(_goalsAllItems);
+    filterGoalsCat(_goalsCurrentFilter);
     if (pct === 100) zyraToast("🎉 ¡Meta al 100%! Márcala como completada cuando estés listo.", "success", 4000);
     else zyraToast(`Progreso actualizado a ${pct}% ✓`, "success");
   } catch(e) { zyraToast(e.message, "error"); }
@@ -5214,7 +5232,7 @@ async function addGoalNoteClient(goalId) {
     const idx = _goalsAllItems.findIndex(g => g._id === goalId);
     if(idx>=0) _goalsAllItems[idx] = d.goal;
     renderGoalsStats(_goalsAllItems);
-    renderGoals(_goalsAllItems);
+    filterGoalsCat(_goalsCurrentFilter);
     zyraToast("Nota guardada", "success");
   } catch(e) { zyraToast(e.message,"error"); }
 }
@@ -5224,7 +5242,7 @@ async function deleteGoalNoteClient(goalId, noteId) {
     const idx = _goalsAllItems.findIndex(g => g._id === goalId);
     if(idx>=0) _goalsAllItems[idx] = d.goal;
     renderGoalsStats(_goalsAllItems);
-    renderGoals(_goalsAllItems);
+    filterGoalsCat(_goalsCurrentFilter);
   } catch(e) { zyraToast(e.message,"error"); }
 }
 let _addingGoal = false;
@@ -5252,14 +5270,27 @@ async function addGoal() {
   }
 }
 async function toggleGoal(id) {
-  const prev = _goalsAllItems.find(g => g._id===id);
+  const idx = _goalsAllItems.findIndex(g => g._id === id);
+  if (idx < 0) return;
+  const prev = _goalsAllItems[idx];
+  // Optimistic update — instant visual feedback
+  _goalsAllItems[idx] = { ...prev, completed: !prev.completed };
+  renderGoalsStats(_goalsAllItems);
+  filterGoalsCat(_goalsCurrentFilter);
   try {
-    const d = await api("/goals/"+id+"/toggle","PUT");
-    const nowCompleted = d.goal?.completed ?? !prev?.completed;
-    if (nowCompleted && !prev?.completed) { zyraCelebrate(); triggerMission("complete_plan"); }
+    const d = await api("/goals/" + id + "/toggle", "PUT");
+    if (d.goal) _goalsAllItems[idx] = d.goal;
+    const nowCompleted = d.goal?.completed ?? !prev.completed;
+    if (nowCompleted && !prev.completed) { zyraCelebrate(); triggerMission("complete_plan"); }
     triggerMission("check_goals");
-    loadGoals();
-  } catch(e) {}
+    renderGoalsStats(_goalsAllItems);
+    filterGoalsCat(_goalsCurrentFilter);
+  } catch(e) {
+    _goalsAllItems[idx] = prev;
+    renderGoalsStats(_goalsAllItems);
+    filterGoalsCat(_goalsCurrentFilter);
+    zyraToast("Error al actualizar la meta", "error");
+  }
 }
 function zyraCelebrate() {
   const canvas = document.createElement("canvas");
@@ -5520,7 +5551,7 @@ const JOURNAL_WRITING_PROMPTS = [
   "Escribe sobre algo que te dé miedo pero que también te emocione.",
   "¿Cómo quieres sentirte mañana? ¿Qué haría falta para lograrlo?",
 ];
-let _promptIdx = Math.floor(Math.random() * JOURNAL_PROMPTS.length);
+let _promptIdx = Math.floor(Math.random() * JOURNAL_WRITING_PROMPTS.length);
 
 let _qnMicSR = null, _journalMicSR = null;
 
@@ -5608,14 +5639,7 @@ function toggleJournalSort() {
   _journalSortAsc = !_journalSortAsc;
   const btn = document.getElementById("journal-sort-btn");
   if (btn) btn.textContent = _journalSortAsc ? "↑ Antiguo" : "↓ Reciente";
-  const q   = (document.getElementById("journal-search-input")?.value || "").toLowerCase();
-  const emo = document.getElementById("journal-filter-emotion")?.value || "";
-  let list  = [..._journalAllEntries].filter(e => {
-    return (!q || (e.title||"").toLowerCase().includes(q) || (e.content||"").toLowerCase().includes(q)) &&
-           (!emo || e.emotion === emo);
-  });
-  if (_journalSortAsc) list.reverse();
-  renderJournal(list, false);
+  filterJournal();
 }
 
 function updatePassStrength(val) {
