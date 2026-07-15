@@ -3753,10 +3753,14 @@ body {
   /* Section labels: tighter */
   #page-dashboard .db-container > [style*="text-transform:uppercase"] { margin-bottom: 10px !important; }
 
-  /* Chat page: top nav hidden, so chat-box fills full viewport minus tabbar */
+  /* Chat page: top nav hidden — fill full viewport minus tabbar.
+     dvh (dynamic viewport height) shrinks when mobile keyboard opens,
+     keeping the input above the keyboard on iOS 15.4+ / Android Chrome 108+. */
   #page-assistant .chat-box {
-    height: calc(100vh - 60px - env(safe-area-inset-bottom, 0px)) !important;
-    max-height: calc(100vh - 60px - env(safe-area-inset-bottom, 0px)) !important;
+    height: calc(100vh  - 60px - env(safe-area-inset-bottom, 0px)) !important;
+    height: calc(100dvh - 60px - env(safe-area-inset-bottom, 0px)) !important;
+    max-height: calc(100vh  - 60px - env(safe-area-inset-bottom, 0px)) !important;
+    max-height: calc(100dvh - 60px - env(safe-area-inset-bottom, 0px)) !important;
   }
 }
 
