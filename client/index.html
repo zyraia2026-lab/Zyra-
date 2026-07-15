@@ -9726,10 +9726,18 @@ if(_origShowPage) {
   const origFn = showPage;
   showPage = function(name) {
     origFn(name);
+    const isLogged = logged.includes(name);
     const fab=document.getElementById('ambient-fab');
-    if(fab) fab.style.display=logged.includes(name)?'flex':'none';
+    if(fab) fab.style.display=isLogged?'flex':'none';
     const sosFab=document.getElementById('sos-fab');
-    if(sosFab) sosFab.style.display=logged.includes(name)?'flex':'none';
+    if(sosFab) sosFab.style.display=isLogged?'flex':'none';
+    // Mobile speed-dial: visible on logged-in pages on small screens
+    const mobSD = document.getElementById('mob-speed-dial');
+    if (mobSD) {
+      const show = isLogged && window.innerWidth <= 768;
+      mobSD.classList.toggle('visible', show);
+      if (!show) mobSD.classList.remove('sd-open');
+    }
     if(name==='dashboard' && user) showQuickEmotion();
     // Mini-player: show when leaving wellness while music is active
     _updateMiniPlayerState();
@@ -13977,12 +13985,24 @@ function updateNotifBadge() {
   if (!token) { fab.style.display = "none"; return; }
   fab.style.display = "flex";
   const notifs = computeNotifs();
-  if (notifs.length > 0) {
+  const hasNotifs = notifs.length > 0;
+  if (hasNotifs) {
     badge.style.display = "flex";
     badge.textContent = notifs.length > 9 ? "9+" : String(notifs.length);
   } else {
     badge.style.display = "none";
   }
+  const mobDot = document.getElementById("mob-sd-dot");
+  if (mobDot) mobDot.classList.toggle("show", hasNotifs);
+}
+
+function mobSDToggle() {
+  const sd = document.getElementById("mob-speed-dial");
+  if (sd) sd.classList.toggle("sd-open");
+}
+function mobSDClose() {
+  const sd = document.getElementById("mob-speed-dial");
+  if (sd) sd.classList.remove("sd-open");
 }
 
 </script>
@@ -14030,6 +14050,29 @@ function updateNotifBadge() {
 
 <!-- ══ FLOATING QUICK NOTE ══ -->
 <button class="fab-qn" id="fab-qn" onclick="openQuickNote()" aria-label="Nota rápida en diario" title="Nota rápida">✏️</button>
+
+<!-- ══ MOBILE SPEED-DIAL FAB ══ (replaces all individual FABs on mobile) -->
+<div class="mob-speed-dial" id="mob-speed-dial">
+  <div class="mob-sd-backdrop" onclick="mobSDClose()"></div>
+  <div class="mob-sd-items">
+    <button class="mob-sd-item mob-sd-sos" onclick="mobSDClose();showCrisisOverlay()" aria-label="Apoyo de emergencia">
+      <span class="mob-sd-icon">🆘</span>Apoyo
+    </button>
+    <button class="mob-sd-item mob-sd-ambient" onclick="mobSDClose();toggleAmbientPanel()" aria-label="Sonidos ambientales">
+      <span class="mob-sd-icon">🎧</span>Sonidos
+    </button>
+    <button class="mob-sd-item mob-sd-note" onclick="mobSDClose();openQuickNote()" aria-label="Nota rápida">
+      <span class="mob-sd-icon">✏️</span>Nota
+    </button>
+    <button class="mob-sd-item mob-sd-notif" onclick="mobSDClose();openNotifPanel()" aria-label="Notificaciones">
+      <span class="mob-sd-icon">🔔</span>Alertas
+    </button>
+  </div>
+  <button class="mob-sd-trigger" onclick="mobSDToggle()" aria-label="Acciones rápidas" title="Acciones rápidas">
+    <span class="mob-sd-dot" id="mob-sd-dot"></span>
+    ⊕
+  </button>
+</div>
 
 <!-- ══ QUICK NOTE MODAL ══ -->
 <div id="quick-note-modal" style="display:none;position:fixed;inset:0;z-index:9700;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);align-items:flex-end;justify-content:center;padding:0" role="dialog" aria-modal="true" aria-label="Nota rápida" onclick="if(event.target===this)closeQuickNote()">
