@@ -7020,20 +7020,30 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
     const ytLink  = `https://www.youtube.com/watch?v=${videoId}`;
 
     if (isMob) {
-      // Móvil: iframe simple con playsinline, sin enablejsapi (postMessage no funciona bien)
-      // El tap del usuario ES el gesto que autoriza autoplay dentro del iframe
+      // Móvil: enablejsapi solo para detectar onError — sin timeout para no cortar videos lentos
       d.innerHTML = `
         <iframe id="${frameId}"
-          src="https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=1&playsinline=1"
+          src="https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=1&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}"
           style="position:absolute;top:0;left:0;width:100%;height:100%;border:none"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"></iframe>
         <a href="${ytLink}" target="_blank" rel="noopener"
            style="position:absolute;bottom:8px;right:8px;background:rgba(220,0,0,.88);color:#fff;padding:5px 10px;border-radius:8px;font-size:11px;font-weight:800;text-decoration:none;z-index:10">
           ▶ YT
         </a>`;
-      // Fallback solo si el iframe reporta error de carga (no timeout arbitrario)
       const fr = document.getElementById(frameId);
       if (fr) fr.addEventListener('error', showFb);
+      // Escuchar onError de YT (video no embeddable) sin timeout — no cortar autoplay lento
+      const onMsgMob = (e) => {
+        if (!fr || e.source !== fr.contentWindow) return;
+        try {
+          const data = JSON.parse(e.data);
+          if (data.event === 'onError') {
+            window.removeEventListener('message', onMsgMob);
+            showFb();
+          }
+        } catch(_) {}
+      };
+      window.addEventListener('message', onMsgMob);
       return;
     }
 
