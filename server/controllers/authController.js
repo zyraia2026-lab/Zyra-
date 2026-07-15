@@ -42,7 +42,7 @@ exports.registerRequest = async (req, res) => {
       return res.status(400).json({ message: "La contraseña debe tener al menos 8 caracteres" });
     if (password.length > 128)
       return res.status(400).json({ message: "La contraseña es demasiado larga" });
-    if (await User.findOne({ email }))
+    if (await User.exists({ email }))
       return res.status(400).json({ message: "Este correo ya está registrado" });
 
     const code = generateCode();
@@ -64,7 +64,7 @@ exports.registerVerify = async (req, res) => {
     if (result.error) return res.status(400).json({ message: result.error });
 
     const { name, password, prehashed } = result.data;
-    if (await User.findOne({ email }))
+    if (await User.exists({ email }))
       return res.status(400).json({ message: "Este correo ya está registrado" });
 
     const genCode = () => "ZYRA" + Math.random().toString(36).slice(2,8).toUpperCase();
@@ -169,7 +169,7 @@ exports.updateSettings = async (req, res) => {
   try {
     const user = await User.findByIdAndUpdate(
       req.user._id, { darkMode: req.body.darkMode }, { new: true }
-    );
+    ).select("_id name email darkMode").lean();
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
     res.json({ success: true, user: { id: user._id, name: user.name, email: user.email, darkMode: user.darkMode } });
   } catch (e) { res.status(500).json({ message: e.message }); }
@@ -183,7 +183,7 @@ exports.updateProfile = async (req, res) => {
     if (name.length > 100) return res.status(400).json({ message: "El nombre es demasiado largo (máx. 100 caracteres)" });
     const user = await User.findByIdAndUpdate(
       req.user._id, { name }, { new: true }
-    );
+    ).select("_id name email").lean();
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
     res.json({ success: true, user: { id: user._id, name: user.name, email: user.email } });
   } catch(e) { res.status(500).json({ message: e.message }); }
@@ -212,7 +212,7 @@ exports.forgotPasswordRequest = async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ message: "Email requerido" });
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select("_id name").lean();
     if (user) {
       const code = generateCode();
       await saveOTP(`reset_${email}`, code, { email, userId: user._id.toString() });

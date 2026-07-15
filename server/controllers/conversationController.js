@@ -30,7 +30,7 @@ exports.renameConversation = async (req, res) => {
       { _id: req.params.id, user: req.user._id },
       { title: title.trim().slice(0, 100) },
       { new: true }
-    );
+    ).select("title").lean();
     if (!c) return res.status(404).json({ message: "No encontrada" });
     res.json({ success: true, title: c.title });
   } catch (e) { res.status(500).json({ message: e.message }); }

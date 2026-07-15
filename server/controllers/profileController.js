@@ -38,7 +38,7 @@ exports.updateProfile = async (req, res) => {
     update.updatedAt = Date.now();
     const p = await Profile.findOneAndUpdate(
       { user: req.user._id }, update, { new: true, upsert: true }
-    );
+    ).lean();
     res.json({ success: true, profile: p });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
@@ -76,7 +76,7 @@ exports.addEmotionRecord = async (req, res) => {
         updatedAt: Date.now()
       },
       { new: true, upsert: true }
-    );
+    ).select("currentEmotion negativeStreakCount").lean();
     res.json({ success: true, profile: p, negativeStreak });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
@@ -100,7 +100,7 @@ exports.setEmergencyContact = async (req, res) => {
       { user: req.user._id },
       { emergencyContact: { name: String(name).trim().substring(0,100), phone: String(phone).trim().substring(0,30), email: String(email||"").trim().substring(0,254), relation: String(relation||"").trim().substring(0,50) }, updatedAt: Date.now() },
       { new: true, upsert: true }
-    );
+    ).select("emergencyContact").lean();
     res.json({ success: true, emergencyContact: p.emergencyContact });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
@@ -335,7 +335,7 @@ exports.getPlanStatus = async (req, res) => {
   try {
     const User = require("../models/User");
     const { getPlan, LIMITS } = require("../middleware/planGate");
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id).lean();
     const { plan, limits, expired } = getPlan(user);
 
     const now   = new Date();

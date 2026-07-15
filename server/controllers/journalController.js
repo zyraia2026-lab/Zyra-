@@ -61,7 +61,7 @@ exports.updateEntry = async (req, res) => {
       { _id: req.params.id, user: req.user._id },
       { title, content: content.substring(0,20000), emotion, tags, updatedAt: new Date() },
       { new: true }
-    );
+    ).lean();
     if (!entry) return res.status(404).json({ message: "Entrada no encontrada" });
     res.json({ success: true, entry });
   } catch (e) { res.status(500).json({ message: e.message }); }
