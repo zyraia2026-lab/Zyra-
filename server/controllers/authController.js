@@ -122,7 +122,7 @@ exports.loginVerify = async (req, res) => {
     const { userId } = result.data;
     if (!userId) return res.status(400).json({ message: "Proceso de login inválido. Intenta de nuevo" });
 
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).select("name email darkMode termsAcceptedAt").lean();
     if (!user) return res.status(401).json({ message: "Usuario no encontrado" });
 
     res.json({
@@ -157,7 +157,7 @@ exports.resendCode = async (req, res) => {
 // ── GET ME ──
 exports.getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id).select("name email darkMode").lean();
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
     const isAdmin = !!(process.env.ADMIN_EMAIL && user.email === process.env.ADMIN_EMAIL);
     res.json({ success: true, user: { id: user._id, name: user.name, email: user.email, darkMode: user.darkMode, isAdmin } });
