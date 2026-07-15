@@ -33,19 +33,21 @@ r.get("/search", protect, ytLimiter, async (req, res) => {
   }
 });
 
-// GET /api/yt/videos?ids=id1,id2
+// GET /api/yt/videos?ids=id1,id2 — oEmbed es la fuente de verdad (no consume quota)
 r.get("/videos", protect, ytLimiter, async (req, res) => {
   try {
-    const key = process.env.YT_API_KEY;
-    if (!key) return res.status(503).json({ message: "YouTube no configurado" });
     const { ids = "" } = req.query;
     if (!ids.trim()) return res.status(400).json({ message: "IDs requeridos" });
+    const idList = ids.split(",").map(s => s.trim()).filter(Boolean).slice(0, 10);
 
-    const params = new URLSearchParams({ part: "status,snippet", id: ids, key });
-    const ytRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?${params}`);
-    const data  = await ytRes.json();
-    if (data.error) return res.status(502).json({ message: data.error.message });
-    res.json(data);
+    const results = await Promise.all(idList.map(id =>
+      fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${id}&format=json`,
+        { signal: AbortSignal.timeout(3000) })
+      .then(r => ({ id, embeddable: r.ok }))
+      .catch(() => ({ id, embeddable: true })) // asumir ok si falla el check
+    ));
+
+    res.json({ items: results.map(r => ({ id: r.id, status: { embeddable: r.embeddable }, snippet: {} })) });
   } catch(e) {
     res.status(500).json({ message: e.message });
   }
