@@ -850,7 +850,7 @@ async function buildSystemPrompt(userId, userName, message = "") {
       user: userId,
       followUpDate: { $gte: windowStart, $lte: windowEnd },
       followUpDone: false,
-    }).lean();
+    }).select("content _id").lean();
     if (pending.length > 0) {
       const list = pending.map(m => `• ${m.content}`).join("\n");
       memoryBlock += `\n\n🔔 HACER SEGUIMIENTO (pregunta por esto si la conversación lo permite, de manera natural):\n${list}`;

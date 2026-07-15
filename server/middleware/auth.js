@@ -7,7 +7,7 @@ const protect = async (req, res, next) => {
   if (!token) return res.status(401).json({ message: "No autorizado" });
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.id).lean();
+    req.user = await User.findById(decoded.id).select("name email plan planExpiresAt isDisabled messagesUsedToday messagesResetAt").lean();
     if (!req.user) return res.status(401).json({ message: "Usuario no encontrado" });
     if (req.user.isDisabled) return res.status(403).json({ message: "Cuenta suspendida. Contacta soporte.", disabled: true });
     next();
