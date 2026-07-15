@@ -27,9 +27,9 @@ router.post("/pdf", protect, requirePlan("premium"), async (req, res) => {
     }
 
     const [pd, gd, jd, cd] = await Promise.all([
-      Profile.findOne({ user: req.user._id }).lean(),
-      Goal.find({ user: req.user._id }).sort({ createdAt: -1 }).lean(),
-      Journal.find({ user: req.user._id }).sort({ createdAt: -1 }).limit(10).lean(),
+      Profile.findOne({ user: req.user._id }).select("emotionHistory").lean(),
+      Goal.find({ user: req.user._id }).sort({ createdAt: -1 }).select("title completed").lean(),
+      Journal.find({ user: req.user._id }).sort({ createdAt: -1 }).limit(10).select("content createdAt").lean(),
       Conversation.countDocuments({ user: req.user._id }),
     ]);
 
