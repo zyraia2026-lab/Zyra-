@@ -3719,6 +3719,48 @@ body {
 }
 
 /* ══════════════════════════════════════════
+   MOBILE LAYOUT REFINEMENTS
+══════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Mini music player: move to left side so speed-dial on right isn't covered */
+  #zyra-mini-player {
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
+    left: 16px !important;
+    right: 76px !important;
+    transform: none !important;
+    max-width: none !important;
+    width: auto !important;
+  }
+
+  /* Dashboard hero card: compact on mobile */
+  #db-hero-card {
+    padding: 18px 20px !important;
+    margin-bottom: 20px !important;
+    border-radius: 18px !important;
+    gap: 12px !important;
+  }
+  #db-hero-card h1 { font-size: 24px !important; margin-bottom: 6px !important; }
+  #db-hero-card #hero-emoji { font-size: 48px !important; }
+  #db-hero-card #hero-status { font-size: 12px !important; padding: 6px 12px !important; }
+
+  /* Stats row: tighter spacing on mobile */
+  .db-stats-row { gap: 8px !important; margin-bottom: 20px !important; }
+  .db-stats-row > div { padding: 10px 12px !important; border-radius: 12px !important; }
+
+  /* Reduce "Tu día" section bottom margin */
+  #page-dashboard .grid2 { margin-bottom: 20px !important; }
+
+  /* Section labels: tighter */
+  #page-dashboard .db-container > [style*="text-transform:uppercase"] { margin-bottom: 10px !important; }
+
+  /* Chat page: top nav hidden, so chat-box fills full viewport minus tabbar */
+  #page-assistant .chat-box {
+    height: calc(100vh - 60px - env(safe-area-inset-bottom, 0px)) !important;
+    max-height: calc(100vh - 60px - env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* ══════════════════════════════════════════
    MOBILE SPEED-DIAL FAB
    Replaces all individual floating buttons (SOS, ambient, quick-note,
    notifications) with a single expandable button — eliminates clutter.

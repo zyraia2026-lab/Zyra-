@@ -20,11 +20,14 @@ function emotionScore(e) {
 
 exports.getOverview = async (req, res) => {
   try {
-    const [profile, goals, journals, conversations] = await Promise.all([
+    const cutoff90 = new Date(Date.now() - 90 * 86400000);
+    const [profile, goals, journals, conversations, totalConvs] = await Promise.all([
       Profile.findOne({ user: req.user._id }).lean(),
       Goal.find({ user: req.user._id }).lean(),
       Journal.find({ user: req.user._id }).sort({ createdAt: -1 }).limit(90).lean(),
-      Conversation.find({ user: req.user._id }).lean(),
+      // Only fetch last-90-day conversations (for heatmap) — avoids scanning full history
+      Conversation.find({ user: req.user._id, updatedAt: { $gte: cutoff90 } }).select('updatedAt').lean(),
+      Conversation.countDocuments({ user: req.user._id }),
     ]);
 
     const history = profile?.emotionHistory || [];
@@ -131,10 +134,10 @@ exports.getOverview = async (req, res) => {
     const topWords = Object.entries(wordFreq).sort((a,b)=>b[1]-a[1]).slice(0,15).map(([word,count])=>({word,count}));
 
     // ── Activity dates (last 90 days) for streak heatmap ──
-    const cutoff90 = new Date(Date.now() - 90 * 86400000);
+    // cutoff90 already defined above; conversations already filtered to last 90 days
     const toDateStr = d => new Date(d).toISOString().slice(0, 10);
     const activeDatesSet = new Set();
-    conversations.forEach(c => { if (new Date(c.updatedAt) >= cutoff90) activeDatesSet.add(toDateStr(c.updatedAt)); });
+    conversations.forEach(c => { activeDatesSet.add(toDateStr(c.updatedAt)); });
     journals.forEach(j => { if (new Date(j.createdAt) >= cutoff90) activeDatesSet.add(toDateStr(j.createdAt)); });
     history.forEach(h => { if (new Date(h.date) >= cutoff90) activeDatesSet.add(toDateStr(h.date)); });
     const activityDates = [...activeDatesSet];
@@ -143,7 +146,7 @@ exports.getOverview = async (req, res) => {
       success: true,
       stats: {
         totalEntries:    history.length,
-        totalSessions:   profile?.sessionsCount || conversations.length,
+        totalSessions:   profile?.sessionsCount || totalConvs,
         totalGoals,
         completedGoals,
         journalEntries:  journals.length,
