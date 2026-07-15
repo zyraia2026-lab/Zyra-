@@ -5829,7 +5829,7 @@ async function loadFutureNotes() {
   }
 }
 async function deleteFutureNote(id) {
-  if (!confirm("¿Eliminar esta nota? No se puede deshacer.")) return;
+  if (!await zyraConfirm("¿Eliminar esta nota? No se puede deshacer.", { danger: true, okText: "Eliminar" })) return;
   try {
     await api("/future-notes/" + id, "DELETE");
     loadFutureNotes();
@@ -8598,8 +8598,7 @@ async function adminChangePlan(userId) {
 }
 
 async function adminToggleDisable(userId, name) {
-  const confirm = window.confirm(`¿${name} — cambiar estado de suspensión?`);
-  if (!confirm) return;
+  if (!await zyraConfirm(`¿Cambiar estado de suspensión de ${name}?`, { okText: "Confirmar" })) return;
   try {
     const d = await api(`/admin/user/${userId}/disable`, "POST");
     zyraToast(`${d.name}: ${d.isDisabled ? 'Cuenta suspendida' : 'Cuenta activada'} ✓`, d.isDisabled ? "warning" : "success");
