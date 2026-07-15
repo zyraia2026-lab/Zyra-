@@ -1424,7 +1424,10 @@ exports.streamMessage = async (req, res) => {
       ? `Va, te pongo algo de ${_earlyArtist.name} 🎵`
       : (musicFollowUp ? `Va, dale 🎵` : null);
 
-    // ── Para artistas desconocidos en el mensaje: arrancar YouTube YA, en paralelo con Groq ──
+    // ── Arrancar YouTube EN PARALELO con Groq — para artista conocido Y desconocido ──
+    const _earlyKnownYT = (_earlyArtist && musicReq && !incompleteMusicReq)
+      ? getSongsForUnknownArtist(_earlyArtist.name).catch(() => null) : null;
+
     const _earlyUnknownArtist = (musicReq && !incompleteMusicReq && !_earlyArtist)
       ? extractArtistName(message) : null;
     const _earlyUnknownYT = _earlyUnknownArtist
@@ -1496,8 +1499,10 @@ exports.streamMessage = async (req, res) => {
       };
 
       if (detected) {
-        // Canciones reales del artista via YouTube
-        const ytSongs = await getSongsForUnknownArtist(detected.name).catch(()=>null);
+        // Reusar búsqueda YT que arrancó en paralelo — ya está lista o casi lista
+        const ytSongs = (_earlyKnownYT && detected.name === _earlyArtist?.name)
+          ? await _earlyKnownYT
+          : await getSongsForUnknownArtist(detected.name).catch(()=>null);
         songCards = ytResultsToCards2(ytSongs, detected.name);
         if (!songCards.length) {
           songCards = pickSongs(detected.key, 3, usedSongs, mood);
