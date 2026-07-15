@@ -142,11 +142,10 @@ exports.verifySession = async (req, res) => {
     if (session.customer) upd.stripeCustomerId = session.customer;
     await User.findByIdAndUpdate(req.user._id, upd);
 
-    const isAnnualV = session.metadata?.period === "annual";
-    const amt = PLANS[planName] ? (isAnnualV ? PLANS[planName].annual : PLANS[planName].monthly) : 0;
+    const amt = PLANS[planName] ? (isAnnual ? PLANS[planName].annual : PLANS[planName].monthly) : 0;
     await Payment.findOneAndUpdate(
       { stripeSessionId: session.id },
-      { user: req.user._id, plan: planName, period: isAnnualV ? "annual" : "monthly", amount: amt, currency: PLANS[planName]?.currency || "cop", stripeSessionId: session.id },
+      { user: req.user._id, plan: planName, period: isAnnual ? "annual" : "monthly", amount: amt, currency: PLANS[planName]?.currency || "cop", stripeSessionId: session.id },
       { upsert: true, new: true }
     ).catch(()=>{});
 
@@ -238,11 +237,10 @@ exports.webhook = async (req, res) => {
           const wUpd = { plan, planExpiresAt: expires, planActivatedAt: new Date() };
           if (session.customer) wUpd.stripeCustomerId = session.customer;
           await User.findByIdAndUpdate(userId, wUpd);
-          const wIsAnnual = session.metadata?.period === "annual";
-          const wAmt = PLANS[plan] ? (wIsAnnual ? PLANS[plan].annual : PLANS[plan].monthly) : 0;
+          const wAmt = PLANS[plan] ? (isAnnualWh ? PLANS[plan].annual : PLANS[plan].monthly) : 0;
           await Payment.findOneAndUpdate(
             { stripeSessionId: session.id },
-            { user: userId, plan, period: wIsAnnual ? "annual" : "monthly", amount: wAmt, currency: PLANS[plan]?.currency || "cop", stripeSessionId: session.id },
+            { user: userId, plan, period: isAnnualWh ? "annual" : "monthly", amount: wAmt, currency: PLANS[plan]?.currency || "cop", stripeSessionId: session.id },
             { upsert: true, new: true }
           ).catch(()=>{});
           console.log(`✅ Plan ${plan} activado para usuario ${userId}`);
@@ -259,7 +257,7 @@ exports.webhook = async (req, res) => {
 /* ── Historial de pagos ── */
 exports.paymentHistory = async (req, res) => {
   try {
-    const payments = await Payment.find({ user: req.user._id }).sort({ createdAt: -1 }).limit(20);
+    const payments = await Payment.find({ user: req.user._id }).sort({ createdAt: -1 }).limit(20).lean();
     res.json({ payments });
   } catch(e) {
     res.status(500).json({ message: e.message });
@@ -272,7 +270,7 @@ exports.billingPortal = async (req, res) => {
     return res.status(503).json({ message: "Stripe no está configurado. Contacta soporte para gestionar tu suscripción." });
   }
   try {
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id).select("stripeCustomerId").lean();
     if (!user.stripeCustomerId) {
       return res.status(400).json({ message: "No tienes una suscripción activa de Stripe. Contáctanos en soporte@zyra.app" });
     }
