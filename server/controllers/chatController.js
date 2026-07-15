@@ -330,9 +330,10 @@ async function getVideoId(title, artist) {
   const titleLower  = title.toLowerCase();
   const artistLower = artist.toLowerCase();
 
-  const ytSearch = async (q, maxR = 10) => {
+  const ytSearch = async (q, extra = "") => {
     const r = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&videoCategoryId=10&maxResults=${maxR}&key=${YT_KEY}`
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&videoCategoryId=10&videoEmbeddable=true&maxResults=8&key=${YT_KEY}${extra}`,
+      { signal: AbortSignal.timeout(4000) }
     );
     const d = await r.json();
     if (d.error) { console.error("YT API:", d.error.message); return []; }
@@ -340,8 +341,13 @@ async function getVideoId(title, artist) {
   };
 
   try {
-    // 1. Canales "- Topic" primero (YouTube Music: SIEMPRE embeddable)
-    const topicItems = await ytSearch(`${artist} ${title} topic`, 10);
+    // Ambas búsquedas en PARALELO: topic channel + general audio
+    const [topicItems, generalItems] = await Promise.all([
+      ytSearch(`${artist} ${title} topic`),
+      ytSearch(`${title} ${artist} official audio`),
+    ]);
+
+    // 1. Topic channel primero (YouTube Music: SIEMPRE embeddable, sin verificar)
     const topicFirst = topicItems
       .filter(it => it.snippet.channelTitle.toLowerCase().includes("topic"))
       .map(it => it.id.videoId);
@@ -351,26 +357,28 @@ async function getVideoId(title, artist) {
       return topicFirst[0];
     }
 
-    // 2. Búsqueda general + validar embeddability real con Videos API
-    const generalItems = await ytSearch(`${title} ${artist} official audio`, 10);
+    // 2. Resultado general — videoEmbeddable=true ya filtró la mayoría, verificar el resto
     const allItems = [
       ...generalItems.filter(it => {
         const vt = it.snippet.title.toLowerCase();
         return vt.includes(titleLower) || vt.includes(artistLower);
       }),
       ...generalItems,
+      ...topicItems,
     ];
-    // Deduplicar
     const seen = new Set();
     const candidates = allItems
       .map(it => it.id.videoId)
       .filter(id => id && !seen.has(id) && seen.add(id));
 
-    // Validar cuáles son REALMENTE embeddables
-    const verified = await checkEmbeddable(candidates);
-    if (verified?.[0]) {
-      _cacheSet(ytCache, key, verified[0], YT_MAX);
-      return verified[0];
+    // checkEmbeddable solo si hay candidatos (la Search API con videoEmbeddable=true ya filtró ~80%)
+    if (candidates.length) {
+      const verified = await checkEmbeddable(candidates);
+      const winner = verified?.[0] ?? candidates[0];
+      if (winner) {
+        _cacheSet(ytCache, key, winner, YT_MAX);
+        return winner;
+      }
     }
 
     return null;
@@ -401,12 +409,10 @@ async function getSongsForUnknownArtist(artistName) {
       ytFetch(makeUrl(`${artistName} official audio`)),
     ]);
 
-    // Juntar todos los candidatos y verificar embeddability de una sola vez
+    // La búsqueda ya usa videoEmbeddable=true — no hace falta checkEmbeddable extra
     const allItems = [...(d1?.items || []), ...(d2?.items || [])];
-    const allIds   = allItems.map(it => it.id?.videoId).filter(Boolean);
-    const embeddableIds = new Set(
-      allIds.length ? (await checkEmbeddable(allIds).catch(() => null) || allIds) : []
-    );
+    const allIds   = new Set(allItems.map(it => it.id?.videoId).filter(Boolean));
+    const embeddableIds = allIds;
 
     const results = [];
     const seenTitles = new Set();
