@@ -6448,6 +6448,20 @@ function playMedia(query, title, playerId) {
     </a>
   </div>`;
 
+  // Móvil: embed no funciona → botón directo
+  if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768) {
+    player.innerHTML = `<div style="padding:12px;text-align:center">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px">🎵 ${title}</div>
+      <a href="${ytSearch}" target="_blank" rel="noopener"
+         style="display:inline-flex;align-items:center;gap:8px;background:#ff0000;color:#fff;
+                padding:12px 22px;border-radius:12px;font-weight:700;font-size:14px;text-decoration:none">
+        ▶ Abrir en YouTube
+      </a>
+    </div>`;
+    player.scrollIntoView({behavior:"smooth"});
+    return;
+  }
+
   player.innerHTML = `<div class="card" style="max-width:640px;margin:0 auto">
     <div class="card-header">
       <span class="card-title">🧘 ${title}</span>
@@ -7133,6 +7147,11 @@ function buildYTPlayer(card, id) {
   const ytUrl = card.videoId
     ? `https://www.youtube.com/watch?v=${card.videoId}`
     : `https://www.youtube.com/results?search_query=${q}`;
+
+  // Móvil: no intentar embed (autoplay bloqueado), ir directo a YouTube
+  if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768) {
+    return ytButtonHTML(card, id, ytUrl);
+  }
 
   // Usar videoId del backend directamente si está disponible (más rápido, sin API call)
   if (card.videoId) {
@@ -11228,8 +11247,11 @@ document.addEventListener('DOMContentLoaded', () => {
     <!-- APK descargable -->
     <div style="background:linear-gradient(135deg,rgba(34,197,94,.1),rgba(16,185,129,.06));border:1px solid rgba(34,197,94,.25);border-radius:16px;padding:16px;margin-bottom:20px">
       <div style="font-weight:700;color:#22c55e;font-size:13px;margin-bottom:8px">⬇️ Descargar APK (Android)</div>
-      <p style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.5">Instala Zyra como app nativa en tu Android. Permite instalaciones de fuentes desconocidas primero en Ajustes → Seguridad.</p>
+      <p style="font-size:12px;color:var(--text3);margin-bottom:10px;line-height:1.5">Instala Zyra como app nativa en tu Android. No requiere Play Store.</p>
       <a href="/Zyra.apk" download="Zyra.apk" style="display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;border-radius:12px;padding:12px 16px;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;width:100%;box-sizing:border-box" onclick="checkApkAvailable(event)">⬇️ Descargar Zyra.apk</a>
+      <div style="margin-top:10px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:10px;font-size:11px;color:var(--text3);line-height:1.6">
+        <strong style="color:#f59e0b">⚠️ Al instalar:</strong> Android mostrará un aviso de Google Play Protect — esto es normal para apps fuera de la Play Store. Toca <strong>"Instalar de todas formas"</strong> para continuar. Si no aparece esa opción, ve a <em>Ajustes → Seguridad → Fuentes desconocidas</em> y actívalo.
+      </div>
     </div>
 
     <!-- Android Chrome -->
