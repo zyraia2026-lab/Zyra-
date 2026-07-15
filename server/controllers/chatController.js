@@ -404,17 +404,20 @@ async function getSongsForUnknownArtist(artistName) {
     const ytFetch = (url) =>
       fetch(url, { signal: AbortSignal.timeout(5000) }).then(r => r.json()).catch(() => null);
 
+    // "topic" busca el canal automático de YouTube Music — embedding 100% garantizado
     const [d1, d2] = await Promise.all([
-      ytFetch(makeUrl(`${artistName} canciones`)),
+      ytFetch(makeUrl(`${artistName} topic`)),
       ytFetch(makeUrl(`${artistName} official audio`)),
     ]);
 
-    // Combinar, deduplicar y verificar embeddability real (videoEmbeddable=true filtra ~80%,
-    // pero no es 100% fiable — checkEmbeddable confirma los restantes para evitar Error 153)
-    const allItems = [...(d1?.items || []), ...(d2?.items || [])];
-    const allIds   = allItems.map(it => it.id?.videoId).filter(Boolean);
-    const embeddableIds = new Set(
-      allIds.length ? (await checkEmbeddable(allIds).catch(() => null) || allIds) : []
+    // Priorizar Topic channels (100% embeddable) → verificar el resto con checkEmbeddable
+    const isTopic = it => it.snippet?.channelTitle?.toLowerCase().includes("topic");
+    const allItems = [...(d1?.items || []), ...(d2?.items || [])]
+      .sort((a, b) => (isTopic(a) ? 0 : 1) - (isTopic(b) ? 0 : 1));
+
+    const nonTopicIds = allItems.filter(it => !isTopic(it)).map(it => it.id?.videoId).filter(Boolean);
+    const verifiedNonTopic = new Set(
+      nonTopicIds.length ? (await checkEmbeddable(nonTopicIds).catch(() => null) || nonTopicIds) : []
     );
 
     const results = [];
@@ -424,7 +427,8 @@ async function getSongsForUnknownArtist(artistName) {
       if (results.length >= 5) break;
       const videoId = item.id?.videoId;
       if (!videoId) continue;
-      if (!embeddableIds.has(videoId)) continue; // filtrar Error 153 antes de mostrar
+      // Topic channels no necesitan verificación; el resto sí
+      if (!isTopic(item) && !verifiedNonTopic.has(videoId)) continue;
       const rawTitle     = item.snippet.title;
       const channelTitle = item.snippet.channelTitle || "";
       if (!isRelevantSong(rawTitle, artistName, channelTitle)) continue;
