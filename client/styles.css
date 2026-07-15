@@ -368,6 +368,14 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
   width: 240px;
   animation: fadeUp .25s var(--spring);
 }
+@media (max-width: 768px) {
+  .ambient-panel {
+    bottom: calc(135px + env(safe-area-inset-bottom, 0px));
+    right: 16px;
+    width: calc(100vw - 32px);
+    max-width: 280px;
+  }
+}
 @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
 .ambient-panel h4 { font-size:12px; font-weight:800; color:var(--text3); text-transform:uppercase; letter-spacing:.8px; margin-bottom:12px; }
 .ambient-item {
@@ -3708,6 +3716,118 @@ body {
   outline-offset: 2px;
   border-radius: 14px;
   box-shadow: 0 0 0 4px rgba(99,102,241,.15);
+}
+
+/* ══════════════════════════════════════════
+   MOBILE SPEED-DIAL FAB
+   Replaces all individual floating buttons (SOS, ambient, quick-note,
+   notifications) with a single expandable button — eliminates clutter.
+══════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Hide individual FABs — all consolidated inside the speed-dial */
+  .sos-fab, .ambient-fab, .fab-qn, .zyra-notif-fab { display: none !important; }
+
+  /* Hide top nav — bottom tabbar handles all mobile navigation */
+  .page > nav:not(.lp-nav) { display: none; }
+
+  /* A bit more top breathing room now that the nav is gone */
+  .container { padding-top: 16px; }
+  .db-container { padding-top: 16px; }
+
+  /* Speed-dial container */
+  .mob-speed-dial {
+    position: fixed;
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    right: 16px;
+    z-index: 700;
+    display: none;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  .mob-speed-dial.visible { display: flex; }
+
+  /* Sub-items list — slides up on open */
+  .mob-sd-items {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    margin-bottom: 10px;
+    opacity: 0;
+    transform: translateY(10px) scale(0.9);
+    transform-origin: bottom right;
+    transition: opacity .15s, transform .2s cubic-bezier(.34,1.56,.64,1);
+    pointer-events: none;
+  }
+  .mob-speed-dial.sd-open .mob-sd-items {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+
+  .mob-sd-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px 9px 12px;
+    border-radius: 24px;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(0,0,0,.18);
+    color: #fff;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    will-change: transform;
+  }
+  .mob-sd-item:active { transform: scale(.93) !important; }
+  .mob-sd-icon { font-size: 17px; line-height: 1; }
+
+  .mob-sd-sos    { background: linear-gradient(135deg,#dc2626,#9f1239); }
+  .mob-sd-ambient { background: linear-gradient(135deg,#6366f1,#8b5cf6); }
+  .mob-sd-note   { background: linear-gradient(135deg,#059669,#0d9488); }
+  .mob-sd-notif  { background: linear-gradient(135deg,#f59e0b,#f97316); }
+
+  /* Main ⊕ trigger button */
+  .mob-sd-trigger {
+    width: 50px; height: 50px; border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border: none; color: #fff; font-size: 26px;
+    cursor: pointer;
+    box-shadow: 0 6px 22px rgba(99,102,241,.45);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform .2s cubic-bezier(.34,1.56,.64,1);
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    will-change: transform;
+  }
+  .mob-speed-dial.sd-open .mob-sd-trigger { transform: rotate(45deg); }
+
+  /* Red dot badge on trigger when there are notifications */
+  .mob-sd-dot {
+    position: absolute; top: 1px; right: 1px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: #ef4444;
+    border: 2px solid var(--bg, #f5f7ff);
+    display: none;
+    pointer-events: none;
+  }
+  .mob-sd-dot.show { display: block; }
+
+  /* Invisible backdrop to close when tapping outside */
+  .mob-sd-backdrop {
+    position: fixed; inset: 0;
+    z-index: -1; display: none;
+  }
+  .mob-speed-dial.sd-open .mob-sd-backdrop { display: block; }
+}
+
+@media (min-width: 769px) {
+  .mob-speed-dial { display: none !important; }
 }
 
 /* ── Print / PDF ── */
