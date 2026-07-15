@@ -4,7 +4,7 @@ const bcrypt  = require("bcryptjs");
 // ── GET perfil ──
 exports.getProfile = async (req, res) => {
   try {
-    let p = await Profile.findOne({ user: req.user._id });
+    let p = await Profile.findOne({ user: req.user._id }).lean();
     if (!p) p = await Profile.create({ user: req.user._id });
     res.json({ success: true, profile: p });
   } catch (e) { res.status(500).json({ message: e.message }); }
@@ -53,7 +53,7 @@ exports.addEmotionRecord = async (req, res) => {
     const NEGATIVE = ["ansioso","triste","enojado","agotado","confundido"];
     const isNegative = NEGATIVE.includes(emotion);
 
-    const current = await Profile.findOne({ user: req.user._id });
+    const current = await Profile.findOne({ user: req.user._id }).select("emotionHistory negativeStreakCount").lean();
     let negativeStreak = 0;
     if (isNegative) {
       const lastRecord = current?.emotionHistory?.slice(-1)[0];
@@ -107,7 +107,7 @@ exports.setEmergencyContact = async (req, res) => {
 
 exports.getEmergencyContact = async (req, res) => {
   try {
-    const p = await Profile.findOne({ user: req.user._id });
+    const p = await Profile.findOne({ user: req.user._id }).select("emergencyContact").lean();
     res.json({ success: true, emergencyContact: p?.emergencyContact || null });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
@@ -200,7 +200,7 @@ exports.verifyPin = async (req, res) => {
     if (!pin || !/^\d{4}$/.test(String(pin)))
       return res.status(400).json({ message: "PIN debe ser de 4 dígitos" });
 
-    const p = await Profile.findOne({ user: req.user._id });
+    const p = await Profile.findOne({ user: req.user._id }).select("pin pinEnabled").lean();
     if (!p?.pinEnabled) return res.json({ success: true, valid: true }); // sin PIN activo
 
     const valid = await bcrypt.compare(String(pin), p.pin);
