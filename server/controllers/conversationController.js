@@ -2,7 +2,7 @@ const Conversation = require("../models/Conversation");
 
 exports.getConversations = async (req, res) => {
   try {
-    const list = await Conversation.find({ user: req.user._id }).sort({ updatedAt: -1 }).select("-messages").limit(30).lean();
+    const list = await Conversation.find({ user: req.user._id }).sort({ updatedAt: -1 }).select("title updatedAt").limit(30).lean();
     res.json({ success: true, conversations: list });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
