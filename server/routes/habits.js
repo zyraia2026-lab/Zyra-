@@ -6,7 +6,7 @@ const HabitLog = require("../models/HabitLog");
 // GET user's habit definitions
 r.get("/", protect, async (req, res) => {
   try {
-    const doc = await HabitDefinition.findOne({ user: req.user._id });
+    const doc = await HabitDefinition.findOne({ user: req.user._id }).lean();
     const habits = doc ? JSON.parse(doc.habits || "[]") : null;
     res.json({ success: true, habits });
   } catch (e) { res.status(500).json({ message: e.message }); }
@@ -30,7 +30,7 @@ r.put("/", protect, async (req, res) => {
 r.get("/log", protect, async (req, res) => {
   try {
     const date = req.query.date || new Date().toDateString();
-    const log = await HabitLog.findOne({ user: req.user._id, date });
+    const log = await HabitLog.findOne({ user: req.user._id, date }).lean();
     res.json({ success: true, completions: log ? JSON.parse(log.completions || "[]") : [] });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
