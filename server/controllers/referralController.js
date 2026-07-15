@@ -29,22 +29,22 @@ exports.applyCode = async (req, res) => {
     const referrer = await User.findOne({ referralCode: code.trim().toUpperCase() });
     if (!referrer) return res.status(404).json({ message: "Código no encontrado" });
 
-    const giveReward = async (userId) => {
-      const u = await User.findById(userId);
+    const giveReward = async (u) => {
       const expires = new Date(u.planExpiresAt && u.planExpiresAt > new Date() ? u.planExpiresAt : new Date());
       expires.setDate(expires.getDate() + REWARD_DAYS);
-      await User.findByIdAndUpdate(userId, {
+      await User.findByIdAndUpdate(u._id, {
         plan: "premium",
         planExpiresAt: expires,
         planActivatedAt: u.planActivatedAt || new Date(),
       });
     };
 
-    await giveReward(req.user._id);
-    await giveReward(referrer._id);
+    await Promise.all([giveReward(me), giveReward(referrer)]);
 
-    await User.findByIdAndUpdate(req.user._id, { referredBy: referrer._id, referralRewardUsed: true });
-    await User.findByIdAndUpdate(referrer._id, { $inc: { referralCount: 1 } });
+    await Promise.all([
+      User.findByIdAndUpdate(req.user._id, { referredBy: referrer._id, referralRewardUsed: true }),
+      User.findByIdAndUpdate(referrer._id, { $inc: { referralCount: 1 } }),
+    ]);
 
     res.json({ success: true, message: `¡Código aplicado! Tú y ${referrer.name} reciben ${REWARD_DAYS} días de Premium gratis ✦` });
   } catch(e) {
