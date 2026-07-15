@@ -1298,7 +1298,7 @@ exports.sendMessage = async (req, res) => {
           { _id:conversationId, user:req.user._id },
           { $push:{ messages:{ $each:msgPair, $slice:-200 } }, updatedAt:Date.now() },
           { new:true }
-        ).catch(()=>null);
+        ).select("_id").lean().catch(()=>null);
       }
       if (!conv) {
         const title = message.length > 60 ? message.substring(0,57)+"..." : message;
@@ -1581,7 +1581,7 @@ exports.streamMessage = async (req, res) => {
           { _id:conversationId, user:req.user._id },
           { $push:{ messages:{ $each:msgPair, $slice:-200 } }, updatedAt:Date.now() },
           { new:true }
-        ).catch(()=>null);
+        ).select("_id").lean().catch(()=>null);
       }
       if (!conv) {
         const title = message.length > 60 ? message.substring(0,57)+"..." : message;
