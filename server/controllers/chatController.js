@@ -709,7 +709,7 @@ async function findRelevantJournals(userId, message, limit = 2) {
       { content: { $regex: w, $options: "i" } },
     ]);
     return await Journal.find({ user: userId, $or: orClauses })
-      .sort({ createdAt: -1 }).limit(limit).lean();
+      .sort({ createdAt: -1 }).limit(limit).select("title content _id").lean();
   } catch(e) { return []; }
 }
 
@@ -738,9 +738,9 @@ async function getReasoningContext(message) {
 ════════════════════════════════════════ */
 async function buildSystemPrompt(userId, userName, message = "") {
   const [profile, goals, journals] = await Promise.all([
-    Profile.findOne({ user: userId }).lean().catch(() => null),
-    Goal.find({ user: userId }).sort({ createdAt:-1 }).limit(10).lean().catch(() => []),
-    Journal.find({ user: userId }).sort({ createdAt:-1 }).limit(3).lean().catch(() => []),
+    Profile.findOne({ user: userId }).select("currentEmotion emotionHistory negativeStreakCount sessionsCount streakDays achievements").lean().catch(() => null),
+    Goal.find({ user: userId }).sort({ createdAt:-1 }).limit(10).select("title completed").lean().catch(() => []),
+    Journal.find({ user: userId }).sort({ createdAt:-1 }).limit(3).select("title content _id").lean().catch(() => []),
   ]);
 
   let memoryBlock = "";
