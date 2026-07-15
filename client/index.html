@@ -8265,6 +8265,7 @@ async function sendMsg() {
       }
     }
   } catch(e) {
+    console.error("sendMsg error:", e?.message || e);
     try { streamDiv.remove(); } catch(_) {}
     addBotMsg("Ups, tuve un problema técnico. Intenta de nuevo en un momento.");
     chatHistory.pop();
