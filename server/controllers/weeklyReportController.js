@@ -33,11 +33,11 @@ async function buildReportData(userId, userName) {
   weekStart.setDate(weekStart.getDate() - 7); // la semana pasada
   const weekEnd   = getMondayOf();
 
-  const [profile, goals, journals, conversations] = await Promise.all([
+  const [profile, goals, journals, sessionCount] = await Promise.all([
     Profile.findOne({ user: userId }).lean(),
     Goal.find({ user: userId }).lean(),
     Journal.find({ user: userId, createdAt: { $gte: weekStart, $lt: weekEnd } }).lean(),
-    Conversation.find({ user: userId, updatedAt: { $gte: weekStart, $lt: weekEnd } }).lean(),
+    Conversation.countDocuments({ user: userId, updatedAt: { $gte: weekStart, $lt: weekEnd } }),
   ]);
 
   const history = (profile?.emotionHistory || []).filter(h => {
@@ -61,7 +61,7 @@ async function buildReportData(userId, userName) {
 
   return {
     userName, weekStart, weekEnd, history, topEmotion, positivity,
-    avgScore: Number(avgScore), journals, conversations,
+    avgScore: Number(avgScore), journals, sessionCount,
     completedGoals: completedThisWeek,
     activeGoals: goals.filter(g => !g.completed).slice(0, 5),
     streakDays: profile?.streakDays || 0,
@@ -87,7 +87,7 @@ DATOS DE LA SEMANA (${data.weekStart.toLocaleDateString("es-CO")} al ${data.week
 - Emociones registradas: ${emotionList}
 - Tasa de positividad: ${data.positivity}%
 - Score emocional promedio: ${data.avgScore} (rango -1 a +1)
-- Sesiones de chat: ${data.conversations.length}
+- Sesiones de chat: ${data.sessionCount}
 - Entradas de diario: ${data.journals.length}
 - Metas completadas esta semana: ${data.completedGoals.length}
 - Metas activas: ${data.activeGoals.map(g=>g.title).join(", ") || "ninguna"}

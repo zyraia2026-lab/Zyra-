@@ -83,7 +83,7 @@ exports.addEmotionRecord = async (req, res) => {
 
 exports.getEmotionHistory = async (req, res) => {
   try {
-    const p = await Profile.findOne({ user: req.user._id });
+    const p = await Profile.findOne({ user: req.user._id }).select("emotionHistory").lean();
     res.json({ success: true, history: p ? p.emotionHistory.slice(-30) : [] });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
@@ -158,7 +158,7 @@ exports.moodCheckin = async (req, res) => {
 exports.getMoodStatus = async (req, res) => {
   try {
     const todayStart = new Date(); todayStart.setHours(0,0,0,0);
-    const p = await Profile.findOne({ user: req.user._id }).lean();
+    const p = await Profile.findOne({ user: req.user._id }).select("emotionHistory currentEmotion").lean();
     const done = p?.emotionHistory?.some(h => new Date(h.date) >= todayStart) || false;
     res.json({ success: true, checkedInToday: done, currentEmotion: p?.currentEmotion || null });
   } catch(e) { res.status(500).json({ message: e.message }); }
