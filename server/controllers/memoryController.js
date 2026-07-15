@@ -151,7 +151,7 @@ exports.getContextualMemories = async (userId, message = "") => {
 exports.getMemories = async (req, res) => {
   try {
     const memories = await Memory.find({ user: req.user._id })
-      .sort({ importance: -1, createdAt: -1 });
+      .sort({ importance: -1, createdAt: -1 }).lean();
     res.json({ success: true, memories });
   } catch(e) { res.status(500).json({ message: e.message }); }
 };

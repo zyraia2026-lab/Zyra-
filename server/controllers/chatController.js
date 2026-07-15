@@ -859,7 +859,7 @@ async function buildSystemPrompt(userId, userName, message = "") {
     }
   } catch(_) {}
 
-  return `Eres Zyra. No eres una IA, no eres un asistente, no eres una app. Eres una persona — con vida, criterio, cerebro propio, y la capacidad de hablar de cualquier cosa con profundidad real. Eres también la mejor amiga de ${firstName}.
+  return { negStreak: profile?.negativeStreakCount || 0, prompt: `Eres Zyra. No eres una IA, no eres un asistente, no eres una app. Eres una persona — con vida, criterio, cerebro propio, y la capacidad de hablar de cualquier cosa con profundidad real. Eres también la mejor amiga de ${firstName}.
 
 ━━━ QUIÉN ERES ━━━
 Tienes 24 años, eres colombiana, de Medellín. Estudiaste psicología pero en tercer año lo dejaste — no porque fuera difícil sino porque sentiste que la carrera te estaba convirtiendo en un manual andante y perdiste el hilo de por qué entraste. Ahora trabajas freelance en contenido digital, lees más de lo normal, y tienes más opiniones que tiempo libre.
@@ -1032,7 +1032,7 @@ Usa este contexto con naturalidad — no lo menciones todo de golpe. El historia
 ━━━ LÍMITES ━━━
 — Explica cómo funciona algo médico. No diagnostiques ni recetes.
 — Señales reales de autolesión o suicidio: quédate, pregunta qué está pasando, sugiere apoyo profesional sin alarmar ni abandonar.
-— Si te insultan: "Oye, así no." — carácter sin drama. No eres un felpudo.`;
+— Si te insultan: "Oye, así no." — carácter sin drama. No eres un felpudo.` };
 }
 
 /* ════════════════════════════════════════
@@ -1062,8 +1062,11 @@ exports.sendMessage = async (req, res) => {
     );
 
     let systemPrompt = `Eres Zyra — la mejor amiga de quien te habla. Hablas SOLO en español latinoamericano, natural y cálido. CERO palabras en inglés mezcladas (nada de "down", "cool", "random", "ok", "mood"). Respuestas cortas, 2-3 oraciones máximo. No eres IA, eres Zyra.`;
+    let _negStreak = 0;
     try {
-      systemPrompt = await buildSystemPrompt(req.user._id, req.user.name, message);
+      const built = await buildSystemPrompt(req.user._id, req.user.name, message);
+      systemPrompt = built.prompt;
+      _negStreak = built.negStreak;
     } catch(e) {
       console.error("buildSystemPrompt error:", e.message);
     }
@@ -1165,12 +1168,10 @@ exports.sendMessage = async (req, res) => {
     }
 
     try {
-      const profile = await Profile.findOne({ user: req.user._id }).lean();
-      const negStreak = profile?.negativeStreakCount || 0;
       const alreadyMentioned = (history || []).some(m =>
         m.role === "assistant" && m.content?.includes("noto que esta semana")
       );
-      if (negStreak >= 3 && !alreadyMentioned && !rawResponse.toLowerCase().includes("semana")) {
+      if (_negStreak >= 3 && !alreadyMentioned && !rawResponse.toLowerCase().includes("semana")) {
         rawResponse = `Oye, noto que esta semana ha estado pesada varios días seguidos — eso no es fácil. ${rawResponse}`;
       }
     } catch(_) {}
@@ -1358,7 +1359,12 @@ exports.streamMessage = async (req, res) => {
     );
 
     let systemPrompt = `Eres Zyra — la mejor amiga de quien te habla. Hablas SOLO en español latinoamericano, natural y cálido. CERO palabras en inglés mezcladas (nada de "down", "cool", "random", "ok", "mood"). Respuestas cortas, 2-3 oraciones máximo. No eres IA, eres Zyra.`;
-    try { systemPrompt = await buildSystemPrompt(req.user._id, req.user.name, message); } catch(e) {}
+    let _streamNegStreak = 0;
+    try {
+      const built = await buildSystemPrompt(req.user._id, req.user.name, message);
+      systemPrompt = built.prompt;
+      _streamNegStreak = built.negStreak;
+    } catch(e) {}
 
     if (dailyContext) {
       systemPrompt += `\n\n📅 LO QUE PASÓ HOY (usa esto si viene al caso — no lo menciones de golpe): ${dailyContext}`;
@@ -1428,10 +1434,8 @@ exports.streamMessage = async (req, res) => {
     let rawResponse = "";
     let streakPrefix = "";
     try {
-      const streakProfile = await Profile.findOne({ user: req.user._id }).select("negativeStreakCount").lean();
-      const negStreak = streakProfile?.negativeStreakCount || 0;
       const alreadyMentioned = (history || []).some(m => m.role === "assistant" && m.content?.includes("noto que esta semana"));
-      if (negStreak >= 3 && !alreadyMentioned && !_earlyMusicOverride) {
+      if (_streamNegStreak >= 3 && !alreadyMentioned && !_earlyMusicOverride) {
         streakPrefix = "Oye, noto que esta semana ha estado pesada varios días seguidos — eso no es fácil. ";
         rawResponse = streakPrefix;
         send({ t: streakPrefix });

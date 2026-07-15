@@ -35,17 +35,14 @@ exports.createEntry = async (req, res) => {
 
     const entry = await Journal.create({ user: req.user._id, title, content: content.substring(0,20000), emotion, tags });
 
-    // Verificar logro journal_10 en background
+    // Verificar logro journal_10 en background (atómico: condición evita doble conteo)
     Journal.countDocuments({ user: req.user._id }).then(async (total) => {
       if (total >= 10) {
         const Profile = require("../models/Profile");
-        const p = await Profile.findOne({ user: req.user._id });
-        if (p && !(p.achievements || []).includes("journal_10")) {
-          await Profile.findOneAndUpdate(
-            { user: req.user._id },
-            { $addToSet: { achievements: "journal_10" }, $inc: { coins: 20 } }
-          );
-        }
+        await Profile.findOneAndUpdate(
+          { user: req.user._id, achievements: { $ne: "journal_10" } },
+          { $addToSet: { achievements: "journal_10" }, $inc: { coins: 20 } }
+        );
       }
     }).catch(() => {});
 
