@@ -130,7 +130,7 @@ exports.generate = async (req, res) => {
     const existing = await WeeklyReport.findOne({
       user: req.user._id,
       weekOf: { $gte: new Date(weekOf.getTime() - 3600000) }
-    });
+    }).lean();
     if (existing && !req.query.force) {
       return res.json({ success: true, report: existing, cached: true });
     }
