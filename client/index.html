@@ -7108,39 +7108,38 @@ async function findPlayableVideoId(title, artist) {
   if (!window.YT_ENABLED) return null;
   const authHeader = { "Authorization": "Bearer " + token };
   const base = artist ? `${title} ${artist}` : title;
+  const q1 = artist ? `${base} topic` : base;
+  const q2 = artist ? `${base} audio` : `${base} completo`;
 
-  const queries = artist ? [
-    `${base} - topic`,
-    `${base} audio`,
-    `${base} lyric video`,
-    base,
-  ] : [base, `${base} español`, `${base} completo`];
+  // Ambas búsquedas en paralelo — 1 solo round-trip en vez de hasta 8 secuenciales
+  const [r1, r2] = await Promise.all([
+    fetch(`/api/yt/search?q=${encodeURIComponent(q1)}&maxResults=5`, { headers: authHeader }).then(r => r.json()).catch(() => null),
+    fetch(`/api/yt/search?q=${encodeURIComponent(q2)}&maxResults=5`, { headers: authHeader }).then(r => r.json()).catch(() => null),
+  ]);
 
-  for (const q of queries) {
-    try {
-      const searchRes = await fetch(`/api/yt/search?q=${encodeURIComponent(q)}&maxResults=5`, { headers: authHeader });
-      const searchData = await searchRes.json();
-      if (searchData.error) continue;
+  const allItems = [...(r1?.items || []), ...(r2?.items || [])];
 
-      const videoIds = (searchData.items || []).map(i => i.id?.videoId).filter(Boolean);
-      if (!videoIds.length) continue;
+  // Topic channels (YouTube Music) — siempre embeddable, retornar inmediatamente sin status check
+  const topicItem = allItems.find(it => it.snippet?.channelTitle?.toLowerCase().includes('topic'));
+  if (topicItem?.id?.videoId) return { videoId: topicItem.id.videoId, isTopicChannel: true };
 
-      const statusRes = await fetch(`/api/yt/videos?ids=${videoIds.join(',')}`, { headers: authHeader });
-      const statusData = await statusRes.json();
+  // Para el resto, verificar embeddability con un solo batch
+  const seen = new Set();
+  const videoIds = allItems.map(i => i.id?.videoId).filter(id => id && !seen.has(id) && seen.add(id));
+  if (!videoIds.length) return null;
 
-      for (const item of (statusData.items || [])) {
-        const embeddable = item.status?.embeddable;
-        const isLiveBroadcast = item.snippet?.liveBroadcastContent === 'live';
-        const isTopicChannel = item.snippet?.channelTitle?.endsWith('- Topic');
-        if (embeddable !== false && !isLiveBroadcast) {
-          return { videoId: item.id, isTopicChannel };
-        }
+  try {
+    const statusRes = await fetch(`/api/yt/videos?ids=${videoIds.slice(0, 10).join(',')}`, { headers: authHeader });
+    const statusData = await statusRes.json();
+    for (const item of (statusData.items || [])) {
+      if (item.status?.embeddable !== false && item.snippet?.liveBroadcastContent !== 'live') {
+        return { videoId: item.id, isTopicChannel: !!item.snippet?.channelTitle?.toLowerCase().includes('topic') };
       }
-    } catch(e) {
-      console.warn('YT search error:', e.message);
     }
-  }
-  return null;
+  } catch(e) { console.warn('YT status error:', e.message); }
+
+  // Fallback: primer video sin verificar antes de rendirse
+  return videoIds[0] ? { videoId: videoIds[0] } : null;
 }
 
 function buildYTPlayer(card, id) {
