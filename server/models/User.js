@@ -40,6 +40,8 @@ S.pre("save", async function(next) {
   next();
 });
 
+S.index({ stripeCustomerId: 1 }, { sparse: true });
+
 S.methods.matchPassword = async function(p) {
   return await bcrypt.compare(p, this.password);
 };
