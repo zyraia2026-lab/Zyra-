@@ -3,7 +3,7 @@ const { getPlan } = require("../middleware/planGate");
 
 exports.getGoals = async (req, res) => {
   try {
-    const goals = await Goal.find({ user: req.user._id }).sort({ createdAt: -1 });
+    const goals = await Goal.find({ user: req.user._id }).sort({ createdAt: -1 }).lean();
     res.json({ success: true, goals });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
@@ -35,10 +35,14 @@ exports.createGoal = async (req, res) => {
 
 exports.toggleGoal = async (req, res) => {
   try {
-    const goal = await Goal.findOne({ _id: req.params.id, user: req.user._id });
-    if (!goal) return res.status(404).json({ message: "No encontrada" });
-    goal.completed = !goal.completed;
-    await goal.save();
+    // Read first to know current state, then flip atomically
+    const current = await Goal.findOne({ _id: req.params.id, user: req.user._id }).select("completed").lean();
+    if (!current) return res.status(404).json({ message: "No encontrada" });
+    const goal = await Goal.findByIdAndUpdate(
+      req.params.id,
+      { completed: !current.completed, updatedAt: new Date() },
+      { new: true }
+    );
     res.json({ success: true, goal });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
@@ -71,20 +75,24 @@ exports.addGoalNote = async (req, res) => {
     const text = String(req.body.text || "").trim();
     if (!text) return res.status(400).json({ message: "El texto de la nota es requerido" });
     if (text.length > 1000) return res.status(400).json({ message: "Nota demasiado larga (máx. 1000 caracteres)" });
-    const goal = await Goal.findOne({ _id: req.params.id, user: req.user._id });
+    const goal = await Goal.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id },
+      { $push: { notes: { text: text.substring(0,1000), date: new Date() } }, updatedAt: new Date() },
+      { new: true }
+    );
     if (!goal) return res.status(404).json({ message: "Meta no encontrada" });
-    goal.notes.push({ text: text.substring(0,1000), date: new Date() });
-    await goal.save();
     res.json({ success: true, goal });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
 
 exports.deleteGoalNote = async (req, res) => {
   try {
-    const goal = await Goal.findOne({ _id: req.params.id, user: req.user._id });
+    const goal = await Goal.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id },
+      { $pull: { notes: { _id: req.params.noteId } }, updatedAt: new Date() },
+      { new: true }
+    );
     if (!goal) return res.status(404).json({ message: "Meta no encontrada" });
-    goal.notes = goal.notes.filter(n => n._id.toString() !== req.params.noteId);
-    await goal.save();
     res.json({ success: true, goal });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
