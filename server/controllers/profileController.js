@@ -120,16 +120,33 @@ exports.moodCheckin = async (req, res) => {
     const VALID = ["feliz","tranquilo","ansioso","triste","enojado","confundido","esperanzado","agotado","motivado","nostalgico"];
     if (!VALID.includes(emotion)) return res.status(400).json({ message: "Emoción inválida" });
 
+    const NEGATIVE = ["ansioso","triste","enojado","agotado","confundido"];
+    const isNegative = NEGATIVE.includes(emotion);
+
     // Verificar si ya hizo check-in hoy
     const todayStart = new Date(); todayStart.setHours(0,0,0,0);
     const p = await Profile.findOne({ user: req.user._id }).lean();
     const alreadyToday = p?.emotionHistory?.some(h => new Date(h.date) >= todayStart);
     if (alreadyToday) return res.json({ success: true, alreadyDone: true });
 
+    // Calcular racha negativa por días
+    let negativeStreak = 0;
+    if (isNegative) {
+      const lastRecord = p?.emotionHistory?.slice(-1)[0];
+      const lastDate   = lastRecord ? new Date(lastRecord.date) : null;
+      const lastDay    = lastDate ? lastDate.toDateString() : null;
+      const today      = new Date().toDateString();
+      const alreadyNegativeToday = lastDate && lastDay === today && NEGATIVE.includes(lastRecord.emotion);
+      negativeStreak = alreadyNegativeToday
+        ? (p?.negativeStreakCount || 1)
+        : (p?.negativeStreakCount || 0) + 1;
+    }
+
     await Profile.findOneAndUpdate(
       { user: req.user._id },
       {
         currentEmotion: emotion,
+        negativeStreakCount: negativeStreak,
         $push: { emotionHistory: { emotion, note: note.slice(0, 200), intensity: Math.min(10, Math.max(1, intensity)), date: new Date() } },
       },
       { upsert: true }

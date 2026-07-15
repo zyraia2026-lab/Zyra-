@@ -8162,9 +8162,8 @@ async function sendMsg() {
   if (navigator.vibrate) navigator.vibrate(20);
   inp.value = ""; localStorage.removeItem("zyra_chat_draft"); onInput(); addUserMsg(msg);
   const pc = document.getElementById("prompt-chips"); if (pc) pc.remove();
-  chatHistory.push({role:"user", content:msg});
-
   const historyPayload = chatHistory.map(m => ({role:m.role, content:m.content}));
+  chatHistory.push({role:"user", content:msg});
   showTyping(false);
   const streamDiv = addBotMsgStream();
 
@@ -8909,6 +8908,7 @@ async function vcSendMessage(text) {
   if (zyraCrisisLocked) { zyraTriggerCrisis(); return; }
 
   vcAddMessage('user', text);
+  const vcHistoryPayload = vcHistory.slice(-20);
   vcHistory.push({role:'user',content:text});
   vcSetStatus('Zyra está pensando...');
   try {
@@ -8919,7 +8919,7 @@ async function vcSendMessage(text) {
     const _vcWater = parseInt(localStorage.getItem("zyra_water_" + _vcToday) || "0");
     if (_vcWater) _vcDcParts.push(`Agua: ${_vcWater}/8 vasos`);
     const vcDailyCtx = _vcDcParts.join(". ") || undefined;
-    const d = await api('/chat','POST',{message:text,conversationId:vcConvId,history:vcHistory.slice(-20),mode:'voice',dailyContext:vcDailyCtx});
+    const d = await api('/chat','POST',{message:text,conversationId:vcConvId,history:vcHistoryPayload,mode:'voice',dailyContext:vcDailyCtx});
 
     // Crisis detectada durante llamada de voz
     if (d.crisis) {
@@ -10894,6 +10894,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       _zyraCurrentPlan = result.plan;
       await loadPlanStatus();
       if (typeof loadPlanesPage === 'function') loadPlanesPage();
+      if (typeof loadSubscriptionInfo === 'function') loadSubscriptionInfo();
       zyraToast('¡Pago confirmado! Plan activado correctamente ✦', 'success', 5000);
       for (let i = 0; i < 20; i++) setTimeout(() => launchConfetti(), i * 80);
     }
