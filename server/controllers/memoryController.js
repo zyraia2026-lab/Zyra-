@@ -10,7 +10,7 @@ try {
 exports.extractAndSaveMemories = async (userId, userName, userMessage, assistantResponse) => {
   if (!groq) return;
   try {
-    const existing = await Memory.find({ user: userId }).sort({ importance: -1 }).limit(40).lean();
+    const existing = await Memory.find({ user: userId }).sort({ importance: -1 }).limit(40).select("content").lean();
     const existingList = existing.map(m => m.content).join("\n");
 
     const prompt = `Eres un extractor de contexto personal para Zyra, una IA amiga. Analiza esta conversación y extrae SOLO hechos nuevos sobre ${userName} que valga la pena recordar en futuras sesiones.
@@ -93,6 +93,7 @@ exports.getMemoriesForPrompt = async (userId) => {
     const memories = await Memory.find({ user: userId })
       .sort({ importance: -1, lastReferencedAt: -1 })
       .limit(15)
+      .select("type content importance _id")
       .lean();
 
     if (!memories.length) return "";
@@ -112,6 +113,7 @@ exports.getContextualMemories = async (userId, message = "") => {
     const all = await Memory.find({ user: userId })
       .sort({ importance: -1 })
       .limit(50)
+      .select("type content importance lastReferencedAt _id")
       .lean();
 
     if (!all.length) return "";
