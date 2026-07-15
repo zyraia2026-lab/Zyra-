@@ -1,9 +1,12 @@
 function normalizeTTSText(text) {
   return text
+    .replace(/https?:\/\/\S+/g, "")        // strip URLs
     .replace(/\bZyra\b/g, "Zira")
     .replace(/\bzyra\b/g, "zira")
+    .replace(/[—–]/g, ", ")                 // em/en dash → natural pause
     .replace(/\*+/g, "")
     .replace(/#{1,6}\s/g, "")
+    .replace(/\s{2,}/g, " ")               // collapse extra spaces left by removals
     .trim();
 }
 
