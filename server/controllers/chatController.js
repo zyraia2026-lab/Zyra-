@@ -1302,7 +1302,7 @@ exports.sendMessage = async (req, res) => {
       }
       if (!conv) {
         const title = message.length > 60 ? message.substring(0,57)+"..." : message;
-        conv = await Conversation.create({ user:req.user._id, title, messages:msgPair });
+        conv = await Conversation.create({ user:req.user._id, title, messages:msgPair }).catch(()=>null);
         await Profile.findOneAndUpdate({ user:req.user._id }, { $inc:{ sessionsCount:1 }, lastSession:new Date() }).catch(()=>{});
       }
       // Extraer memorias de forma asíncrona (no bloquea la respuesta)
@@ -1577,7 +1577,7 @@ exports.streamMessage = async (req, res) => {
       }
       if (!conv) {
         const title = message.length > 60 ? message.substring(0,57)+"..." : message;
-        conv = await Conversation.create({ user:req.user._id, title, messages:msgPair });
+        conv = await Conversation.create({ user:req.user._id, title, messages:msgPair }).catch(()=>null);
         await Profile.findOneAndUpdate({ user:req.user._id }, { $inc:{ sessionsCount:1 }, lastSession:new Date() }).catch(()=>{});
       }
       extractAndSaveMemories(req.user._id, req.user.name, message, cleanText).catch(()=>{});
