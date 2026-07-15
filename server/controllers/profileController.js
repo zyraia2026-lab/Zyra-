@@ -125,7 +125,7 @@ exports.moodCheckin = async (req, res) => {
 
     // Verificar si ya hizo check-in hoy
     const todayStart = new Date(); todayStart.setHours(0,0,0,0);
-    const p = await Profile.findOne({ user: req.user._id }).lean();
+    const p = await Profile.findOne({ user: req.user._id }).select("emotionHistory negativeStreakCount").lean();
     const alreadyToday = p?.emotionHistory?.some(h => new Date(h.date) >= todayStart);
     if (alreadyToday) return res.json({ success: true, alreadyDone: true });
 
@@ -335,7 +335,7 @@ exports.getPlanStatus = async (req, res) => {
   try {
     const User = require("../models/User");
     const { getPlan, LIMITS } = require("../middleware/planGate");
-    const user = await User.findById(req.user._id).lean();
+    const user = await User.findById(req.user._id).select("plan planExpiresAt planActivatedAt messagesResetAt messagesUsedToday").lean();
     const { plan, limits, expired } = getPlan(user);
 
     const now   = new Date();
