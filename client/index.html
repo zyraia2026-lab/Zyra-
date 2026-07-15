@@ -6423,7 +6423,29 @@ function playWellnessSong(title, artist, playerId) {
         </div>
       </div>`;
     window._zyraCurrentSong = { title, artist, playerId };
-    setTimeout(() => ytInitPlayer(frameId, vid, fbId), 0);
+    const wellRetry = async () => {
+      const r2 = await findPlayableVideoId(title, artist, vid).catch(() => null);
+      if (!r2?.videoId) return;
+      const p2 = document.getElementById(playerId);
+      if (!p2) return;
+      const uid2 = 'wp' + Date.now(), fId2 = uid2 + '-f', fbId2 = uid2 + '-fb';
+      p2.innerHTML = `
+        <div style="margin-top:8px">
+          <div id="${fId2}-wrap" style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:12px;background:#000">
+            <div id="${fId2}" style="position:absolute;inset:0"></div>
+          </div>
+          <div id="${fbId2}" style="display:none">${ytOpenBtn('Ver en YouTube')}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding:0 2px">
+            <a href="https://www.youtube.com/watch?v=${r2.videoId}" target="_blank" rel="noopener" style="font-size:11px;color:var(--text3);text-decoration:none;opacity:.7">↗ Ver en YouTube</a>
+            <button onclick="document.getElementById('${playerId}').innerHTML='';window._zyraActiveYTPlayer=null;window._zyraCurrentSong=null;_updateMiniPlayerState();"
+              style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--text3);opacity:.7">✕ Cerrar</button>
+          </div>
+        </div>`;
+      ytInitPlayer(fId2, r2.videoId, fbId2);
+      window._ytActivators[fId2]?.();
+    };
+    // Auto-activar: usuario ya hizo click en la canción, no necesita otro click para el thumbnail
+    setTimeout(() => { ytInitPlayer(frameId, vid, fbId, wellRetry); window._ytActivators[frameId]?.(); }, 0);
   }).catch(() => {
     const p = document.getElementById(playerId); if (p) p.innerHTML = ytOpenBtn('Ver en YouTube');
   });
@@ -7093,7 +7115,7 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
     const timer = setTimeout(() => {
       window.removeEventListener('message', onMsg);
       if (!playing) showFb();
-    }, 8000);
+    }, 12000);
   };
 
   // Thumbnail del video con botón play perfectamente centrado
@@ -7164,15 +7186,19 @@ function buildYTPlayer(card, id) {
     const html = ytEmbedHTML(card, id, card.videoId);
     const ytUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(card.title+" "+card.artist)}`;
     const retryFn = window.YT_ENABLED ? async () => {
-      // Buscar video alternativo excluyendo el que falló
+      // Mostrar estado de búsqueda en vez de "Ver en YouTube"
+      const fbEl = document.getElementById(`yt-fallback-${id}`);
+      if (fbEl) fbEl.innerHTML = `<div style="text-align:center;padding:14px;color:rgba(255,255,255,.45);font-size:12px">⟳ Buscando alternativa...</div>`;
       try {
         const result = await findPlayableVideoId(card.title, card.artist, card.videoId);
         if (!result?.videoId) return;
-        // Si hay alternativa, reemplazar el card completo con el nuevo video
         const outer = document.getElementById(id);
         if (!outer) return;
         outer.innerHTML = ytEmbedHTML(card, id, result.videoId);
-        ytInitPlayer(`yt-iframe-${id}`, result.videoId, `yt-fallback-${id}`);
+        const newFrameId = `yt-iframe-${id}`;
+        ytInitPlayer(newFrameId, result.videoId, `yt-fallback-${id}`);
+        // Auto-reproducir inmediatamente sin requerir otro click
+        window._ytActivators[newFrameId]?.();
       } catch(_) {}
     } : null;
     setTimeout(() => ytInitPlayer(`yt-iframe-${id}`, card.videoId, `yt-fallback-${id}`, retryFn), 0);

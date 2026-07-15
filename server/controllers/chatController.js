@@ -296,26 +296,18 @@ function _cacheSet(cache, key, value, max) {
   cache[key] = { v: value, ts: Date.now() };
 }
 
-// Valida con Videos API si el video ES realmente embeddable (la Search API miente)
+// oEmbed es la fuente de verdad: 200 = embeddable, 401 = no embeddable, 404 = no disponible
+// No consume cuota del Data API, no requiere API key, no miente.
 async function checkEmbeddable(videoIds) {
-  if (!videoIds.length || !process.env.YT_API_KEY) return null;
+  if (!videoIds.length) return null;
   try {
-    const ids = videoIds.slice(0, 10).join(",");
-    const r = await fetch(
-      `https://www.googleapis.com/youtube/v3/videos?part=status,contentDetails&id=${ids}&key=${process.env.YT_API_KEY}`,
-      { signal: AbortSignal.timeout(4000) }
-    );
-    const d = await r.json();
-    if (d.error) return null;
-    // Devuelve todos los videoIds que SÍ son embeddables, en orden original
-    const order = new Map(videoIds.map((id, i) => [id, i]));
-    const valid = (d.items || [])
-      .filter(it =>
-        it.status?.embeddable === true &&
-        it.contentDetails?.contentRating?.ytRating !== "ytAgeRestricted"
-      )
-      .sort((a, b) => (order.get(a.id) ?? 99) - (order.get(b.id) ?? 99))
-      .map(it => it.id);
+    const results = await Promise.all(videoIds.slice(0, 8).map(id =>
+      fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${id}&format=json`,
+        { signal: AbortSignal.timeout(3000) })
+      .then(r => r.ok ? id : null)
+      .catch(() => null)
+    ));
+    const valid = results.filter(Boolean);
     return valid.length ? valid : null;
   } catch(e) { return null; }
 }
@@ -371,10 +363,9 @@ async function getVideoId(title, artist) {
       .map(it => it.id.videoId)
       .filter(id => id && !seen.has(id) && seen.add(id));
 
-    // checkEmbeddable solo si hay candidatos (la Search API con videoEmbeddable=true ya filtró ~80%)
     if (candidates.length) {
       const verified = await checkEmbeddable(candidates);
-      const winner = verified?.[0] ?? candidates[0];
+      const winner = verified?.[0];
       if (winner) {
         _cacheSet(ytCache, key, winner, YT_MAX);
         return winner;
@@ -417,7 +408,7 @@ async function getSongsForUnknownArtist(artistName) {
 
     const nonTopicIds = allItems.filter(it => !isTopic(it)).map(it => it.id?.videoId).filter(Boolean);
     const verifiedNonTopic = new Set(
-      nonTopicIds.length ? (await checkEmbeddable(nonTopicIds).catch(() => null) || nonTopicIds) : []
+      nonTopicIds.length ? (await checkEmbeddable(nonTopicIds).catch(() => null) ?? []) : []
     );
 
     const results = [];
