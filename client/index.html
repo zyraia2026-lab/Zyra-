@@ -7117,7 +7117,9 @@ async function findPlayableVideoId(title, artist) {
     fetch(`/api/yt/search?q=${encodeURIComponent(q2)}&maxResults=5`, { headers: authHeader }).then(r => r.json()).catch(() => null),
   ]);
 
-  const allItems = [...(r1?.items || []), ...(r2?.items || [])];
+  const isMixVideo = t => /\bmix\b|\bmixtape\b|\bplaylist\b|\b[eé]xitos\b|\bmegamix\b/i.test(t || '');
+  const allItems = [...(r1?.items || []), ...(r2?.items || [])]
+    .filter(it => !isMixVideo(it.snippet?.title));
 
   // Topic channels (YouTube Music) — siempre embeddable, retornar inmediatamente sin status check
   const topicItem = allItems.find(it => it.snippet?.channelTitle?.toLowerCase().includes('topic'));
