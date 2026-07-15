@@ -13,4 +13,6 @@ const S = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 });
 S.index({ user: 1, createdAt: -1 });
+// Index for due-date alert cron: find non-completed goals by due date
+S.index({ dueDate: 1, completed: 1 });
 module.exports = mongoose.model("Goal", S);
