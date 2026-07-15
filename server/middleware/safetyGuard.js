@@ -32,7 +32,7 @@ async function notifyEmergencyContact(userId, userName, message) {
 
     const [user, profile] = await Promise.all([
       User.findById(userId).select("email").lean(),
-      Profile.findOne({ user: userId }).lean(),
+      Profile.findOne({ user: userId }).select("emergencyContact").lean(),
     ]);
 
     const contact = profile?.emergencyContact;
