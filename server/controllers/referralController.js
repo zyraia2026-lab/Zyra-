@@ -4,7 +4,7 @@ const REWARD_DAYS = 7;
 
 exports.getInfo = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select("referralCode referralCount referredBy referralRewardUsed");
+    const user = await User.findById(req.user._id).select("referralCode referralCount referredBy referralRewardUsed").lean();
     res.json({
       referralCode:       user.referralCode || null,
       referralCount:      user.referralCount || 0,
@@ -21,12 +21,12 @@ exports.applyCode = async (req, res) => {
     const { code } = req.body;
     if (!code) return res.status(400).json({ message: "Código requerido" });
 
-    const me = await User.findById(req.user._id);
+    const me = await User.findById(req.user._id).select("_id referredBy referralCode planExpiresAt planActivatedAt").lean();
 
     if (me.referredBy) return res.status(400).json({ message: "Ya aplicaste un código de referido anteriormente" });
     if (me.referralCode === code.trim().toUpperCase()) return res.status(400).json({ message: "No puedes usar tu propio código" });
 
-    const referrer = await User.findOne({ referralCode: code.trim().toUpperCase() });
+    const referrer = await User.findOne({ referralCode: code.trim().toUpperCase() }).select("_id name planExpiresAt planActivatedAt").lean();
     if (!referrer) return res.status(404).json({ message: "Código no encontrado" });
 
     const giveReward = async (u) => {
