@@ -6393,14 +6393,10 @@ function playWellnessSong(title, artist, playerId) {
         style="display:block;margin:8px auto 0;background:none;border:none;cursor:pointer;font-size:11px;color:var(--text3)">✕ Cerrar</button>
     </div>`;
 
-  // Móvil: abrir siempre en YouTube (iframes no reproducen bien)
-  const isMob = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
-  if (isMob) { player.innerHTML = ytOpenBtn('Abrir en YouTube'); return; }
-
-  // Desktop sin YT API: botón directo
+  // Sin YT API: botón directo
   if (!token || !window.YT_ENABLED) { player.innerHTML = ytOpenBtn('Abrir en YouTube'); return; }
 
-  // Desktop con YT API: buscar video embeddable con la misma lógica que los cards del chat
+  // Con YT API: buscar video embeddable
   const uid = 'wp' + Date.now();
   player.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center;margin-top:8px">
     <div style="font-size:13px;font-weight:600;color:var(--text)">🎵 ${title}</div>
@@ -6448,19 +6444,6 @@ function playMedia(query, title, playerId) {
     </a>
   </div>`;
 
-  // Móvil: embed no funciona → botón directo
-  if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768) {
-    player.innerHTML = `<div style="padding:12px;text-align:center">
-      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px">🎵 ${title}</div>
-      <a href="${ytSearch}" target="_blank" rel="noopener"
-         style="display:inline-flex;align-items:center;gap:8px;background:#ff0000;color:#fff;
-                padding:12px 22px;border-radius:12px;font-weight:700;font-size:14px;text-decoration:none">
-        ▶ Abrir en YouTube
-      </a>
-    </div>`;
-    player.scrollIntoView({behavior:"smooth"});
-    return;
-  }
 
   player.innerHTML = `<div class="card" style="max-width:640px;margin:0 auto">
     <div class="card-header">
@@ -7028,13 +7011,34 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
     if (onFail) onFail();
   };
 
+  const isMob = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
+
   window._ytActivators[divId] = () => {
     const d = document.getElementById(divId);
     if (!d) return;
     const frameId = divId + '-if';
     const ytLink  = `https://www.youtube.com/watch?v=${videoId}`;
 
-    // compute-pressure + fullscreen + autoplay en allow para evitar Permissions-Policy violations
+    if (isMob) {
+      // Móvil: iframe simple con playsinline, sin enablejsapi (postMessage no funciona bien)
+      // El tap del usuario ES el gesto que autoriza autoplay dentro del iframe
+      d.innerHTML = `
+        <iframe id="${frameId}"
+          src="https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=1&playsinline=1"
+          style="position:absolute;top:0;left:0;width:100%;height:100%;border:none"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+          allowfullscreen></iframe>
+        <a href="${ytLink}" target="_blank" rel="noopener"
+           style="position:absolute;bottom:8px;right:8px;background:rgba(220,0,0,.88);color:#fff;padding:5px 10px;border-radius:8px;font-size:11px;font-weight:800;text-decoration:none;z-index:10">
+          ▶ YT
+        </a>`;
+      // Fallback solo si el iframe reporta error de carga (no timeout arbitrario)
+      const fr = document.getElementById(frameId);
+      if (fr) fr.addEventListener('error', showFb);
+      return;
+    }
+
+    // Desktop: enablejsapi + postMessage para detectar reproducción y errores
     d.innerHTML = `
       <iframe id="${frameId}"
         src="https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=1&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}"
@@ -7069,18 +7073,15 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
     };
     window.addEventListener('message', onMsg);
 
-    // Inicializar canal postMessage cuando el iframe termina de cargar (más confiable que setTimeout)
     frame.addEventListener('load', () => {
       if (!frame.contentWindow) return;
       frame.contentWindow.postMessage('{"event":"listening","id":1}', '*');
-      // Forzar play en caso de que autoplay esté bloqueado por el browser
       setTimeout(() => {
         if (!playing && frame.contentWindow)
           frame.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
       }, 300);
     });
 
-    // Timeout más generoso: 8s para conexiones lentas
     const timer = setTimeout(() => {
       window.removeEventListener('message', onMsg);
       if (!playing) showFb();
@@ -7147,11 +7148,6 @@ function buildYTPlayer(card, id) {
   const ytUrl = card.videoId
     ? `https://www.youtube.com/watch?v=${card.videoId}`
     : `https://www.youtube.com/results?search_query=${q}`;
-
-  // Móvil: no intentar embed (autoplay bloqueado), ir directo a YouTube
-  if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768) {
-    return ytButtonHTML(card, id, ytUrl);
-  }
 
   // Usar videoId del backend directamente si está disponible (más rápido, sin API call)
   if (card.videoId) {
