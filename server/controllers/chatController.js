@@ -409,10 +409,13 @@ async function getSongsForUnknownArtist(artistName) {
       ytFetch(makeUrl(`${artistName} official audio`)),
     ]);
 
-    // La búsqueda ya usa videoEmbeddable=true — no hace falta checkEmbeddable extra
+    // Combinar, deduplicar y verificar embeddability real (videoEmbeddable=true filtra ~80%,
+    // pero no es 100% fiable — checkEmbeddable confirma los restantes para evitar Error 153)
     const allItems = [...(d1?.items || []), ...(d2?.items || [])];
-    const allIds   = new Set(allItems.map(it => it.id?.videoId).filter(Boolean));
-    const embeddableIds = allIds;
+    const allIds   = allItems.map(it => it.id?.videoId).filter(Boolean);
+    const embeddableIds = new Set(
+      allIds.length ? (await checkEmbeddable(allIds).catch(() => null) || allIds) : []
+    );
 
     const results = [];
     const seenTitles = new Set();
@@ -500,6 +503,7 @@ function isRelevantSong(ytTitle, artistName, channelTitle = "") {
   const c = channelTitle.toLowerCase();
   if (/reaction|reaccion|cover by|tutorial|karaoke|learn|aprender/.test(t)) return false;
   if (/top \d+|mejores \d+|all songs|discografia completa/.test(t)) return false;
+  if (/\bmix\b|\bmixtape\b|\bplaylist\b|\bcompilaci[oó]n\b|\b[eé]xitos\b|\bmegamix\b/.test(t)) return false;
   // Verificar que el video sea del artista — el título o el canal debe mencionarlo
   const artistWords = artistName.toLowerCase().split(/\s+/).filter(w => w.length > 3);
   if (artistWords.length > 0 && !artistWords.some(w => t.includes(w) || c.includes(w))) return false;
