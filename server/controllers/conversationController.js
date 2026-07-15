@@ -2,14 +2,14 @@ const Conversation = require("../models/Conversation");
 
 exports.getConversations = async (req, res) => {
   try {
-    const list = await Conversation.find({ user: req.user._id }).sort({ updatedAt: -1 }).select("-messages").limit(30);
+    const list = await Conversation.find({ user: req.user._id }).sort({ updatedAt: -1 }).select("-messages").limit(30).lean();
     res.json({ success: true, conversations: list });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
 
 exports.getConversation = async (req, res) => {
   try {
-    const c = await Conversation.findOne({ _id: req.params.id, user: req.user._id });
+    const c = await Conversation.findOne({ _id: req.params.id, user: req.user._id }).lean();
     if (!c) return res.status(404).json({ message: "No encontrada" });
     res.json({ success: true, conversation: c });
   } catch (e) { res.status(500).json({ message: e.message }); }
