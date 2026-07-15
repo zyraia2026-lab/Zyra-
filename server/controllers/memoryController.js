@@ -69,7 +69,7 @@ REGLAS DE FORMATO:
 
     for (const m of memories.slice(0, 2)) {
       if (!m.content || typeof m.content !== "string") continue;
-      const dup = await Memory.findOne({ user: userId, content: { $regex: m.content.substring(0, 30), $options: "i" } });
+      const dup = await Memory.exists({ user: userId, content: { $regex: m.content.substring(0, 30), $options: "i" } });
       if (!dup) {
         const followUpDate = m.followUpDate ? new Date(m.followUpDate) : null;
         await Memory.create({
@@ -159,8 +159,8 @@ exports.getMemories = async (req, res) => {
 /* ── API: borrar una memoria ── */
 exports.deleteMemory = async (req, res) => {
   try {
-    const m = await Memory.findOneAndDelete({ _id: req.params.id, user: req.user._id });
-    if (!m) return res.status(404).json({ message: "Memoria no encontrada" });
+    const { deletedCount } = await Memory.deleteOne({ _id: req.params.id, user: req.user._id });
+    if (!deletedCount) return res.status(404).json({ message: "Memoria no encontrada" });
     res.json({ success: true });
   } catch(e) { res.status(500).json({ message: e.message }); }
 };
