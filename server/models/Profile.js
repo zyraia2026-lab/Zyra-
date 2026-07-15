@@ -58,4 +58,7 @@ const S = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 });
 
+// Index for daily reminder cron: find profiles matching exact hour/minute
+S.index({ reminderEnabled: 1, reminderHour: 1, reminderMinute: 1 });
+
 module.exports = mongoose.model("Profile", S);
