@@ -7026,8 +7026,7 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
         <iframe id="${frameId}"
           src="https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=1&playsinline=1"
           style="position:absolute;top:0;left:0;width:100%;height:100%;border:none"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-          allowfullscreen></iframe>
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"></iframe>
         <a href="${ytLink}" target="_blank" rel="noopener"
            style="position:absolute;bottom:8px;right:8px;background:rgba(220,0,0,.88);color:#fff;padding:5px 10px;border-radius:8px;font-size:11px;font-weight:800;text-decoration:none;z-index:10">
           ▶ YT
@@ -7043,8 +7042,7 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
       <iframe id="${frameId}"
         src="https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=1&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}"
         style="position:absolute;top:0;left:0;width:100%;height:100%;border:none"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen; compute-pressure"
-        allowfullscreen></iframe>
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen; compute-pressure"></iframe>
       <a id="${frameId}-btn" href="${ytLink}" target="_blank" rel="noopener"
          style="position:absolute;bottom:10px;right:10px;background:rgba(220,0,0,.88);color:#fff;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:800;text-decoration:none;z-index:10;box-shadow:0 2px 12px rgba(0,0,0,.5)">
         ▶ YouTube
@@ -7104,7 +7102,7 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
 }
 
 /* Buscar videoId embeddable para una canción o query libre */
-async function findPlayableVideoId(title, artist) {
+async function findPlayableVideoId(title, artist, excludeId = null) {
   if (!window.YT_ENABLED) return null;
   const authHeader = { "Authorization": "Bearer " + token };
   const base = artist ? `${title} ${artist}` : title;
@@ -7125,9 +7123,10 @@ async function findPlayableVideoId(title, artist) {
   const topicItem = allItems.find(it => it.snippet?.channelTitle?.toLowerCase().includes('topic'));
   if (topicItem?.id?.videoId) return { videoId: topicItem.id.videoId, isTopicChannel: true };
 
-  // Para el resto, verificar embeddability con un solo batch
+  // Para el resto, verificar embeddability con un solo batch (excluir el video que ya falló)
   const seen = new Set();
-  const videoIds = allItems.map(i => i.id?.videoId).filter(id => id && !seen.has(id) && seen.add(id));
+  const videoIds = allItems.map(i => i.id?.videoId)
+    .filter(id => id && id !== excludeId && !seen.has(id) && seen.add(id));
   if (!videoIds.length) return null;
 
   try {
@@ -7155,10 +7154,10 @@ function buildYTPlayer(card, id) {
     const html = ytEmbedHTML(card, id, card.videoId);
     const ytUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(card.title+" "+card.artist)}`;
     const retryFn = window.YT_ENABLED ? async () => {
-      // Buscar video alternativo en background (el fallback ya está visible)
+      // Buscar video alternativo excluyendo el que falló
       try {
-        const result = await findPlayableVideoId(card.title, card.artist);
-        if (!result?.videoId || result.videoId === card.videoId) return;
+        const result = await findPlayableVideoId(card.title, card.artist, card.videoId);
+        if (!result?.videoId) return;
         // Si hay alternativa, reemplazar el card completo con el nuevo video
         const outer = document.getElementById(id);
         if (!outer) return;
