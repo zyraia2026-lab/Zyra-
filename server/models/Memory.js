@@ -14,4 +14,5 @@ const S = new mongoose.Schema({
 });
 
 S.index({ user: 1, importance: -1 });
+S.index({ user: 1, followUpDate: 1, followUpDone: 1 }, { sparse: true });
 module.exports = mongoose.model("Memory", S);
