@@ -47,7 +47,7 @@ exports.unsubscribe = async (req, res) => {
 /* Enviar notificación a un usuario específico */
 async function sendToUser(userId, payload) {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
-  const sub = await PushSub.findOne({ user: userId });
+  const sub = await PushSub.findOne({ user: userId }).select("subscription").lean();
   if (!sub) return;
   try {
     await webpush.sendNotification(sub.subscription, JSON.stringify(payload));
@@ -75,7 +75,7 @@ exports.sendDailyReminders = async () => {
       reminderEnabled: true,
       reminderHour:    hour,
       reminderMinute:  min,
-    }).select("user lastReminderSentAt");
+    }).select("user lastReminderSentAt").lean();
 
     const MESSAGES = [
       "Ey, ¿cómo vas hoy? Cuéntame 💙",

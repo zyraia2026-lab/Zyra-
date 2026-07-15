@@ -20,7 +20,7 @@ async function saveOTP(key, code, data = {}) {
 }
 
 async function verifyOTP(key, code) {
-  const otp = await OTP.findOne({ key });
+  const otp = await OTP.findOne({ key }).select("expires code data").lean();
   if (!otp)                      return { error: "No hay un código pendiente para este correo" };
   if (new Date() > otp.expires)  { await OTP.deleteOne({ key }); return { error: "El código expiró. Intenta de nuevo" }; }
   if (otp.code !== code.trim())  return { error: "Código incorrecto. Inténtalo de nuevo" };
@@ -141,7 +141,7 @@ exports.resendCode = async (req, res) => {
   try {
     const { email } = req.body;
     // Buscar OTP existente (registro o login)
-    const existing = await OTP.findOne({ email, key: { $in: [email, `login_${email}`] } });
+    const existing = await OTP.findOne({ email, key: { $in: [email, `login_${email}`] } }).select("key data").lean();
     if (!existing) return res.status(400).json({ message: "No hay un proceso pendiente para este correo" });
 
     const code = generateCode();
