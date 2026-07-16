@@ -41,6 +41,8 @@ S.pre("save", async function(next) {
 });
 
 S.index({ stripeCustomerId: 1 }, { sparse: true });
+S.index({ plan: 1, planExpiresAt: 1 }); // admin plan stats + expiry cron + weekly report cron
+S.index({ createdAt: -1 });             // admin recent-users query
 
 S.methods.matchPassword = async function(p) {
   return await bcrypt.compare(p, this.password);
