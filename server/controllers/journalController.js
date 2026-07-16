@@ -12,7 +12,10 @@ exports.getEntries = async (req, res) => {
 
 exports.createEntry = async (req, res) => {
   try {
-    const { emotion, tags } = req.body;
+    const emotion = typeof req.body.emotion === "string" ? req.body.emotion.trim().substring(0, 50) : "";
+    const tags    = Array.isArray(req.body.tags)
+      ? req.body.tags.filter(t => typeof t === "string").map(t => t.trim().substring(0, 50)).slice(0, 10)
+      : [];
     const title   = String(req.body.title || "").trim().substring(0, 200);
     const content = String(req.body.content || "").trim();
     if (!content) return res.status(400).json({ message: "El contenido es requerido" });
@@ -52,7 +55,10 @@ exports.createEntry = async (req, res) => {
 
 exports.updateEntry = async (req, res) => {
   try {
-    const { emotion, tags } = req.body;
+    const emotion = typeof req.body.emotion === "string" ? req.body.emotion.trim().substring(0, 50) : "";
+    const tags    = Array.isArray(req.body.tags)
+      ? req.body.tags.filter(t => typeof t === "string").map(t => t.trim().substring(0, 50)).slice(0, 10)
+      : [];
     const title   = String(req.body.title || "").trim().substring(0, 200);
     const content = String(req.body.content || "").trim();
     if (!content) return res.status(400).json({ message: "El contenido es requerido" });
