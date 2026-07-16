@@ -265,11 +265,15 @@ exports.exportData = async (req, res) => {
 // ── Borrar todos los datos (reset de perfil, no elimina la cuenta) ──
 exports.deleteAllData = async (req, res) => {
   try {
-    const Goal         = require("../models/Goal");
-    const Journal      = require("../models/Journal");
-    const Conversation = require("../models/Conversation");
-    const PushSub      = require("../models/PushSubscription");
-    const Memory       = require("../models/Memory");
+    const Goal           = require("../models/Goal");
+    const Journal        = require("../models/Journal");
+    const Conversation   = require("../models/Conversation");
+    const PushSub        = require("../models/PushSubscription");
+    const Memory         = require("../models/Memory");
+    const FutureNote     = require("../models/FutureNote");
+    const HabitDef       = require("../models/HabitDefinition");
+    const HabitLog       = require("../models/HabitLog");
+    const WeeklyReport   = require("../models/WeeklyReport");
 
     await Promise.all([
       Profile.findOneAndUpdate({ user: req.user._id }, {
@@ -286,6 +290,10 @@ exports.deleteAllData = async (req, res) => {
       Conversation.deleteMany({ user: req.user._id }),
       PushSub.deleteOne({ user: req.user._id }),
       Memory.deleteMany({ user: req.user._id }),
+      FutureNote.deleteMany({ user: req.user._id }),
+      HabitDef.deleteOne({ user: req.user._id }),
+      HabitLog.deleteMany({ user: req.user._id }),
+      WeeklyReport.deleteMany({ user: req.user._id }),
     ]);
 
     res.json({ success: true, logout: true, message: "Todos tus datos han sido eliminados" });
@@ -295,13 +303,18 @@ exports.deleteAllData = async (req, res) => {
 // ── Eliminar cuenta completa ──
 exports.deleteAccount = async (req, res) => {
   try {
-    const User         = require("../models/User");
-    const Goal         = require("../models/Goal");
-    const Journal      = require("../models/Journal");
-    const Conversation = require("../models/Conversation");
-    const OTP          = require("../models/OTPCode");
-    const PushSub      = require("../models/PushSubscription");
-    const Memory       = require("../models/Memory");
+    const User           = require("../models/User");
+    const Goal           = require("../models/Goal");
+    const Journal        = require("../models/Journal");
+    const Conversation   = require("../models/Conversation");
+    const OTP            = require("../models/OTPCode");
+    const PushSub        = require("../models/PushSubscription");
+    const Memory         = require("../models/Memory");
+    const FutureNote     = require("../models/FutureNote");
+    const HabitDef       = require("../models/HabitDefinition");
+    const HabitLog       = require("../models/HabitLog");
+    const WeeklyReport   = require("../models/WeeklyReport");
+    const Payment        = require("../models/Payment");
 
     // Cancelar suscripción Stripe activa si existe
     const user = await User.findById(req.user._id).select("stripeCustomerId plan").lean();
@@ -323,6 +336,11 @@ exports.deleteAccount = async (req, res) => {
       OTP.deleteMany({ email: req.user.email }),
       PushSub.deleteOne({ user: req.user._id }),
       Memory.deleteMany({ user: req.user._id }),
+      FutureNote.deleteMany({ user: req.user._id }),
+      HabitDef.deleteOne({ user: req.user._id }),
+      HabitLog.deleteMany({ user: req.user._id }),
+      WeeklyReport.deleteMany({ user: req.user._id }),
+      Payment.deleteMany({ user: req.user._id }),
       User.deleteOne({ _id: req.user._id }),
     ]);
 
@@ -356,30 +374,3 @@ exports.getPlanStatus = async (req, res) => {
   } catch(e) { res.status(500).json({ message: e.message }); }
 };
 
-// ── Activar/actualizar plan (simulado — en prod se haría vía webhook de pago) ──
-exports.upgradePlan = async (req, res) => {
-  try {
-    const User = require("../models/User");
-    const { plan, paymentRef } = req.body;
-
-    const VALID = ["free","basic","premium"];
-    if (!VALID.includes(plan)) return res.status(400).json({ message: "Plan inválido" });
-
-    const now     = new Date();
-    const expires = plan === "free" ? null : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 días
-
-    await User.findByIdAndUpdate(req.user._id, {
-      plan,
-      planActivatedAt: now,
-      planExpiresAt:   expires,
-    });
-
-    res.json({
-      success: true,
-      plan,
-      planActivatedAt: now,
-      planExpiresAt:   expires,
-      message: plan === "free" ? "Has vuelto al plan Gratis" : `Plan ${plan === "basic" ? "Básico" : "Premium"} activado correctamente`,
-    });
-  } catch(e) { res.status(500).json({ message: e.message }); }
-};

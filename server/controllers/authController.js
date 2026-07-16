@@ -146,7 +146,11 @@ exports.resendCode = async (req, res) => {
 
     const code = generateCode();
     await OTP.findOneAndUpdate({ key: existing.key }, { code, expires: expiresAt() });
-    await sendVerificationCode(email, code, existing.data?.name || "");
+    try {
+      await sendVerificationCode(email, code, existing.data?.name || "");
+    } catch(emailErr) {
+      console.error("[resendCode] email error:", emailErr.message);
+    }
     res.json({ success: true, message: "Código reenviado" });
   } catch (e) {
     console.error("resendCode:", e.message);
@@ -233,6 +237,8 @@ exports.forgotPasswordReset = async (req, res) => {
       return res.status(400).json({ message: "Todos los campos son requeridos" });
     if (password.length < 8)
       return res.status(400).json({ message: "Mínimo 8 caracteres en la contraseña" });
+    if (password.length > 128)
+      return res.status(400).json({ message: "La contraseña es demasiado larga" });
 
     const result = await verifyOTP(`reset_${email}`, code);
     if (result.error) return res.status(400).json({ message: result.error });
