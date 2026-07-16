@@ -3,11 +3,15 @@ const { protect } = require("../middleware/auth");
 const HabitDefinition = require("../models/HabitDefinition");
 const HabitLog = require("../models/HabitLog");
 
+function safeParseArr(str) {
+  try { const v = JSON.parse(str || "[]"); return Array.isArray(v) ? v : []; } catch { return []; }
+}
+
 // GET user's habit definitions
 r.get("/", protect, async (req, res) => {
   try {
     const doc = await HabitDefinition.findOne({ user: req.user._id }).lean();
-    const habits = doc ? JSON.parse(doc.habits || "[]") : null;
+    const habits = doc ? safeParseArr(doc.habits) : null;
     res.json({ success: true, habits });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
@@ -31,7 +35,7 @@ r.get("/log", protect, async (req, res) => {
   try {
     const date = req.query.date || new Date().toDateString();
     const log = await HabitLog.findOne({ user: req.user._id, date }).lean();
-    res.json({ success: true, completions: log ? JSON.parse(log.completions || "[]") : [] });
+    res.json({ success: true, completions: log ? safeParseArr(log.completions) : [] });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
@@ -52,9 +56,8 @@ r.post("/log", protect, async (req, res) => {
 // GET last 30 days of logs
 r.get("/log/history", protect, async (req, res) => {
   try {
-    const since = new Date(); since.setDate(since.getDate() - 30);
     const logs = await HabitLog.find({ user: req.user._id }).sort({ date: -1 }).limit(35).lean();
-    res.json({ success: true, logs: logs.map(l => ({ date: l.date, completions: JSON.parse(l.completions || "[]") })) });
+    res.json({ success: true, logs: logs.map(l => ({ date: l.date, completions: safeParseArr(l.completions) })) });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
