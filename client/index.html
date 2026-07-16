@@ -3436,7 +3436,8 @@ async function doLoginVerify() {
     loadPlanStatus();
     loadGamification();
     setTimeout(updateNotifBadge, 1500);
-    if (!d.user.termsAcceptedAt || localStorage.getItem("zyra_terms_accepted") !== TERMS_VER) {
+    if (d.user.termsAcceptedAt) localStorage.setItem("zyra_terms_accepted", TERMS_VER);
+    if (!d.user.termsAcceptedAt) {
       _termsNextAction = "dashboard";
       showTermsOverlay();
     } else {
@@ -3487,7 +3488,8 @@ async function doRegisterVerify() {
     if (user?.name) {
       api("/auth/update-profile", "PUT", { name: user.name }).catch(() => {});
     }
-    if (!d.user.termsAcceptedAt || localStorage.getItem("zyra_terms_accepted") !== TERMS_VER) {
+    if (d.user.termsAcceptedAt) localStorage.setItem("zyra_terms_accepted", TERMS_VER);
+    if (!d.user.termsAcceptedAt) {
       _termsNextAction = "test";
       showTermsOverlay();
     } else {
@@ -7196,8 +7198,7 @@ async function findPlayableVideoId(title, artist, excludeId = null) {
     }
   } catch(e) { console.warn('YT status error:', e.message); }
 
-  // Fallback: primer video sin verificar antes de rendirse
-  return videoIds[0] ? { videoId: videoIds[0] } : null;
+  return null;
 }
 
 function buildYTPlayer(card, id) {
@@ -7211,9 +7212,6 @@ function buildYTPlayer(card, id) {
     const html = ytEmbedHTML(card, id, card.videoId);
     const ytUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(card.title+" "+card.artist)}`;
     const retryFn = window.YT_ENABLED ? async () => {
-      // Mostrar estado de búsqueda en vez de "Ver en YouTube"
-      const fbEl = document.getElementById(`yt-fallback-${id}`);
-      if (fbEl) fbEl.innerHTML = `<div style="text-align:center;padding:14px;color:rgba(255,255,255,.45);font-size:12px">⟳ Buscando alternativa...</div>`;
       try {
         const result = await findPlayableVideoId(card.title, card.artist, card.videoId);
         if (!result?.videoId) return;
