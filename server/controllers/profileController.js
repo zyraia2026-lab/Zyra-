@@ -235,25 +235,39 @@ exports.disablePin = async (req, res) => {
 // ── Exportar datos ──
 exports.exportData = async (req, res) => {
   try {
-    const Profile    = require("../models/Profile");
-    const Goal       = require("../models/Goal");
-    const Journal    = require("../models/Journal");
+    const Profile      = require("../models/Profile");
+    const Goal         = require("../models/Goal");
+    const Journal      = require("../models/Journal");
     const Conversation = require("../models/Conversation");
+    const Memory       = require("../models/Memory");
+    const FutureNote   = require("../models/FutureNote");
+    const HabitDef     = require("../models/HabitDefinition");
+    const HabitLog     = require("../models/HabitLog");
+    const WeeklyReport = require("../models/WeeklyReport");
 
-    const [profile, goals, journals, conversations] = await Promise.all([
+    const [profile, goals, journals, conversations, memories, futureNotes, habitDef, habitLogs, weeklyReports] = await Promise.all([
       Profile.findOne({ user: req.user._id }).lean(),
       Goal.find({ user: req.user._id }).lean(),
       Journal.find({ user: req.user._id }).lean(),
       Conversation.find({ user: req.user._id }).lean(),
+      Memory.find({ user: req.user._id }).select("-user").lean(),
+      FutureNote.find({ user: req.user._id }).select("-user").lean(),
+      HabitDef.findOne({ user: req.user._id }).lean(),
+      HabitLog.find({ user: req.user._id }).lean(),
+      WeeklyReport.find({ user: req.user._id }).select("-user").lean(),
     ]);
 
     const data = {
       exportDate: new Date().toISOString(),
       user: { name: req.user.name, email: req.user.email },
-      profile: { bio: profile?.bio, currentEmotion: profile?.currentEmotion, emotionHistory: profile?.emotionHistory, sessionsCount: profile?.sessionsCount },
+      profile: { bio: profile?.bio, currentEmotion: profile?.currentEmotion, emotionHistory: profile?.emotionHistory, sessionsCount: profile?.sessionsCount, streakDays: profile?.streakDays, coins: profile?.coins, achievements: profile?.achievements },
       goals,
       journals,
       conversations,
+      memories,
+      futureNotes,
+      habits: habitDef ? { definitions: habitDef.habits, logs: habitLogs } : null,
+      weeklyReports,
     };
 
     res.setHeader("Content-Type", "application/json");

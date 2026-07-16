@@ -53,10 +53,12 @@ r.post("/log", protect, async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
 
-// GET last 30 days of logs
+// GET last 35 days of logs
 r.get("/log/history", protect, async (req, res) => {
   try {
-    const logs = await HabitLog.find({ user: req.user._id }).sort({ date: -1 }).limit(35).lean();
+    const logs = await HabitLog.find({ user: req.user._id }).limit(35).lean();
+    // Sort by actual date value (string format "Mon Jul 14 2026" is not lexicographically sortable)
+    logs.sort((a, b) => new Date(b.date) - new Date(a.date));
     res.json({ success: true, logs: logs.map(l => ({ date: l.date, completions: safeParseArr(l.completions) })) });
   } catch (e) { res.status(500).json({ message: e.message }); }
 });
