@@ -1,4 +1,24 @@
 require("dotenv").config({ path: require("path").join(__dirname, ".env") });
+
+// ── Sentry: inicializar ANTES de todo lo demás para capturar errores de startup
+let Sentry = null;
+if (process.env.SENTRY_DSN) {
+  try {
+    Sentry = require("@sentry/node");
+    Sentry.init({
+      dsn: process.env.SENTRY_DSN,
+      environment: process.env.NODE_ENV || "development",
+      tracesSampleRate: 0.2,
+      beforeSend(event) {
+        // No enviar errores de rate-limit o auth (demasiado ruido)
+        if (event.exception?.values?.[0]?.type === "UnauthorizedError") return null;
+        return event;
+      },
+    });
+    console.log("🔍 Sentry conectado");
+  } catch(e) { console.log("Sentry no disponible:", e.message); }
+}
+
 const express    = require("express");
 const cors       = require("cors");
 const helmet     = require("helmet");
@@ -16,6 +36,9 @@ connectDB();
 
 // ── Confiar en el proxy de Render/Nginx para rate limiting correcto
 app.set("trust proxy", 1);
+
+// ── Sentry request tracking (debe ir antes de los otros middlewares)
+if (Sentry) app.use(Sentry.Handlers.requestHandler());
 
 // ── Seguridad: cabeceras HTTP
 app.use(helmet({
@@ -168,6 +191,9 @@ app.get("*", (req, res) => {
   res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
   res.sendFile(path.join(__dirname, "../client/index.html"));
 });
+
+// ── Sentry error handler (debe ir ANTES del error handler propio)
+if (Sentry) app.use(Sentry.Handlers.errorHandler());
 
 // ── Error handler global
 app.use((err, req, res, next) => {

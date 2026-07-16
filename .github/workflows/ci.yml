@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build & Verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: server
+
+      - name: Check syntax (node --check)
+        run: |
+          node --check server/index.js
+          node --check server/controllers/chatController.js
+          node --check server/controllers/analyticsController.js
+          node --check server/middleware/auth.js
+
+      - name: Verify required env vars documented
+        run: |
+          test -f server/.env.example && echo "✅ .env.example existe" || (echo "❌ Falta .env.example" && exit 1)
