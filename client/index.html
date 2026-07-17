@@ -7051,14 +7051,17 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
   const div = document.getElementById(divId);
   if (!div) return;
 
-  const showFb = () => {
-    // Mostrar botón de fallback INMEDIATAMENTE — nunca dejar al usuario con negro
+  const showFb = async () => {
+    if (onFail) {
+      // Intentar alternativo en silencio — solo mostrar fallback si no hay reemplazo
+      try { await onFail(); } catch(_) {}
+      // Si onFail reemplazó el player, divId ya no existe en el DOM
+      if (!document.getElementById(divId)) return;
+    }
     const fb   = document.getElementById(fallbackId);
     const wrap = document.getElementById(divId + '-wrap');
     if (wrap) wrap.style.display = 'none';
     if (fb)   fb.style.display   = 'block';
-    // Intentar video alternativo en background (si encuentra uno mejor, reemplaza el card)
-    if (onFail) onFail();
   };
 
   const isMob = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
@@ -7147,8 +7150,9 @@ async function findPlayableVideoId(title, artist, excludeId = null) {
   if (!window.YT_ENABLED) return null;
   const authHeader = { "Authorization": "Bearer " + token };
   const base = artist ? `${title} ${artist}` : title;
-  const q1 = artist ? `${base} topic` : base;
-  const q2 = artist ? `${base} audio` : `${base} completo`;
+  // Lyric videos de fans — casi siempre embeddables; topic/official suelen estar bloqueados por sellos
+  const q1 = `${base} letra`;
+  const q2 = `${base} lyrics`;
 
   // Ambas búsquedas en paralelo — 1 solo round-trip en vez de hasta 8 secuenciales
   const [r1, r2] = await Promise.all([
@@ -7157,14 +7161,11 @@ async function findPlayableVideoId(title, artist, excludeId = null) {
   ]);
 
   const isMixVideo = t => /\bmix\b|\bmixtape\b|\bplaylist\b|\b[eé]xitos\b|\bmegamix\b/i.test(t || '');
+  const isLabelCh  = ch => /\bvevo\b|sony music|universal music|warner music/i.test(ch || '');
   const allItems = [...(r1?.items || []), ...(r2?.items || [])]
-    .filter(it => !isMixVideo(it.snippet?.title));
+    .filter(it => !isMixVideo(it.snippet?.title) && !isLabelCh(it.snippet?.channelTitle));
 
-  // Topic channels (YouTube Music) — siempre embeddable, retornar inmediatamente sin status check
-  const topicItem = allItems.find(it => it.snippet?.channelTitle?.toLowerCase().includes('topic'));
-  if (topicItem?.id?.videoId) return { videoId: topicItem.id.videoId, isTopicChannel: true };
-
-  // Para el resto, verificar embeddability con un solo batch (excluir el video que ya falló)
+  // Verificar embeddability con oEmbed (excluir el video que ya falló)
   const seen = new Set();
   const videoIds = allItems.map(i => i.id?.videoId)
     .filter(id => id && id !== excludeId && !seen.has(id) && seen.add(id));
