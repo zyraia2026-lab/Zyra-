@@ -7151,8 +7151,12 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
 async function findPlayableVideoId(title, artist, excludeIds = []) {
   if (!window.YT_ENABLED) return null;
   const authHeader = { "Authorization": "Bearer " + token };
-  // Limpiar "ft. X" del título — búsquedas largas devuelven resultados malos
-  const titleClean = title.replace(/\s*(?:ft\.|feat\.|featuring)[^()\[\]]+/gi, '').trim();
+  // Limpiar título: quitar "ft. X", paréntesis, slashes y chars raros que rompen la búsqueda
+  const titleClean = title
+    .replace(/\s*(?:ft\.|feat\.|featuring)[^()\[\]]+/gi, '')
+    .replace(/[()[\]\/\\|]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   const base = artist ? `${titleClean} ${artist}` : titleClean;
   // Lyric videos de fans primero, luego búsqueda plana como respaldo
   const q1 = `${base} letra`;
