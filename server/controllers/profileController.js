@@ -26,7 +26,7 @@ exports.updateProfile = async (req, res) => {
       return res.status(400).json({ message: "Color inválido" });
     if (update.photoUrl !== undefined) {
       const url = String(update.photoUrl);
-      const validPhoto = url === "" || url.startsWith("data:image/") || /^https?:\/\/.{1,2000}/.test(url);
+      const validPhoto = url === "" || url.startsWith("data:image/") || /^https?:\/\/[^"'<>\s]{1,2000}$/.test(url);
       if (!validPhoto) return res.status(400).json({ message: "URL de foto inválida" });
       if (url.length > 2_000_000) return res.status(400).json({ message: "Foto demasiado grande" });
     }
