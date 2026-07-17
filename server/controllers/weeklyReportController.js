@@ -201,13 +201,13 @@ exports.cronGenerateAll = async () => {
   const users = await User.find({ plan: { $in: ["basic","premium"] } }).select("_id name email").lean();
   console.log(`📊 Generando reportes semanales para ${users.length} usuarios...`);
   let ok = 0;
+  const weekOf = getMondayOf();
+  weekOf.setDate(weekOf.getDate() - 7);
   for (const u of users) {
     try {
       const data = await buildReportData(u._id, u.name);
       const html = await generateWithGroq(data);
       if (html) {
-        const weekOf = getMondayOf();
-        weekOf.setDate(weekOf.getDate() - 7);
         const insights = (html.match(/<li>(.*?)<\/li>/gi) || []).slice(0, 5).map(m => m.replace(/<[^>]+>/g, "").trim());
         await WeeklyReport.findOneAndUpdate(
           { user: u._id, weekOf },
@@ -220,6 +220,8 @@ exports.cronGenerateAll = async () => {
         ok++;
       }
     } catch(e) { console.error(`Report error for ${u._id}:`, e.message); }
+    // Avoid hammering Groq rate limits between users
+    await new Promise(r => setTimeout(r, 500));
   }
   console.log(`✅ Reportes generados: ${ok}/${users.length}`);
 };
