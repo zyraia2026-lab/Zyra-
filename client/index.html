@@ -7053,10 +7053,10 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
 
   const showFb = async () => {
     if (onFail) {
-      // Intentar alternativo en silencio — solo mostrar fallback si no hay reemplazo
-      try { await onFail(); } catch(_) {}
-      // Si onFail reemplazó el player, divId ya no existe en el DOM
-      if (!document.getElementById(divId)) return;
+      // Retry silencioso: solo mostrar fallback si no hay reemplazo
+      let replaced = false;
+      try { replaced = await onFail(); } catch(_) {}
+      if (replaced) return; // Retry exitoso, no mostrar fallback
     }
     const fb   = document.getElementById(fallbackId);
     const wrap = document.getElementById(divId + '-wrap');
@@ -7197,15 +7197,15 @@ function buildYTPlayer(card, id) {
     const retryFn = window.YT_ENABLED ? async () => {
       try {
         const result = await findPlayableVideoId(card.title, card.artist, card.videoId);
-        if (!result?.videoId) return;
+        if (!result?.videoId) return false;
         const outer = document.getElementById(id);
-        if (!outer) return;
+        if (!outer) return false;
         outer.innerHTML = ytEmbedHTML(card, id, result.videoId);
         const newFrameId = `yt-iframe-${id}`;
         ytInitPlayer(newFrameId, result.videoId, `yt-fallback-${id}`);
-        // Auto-reproducir inmediatamente sin requerir otro click
         window._ytActivators[newFrameId]?.();
-      } catch(_) {}
+        return true; // Retry exitoso — showFb no mostrará el fallback
+      } catch(_) { return false; }
     } : null;
     setTimeout(() => ytInitPlayer(`yt-iframe-${id}`, card.videoId, `yt-fallback-${id}`, retryFn), 0);
     return html;
