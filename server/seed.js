@@ -19,7 +19,7 @@ const DEMO_PASSWORD = "Demo1234!";
 const DEMO_NAME     = "María Demo";
 
 async function seed() {
-  await mongoose.connect(process.env.MONGO_URI);
+  await mongoose.connect(process.env.MONGO_URI || process.env.MONGODB_URI);
   console.log("✅ Conectado a MongoDB");
 
   // Limpiar demo anterior

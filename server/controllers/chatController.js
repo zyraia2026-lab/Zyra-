@@ -1301,6 +1301,20 @@ exports.sendMessage = async (req, res) => {
         ).select("_id").lean().catch(()=>null);
       }
       if (!conv) {
+        const { limits: convLimits } = require("../middleware/planGate").getPlan(req.user);
+        if (convLimits.conversations !== Infinity) {
+          const convCount = await Conversation.countDocuments({ user: req.user._id });
+          if (convCount >= convLimits.conversations) {
+            return res.status(403).json({
+              limitReached: true,
+              plan: userPlan,
+              limit: convLimits.conversations,
+              message: `Has llegado al límite de ${convLimits.conversations} conversaciones de tu plan. Actualiza tu plan o elimina conversaciones antiguas.`,
+              response: cleanText,
+              cards,
+            });
+          }
+        }
         const title = message.length > 60 ? message.substring(0,57)+"..." : message;
         conv = await Conversation.create({ user:req.user._id, title, messages:msgPair }).catch(()=>null);
         await Profile.findOneAndUpdate({ user:req.user._id }, { $inc:{ sessionsCount:1 }, lastSession:new Date() }).catch(()=>{});
@@ -1584,9 +1598,17 @@ exports.streamMessage = async (req, res) => {
         ).select("_id").lean().catch(()=>null);
       }
       if (!conv) {
-        const title = message.length > 60 ? message.substring(0,57)+"..." : message;
-        conv = await Conversation.create({ user:req.user._id, title, messages:msgPair }).catch(()=>null);
-        await Profile.findOneAndUpdate({ user:req.user._id }, { $inc:{ sessionsCount:1 }, lastSession:new Date() }).catch(()=>{});
+        const { limits: convLimits2 } = require("../middleware/planGate").getPlan(req.user);
+        let canCreate = true;
+        if (convLimits2.conversations !== Infinity) {
+          const convCount2 = await Conversation.countDocuments({ user: req.user._id });
+          if (convCount2 >= convLimits2.conversations) canCreate = false;
+        }
+        if (canCreate) {
+          const title = message.length > 60 ? message.substring(0,57)+"..." : message;
+          conv = await Conversation.create({ user:req.user._id, title, messages:msgPair }).catch(()=>null);
+          await Profile.findOneAndUpdate({ user:req.user._id }, { $inc:{ sessionsCount:1 }, lastSession:new Date() }).catch(()=>{});
+        }
       }
       extractAndSaveMemories(req.user._id, req.user.name, message, cleanText).catch(()=>{});
     }

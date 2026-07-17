@@ -47,9 +47,11 @@ exports.toggleGoal = async (req, res) => {
 
 exports.updateGoal = async (req, res) => {
   try {
-    const { title, category, reminder, dueDate, priority, progress } = req.body;
-    if (!title?.trim()) return res.status(400).json({ message: "El título es requerido" });
-    const upd = { title: title.trim(), category, reminder, dueDate: dueDate || null, priority, updatedAt: new Date() };
+    const { category, reminder, dueDate, priority, progress } = req.body;
+    const title = String(req.body.title || "").trim();
+    if (!title) return res.status(400).json({ message: "El título es requerido" });
+    if (title.length > 200) return res.status(400).json({ message: "Título demasiado largo (máx. 200 caracteres)" });
+    const upd = { title: title.substring(0,200), category, reminder: reminder ? String(reminder).trim().substring(0,200) : "", dueDate: dueDate || null, priority, updatedAt: new Date() };
     if (typeof progress === "number") upd.progress = Math.min(100, Math.max(0, progress));
     const goal = await Goal.findOneAndUpdate(
       { _id: req.params.id, user: req.user._id },
