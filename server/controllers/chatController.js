@@ -1585,6 +1585,7 @@ exports.streamMessage = async (req, res) => {
 
     // ── Save to DB ──
     let conv;
+    let convLimitReached = false;
     if (!noSave) {
       const msgPair = [
         { role:"user",      content:message,   timestamp:new Date() },
@@ -1602,7 +1603,7 @@ exports.streamMessage = async (req, res) => {
         let canCreate = true;
         if (convLimits2.conversations !== Infinity) {
           const convCount2 = await Conversation.countDocuments({ user: req.user._id });
-          if (convCount2 >= convLimits2.conversations) canCreate = false;
+          if (convCount2 >= convLimits2.conversations) { canCreate = false; convLimitReached = true; }
         }
         if (canCreate) {
           const title = message.length > 60 ? message.substring(0,57)+"..." : message;
@@ -1620,6 +1621,7 @@ exports.streamMessage = async (req, res) => {
       conversationId: conv?._id,
       plan: userPlan,
       messagesRemaining: req.messagesRemaining ?? null,
+      convLimitReached: convLimitReached || undefined,
     });
     res.end();
 
