@@ -61,7 +61,9 @@ const ARTIST_SONGS = {
   "billie eilish":["Bad Guy","Happier Than Ever","Lovely","Ocean Eyes","Bellyache","Therefore I Am","Your Power","Everything I Wanted","No Time to Die","What Was I Made For","Birds of a Feather"],
   "dua lipa":["Levitating","Don't Start Now","Physical","New Rules","Break My Heart","One Kiss","Love Again","Houdini","Dance the Night"],
   "the weeknd":["Blinding Lights","Save Your Tears","Starboy","Can't Feel My Face","The Hills","Often","In Your Eyes","Die For You","Popular"],
-  "feid":["Chorrito Pa Las Animas","Normal","Niña Bonita","Macarena","Classy 101","Bubalu","Intercontinental","FELIZ CUMPLEAÑOS FERXXO","Brickell"],
+  "camilo":["Vida de Rico","Tutu","Favorito","Ropa Cara","Tattoo","Por Primera Vez","Millones","El Mismo Aire","KESI","Bello Embustero","NASA","Un Mundo Ideal"],
+  "grupo frontera":["un x100to","Lamento","Amor Superstición","No Se Va","Además de Mí","Hey Mor","La Tóxica","Entre Nubes","Claro Que Sí"],
+  "natalia lafourcade":["Nunca es Suficiente","Tú Sí Sabes Quererme","Hasta la Raíz","En el 2000","Pajarito del Amor","Antes","Lo Que Construimos","Amor Amor Amor","Tus Ojos","Me Estás Mintiendo"],
   "ryan castro":["Reggaetonero","El Presidente","Con un Beso","Bendiciones","La Recompensa","Desde El Barrio"],
   "rauw alejandro":["Todo de Ti","Cambia El Paso","Cayó La Noche","Tattoo","Lejos","Elegimos Vernos","Dile Que Tú Me Encantas"],
   "myke towers":["La Playa","Si Se Da","Girl","Caile","Tamo Bien","Ulala","Almas Gemelas","Bandido"],
@@ -324,7 +326,7 @@ async function getVideoId(title, artist) {
 
   const ytSearch = async (q, extra = "") => {
     const r = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&videoCategoryId=10&videoEmbeddable=true&maxResults=8&key=${YT_KEY}${extra}`,
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&videoCategoryId=10&videoEmbeddable=true&regionCode=CO&maxResults=8&key=${YT_KEY}${extra}`,
       { signal: AbortSignal.timeout(4000) }
     );
     const d = await r.json();
@@ -339,14 +341,18 @@ async function getVideoId(title, artist) {
       ytSearch(`${title} ${artist} official audio`),
     ]);
 
-    // 1. Topic channel primero (YouTube Music: SIEMPRE embeddable, sin verificar)
+    // 1. Topic channel primero — pero verificar con oEmbed (sellos latinos bloquean embed)
     const topicFirst = topicItems
       .filter(it => it.snippet.channelTitle.toLowerCase().includes("topic"))
-      .map(it => it.id.videoId);
+      .map(it => it.id.videoId)
+      .filter(Boolean);
 
     if (topicFirst.length) {
-      _cacheSet(ytCache, key, topicFirst[0], YT_MAX);
-      return topicFirst[0];
+      const verifiedTopic = await checkEmbeddable(topicFirst.slice(0, 4)).catch(() => null);
+      if (verifiedTopic?.[0]) {
+        _cacheSet(ytCache, key, verifiedTopic[0], YT_MAX);
+        return verifiedTopic[0];
+      }
     }
 
     // 2. Resultado general — videoEmbeddable=true ya filtró la mayoría, verificar el resto
@@ -388,7 +394,7 @@ async function getSongsForUnknownArtist(artistName) {
   try {
     const YT_KEY = process.env.YT_API_KEY;
     const makeUrl = (q) =>
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&videoCategoryId=10&videoEmbeddable=true&maxResults=10&key=${YT_KEY}`;
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&videoCategoryId=10&videoEmbeddable=true&regionCode=CO&maxResults=10&key=${YT_KEY}`;
 
     // Búsquedas en paralelo + checkEmbeddable en paralelo con la segunda búsqueda
     // Timeout 5s por llamada para no colgar el stream si YouTube tarda
@@ -401,14 +407,15 @@ async function getSongsForUnknownArtist(artistName) {
       ytFetch(makeUrl(`${artistName} official audio`)),
     ]);
 
-    // Priorizar Topic channels (100% embeddable) → verificar el resto con checkEmbeddable
+    // Priorizar Topic channels pero verificar TODOS con oEmbed — los sellos latinos
+    // bloquean el embed incluso en canales Topic (videoEmbeddable=true no es confiable)
     const isTopic = it => it.snippet?.channelTitle?.toLowerCase().includes("topic");
     const allItems = [...(d1?.items || []), ...(d2?.items || [])]
       .sort((a, b) => (isTopic(a) ? 0 : 1) - (isTopic(b) ? 0 : 1));
 
-    const nonTopicIds = allItems.filter(it => !isTopic(it)).map(it => it.id?.videoId).filter(Boolean);
-    const verifiedNonTopic = new Set(
-      nonTopicIds.length ? (await checkEmbeddable(nonTopicIds).catch(() => null) ?? []) : []
+    const allIds = allItems.map(it => it.id?.videoId).filter(Boolean);
+    const verified = new Set(
+      allIds.length ? (await checkEmbeddable(allIds.slice(0, 8)).catch(() => null) ?? []) : []
     );
 
     const results = [];
@@ -418,8 +425,7 @@ async function getSongsForUnknownArtist(artistName) {
       if (results.length >= 5) break;
       const videoId = item.id?.videoId;
       if (!videoId) continue;
-      // Topic channels no necesitan verificación; el resto sí
-      if (!isTopic(item) && !verifiedNonTopic.has(videoId)) continue;
+      if (!verified.has(videoId)) continue;
       const rawTitle     = item.snippet.title;
       const channelTitle = item.snippet.channelTitle || "";
       if (!isRelevantSong(rawTitle, artistName, channelTitle)) continue;
@@ -461,7 +467,7 @@ function parseSongFromYT(ytTitle, requestedArtist) {
     .replace(/\(visualizer\)/gi, "")
     .replace(/\blyrics?\b/gi, "")
     .replace(/\bremix\b/gi, "Remix")
-    .replace(/\s*[❌✖×x]\s*/gi, ", ")
+    .replace(/\s*[❌✖×]\s*/g, ", ")
     .replace(/[|｜]\s*.*/g, "")
     .replace(/\s{2,}/g, " ")
     .trim();
