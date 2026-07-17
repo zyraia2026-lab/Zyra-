@@ -8301,6 +8301,10 @@ async function sendMsg() {
           const userMsgs = chatHistory.filter(m => m.role === "user").length;
           if (userMsgs === 5) triggerMission("chat_zyra");
           showResponseChips(fullText);
+          if (data.convLimitReached) {
+            zyraToast("Llegaste al límite de conversaciones de tu plan. Esta sesión no se guardó.", "info");
+            showUpgradePrompt("conversations", "basic");
+          }
         }
 
         if (data.error) {
@@ -11138,6 +11142,7 @@ function showUpgradePrompt(feature, requiredPlan) {
     pdf: 'Exportar PDF del diario',
     goals: 'Más metas activas',
     journal: 'Más entradas de diario',
+    conversations: 'Más conversaciones guardadas',
   };
   const fname = featureNames[feature] || feature;
   const pname = planNames[requiredPlan] || requiredPlan;

@@ -188,12 +188,14 @@ exports.completeMission = async (req, res) => {
     const finalCoins = (p.coins || 0) + coinsEarned + achCoinBonus;
 
     const update = {
-      coins:                  finalCoins,
-      missionsCompletedToday: newCompleted,
-      achievements:           earned,
-      updatedAt:              new Date(),
+      $inc:  { coins: coinsEarned + achCoinBonus },
+      $addToSet: { missionsCompletedToday: mission.id },
+      $set: {
+        achievements: earned,
+        updatedAt:    new Date(),
+      },
     };
-    if (needsReset) update.missionsResetAt = new Date();
+    if (needsReset) { update.$set.missionsResetAt = new Date(); update.$set.missionsCompletedToday = [mission.id]; delete update.$addToSet; }
 
     await Profile.findOneAndUpdate({ user: req.user._id }, update);
 
@@ -214,24 +216,24 @@ exports.redeemReward = async (req, res) => {
     const reward = REWARDS.find(r => r.id === req.params.id);
     if (!reward) return res.status(400).json({ message: "Recompensa desconocida" });
 
-    let p = await Profile.findOne({ user: req.user._id }).select("coins unlockedItems").lean();
-    if (!p) return res.status(404).json({ message: "Perfil no encontrado" });
+    // Atomic: only deduct coins if the item isn't already unlocked AND coins >= cost
+    const extraFields = reward.type === "theme" ? { theme: reward.id.replace("theme_", "") } : {};
+    const updated = await Profile.findOneAndUpdate(
+      { user: req.user._id, unlockedItems: { $ne: reward.id }, coins: { $gte: reward.cost } },
+      { $inc: { coins: -reward.cost }, $addToSet: { unlockedItems: reward.id }, ...extraFields, updatedAt: new Date() },
+      { new: true }
+    ).select("coins unlockedItems").lean();
 
-    if ((p.unlockedItems || []).includes(reward.id)) {
-      return res.json({ success: true, alreadyOwned: true });
-    }
-    if ((p.coins || 0) < reward.cost) {
+    if (!updated) {
+      // Either already owned or not enough coins — distinguish for UX
+      const p = await Profile.findOne({ user: req.user._id }).select("coins unlockedItems").lean();
+      if (!p) return res.status(404).json({ message: "Perfil no encontrado" });
+      if ((p.unlockedItems || []).includes(reward.id)) return res.json({ success: true, alreadyOwned: true });
       return res.status(403).json({ notEnoughCoins: true, need: reward.cost, have: p.coins || 0,
         message: `Necesitas ${reward.cost} monedas. Tienes ${p.coins || 0}.` });
     }
 
-    const newUnlocked = [...(p.unlockedItems || []), reward.id];
-    const newCoins    = (p.coins || 0) - reward.cost;
-    const update      = { coins: newCoins, unlockedItems: newUnlocked, updatedAt: new Date() };
-    if (reward.type === "theme") update.theme = reward.id.replace("theme_", "");
-
-    await Profile.findOneAndUpdate({ user: req.user._id }, update);
-    res.json({ success: true, reward, newCoins, unlockedItems: newUnlocked });
+    res.json({ success: true, reward, newCoins: updated.coins, unlockedItems: updated.unlockedItems });
   } catch(e) { res.status(500).json({ message: e.message }); }
 };
 
