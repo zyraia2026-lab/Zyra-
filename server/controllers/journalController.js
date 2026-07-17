@@ -4,7 +4,7 @@ const { getPlan } = require("../middleware/planGate");
 exports.getEntries = async (req, res) => {
   try {
     const { limits } = getPlan(req.user);
-    const cap = limits.journal === Infinity ? 100 : limits.journal;
+    const cap = limits.journal === Infinity ? 500 : limits.journal;
     const entries = await Journal.find({ user: req.user._id }).sort({ createdAt: -1 }).limit(cap).lean();
     res.json({ success: true, entries });
   } catch (e) { res.status(500).json({ message: e.message }); }

@@ -77,7 +77,7 @@ exports.addGoalNote = async (req, res) => {
     if (!text) return res.status(400).json({ message: "El texto de la nota es requerido" });
     if (text.length > 1000) return res.status(400).json({ message: "Nota demasiado larga (máx. 1000 caracteres)" });
     const goal = await Goal.findOneAndUpdate(
-      { _id: req.params.id, user: req.user._id },
+      { _id: req.params.id, user: req.user._id, $expr: { $lt: [{ $size: { $ifNull: ["$notes", []] } }, 100] } },
       { $push: { notes: { text: text.substring(0,1000), date: new Date() } }, updatedAt: new Date() },
       { new: true }
     ).lean();
