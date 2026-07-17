@@ -154,7 +154,7 @@ setInterval(async () => {
     const FutureNote = require("./models/FutureNote");
     const { sendToUser } = require("./controllers/pushController");
     const now = new Date();
-    const due = await FutureNote.find({ delivered: false, deliverAt: { $lte: now } }).lean();
+    const due = await FutureNote.find({ delivered: false, deliverAt: { $lte: now } }).limit(200).lean();
     for (const note of due) {
       await sendToUser(note.user, {
         title: "📬 Una nota de tu pasado llegó",

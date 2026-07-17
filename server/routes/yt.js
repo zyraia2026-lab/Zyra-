@@ -15,7 +15,8 @@ r.get("/search", protect, ytLimiter, async (req, res) => {
   try {
     const key = process.env.YT_API_KEY;
     if (!key) return res.status(503).json({ message: "YouTube no configurado" });
-    const { q = "", maxResults = 1, videoCategoryId = "" } = req.query;
+    const { q = "", videoCategoryId = "" } = req.query;
+    const maxResults = Math.min(5, Math.max(1, parseInt(req.query.maxResults) || 1));
     if (!q.trim()) return res.status(400).json({ message: "Query requerida" });
 
     const params = new URLSearchParams({

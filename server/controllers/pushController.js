@@ -26,10 +26,14 @@ exports.getPublicKey = (req, res) => {
 exports.subscribe = async (req, res) => {
   try {
     const { subscription } = req.body;
-    if (!subscription?.endpoint) return res.status(400).json({ message: "Suscripción inválida" });
+    if (!subscription?.endpoint || typeof subscription.endpoint !== "string") return res.status(400).json({ message: "Suscripción inválida" });
+    if (!subscription.endpoint.startsWith("https://")) return res.status(400).json({ message: "Endpoint inválido" });
+    if (subscription.endpoint.length > 512) return res.status(400).json({ message: "Endpoint demasiado largo" });
+    if (!subscription.keys || typeof subscription.keys.auth !== "string" || typeof subscription.keys.p256dh !== "string") return res.status(400).json({ message: "Claves de suscripción inválidas" });
+    const sub = { endpoint: subscription.endpoint, keys: { auth: subscription.keys.auth.substring(0, 100), p256dh: subscription.keys.p256dh.substring(0, 200) } };
     await PushSub.findOneAndUpdate(
       { user: req.user._id },
-      { user: req.user._id, subscription },
+      { user: req.user._id, subscription: sub },
       { upsert: true, new: true }
     );
     res.json({ success: true });

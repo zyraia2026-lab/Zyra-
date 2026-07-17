@@ -1,9 +1,18 @@
 const r    = require("express").Router();
 const Note = require("../models/FutureNote");
 const { protect } = require("../middleware/auth");
+const { rateLimit } = require("express-rate-limit");
+
+const noteLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 10,
+  keyGenerator: (req) => req.user?._id?.toString() || req.ip,
+  message: { message: "Demasiadas peticiones. Espera un momento." },
+  standardHeaders: true, legacyHeaders: false,
+});
 
 /* POST /api/future-notes — crear nota */
-r.post("/", protect, async (req, res) => {
+r.post("/", protect, noteLimiter, async (req, res) => {
   try {
     const message   = String(req.body.message || "").trim();
     const deliverAt = new Date(req.body.deliverAt);
