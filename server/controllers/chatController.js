@@ -335,42 +335,29 @@ async function getVideoId(title, artist) {
   };
 
   try {
-    // Ambas búsquedas en PARALELO: topic channel + general audio
-    const [topicItems, generalItems] = await Promise.all([
+    // Lyric videos de fans (letra/lyrics) primero — los canales de sellos (VEVO/Sony/Universal)
+    // bloquean embed aunque oEmbed y videoEmbeddable=true digan que sí es embeddable.
+    const [letraItems, lyricsItems, topicItems] = await Promise.all([
+      ytSearch(`${title} ${artist} letra`),
+      ytSearch(`${title} ${artist} lyrics`),
       ytSearch(`${artist} ${title} topic`),
-      ytSearch(`${title} ${artist} official audio`),
     ]);
 
-    // 1. Topic channel primero — pero verificar con oEmbed (sellos latinos bloquean embed)
-    const topicFirst = topicItems
-      .filter(it => it.snippet.channelTitle.toLowerCase().includes("topic"))
-      .map(it => it.id.videoId)
-      .filter(Boolean);
+    const isLabelCh = ch => /\bvevo\b|sony music|universal music|warner music|emi music/i.test(ch || "");
 
-    if (topicFirst.length) {
-      const verifiedTopic = await checkEmbeddable(topicFirst.slice(0, 4)).catch(() => null);
-      if (verifiedTopic?.[0]) {
-        _cacheSet(ytCache, key, verifiedTopic[0], YT_MAX);
-        return verifiedTopic[0];
-      }
-    }
-
-    // 2. Resultado general — videoEmbeddable=true ya filtró la mayoría, verificar el resto
+    // Prioridad: lyric videos de fans > canales topic (sellos pueden bloquear topic también)
     const allItems = [
-      ...generalItems.filter(it => {
-        const vt = it.snippet.title.toLowerCase();
-        return vt.includes(titleLower) || vt.includes(artistLower);
-      }),
-      ...generalItems,
+      ...letraItems.filter(it => !isLabelCh(it.snippet?.channelTitle)),
+      ...lyricsItems.filter(it => !isLabelCh(it.snippet?.channelTitle)),
       ...topicItems,
     ];
     const seen = new Set();
     const candidates = allItems
-      .map(it => it.id.videoId)
+      .map(it => it.id?.videoId)
       .filter(id => id && !seen.has(id) && seen.add(id));
 
     if (candidates.length) {
-      const verified = await checkEmbeddable(candidates);
+      const verified = await checkEmbeddable(candidates.slice(0, 8));
       const winner = verified?.[0];
       if (winner) {
         _cacheSet(ytCache, key, winner, YT_MAX);
@@ -401,17 +388,21 @@ async function getSongsForUnknownArtist(artistName) {
     const ytFetch = (url) =>
       fetch(url, { signal: AbortSignal.timeout(5000) }).then(r => r.json()).catch(() => null);
 
-    // "topic" busca el canal automático de YouTube Music — embedding 100% garantizado
-    const [d1, d2] = await Promise.all([
-      ytFetch(makeUrl(`${artistName} topic`)),
+    // Lyric videos de fans primero — canales de sellos (VEVO/Sony/Universal) bloquean embed
+    const [d1, d2, d3] = await Promise.all([
+      ytFetch(makeUrl(`${artistName} letra`)),
+      ytFetch(makeUrl(`${artistName} lyrics`)),
       ytFetch(makeUrl(`${artistName} official audio`)),
     ]);
 
-    // Priorizar Topic channels pero verificar TODOS con oEmbed — los sellos latinos
-    // bloquean el embed incluso en canales Topic (videoEmbeddable=true no es confiable)
-    const isTopic = it => it.snippet?.channelTitle?.toLowerCase().includes("topic");
-    const allItems = [...(d1?.items || []), ...(d2?.items || [])]
-      .sort((a, b) => (isTopic(a) ? 0 : 1) - (isTopic(b) ? 0 : 1));
+    const isLabelCh = ch => /\bvevo\b|sony music|universal music|warner music|emi music/i.test(ch || "");
+
+    // letra > lyrics > official audio (depriorizar canales de sellos grandes)
+    const allItems = [
+      ...(d1?.items || []).filter(it => !isLabelCh(it.snippet?.channelTitle)),
+      ...(d2?.items || []).filter(it => !isLabelCh(it.snippet?.channelTitle)),
+      ...(d3?.items || []),
+    ];
 
     const allIds = allItems.map(it => it.id?.videoId).filter(Boolean);
     const verified = new Set(
@@ -465,7 +456,7 @@ function parseSongFromYT(ytTitle, requestedArtist) {
     .replace(/\(lyrics?\)/gi, "")
     .replace(/\[lyrics?\]/gi, "")
     .replace(/\(visualizer\)/gi, "")
-    .replace(/\blyrics?\b/gi, "")
+    .replace(/\blyrics?\b|\bletras?\b/gi, "")
     .replace(/\bremix\b/gi, "Remix")
     .replace(/\s*[❌✖×]\s*/g, ", ")
     .replace(/[|｜]\s*.*/g, "")
