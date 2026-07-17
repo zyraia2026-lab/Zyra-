@@ -65,15 +65,17 @@ self.addEventListener('fetch', e => {
 
 // ── Push notifications ──
 self.addEventListener('push', e => {
-  const data = e.data?.json() || {};
+  let data = {};
+  try { data = e.data?.json() || {}; } catch(_) {}
+  const ICON = '/Imagenes/1000154669.png';
   e.waitUntil(
     self.registration.showNotification(data.title || 'Zyra ✦', {
-      body: data.body || 'Tienes un mensaje de Zyra',
-      icon: '/Imagenes/1000154669.png',
-      badge: '/Imagenes/1000154669.png',
-      tag: data.tag || ('zyra-' + Date.now()),
+      body:    data.body  || 'Tienes un mensaje de Zyra',
+      icon:    data.icon  || ICON,
+      badge:   data.badge || ICON,
+      tag:     data.tag   || ('zyra-' + Date.now()),
       vibrate: [100, 50, 100],
-      data: { url: data.url || '/' }
+      data:    { url: data.data?.url || data.url || '/' },
     })
   );
 });

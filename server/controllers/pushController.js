@@ -94,8 +94,8 @@ exports.sendDailyReminders = async () => {
       await sendToUser(p.user, {
         title: "Zyra te habló 💜",
         body:  msg,
-        icon:  "/Imagenes/icon-192.png",
-        badge: "/Imagenes/icon-192.png",
+        icon:  "/Imagenes/1000154669.png",
+        badge: "/Imagenes/1000154669.png",
         tag:   "zyra-daily",
         data:  { url: "/?p=assistant" },
       });
@@ -136,8 +136,8 @@ exports.sendDailyReminders = async () => {
           await sendToUser(uid, {
             title: today.length ? "⚠️ Meta que vence hoy" : "🔔 Meta que vence mañana",
             body,
-            icon:  "/Imagenes/icon-192.png",
-            badge: "/Imagenes/icon-192.png",
+            icon:  "/Imagenes/1000154669.png",
+            badge: "/Imagenes/1000154669.png",
             tag:   "zyra-goals",
             data:  { url: "/?p=goals" },
           });

@@ -159,8 +159,8 @@ setInterval(async () => {
       await sendToUser(note.user, {
         title: "📬 Una nota de tu pasado llegó",
         body: note.message.length > 100 ? note.message.slice(0, 97) + "…" : note.message,
-        icon: "/Imagenes/icon-192.png",
-        badge: "/Imagenes/icon-192.png",
+        icon: "/Imagenes/1000154669.png",
+        badge: "/Imagenes/1000154669.png",
         tag: "zyra-future-note",
         data: { url: "/?p=journal" },
       });
