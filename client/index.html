@@ -4623,8 +4623,8 @@ async function loadSubscriptionInfo() {
   try {
     const d = await api("/profile/plan");
     const planMap = {
-      free:    { label: "Plan Gratis",   desc: "20 mensajes/día · 3 metas · 5 entradas de diario", color: "#6b7280" },
-      basic:   { label: "Plan Básico",   desc: "100 mensajes/día · 10 metas · 30 entradas · Diario ilimitado", color: "#6366f1" },
+      free:    { label: "Plan Gratis",   desc: "15 mensajes/día · 3 metas · 10 entradas de diario/mes", color: "#6b7280" },
+      basic:   { label: "Plan Básico",   desc: "100 mensajes/día · 10 metas · 30 entradas/mes · Datos exportables", color: "#6366f1" },
       premium: { label: "Plan Premium",  desc: "Mensajes ilimitados · Voz IA · PDF · Todo desbloqueado", color: "#f59e0b" },
     };
     const info = planMap[d.plan] || planMap.free;

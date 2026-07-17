@@ -20,10 +20,18 @@ r.get("/", protect, async (req, res) => {
 r.put("/", protect, async (req, res) => {
   try {
     const { habits } = req.body;
-    if (!Array.isArray(habits)) return res.status(400).json({ message: "habits must be an array" });
+    if (!Array.isArray(habits)) return res.status(400).json({ message: "habits debe ser un array" });
+    if (habits.length > 50) return res.status(400).json({ message: "Máximo 50 hábitos permitidos" });
+    const sanitized = habits.slice(0, 50).map(h => ({
+      id:   String(h.id   || "").substring(0, 50),
+      name: String(h.name || "").substring(0, 100),
+      icon: String(h.icon || "").substring(0, 10),
+      category: String(h.category || "").substring(0, 50),
+      frequency: String(h.frequency || "daily").substring(0, 20),
+    }));
     await HabitDefinition.findOneAndUpdate(
       { user: req.user._id },
-      { habits: JSON.stringify(habits), updatedAt: new Date() },
+      { habits: JSON.stringify(sanitized), updatedAt: new Date() },
       { upsert: true, new: true }
     );
     res.json({ success: true });
@@ -43,10 +51,12 @@ r.get("/log", protect, async (req, res) => {
 r.post("/log", protect, async (req, res) => {
   try {
     const { date, completions } = req.body;
-    if (!date || !Array.isArray(completions)) return res.status(400).json({ message: "date and completions required" });
+    if (!date || typeof date !== "string" || date.length > 50) return res.status(400).json({ message: "Fecha inválida" });
+    if (!Array.isArray(completions)) return res.status(400).json({ message: "completions requerido" });
+    const safeCompletions = completions.slice(0, 100).map(c => String(c).substring(0, 100));
     await HabitLog.findOneAndUpdate(
       { user: req.user._id, date },
-      { completions: JSON.stringify(completions) },
+      { completions: JSON.stringify(safeCompletions) },
       { upsert: true, new: true }
     );
     res.json({ success: true });
