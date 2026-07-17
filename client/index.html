@@ -7069,47 +7069,42 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
     const frameId = divId + '-if';
     const ytLink  = `https://www.youtube.com/watch?v=${videoId}`;
 
-    if (isMob) {
-      // Móvil: enablejsapi solo para detectar onError — sin timeout para no cortar videos lentos
-      d.innerHTML = `
-        <iframe id="${frameId}"
-          src="https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=1&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}"
-          style="position:absolute;top:0;left:0;width:100%;height:100%;border:none"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"></iframe>
-        <a href="${ytLink}" target="_blank" rel="noopener"
-           style="position:absolute;bottom:8px;right:8px;background:rgba(220,0,0,.88);color:#fff;padding:5px 10px;border-radius:8px;font-size:11px;font-weight:800;text-decoration:none;z-index:10">
-          ▶ YT
-        </a>`;
-      const fr = document.getElementById(frameId);
-      if (fr) fr.addEventListener('error', showFb);
-      // Escuchar onError de YT (video no embeddable) sin timeout — no cortar autoplay lento
-      const onMsgMob = (e) => {
-        if (!fr || e.source !== fr.contentWindow) return;
-        try {
-          const data = JSON.parse(e.data);
-          if (data.event === 'onError') {
-            window.removeEventListener('message', onMsgMob);
-            showFb();
-          }
-        } catch(_) {}
-      };
-      window.addEventListener('message', onMsgMob);
-      return;
-    }
-
-    // Desktop: enablejsapi + postMessage para detectar reproducción y errores
+    // Misma lógica para móvil y desktop: embed directo, solo onError activa fallback
     d.innerHTML = `
       <iframe id="${frameId}"
-        src="https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=1&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}"
+        src="https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=1&playsinline=1&enablejsapi=1"
         style="position:absolute;top:0;left:0;width:100%;height:100%;border:none"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen; compute-pressure"></iframe>
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+        allowfullscreen></iframe>
+      <a href="${ytLink}" target="_blank" rel="noopener"
+         style="position:absolute;bottom:8px;right:8px;background:rgba(220,0,0,.88);color:#fff;padding:5px 10px;border-radius:8px;font-size:11px;font-weight:800;text-decoration:none;z-index:10">
+        ▶ YT
+      </a>`;
+    const fr = document.getElementById(frameId);
+    const onMsgAll = (e) => {
+      if (!fr || e.source !== fr.contentWindow) return;
+      try {
+        const data = JSON.parse(e.data);
+        if (data.event === 'onError') { window.removeEventListener('message', onMsgAll); showFb(); }
+      } catch(_) {}
+    };
+    window.addEventListener('message', onMsgAll);
+    fr?.addEventListener('load', () => fr.contentWindow?.postMessage('{"event":"listening","id":1}', '*'));
+    if (isMob) return;
+
+    // Desktop: embed directo — solo onError activa fallback, sin timer artificial
+    d.innerHTML = `
+      <iframe id="${frameId}"
+        src="https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=1&playsinline=1&enablejsapi=1"
+        style="position:absolute;top:0;left:0;width:100%;height:100%;border:none"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen; compute-pressure"
+        allowfullscreen></iframe>
       <a id="${frameId}-btn" href="${ytLink}" target="_blank" rel="noopener"
          style="position:absolute;bottom:10px;right:10px;background:rgba(220,0,0,.88);color:#fff;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:800;text-decoration:none;z-index:10;box-shadow:0 2px 12px rgba(0,0,0,.5)">
         ▶ YouTube
       </a>`;
 
     const frame = document.getElementById(frameId);
-    let playing = false;
 
     const onMsg = (e) => {
       if (!frame || e.source !== frame.contentWindow) return;
@@ -7117,14 +7112,10 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
         const data = JSON.parse(e.data);
         if (data.event === 'onError') {
           window.removeEventListener('message', onMsg);
-          clearTimeout(timer);
           showFb();
         }
-        const st = data.info?.playerState ?? data.info;
-        if (st === 1 || st === 3) {
-          playing = true;
+        if (data.info?.playerState === 1 || data.info?.playerState === 3) {
           window.removeEventListener('message', onMsg);
-          clearTimeout(timer);
           document.getElementById(frameId + '-btn')?.remove();
         }
       } catch(_) {}
@@ -7132,18 +7123,8 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
     window.addEventListener('message', onMsg);
 
     frame.addEventListener('load', () => {
-      if (!frame.contentWindow) return;
-      frame.contentWindow.postMessage('{"event":"listening","id":1}', '*');
-      setTimeout(() => {
-        if (!playing && frame.contentWindow)
-          frame.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-      }, 300);
+      frame.contentWindow?.postMessage('{"event":"listening","id":1}', '*');
     });
-
-    const timer = setTimeout(() => {
-      window.removeEventListener('message', onMsg);
-      if (!playing) showFb();
-    }, 12000);
   };
 
   // Thumbnail del video con botón play perfectamente centrado
