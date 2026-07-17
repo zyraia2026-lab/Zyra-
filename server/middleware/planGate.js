@@ -35,7 +35,7 @@ exports.requirePlan = (minPlan) => (req, res, next) => {
   next();
 };
 
-/* Middleware: checks + increments daily message count */
+/* Middleware: checks + increments daily message count (atomic — race-condition safe) */
 exports.checkMessageLimit = async (req, res, next) => {
   try {
     const User = require("../models/User");
@@ -49,31 +49,48 @@ exports.checkMessageLimit = async (req, res, next) => {
 
     if (limits.messagesPerDay === Infinity) return next(); // premium = unlimited
 
-    const now   = new Date();
-    const reset = req.user.messagesResetAt ? new Date(req.user.messagesResetAt) : null;
-    const sameDay = reset && reset.toDateString() === now.toDateString();
+    const now    = new Date();
+    const today  = now.toISOString().slice(0, 10); // "YYYY-MM-DD" UTC
 
-    const used = sameDay ? (req.user.messagesUsedToday || 0) : 0;
+    // Atomically: if the stored reset date is today, $inc by 1; otherwise reset to 1.
+    // Pipeline update (MongoDB 4.2+) guarantees read-modify-write in a single op.
+    const updated = await User.findByIdAndUpdate(
+      req.user._id,
+      [
+        {
+          $set: {
+            messagesResetAt: now,
+            messagesUsedToday: {
+              $cond: [
+                {
+                  $eq: [
+                    { $dateToString: { format: "%Y-%m-%d", date: { $ifNull: ["$messagesResetAt", new Date(0)] } } },
+                    today,
+                  ],
+                },
+                { $add: [{ $ifNull: ["$messagesUsedToday", 0] }, 1] },
+                1,
+              ],
+            },
+          },
+        },
+      ],
+      { new: true }
+    ).select("messagesUsedToday").lean();
 
-    if (used >= limits.messagesPerDay) {
+    const usedAfter = updated?.messagesUsedToday ?? 1;
+
+    if (usedAfter > limits.messagesPerDay) {
       return res.status(429).json({
         limitReached: true,
         plan,
-        messagesUsedToday: used,
+        messagesUsedToday: usedAfter,
         messagesPerDay:    limits.messagesPerDay,
         message: `Has alcanzado el límite de ${limits.messagesPerDay} mensajes diarios del plan ${plan === "free" ? "Gratis" : "Básico"}. Actualiza tu plan para seguir chateando.`,
       });
     }
 
-    // Increment
-    await User.findByIdAndUpdate(req.user._id, {
-      messagesUsedToday: sameDay ? used + 1 : 1,
-      messagesResetAt:   now,
-    });
-    req.user.messagesUsedToday = sameDay ? used + 1 : 1;
-
-    // Attach remaining to request so controller can surface it
-    req.messagesRemaining = limits.messagesPerDay - (sameDay ? used + 1 : 1);
+    req.messagesRemaining = limits.messagesPerDay - usedAfter;
     next();
   } catch(e) {
     console.error("checkMessageLimit:", e.message);

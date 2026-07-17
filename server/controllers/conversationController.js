@@ -1,8 +1,11 @@
 const Conversation = require("../models/Conversation");
+const { getPlan }  = require("../middleware/planGate");
 
 exports.getConversations = async (req, res) => {
   try {
-    const list = await Conversation.find({ user: req.user._id }).sort({ updatedAt: -1 }).select("title updatedAt").limit(30).lean();
+    const { limits } = getPlan(req.user);
+    const cap = limits.conversations === Infinity ? 200 : limits.conversations;
+    const list = await Conversation.find({ user: req.user._id }).sort({ updatedAt: -1 }).select("title updatedAt").limit(cap).lean();
     res.json({ success: true, conversations: list });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
