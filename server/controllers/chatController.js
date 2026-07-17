@@ -337,10 +337,12 @@ async function getVideoId(title, artist) {
   try {
     // Lyric videos de fans (letra/lyrics) primero — los canales de sellos (VEVO/Sony/Universal)
     // bloquean embed aunque oEmbed y videoEmbeddable=true digan que sí es embeddable.
+    // Limpiar "ft. X" del título para evitar búsquedas demasiado largas que no devuelven nada
+    const titleClean = title.replace(/\s*(?:ft\.|feat\.|featuring)[^()\[\]]+/gi, '').trim();
     const [letraItems, lyricsItems, topicItems] = await Promise.all([
-      ytSearch(`${title} ${artist} letra`),
-      ytSearch(`${title} ${artist} lyrics`),
-      ytSearch(`${artist} ${title} topic`),
+      ytSearch(`${titleClean} ${artist} letra`),
+      ytSearch(`${titleClean} ${artist} lyrics`),
+      ytSearch(`${artist} ${titleClean} topic`),
     ]);
 
     const isLabelCh = ch => /\bvevo\b|sony music|universal music|warner music|emi music/i.test(ch || "");

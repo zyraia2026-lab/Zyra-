@@ -7053,10 +7053,12 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
 
   const showFb = async () => {
     if (onFail) {
-      // Retry silencioso: solo mostrar fallback si no hay reemplazo
+      // Mostrar loading en vez del error de YouTube mientras buscamos otra versión
+      const d = document.getElementById(divId);
+      if (d) d.innerHTML = `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#0f0f0f"><div style="text-align:center;color:rgba(255,255,255,.45);font-size:13px"><div style="width:28px;height:28px;border:2.5px solid rgba(255,255,255,.1);border-top-color:#e00;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px"></div>Buscando otra versión...</div></div>`;
       let replaced = false;
       try { replaced = await onFail(); } catch(_) {}
-      if (replaced) return; // Retry exitoso, no mostrar fallback
+      if (replaced) return;
     }
     const fb   = document.getElementById(fallbackId);
     const wrap = document.getElementById(divId + '-wrap');
@@ -7146,29 +7148,36 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
 }
 
 /* Buscar videoId embeddable para una canción o query libre */
-async function findPlayableVideoId(title, artist, excludeId = null) {
+async function findPlayableVideoId(title, artist, excludeIds = []) {
   if (!window.YT_ENABLED) return null;
   const authHeader = { "Authorization": "Bearer " + token };
-  const base = artist ? `${title} ${artist}` : title;
-  // Lyric videos de fans — casi siempre embeddables; topic/official suelen estar bloqueados por sellos
+  // Limpiar "ft. X" del título — búsquedas largas devuelven resultados malos
+  const titleClean = title.replace(/\s*(?:ft\.|feat\.|featuring)[^()\[\]]+/gi, '').trim();
+  const base = artist ? `${titleClean} ${artist}` : titleClean;
+  // Lyric videos de fans primero, luego búsqueda plana como respaldo
   const q1 = `${base} letra`;
   const q2 = `${base} lyrics`;
+  const q3 = base;
 
-  // Ambas búsquedas en paralelo — 1 solo round-trip en vez de hasta 8 secuenciales
-  const [r1, r2] = await Promise.all([
+  const [r1, r2, r3] = await Promise.all([
     fetch(`/api/yt/search?q=${encodeURIComponent(q1)}&maxResults=5`, { headers: authHeader }).then(r => r.json()).catch(() => null),
     fetch(`/api/yt/search?q=${encodeURIComponent(q2)}&maxResults=5`, { headers: authHeader }).then(r => r.json()).catch(() => null),
+    fetch(`/api/yt/search?q=${encodeURIComponent(q3)}&maxResults=5`, { headers: authHeader }).then(r => r.json()).catch(() => null),
   ]);
 
   const isMixVideo = t => /\bmix\b|\bmixtape\b|\bplaylist\b|\b[eé]xitos\b|\bmegamix\b/i.test(t || '');
   const isLabelCh  = ch => /\bvevo\b|sony music|universal music|warner music/i.test(ch || '');
-  const allItems = [...(r1?.items || []), ...(r2?.items || [])]
-    .filter(it => !isMixVideo(it.snippet?.title) && !isLabelCh(it.snippet?.channelTitle));
+  // letra/lyrics primero (más embeddables), luego resultados generales
+  const allItems = [
+    ...(r1?.items || []).filter(it => !isLabelCh(it.snippet?.channelTitle)),
+    ...(r2?.items || []).filter(it => !isLabelCh(it.snippet?.channelTitle)),
+    ...(r3?.items || []),
+  ].filter(it => !isMixVideo(it.snippet?.title));
 
-  // Verificar embeddability con oEmbed (excluir el video que ya falló)
+  const excludeSet = new Set(Array.isArray(excludeIds) ? excludeIds : [excludeIds].filter(Boolean));
   const seen = new Set();
   const videoIds = allItems.map(i => i.id?.videoId)
-    .filter(id => id && id !== excludeId && !seen.has(id) && seen.add(id));
+    .filter(id => id && !excludeSet.has(id) && !seen.has(id) && seen.add(id));
   if (!videoIds.length) return null;
 
   try {
@@ -7176,7 +7185,7 @@ async function findPlayableVideoId(title, artist, excludeId = null) {
     const statusData = await statusRes.json();
     for (const item of (statusData.items || [])) {
       if (item.status?.embeddable !== false && item.snippet?.liveBroadcastContent !== 'live') {
-        return { videoId: item.id, isTopicChannel: !!item.snippet?.channelTitle?.toLowerCase().includes('topic') };
+        return { videoId: item.id };
       }
     }
   } catch(e) { console.warn('YT status error:', e.message); }
@@ -7193,21 +7202,26 @@ function buildYTPlayer(card, id) {
   // Usar videoId del backend directamente si está disponible (más rápido, sin API call)
   if (card.videoId) {
     const html = ytEmbedHTML(card, id, card.videoId);
-    const ytUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(card.title+" "+card.artist)}`;
-    const retryFn = window.YT_ENABLED ? async () => {
-      try {
-        const result = await findPlayableVideoId(card.title, card.artist, card.videoId);
-        if (!result?.videoId) return false;
-        const outer = document.getElementById(id);
-        if (!outer) return false;
-        outer.innerHTML = ytEmbedHTML(card, id, result.videoId);
-        const newFrameId = `yt-iframe-${id}`;
-        ytInitPlayer(newFrameId, result.videoId, `yt-fallback-${id}`);
-        window._ytActivators[newFrameId]?.();
-        return true; // Retry exitoso — showFb no mostrará el fallback
-      } catch(_) { return false; }
-    } : null;
-    setTimeout(() => ytInitPlayer(`yt-iframe-${id}`, card.videoId, `yt-fallback-${id}`, retryFn), 0);
+    // Reintentar hasta 3 veces con videos diferentes, excluyendo los que ya fallaron
+    const triedIds = new Set([card.videoId]);
+    const makeRetry = (depth) => {
+      if (!window.YT_ENABLED || depth > 3) return null;
+      return async () => {
+        try {
+          const result = await findPlayableVideoId(card.title, card.artist, [...triedIds]);
+          if (!result?.videoId) return false;
+          triedIds.add(result.videoId);
+          const outer = document.getElementById(id);
+          if (!outer) return false;
+          outer.innerHTML = ytEmbedHTML(card, id, result.videoId);
+          const newFrameId = `yt-iframe-${id}`;
+          ytInitPlayer(newFrameId, result.videoId, `yt-fallback-${id}`, makeRetry(depth + 1));
+          window._ytActivators[newFrameId]?.();
+          return true;
+        } catch(_) { return false; }
+      };
+    };
+    setTimeout(() => ytInitPlayer(`yt-iframe-${id}`, card.videoId, `yt-fallback-${id}`, makeRetry(0)), 0);
     return html;
   }
 
