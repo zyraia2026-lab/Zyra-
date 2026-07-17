@@ -4222,7 +4222,8 @@ function applyAvatarEverywhere(photoUrl, emoji, color) {
     const el = document.getElementById(id);
     if(!el) return;
     if(photo) {
-      el.innerHTML = `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
+      const _ps = photo.replace(/"/g, '%22');
+      el.innerHTML = `<img src="${_ps}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
       el.style.background = "transparent";
     } else if(emojiAv) {
       el.innerHTML = "";
@@ -4254,7 +4255,7 @@ function applyAvatarEverywhere(photoUrl, emoji, color) {
   // Avatar usuario en mensajes del chat (actualiza los existentes)
   document.querySelectorAll(".msg-av.user").forEach(av => {
     if(photo) {
-      av.innerHTML = `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
+      av.innerHTML = `<img src="${photo.replace(/"/g,'%22')}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
       av.style.background = "transparent";
     } else if(emojiAv) {
       av.innerHTML = ""; av.textContent = emojiAv; av.style.background = colorAv;
@@ -7356,7 +7357,7 @@ function getUserAvatar() {
   const emoji = localStorage.getItem("zyra_avatar_emoji") || "";
   const color = localStorage.getItem("zyra_avatar_color") || "var(--grad)";
   const init  = user ? user.name.charAt(0).toUpperCase() : "?";
-  if(photo) return `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
+  if(photo) return `<img src="${photo.replace(/"/g,'%22')}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
   if(emoji) return emoji;
   return init;
 }
@@ -7607,7 +7608,7 @@ function addUserMsg(text, ts) {
   const time   = ts ? new Date(ts).toLocaleTimeString("es",{hour:"2-digit",minute:"2-digit"}) : new Date().toLocaleTimeString("es",{hour:"2-digit",minute:"2-digit"});
   const div    = document.createElement("div"); div.className = "msg user";
   let avInner = "", avStyle = "";
-  if(photo) { avInner = `<img src="${photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`; avStyle = "background:transparent"; }
+  if(photo) { avInner = `<img src="${photo.replace(/"/g,'%22')}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`; avStyle = "background:transparent"; }
   else if(emoji) { avInner = emoji; avStyle = `background:${color}`; }
   else { avInner = init; avStyle = `background:${color}`; }
   div.innerHTML = `<div class="msg-av user" style="${avStyle}">${avInner}</div>
@@ -9328,7 +9329,7 @@ function vcAddMessage(role, text) {
   let avHTML = '';
   if(role==='user') {
     let inner = emoji||init, bg = 'background:'+color;
-    if(photo) { inner='<img src="'+photo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>'; bg='background:transparent'; }
+    if(photo) { inner='<img src="'+photo.replace(/"/g,'%22')+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>'; bg='background:transparent'; }
     avHTML = '<div class="vc-msg-av user" style="'+bg+'">'+inner+'</div>';
   } else {
     avHTML = '<div class="vc-msg-av"><img src="'+LOGO+'" alt="Zyra"/></div>';
