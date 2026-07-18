@@ -4666,12 +4666,54 @@ function _acRandomize() {
   _ac.freckles   = Math.random()<0.2;
   _acRender();
 }
-function _acSetSkin(v)      { _ac.skin=v;        _acRender(); }
-function _acSetHairStyle(v) { _ac.hairStyle=v;   _acRender(); }
-function _acSetHairCol(v)   { _ac.hairColor=v;   _acRender(); }
-function _acSetExpr(v)      { _ac.expression=v;  _acRender(); }
-function _acToggle(k)       { _ac[k]=!_ac[k];    _acRender(); }
-function _acSetBg(v)        { _ac.bg=v;           _acRender(); }
+// Actualiza SOLO el src del img — no re-renderiza el DOM completo
+function _acPatch() {
+  const i = document.getElementById('ac-img');
+  if(i) i.src = _acBuildUrl();
+}
+function _acSetSkin(v) {
+  _ac.skin = v; _acPatch();
+  document.querySelectorAll('[data-acskin]').forEach(b =>
+    b.style.borderColor = b.dataset.acskin === v ? 'var(--text)' : 'transparent');
+}
+function _acSetHairStyle(v) {
+  _ac.hairStyle = v; _acPatch();
+  document.querySelectorAll('[data-achstyle]').forEach(b => {
+    const a = b.dataset.achstyle === v;
+    b.style.borderColor  = a ? 'var(--accent)' : 'var(--border)';
+    b.style.background   = a ? 'rgba(99,102,241,.12)' : 'transparent';
+    b.style.color        = a ? 'var(--accent)' : 'var(--text)';
+    b.style.fontWeight   = a ? 700 : 400;
+  });
+}
+function _acSetHairCol(v) {
+  _ac.hairColor = v; _acPatch();
+  document.querySelectorAll('[data-achcol]').forEach(b =>
+    b.style.borderColor = b.dataset.achcol === v ? 'var(--text)' : 'transparent');
+}
+function _acSetExpr(v) {
+  _ac.expression = v; _acPatch();
+  document.querySelectorAll('[data-acexpr]').forEach(b => {
+    const a = b.dataset.acexpr === String(v);
+    b.style.borderColor = a ? 'var(--accent)' : 'transparent';
+    b.style.background  = a ? 'rgba(99,102,241,.12)' : 'var(--surface)';
+  });
+}
+function _acToggle(k) {
+  _ac[k] = !_ac[k]; _acPatch();
+  const v = _ac[k];
+  document.querySelectorAll('[data-acextra="' + k + '"]').forEach(b => {
+    b.style.borderColor = v ? 'var(--accent)' : 'var(--border)';
+    b.style.background  = v ? 'rgba(99,102,241,.12)' : 'transparent';
+    b.style.color       = v ? 'var(--accent)' : 'var(--text)';
+    b.style.fontWeight  = v ? 700 : 400;
+  });
+}
+function _acSetBg(v) {
+  _ac.bg = v; _acPatch();
+  document.querySelectorAll('[data-acbg]').forEach(b =>
+    b.style.borderColor = b.dataset.acbg === v ? 'var(--text)' : 'transparent');
+}
 function _acRender() {
   const box = document.getElementById('ac-box');
   if(!box) return;
@@ -4682,7 +4724,7 @@ function _acRender() {
   <div style="background:var(--surface2);border-radius:18px;padding:18px 14px 16px;border:1px solid var(--border);margin-top:12px">
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:18px">
       <div style="background:linear-gradient(135deg,#6366f1,#ec4899);border-radius:50%;padding:3px;width:144px;height:144px;flex-shrink:0">
-        <img src="${url}" style="width:100%;height:100%;border-radius:50%;display:block;background:#${_ac.bg}"
+        <img id="ac-img" src="${url}" style="width:100%;height:100%;border-radius:50%;display:block;background:#${_ac.bg}"
           onerror="this.src='https://api.dicebear.com/9.x/adventurer/svg?seed=zyrafallback&backgroundColor=${_ac.bg}&backgroundType=solid'"/>
       </div>
       <button onclick="_acRandomize()" style="font-size:12px;padding:7px 18px;border-radius:20px;background:linear-gradient(135deg,#6366f1,#ec4899);color:#fff;border:none;cursor:pointer;font-weight:700">🎲 ¡Sorpréndeme!</button>
@@ -4690,39 +4732,39 @@ function _acRender() {
     <div style="margin-bottom:14px">
       <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">🎨 Tono de piel</div>
       <div style="display:flex;gap:5px;flex-wrap:wrap">
-        ${_acSkins.map(s=>`<button onclick="_acSetSkin('${s.id}')" title="${s.l}"
+        ${_acSkins.map(s=>`<button onclick="_acSetSkin('${s.id}')" data-acskin="${s.id}" title="${s.l}"
           style="width:28px;height:28px;border-radius:50%;background:${s.hex};border:3px solid ${S(_ac.skin,s.id)};cursor:pointer;transition:.1s"></button>`).join('')}
       </div>
     </div>
     <div style="margin-bottom:14px">
       <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">💇 Estilo de pelo</div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:9px">
-        ${_acHairStyles.map(h=>{const a=_ac.hairStyle===h.id;return `<button onclick="_acSetHairStyle('${h.id}')"
+        ${_acHairStyles.map(h=>{const a=_ac.hairStyle===h.id;return `<button onclick="_acSetHairStyle('${h.id}')" data-achstyle="${h.id}"
           style="font-size:11px;padding:5px 3px;border-radius:8px;border:2px solid ${a?'var(--accent)':'var(--border)'};background:${a?'rgba(99,102,241,.12)':'transparent'};color:${a?'var(--accent)':'var(--text)'};cursor:pointer;font-weight:${a?700:400}">${h.l}</button>`;}).join('')}
       </div>
       <div style="display:flex;gap:5px;flex-wrap:wrap">
-        ${_acHairCols.map(h=>`<button onclick="_acSetHairCol('${h.id}')" title="${h.l}"
+        ${_acHairCols.map(h=>`<button onclick="_acSetHairCol('${h.id}')" data-achcol="${h.id}" title="${h.l}"
           style="width:24px;height:24px;border-radius:50%;background:${h.hex};border:3px solid ${S(_ac.hairColor,h.id)};cursor:pointer"></button>`).join('')}
       </div>
     </div>
     <div style="margin-bottom:14px">
       <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">😊 Expresión</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
-        ${_acExpressions.map(e=>{const a=_ac.expression===e.v;return `<button onclick="_acSetExpr(${e.v})" title="${e.l}"
+        ${_acExpressions.map(e=>{const a=_ac.expression===e.v;return `<button onclick="_acSetExpr(${e.v})" data-acexpr="${e.v}" title="${e.l}"
           style="width:38px;height:38px;border-radius:50%;font-size:20px;border:3px solid ${a?'var(--accent)':'transparent'};background:${a?'rgba(99,102,241,.12)':'var(--surface)'};cursor:pointer;transition:.1s">${e.i}</button>`;}).join('')}
       </div>
     </div>
     <div style="margin-bottom:14px">
       <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">✨ Extras</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${[{k:'glassesOn',l:'😎 Gafas'},{k:'earringsOn',l:'💎 Aretes'},{k:'freckles',l:'🌟 Pecas'}].map(x=>{const a=_ac[x.k];return `<button onclick="_acToggle('${x.k}')"
+        ${[{k:'glassesOn',l:'😎 Gafas'},{k:'earringsOn',l:'💎 Aretes'},{k:'freckles',l:'🌟 Pecas'}].map(x=>{const a=_ac[x.k];return `<button onclick="_acToggle('${x.k}')" data-acextra="${x.k}"
           style="font-size:12px;padding:6px 12px;border-radius:20px;border:2px solid ${a?'var(--accent)':'var(--border)'};background:${a?'rgba(99,102,241,.12)':'transparent'};color:${a?'var(--accent)':'var(--text)'};cursor:pointer;font-weight:${a?700:400}">${x.l}</button>`;}).join('')}
       </div>
     </div>
     <div style="margin-bottom:16px">
       <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">🌈 Fondo</div>
       <div style="display:flex;gap:5px;flex-wrap:wrap">
-        ${_acBgCols.map(c=>`<button onclick="_acSetBg('${c}')" title="#${c}"
+        ${_acBgCols.map(c=>`<button onclick="_acSetBg('${c}')" data-acbg="${c}" title="#${c}"
           style="width:26px;height:26px;border-radius:50%;background:#${c};border:3px solid ${S(_ac.bg,c)};cursor:pointer"></button>`).join('')}
       </div>
     </div>
