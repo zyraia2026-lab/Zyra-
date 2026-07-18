@@ -7492,8 +7492,8 @@ async function toggleYTPlayer(cardEl, card, ytId) {
     if(a) a.textContent = "■ Cerrar";
     cardEl.style.borderColor = "var(--green)";
 
-    // Intentar Spotify primero si el usuario lo tiene conectado
-    if(user?.spotifyConnected && window.SPOTIFY_ENABLED) {
+    // Intentar Spotify primero si el servidor tiene credenciales
+    if(window.SPOTIFY_ENABLED) {
       c.innerHTML = ytLoadingHTML(card, ytId);
       const spotHtml = await buildSpotifyPlayer(card, ytId);
       if(spotHtml) {
