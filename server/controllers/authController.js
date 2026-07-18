@@ -122,13 +122,19 @@ exports.loginVerify = async (req, res) => {
     const { userId } = result.data;
     if (!userId) return res.status(400).json({ message: "Proceso de login inválido. Intenta de nuevo" });
 
-    const user = await User.findById(userId).select("name email darkMode termsAcceptedAt").lean();
+    const user = await User.findById(userId).select("name email darkMode termsAcceptedAt spotifyConnected googleId facebookId").lean();
     if (!user) return res.status(401).json({ message: "Usuario no encontrado" });
 
     res.json({
       success: true,
       token: tk(user._id),
-      user: { id: user._id, name: user.name, email: user.email, darkMode: user.darkMode, termsAcceptedAt: user.termsAcceptedAt }
+      user: {
+        id: user._id, name: user.name, email: user.email, darkMode: user.darkMode,
+        termsAcceptedAt: user.termsAcceptedAt,
+        spotifyConnected: user.spotifyConnected || false,
+        googleConnected:  !!user.googleId,
+        facebookConnected: !!user.facebookId,
+      }
     });
   } catch (e) {
     console.error("loginVerify:", e.message);
@@ -161,10 +167,15 @@ exports.resendCode = async (req, res) => {
 // ── GET ME ──
 exports.getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select("name email darkMode").lean();
+    const user = await User.findById(req.user._id).select("name email darkMode spotifyConnected googleId facebookId").lean();
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
     const isAdmin = !!(process.env.ADMIN_EMAIL && user.email === process.env.ADMIN_EMAIL);
-    res.json({ success: true, user: { id: user._id, name: user.name, email: user.email, darkMode: user.darkMode, isAdmin } });
+    res.json({ success: true, user: {
+      id: user._id, name: user.name, email: user.email, darkMode: user.darkMode, isAdmin,
+      spotifyConnected:  user.spotifyConnected || false,
+      googleConnected:   !!user.googleId,
+      facebookConnected: !!user.facebookId,
+    } });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
 
