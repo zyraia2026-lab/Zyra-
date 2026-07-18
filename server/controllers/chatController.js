@@ -1,4 +1,5 @@
 const Conversation = require("../models/Conversation");
+const YTCache     = require("../models/YTCache");
 const Profile      = require("../models/Profile");
 const Goal         = require("../models/Goal");
 const Journal      = require("../models/Journal");
@@ -308,24 +309,17 @@ function _cacheSet(cache, key, value, max) {
 
 // oEmbed es la fuente de verdad: 200 = embeddable, 401 = no embeddable, 404 = no disponible
 // No consume cuota del Data API, no requiere API key, no miente.
-async function checkEmbeddable(videoIds) {
-  if (!videoIds.length) return null;
-  try {
-    const results = await Promise.all(videoIds.slice(0, 8).map(id =>
-      fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${id}&format=json`,
-        { signal: AbortSignal.timeout(3000) })
-      .then(r => r.ok ? id : null)
-      .catch(() => null)
-    ));
-    const valid = results.filter(Boolean);
-    return valid.length ? valid : null;
-  } catch(e) { return null; }
-}
 
 async function getVideoId(title, artist) {
   const key = `${title}|${artist}`.toLowerCase();
+  // 1. Memory cache
   const cached = _cacheGet(ytCache, key, YT_TTL);
   if (cached) return cached;
+  // 2. MongoDB cache (persiste entre reinicios del servidor)
+  try {
+    const dbCached = await YTCache.findOne({ key }).lean();
+    if (dbCached?.videoId) { _cacheSet(ytCache, key, dbCached.videoId, YT_MAX); return dbCached.videoId; }
+  } catch(_) {}
   if (!process.env.YT_API_KEY) return null;
 
   const YT_KEY = process.env.YT_API_KEY;
@@ -351,41 +345,28 @@ async function getVideoId(title, artist) {
       .replace(/[()[\]\/\\|]+/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
-    const [topicItems, letraItems, lyricsItems] = await Promise.all([
-      ytSearch(`${artist} ${titleClean} topic`),
-      ytSearch(`${titleClean} ${artist} letra`),
-      ytSearch(`${titleClean} ${artist} lyrics`),
-    ]);
-
     const isLabelCh = ch => /\bvevo\b|sony music|universal music|warner music|emi music/i.test(ch || "");
     const isTopicCh = ch => /\btopic\b/i.test(ch || "");
 
-    // Topic channels primero — YouTube Music los licenció directamente
+    // 1 búsqueda: topic channel primero (100 unidades de cuota)
+    const topicItems = await ytSearch(`${artist} ${titleClean} topic`);
     const topicCandidate = topicItems.find(it => isTopicCh(it.snippet?.channelTitle) && it.id?.videoId);
     if (topicCandidate?.id?.videoId) {
       const vid = topicCandidate.id.videoId;
       _cacheSet(ytCache, key, vid, YT_MAX);
+      YTCache.findOneAndUpdate({ key }, { videoId: vid }, { upsert: true }).catch(()=>{});
       return vid;
     }
 
-    // Fallback: lyric videos de fans
-    const allItems = [
-      ...letraItems.filter(it => !isLabelCh(it.snippet?.channelTitle)),
-      ...lyricsItems.filter(it => !isLabelCh(it.snippet?.channelTitle)),
-      ...topicItems,
-    ];
-    const seen = new Set();
-    const candidates = allItems
-      .map(it => it.id?.videoId)
-      .filter(id => id && !seen.has(id) && seen.add(id));
-
-    if (candidates.length) {
-      const verified = await checkEmbeddable(candidates.slice(0, 8));
-      const winner = verified?.[0];
-      if (winner) {
-        _cacheSet(ytCache, key, winner, YT_MAX);
-        return winner;
-      }
+    // 2da búsqueda solo si no hay topic channel (100 unidades)
+    const letraItems = await ytSearch(`${titleClean} ${artist} letra`);
+    const fanCandidate = letraItems.find(it => !isLabelCh(it.snippet?.channelTitle) && it.id?.videoId)
+      || topicItems.find(it => it.id?.videoId);
+    if (fanCandidate?.id?.videoId) {
+      const vid = fanCandidate.id.videoId;
+      _cacheSet(ytCache, key, vid, YT_MAX);
+      YTCache.findOneAndUpdate({ key }, { videoId: vid }, { upsert: true }).catch(()=>{});
+      return vid;
     }
 
     return null;
@@ -406,7 +387,6 @@ async function getSongsForUnknownArtist(artistName) {
     const makeUrl = (q) =>
       `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(q)}&type=video&videoCategoryId=10&videoEmbeddable=true&regionCode=CO&maxResults=10&key=${YT_KEY}`;
 
-    // Búsquedas en paralelo + checkEmbeddable en paralelo con la segunda búsqueda
     // Timeout 5s por llamada para no colgar el stream si YouTube tarda
     const ytFetch = (url) =>
       fetch(url, { signal: AbortSignal.timeout(5000) }).then(r => r.json()).catch(() => null);
@@ -427,11 +407,6 @@ async function getSongsForUnknownArtist(artistName) {
       ...(d3?.items || []),
     ];
 
-    const allIds = allItems.map(it => it.id?.videoId).filter(Boolean);
-    const verified = new Set(
-      allIds.length ? (await checkEmbeddable(allIds.slice(0, 8)).catch(() => null) ?? []) : []
-    );
-
     const results = [];
     const seenTitles = new Set();
 
@@ -439,7 +414,6 @@ async function getSongsForUnknownArtist(artistName) {
       if (results.length >= 5) break;
       const videoId = item.id?.videoId;
       if (!videoId) continue;
-      if (!verified.has(videoId)) continue;
       const rawTitle     = decodeHTMLEntities(item.snippet.title);
       const channelTitle = item.snippet.channelTitle || "";
       if (!isRelevantSong(rawTitle, artistName, channelTitle)) continue;
@@ -1233,13 +1207,13 @@ exports.sendMessage = async (req, res) => {
         const fmt = artistName.split(" ").map(w=>w[0].toUpperCase()+w.slice(1)).join(" ");
         const avail = ytSongs.filter(s=>!usedSongs.includes(s.title.toLowerCase()));
         const pool = avail.length ? avail : ytSongs;
-        return pool.slice(0,3).map(s=>({ type:"song", title:s.title, artist:s.artist||fmt, videoId:s.videoId||null }));
+        return pool.slice(0,1).map(s=>({ type:"song", title:s.title, artist:s.artist||fmt, videoId:s.videoId||null }));
       };
 
       if (detected) {
         // Prioridad: lista hardcodeada (títulos limpios, sin duplicados) → YouTube solo para desconocidos
-        songCards = pickSongs(detected.key, 3, usedSongs, mood);
-        if (!songCards.length) songCards = pickSongs(detected.key, 3, [], mood);
+        songCards = pickSongs(detected.key, 1, usedSongs, mood);
+        if (!songCards.length) songCards = pickSongs(detected.key, 1, [], mood);
         if (!songCards.length) {
           const ytSongs = earlyYTPromise
             ? await earlyYTPromise
@@ -1262,8 +1236,8 @@ exports.sendMessage = async (req, res) => {
             const ytSongs2 = await getSongsForUnknownArtist(respArtist.name).catch(()=>null);
             songCards = ytResultsToCards(ytSongs2, respArtist.name);
             if (!songCards.length) {
-              songCards = pickSongs(respArtist.key, 3, usedSongs, mood);
-              if (!songCards.length) songCards = pickSongs(respArtist.key, 3, [], mood);
+              songCards = pickSongs(respArtist.key, 1, usedSongs, mood);
+              if (!songCards.length) songCards = pickSongs(respArtist.key, 1, [], mood);
             }
           } else {
             // Artista desconocido mencionado en la respuesta ("de Kimberly Loaiza")
@@ -1277,8 +1251,8 @@ exports.sendMessage = async (req, res) => {
         // Sin artista → categoría genérica (solo si no había ningún indicio de artista en ningún lugar)
         if (!songCards.length && !extractArtistName(message) && !extractArtistName(cleanText)) {
           const cat = detectCategory(message);
-          songCards = pickSongs(cat, 3, usedSongs, null);
-          if (!songCards.length) songCards = pickSongs(cat, 3, [], null);
+          songCards = pickSongs(cat, 1, usedSongs, null);
+          if (!songCards.length) songCards = pickSongs(cat, 1, [], null);
         }
         // Si había artista pero no encontramos canciones, dejar cards vacío
         // (mejor no mostrar nada que canciones incorrectas)
@@ -1533,13 +1507,13 @@ exports.streamMessage = async (req, res) => {
         const fmt = artistName.split(" ").map(w=>w[0].toUpperCase()+w.slice(1)).join(" ");
         const avail = ytSongs.filter(s=>!usedSongs.includes(s.title.toLowerCase()));
         const pool = avail.length ? avail : ytSongs;
-        return pool.slice(0,3).map(s=>({ type:"song", title:s.title, artist:s.artist||fmt, videoId:s.videoId||null }));
+        return pool.slice(0,1).map(s=>({ type:"song", title:s.title, artist:s.artist||fmt, videoId:s.videoId||null }));
       };
 
       if (detected) {
         // Prioridad: lista hardcodeada (títulos limpios, sin duplicados) → YouTube solo para desconocidos
-        songCards = pickSongs(detected.key, 3, usedSongs, mood);
-        if (!songCards.length) songCards = pickSongs(detected.key, 3, [], mood);
+        songCards = pickSongs(detected.key, 1, usedSongs, mood);
+        if (!songCards.length) songCards = pickSongs(detected.key, 1, [], mood);
         if (!songCards.length) {
           const ytSongs = (_earlyKnownYT && detected.name === _earlyArtist?.name)
             ? await _earlyKnownYT
@@ -1563,8 +1537,8 @@ exports.streamMessage = async (req, res) => {
             const ytSongs2 = await getSongsForUnknownArtist(respArtist.name).catch(()=>null);
             songCards = ytResultsToCards2(ytSongs2, respArtist.name);
             if (!songCards.length) {
-              songCards = pickSongs(respArtist.key, 3, usedSongs, mood);
-              if (!songCards.length) songCards = pickSongs(respArtist.key, 3, [], mood);
+              songCards = pickSongs(respArtist.key, 1, usedSongs, mood);
+              if (!songCards.length) songCards = pickSongs(respArtist.key, 1, [], mood);
             }
           } else {
             // Artista desconocido mencionado en la respuesta del AI (ej: Silvana Estrada)
@@ -1579,8 +1553,8 @@ exports.streamMessage = async (req, res) => {
         // Genérico solo si no hubo artista en ningún lugar — nunca mezclar artistas con canciones equivocadas
         if (!songCards.length && !extractArtistName(message) && !_aiArtist) {
           const cat = detectCategory(message);
-          songCards = pickSongs(cat, 3, usedSongs, null);
-          if (!songCards.length) songCards = pickSongs(cat, 3, [], null);
+          songCards = pickSongs(cat, 1, usedSongs, null);
+          if (!songCards.length) songCards = pickSongs(cat, 1, [], null);
         }
       }
       if (songCards.length) {

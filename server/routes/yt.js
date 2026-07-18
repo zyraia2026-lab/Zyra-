@@ -21,13 +21,15 @@ r.get("/search", protect, ytLimiter, async (req, res) => {
 
     const params = new URLSearchParams({
       part: "snippet", q, type: "video", maxResults,
-      videoEmbeddable: "true", videoSyndicated: "true",
       key,
       ...(videoCategoryId ? { videoCategoryId } : {}),
     });
     const ytRes = await fetch(`https://www.googleapis.com/youtube/v3/search?${params}`);
     const data  = await ytRes.json();
-    if (data.error) return res.status(502).json({ message: data.error.message });
+    if (data.error) {
+      console.error(`[YT] ${data.error.code} – ${data.error.message}`);
+      return res.status(502).json({ message: data.error.message });
+    }
     res.json(data);
   } catch(e) {
     res.status(500).json({ message: e.message });
@@ -48,7 +50,10 @@ r.get("/videos", protect, ytLimiter, async (req, res) => {
       { signal: AbortSignal.timeout(5000) }
     );
     const data = await ytRes.json();
-    if (data.error) return res.status(502).json({ message: data.error.message });
+    if (data.error) {
+      console.error(`[YT] ${data.error.code} – ${data.error.message}`);
+      return res.status(502).json({ message: data.error.message });
+    }
 
     res.json({ items: (data.items || []).map(it => ({
       id: it.id,
