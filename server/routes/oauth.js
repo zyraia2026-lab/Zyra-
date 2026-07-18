@@ -118,7 +118,9 @@ router.get('/:provider/callback', async (req, res) => {
     const userData  = JSON.stringify({
       _id: user._id, name: user.name, email: user.email,
       plan: user.plan, darkMode: user.darkMode,
-      spotifyConnected: user.spotifyConnected || false,
+      spotifyConnected:  user.spotifyConnected  || false,
+      googleConnected:   !!user.googleId,
+      facebookConnected: !!user.facebookId,
     });
 
     res.redirect(`${BASE}/?oauth_token=${zyraToken}&oauth_user=${encodeURIComponent(userData)}`);

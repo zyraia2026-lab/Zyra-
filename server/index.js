@@ -60,8 +60,8 @@ app.use(helmet({
       fontSrc:        ["'self'", "https://fonts.gstatic.com", "data:"],
       imgSrc:         ["'self'", "data:", "https:", "blob:"],
       mediaSrc:       ["'self'", "https:", "blob:"],
-      frameSrc:       ["https://www.youtube.com", "https://www.youtube-nocookie.com"],
-      connectSrc:     ["'self'", "https://api.groq.com", "https://api.streamelements.com", "https://www.youtube.com", "https://www.youtube-nocookie.com", "https://i.ytimg.com"],
+      frameSrc:       ["https://www.youtube.com", "https://www.youtube-nocookie.com", "https://open.spotify.com"],
+      connectSrc:     ["'self'", "https://api.groq.com", "https://api.streamelements.com", "https://www.youtube.com", "https://www.youtube-nocookie.com", "https://i.ytimg.com", "https://api.spotify.com", "https://accounts.spotify.com"],
       objectSrc:      ["'none'"],
       baseUri:        ["'self'"],
       formAction:     ["'self'"],
@@ -132,9 +132,13 @@ app.use("/api/weekly-report", require("./routes/weeklyReport"));
 app.use("/api/referral",      require("./routes/referral"));
 app.use("/api/future-notes",  require("./routes/futureNotes"));
 app.use("/api/admin",         require("./routes/admin"));
+app.use("/api/spotify",       require("./routes/spotify"));
 
 app.get("/api/health", (req, res) => res.json({ status: "OK", ai: "Zyra/Groq", version: "5.0" }));
-app.get("/api/config", auth, (req, res) => res.json({ ytEnabled: !!process.env.YT_API_KEY }));
+app.get("/api/config", auth, (req, res) => res.json({
+  ytEnabled:      !!process.env.YT_API_KEY,
+  spotifyEnabled: !!process.env.SPOTIFY_CLIENT_ID,
+}));
 
 // ── Cron: push reminders cada minuto
 setInterval(() => {
