@@ -104,6 +104,12 @@ app.use(express.static(path.join(__dirname, "../client"), {
   maxAge: process.env.NODE_ENV === "production" ? "1d" : 0,
   etag: true,
   setHeaders(res, filePath) {
+    // index.html nunca debe cachearse — así los usuarios siempre ven la versión actual
+    if (filePath.endsWith("index.html")) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+    }
     if (filePath.endsWith(".apk")) {
       res.setHeader("Content-Type", "application/vnd.android.package-archive");
       res.setHeader("Content-Disposition", 'attachment; filename="Zyra.apk"');
