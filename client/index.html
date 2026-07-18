@@ -7052,29 +7052,25 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
   if (!div) return;
 
   const showFb = () => {
-    // Mostrar fallback inmediatamente — nunca dejar al usuario con pantalla negra
     const fb   = document.getElementById(fallbackId);
     const wrap = document.getElementById(divId + '-wrap');
     if (wrap) wrap.style.display = 'none';
     if (fb)   fb.style.display   = 'block';
-    // Intentar alternativa en background (si encuentra una, reemplaza el card)
     if (onFail) onFail();
   };
 
   const isMob = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
+  // URL sin origin= (igual que la versión que funcionaba) — postMessage target '*'
+  const embedSrc = `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=1&playsinline=1&enablejsapi=1`;
+  const ytLink   = `https://www.youtube.com/watch?v=${videoId}`;
 
   window._ytActivators[divId] = () => {
     const d = document.getElementById(divId);
     if (!d) return;
     const frameId = divId + '-if';
-    const ytLink  = `https://www.youtube.com/watch?v=${videoId}`;
-
-    const ytOrigin = location.origin;
-    const embedSrc = `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=1&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(ytOrigin)}`;
 
     d.innerHTML = `
-      <iframe id="${frameId}"
-        src="${embedSrc}"
+      <iframe id="${frameId}" src="${embedSrc}"
         style="position:absolute;top:0;left:0;width:100%;height:100%;border:none"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
         allowfullscreen></iframe>
@@ -7084,32 +7080,27 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
       </a>`;
 
     const frame = document.getElementById(frameId);
+    if (!frame) return;
 
     const onMsg = (e) => {
       if (!frame || e.source !== frame.contentWindow) return;
       try {
-        const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+        const data = JSON.parse(e.data);
         if (data.event === 'onError') {
           window.removeEventListener('message', onMsg);
           showFb();
         } else if (data.event === 'onStateChange' && (data.info === 1 || data.info === 3)) {
-          // Está reproduciendo o cargando — quitar botón ▶ YouTube
           window.removeEventListener('message', onMsg);
-          document.getElementById(frameId + '-btn')?.remove();
-        } else if (data.event === 'onReady' || data.event === 'infoDelivery') {
-          // Listo — quitar botón
           document.getElementById(frameId + '-btn')?.remove();
         }
       } catch(_) {}
     };
     window.addEventListener('message', onMsg);
-
     frame.addEventListener('load', () => {
-      frame.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: 1 }), 'https://www.youtube.com');
+      frame.contentWindow?.postMessage('{"event":"listening","id":1}', '*');
     });
   };
 
-  // Thumbnail del video con botón play perfectamente centrado
   const thumb = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
   div.innerHTML = `
     <div onclick="window._ytActivators['${divId}']&&window._ytActivators['${divId}']()"
@@ -7124,111 +7115,83 @@ function ytInitPlayer(divId, videoId, fallbackId, onFail) {
     </div>`;
 }
 
-/* Probar si un videoId se puede embeber REALMENTE desde este browser/región.
-   Necesita autoplay=1 para que YouTube envíe eventos onError/onReady vía postMessage. */
-function testEmbeddable(videoId) {
-  return new Promise((resolve) => {
-    const iframe = document.createElement('iframe');
-    iframe.style.cssText = 'position:fixed;opacity:0;pointer-events:none;width:1px;height:1px;top:-9999px;left:-9999px';
-    // origin= es obligatorio para que enablejsapi funcione y YouTube envíe eventos
-    const origin = encodeURIComponent(location.origin);
-    iframe.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&mute=1&autoplay=1&playsinline=1&origin=${origin}`;
-    iframe.allow = 'autoplay';
-    let done = false;
-    const finish = (ok) => {
-      if (done) return; done = true;
-      clearTimeout(timer);
-      window.removeEventListener('message', onMsg);
-      try { document.body.removeChild(iframe); } catch(_) {}
-      resolve(ok);
-    };
-    const onMsg = (e) => {
-      if (e.source !== iframe.contentWindow) return;
-      try {
-        const d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-        if (d.event === 'onError') finish(false);
-        else if (d.event === 'onReady' || d.event === 'infoDelivery' || d.event === 'initialDelivery') finish(true);
-        else if (d.event === 'onStateChange' && (d.info === 1 || d.info === 2 || d.info === 3)) finish(true);
-      } catch(_) {}
-    };
-    window.addEventListener('message', onMsg);
-    iframe.addEventListener('load', () => {
-      try { iframe.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: 1 }), 'https://www.youtube.com'); } catch(_) {}
-    });
-    const timer = setTimeout(() => finish(false), 6000);
-    document.body.appendChild(iframe);
-  });
-}
-
-/* Buscar videoId embeddable para una canción o query libre */
+/* Buscar videoId embeddable — topic channels primero, luego lyric/letra videos de fans */
 async function findPlayableVideoId(title, artist, excludeIds = []) {
   if (!window.YT_ENABLED) return null;
+  // Revisar localStorage primero — cero cuota
+  const excl = new Set(Array.isArray(excludeIds) ? excludeIds : [excludeIds].filter(Boolean));
+  if (!excludeIds?.length) {
+    const lsCached = ytLsGet(title, artist);
+    if (lsCached && !excl.has(lsCached)) return { videoId: lsCached };
+  }
   const authHeader = { "Authorization": "Bearer " + token };
   const titleClean = title
     .replace(/\s*(?:ft\.|feat\.|featuring)[^()\[\]]+/gi, '')
     .replace(/[()[\]\/\\|]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-  const base = artist ? `${titleClean} ${artist}` : titleClean;
-  const isRetry = (excludeIds?.length || 0) > 0;
+  const base  = artist ? `${titleClean} ${artist}` : titleClean;
+  const isRtry = (excludeIds?.length || 0) > 0;
 
-  // Topic = canales auto-generados por YouTube Music con licencias — van primero
-  // En retry añadir covers/piano que no tienen Content ID de sellos
-  const q1 = `${base} topic`;
-  const q2 = isRetry ? `${base} cover` : `${base} letra`;
-  const q3 = isRetry ? `${titleClean} piano cover` : `${base} lyrics`;
+  const isMix    = t  => /\bmix\b|\bmixtape\b|\bplaylist\b|\b[eé]xitos\b|\bmegamix\b/i.test(t||'');
+  const isLabel  = ch => /\bvevo\b|sony music|universal music|warner music/i.test(ch||'');
+  const isTopic  = ch => /\btopic\b/i.test(ch||'');
 
-  const [r1, r2, r3] = await Promise.all([
-    fetch(`/api/yt/search?q=${encodeURIComponent(q1)}&maxResults=5`, { headers: authHeader }).then(r => r.json()).catch(() => null),
-    fetch(`/api/yt/search?q=${encodeURIComponent(q2)}&maxResults=5`, { headers: authHeader }).then(r => r.json()).catch(() => null),
-    fetch(`/api/yt/search?q=${encodeURIComponent(q3)}&maxResults=5`, { headers: authHeader }).then(r => r.json()).catch(() => null),
-  ]);
+  // 1 búsqueda: topic channel (ahorra cuota de API)
+  const r1 = await fetch(`/api/yt/search?q=${encodeURIComponent(base+' topic')}&maxResults=5`, { headers: authHeader }).then(r=>r.json()).catch(()=>null);
+  const topicHit = (r1?.items||[]).find(it => isTopic(it.snippet?.channelTitle) && it.id?.videoId && !excl.has(it.id.videoId));
+  if (topicHit) {
+    ytLsSet(title, artist, topicHit.id.videoId);
+    return { videoId: topicHit.id.videoId };
+  }
 
-  const isMixVideo  = t  => /\bmix\b|\bmixtape\b|\bplaylist\b|\b[eé]xitos\b|\bmegamix\b/i.test(t || '');
-  const isLabelCh   = ch => /\bvevo\b|sony music|universal music|warner music/i.test(ch || '');
-  const isTopicCh   = ch => /\btopic\b/i.test(ch || '');
+  // 2da búsqueda solo si no hay topic channel
+  const q2 = isRtry ? `${base} cover` : `${base} letra`;
+  const r2 = await fetch(`/api/yt/search?q=${encodeURIComponent(q2)}&maxResults=5`, { headers: authHeader }).then(r=>r.json()).catch(()=>null);
+  const items2 = (r2?.items||[]).filter(it => !isLabel(it.snippet?.channelTitle) && !isMix(it.snippet?.title));
+  const hit2 = items2.find(it => it.id?.videoId && !excl.has(it.id.videoId));
+  if (hit2) {
+    ytLsSet(title, artist, hit2.id.videoId);
+    return { videoId: hit2.id.videoId };
+  }
 
-  const allItems = [
-    ...(r1?.items || []),   // topic channels primero (sin filtro — son YouTube Music oficial)
-    ...(r2?.items || []).filter(it => !isLabelCh(it.snippet?.channelTitle)),
-    ...(r3?.items || []).filter(it => !isLabelCh(it.snippet?.channelTitle)),
-  ].filter(it => !isMixVideo(it.snippet?.title));
-
-  const excludeSet = new Set(Array.isArray(excludeIds) ? excludeIds : [excludeIds].filter(Boolean));
-  const seen = new Set();
-  const candidates = allItems.map(i => i.id?.videoId)
-    .filter(id => id && !excludeSet.has(id) && !seen.has(id) && seen.add(id));
-
-  // Canal Topic: YouTube Music lo licenció — confiar directamente, sin check extra
-  const topicItem = allItems.find(it =>
-    isTopicCh(it.snippet?.channelTitle) && !excludeSet.has(it.id?.videoId) && it.id?.videoId
-  );
-  if (topicItem?.id?.videoId) return { videoId: topicItem.id.videoId };
-
-  if (!candidates.length) return null;
-
-  // Check server-side para el resto
-  try {
-    const statusRes = await fetch(`/api/yt/videos?ids=${candidates.slice(0, 10).join(',')}`, { headers: authHeader });
-    const statusData = await statusRes.json();
-    for (const item of (statusData.items || [])) {
-      if (item.status?.embeddable !== false && item.snippet?.liveBroadcastContent !== 'live') {
-        return { videoId: item.id };
-      }
-    }
-  } catch(e) { console.warn('YT status check error:', e.message); }
-
-  // Último recurso: devolver primer candidato y dejar que onError decida
-  return { videoId: candidates[0] };
+  return null;
 }
 
+// Lazy play: busca videoId solo cuando el usuario hace click — 0 cuota hasta que se reproduzca
+window._ytLazy = async (id, title, artist, container) => {
+  const fid = `yt-fallback-${id}`;
+  const frameId = `yt-iframe-${id}`;
+  // Revisar localStorage primero (cero cuota)
+  const cached = ytLsGet(title, artist);
+  if (cached) {
+    ytInitPlayer(frameId, cached, fid);
+    window._ytActivators[frameId]?.();
+    return;
+  }
+  // Mostrar loading
+  container.innerHTML = '<div style="color:rgba(255,255,255,.6);font-size:13px;display:flex;align-items:center;justify-content:center;height:100%;gap:8px"><span>🔍</span> Buscando...</div>';
+  try {
+    const result = await findPlayableVideoId(title, artist, []);
+    if (result?.videoId) {
+      ytInitPlayer(frameId, result.videoId, fid);
+      window._ytActivators[frameId]?.();
+    } else {
+      document.getElementById(fid).style.display = 'block';
+      document.getElementById(`${frameId}-wrap`).style.display = 'none';
+    }
+  } catch(_) {
+    document.getElementById(fid).style.display = 'block';
+    document.getElementById(`${frameId}-wrap`).style.display = 'none';
+  }
+};
+
 function buildYTPlayer(card, id) {
-  const q     = encodeURIComponent(card.title + " " + card.artist);
-  const ytUrl = card.videoId
+  const q      = encodeURIComponent(card.title + " " + card.artist);
+  const ytUrl  = card.videoId
     ? `https://www.youtube.com/watch?v=${card.videoId}`
     : `https://www.youtube.com/results?search_query=${q}`;
 
-  // Usar videoId del backend directamente si está disponible (más rápido, sin API call)
   if (card.videoId) {
     const html = ytEmbedHTML(card, id, card.videoId);
     const retryFn = window.YT_ENABLED ? async () => {
@@ -7238,34 +7201,27 @@ function buildYTPlayer(card, id) {
         const outer = document.getElementById(id);
         if (!outer) return;
         outer.innerHTML = ytEmbedHTML(card, id, result.videoId);
-        const newFrameId = `yt-iframe-${id}`;
-        ytInitPlayer(newFrameId, result.videoId, `yt-fallback-${id}`);
-        window._ytActivators[newFrameId]?.();
+        const nf = `yt-iframe-${id}`;
+        ytInitPlayer(nf, result.videoId, `yt-fallback-${id}`);
+        window._ytActivators[nf]?.();
       } catch(_) {}
     } : null;
     setTimeout(() => ytInitPlayer(`yt-iframe-${id}`, card.videoId, `yt-fallback-${id}`, retryFn), 0);
     return html;
   }
 
-  // Si tenemos API key, buscar videoId
+  // Sin videoId: lazy load — buscar solo cuando el usuario hace click en play (ahorra cuota)
   if (window.YT_ENABLED) {
-    setTimeout(async () => {
-      const wrap = document.getElementById(id);
-      if (!wrap) return;
-      try {
-        const result = await findPlayableVideoId(card.title, card.artist);
-        if (result?.videoId) {
-          wrap.innerHTML = ytEmbedHTML(card, id, result.videoId);
-          ytInitPlayer(`yt-iframe-${id}`, result.videoId, `yt-fallback-${id}`);
-        } else {
-          wrap.innerHTML = ytButtonHTML(card, id, ytUrl);
-        }
-      } catch(e) {
-        const w = document.getElementById(id);
-        if (w) w.innerHTML = ytButtonHTML(card, id, ytUrl);
-      }
+    const html = ytEmbedHTML(card, id, null);
+    const safeT = card.title.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const safeA = card.artist.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    setTimeout(() => {
+      const d = document.getElementById(`yt-iframe-${id}`);
+      if (!d) return;
+      d.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background:#111;cursor:pointer;display:flex;align-items:center;justify-content:center';
+      d.innerHTML = `<div onclick="window._ytLazy('${id}','${safeT}','${safeA}',this.parentElement)" style="display:flex;align-items:center;justify-content:center;width:100%;height:100%"><div style="width:64px;height:44px;background:#ff0000;border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 24px rgba(0,0,0,.7);pointer-events:none"><svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg></div></div>`;
     }, 0);
-    return ytLoadingHTML(card, id);
+    return html;
   }
 
   // Sin nada → botón directo a YouTube
@@ -7292,10 +7248,30 @@ function ytLoadingHTML(card, id) {
   </div>`;
 }
 
+// localStorage cache para videoIds — 0 cuota en reproducciones repetidas
+const _ytLsKey = 'zyra_yt_v1';
+function ytLsGet(title, artist) {
+  try {
+    const c = JSON.parse(localStorage.getItem(_ytLsKey)||'{}');
+    const e = c[`${title}|${artist}`.toLowerCase()];
+    return (e && Date.now()-e.t < 30*864e5) ? e.id : null;
+  } catch(_) { return null; }
+}
+function ytLsSet(title, artist, videoId) {
+  try {
+    const c = JSON.parse(localStorage.getItem(_ytLsKey)||'{}');
+    const k = `${title}|${artist}`.toLowerCase();
+    c[k] = { id: videoId, t: Date.now() };
+    const keys = Object.keys(c);
+    if (keys.length > 300) keys.slice(0, keys.length-300).forEach(k=>delete c[k]);
+    localStorage.setItem(_ytLsKey, JSON.stringify(c));
+  } catch(_) {}
+}
+
 function ytEmbedHTML(card, id, videoId) {
-  const ytDirect   = `https://www.youtube.com/watch?v=${videoId}`;
   const q          = encodeURIComponent(card.title + " " + card.artist);
   const ytSearch   = `https://www.youtube.com/results?search_query=${q}`;
+  const ytDirect   = videoId ? `https://www.youtube.com/watch?v=${videoId}` : ytSearch;
   const frameId    = `yt-iframe-${id}`;
   const fallbackId = `yt-fallback-${id}`;
   // <div> placeholder — ytInitPlayer() lo convierte en YT.Player real con onError
