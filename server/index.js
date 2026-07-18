@@ -191,6 +191,33 @@ setInterval(async () => {
   }
 }, 60 * 60_000);
 
+// ── Política de privacidad (requerida por Facebook/Google OAuth)
+app.get("/privacy", (req, res) => {
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.send(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Política de Privacidad — Zyra</title><style>body{font-family:system-ui,sans-serif;max-width:760px;margin:40px auto;padding:0 20px;color:#1a1a2e;line-height:1.7}h1{color:#6366f1}h2{color:#4f46e5;margin-top:32px}a{color:#6366f1}</style></head><body>
+<h1>Política de Privacidad de Zyra</h1>
+<p><em>Última actualización: julio de 2026</em></p>
+<p>Zyra ("nosotros", "la app") es una aplicación de bienestar emocional con inteligencia artificial. Esta política explica cómo tratamos tu información personal.</p>
+<h2>1. Datos que recopilamos</h2>
+<ul><li>Nombre y correo electrónico (para crear tu cuenta)</li><li>Mensajes del chat con Zyra (para personalizar las respuestas)</li><li>Entradas del diario y metas (solo visibles para ti)</li><li>Preferencias de uso como tema visual y recordatorios</li></ul>
+<h2>2. Cómo usamos tus datos</h2>
+<p>Usamos tu información exclusivamente para brindarte el servicio: respuestas personalizadas de la IA, historial de conversaciones y funciones de bienestar. Nunca vendemos tus datos a terceros.</p>
+<h2>3. Inicio de sesión con redes sociales</h2>
+<p>Si inicias sesión con Google, Spotify o Facebook, solo obtenemos tu nombre, correo y foto de perfil del proveedor para crear o acceder a tu cuenta en Zyra. No accedemos a tus publicaciones, amigos ni otra información de tu perfil social.</p>
+<h2>4. Almacenamiento y seguridad</h2>
+<p>Tus datos se almacenan de forma segura en servidores encriptados. Usamos HTTPS en todas las comunicaciones. Las contraseñas se guardan con hash bcrypt.</p>
+<h2>5. Tus derechos</h2>
+<p>Puedes solicitar la eliminación de tu cuenta y todos tus datos en cualquier momento escribiéndonos a <a href="mailto:zyra.ia.2026@gmail.com">zyra.ia.2026@gmail.com</a>. Procesamos las solicitudes en un máximo de 30 días.</p>
+<h2>6. Eliminación de datos</h2>
+<p>Para eliminar todos tus datos de Zyra, envía un correo a <a href="mailto:zyra.ia.2026@gmail.com">zyra.ia.2026@gmail.com</a> con el asunto "Eliminar mis datos" o usa la opción de eliminar cuenta dentro de la app. También puedes visitar: <a href="https://zyra-app-8qva.onrender.com/privacy#delete">zyra-app-8qva.onrender.com/privacy#delete</a></p>
+<h2 id="delete">7. Solicitud de eliminación de datos de Facebook</h2>
+<p>Si conectaste tu cuenta de Facebook a Zyra y deseas que eliminemos la información asociada, escríbenos a <a href="mailto:zyra.ia.2026@gmail.com">zyra.ia.2026@gmail.com</a> indicando tu nombre de usuario de Facebook. Procesamos todas las solicitudes de eliminación en un plazo máximo de 30 días.</p>
+<h2>8. Contacto</h2>
+<p>Para cualquier pregunta sobre privacidad: <a href="mailto:zyra.ia.2026@gmail.com">zyra.ia.2026@gmail.com</a></p>
+<p style="margin-top:40px;padding-top:20px;border-top:1px solid #eee;color:#888;font-size:13px">© 2026 Zyra — App de bienestar emocional con IA</p>
+</body></html>`);
+});
+
 // ── SPA fallback — sin caché en index.html
 app.get("*", (req, res) => {
   res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
