@@ -4611,124 +4611,124 @@ function _dbUrl(seed, bg) {
 
 // ── Estado del creador de avatar personalizado ──
 let _ac = {
-  skin:'amber', hairType:'long', hairNum:5, hairColor:'brown',
-  eyes:6, eyebrows:7, mouth:9,
-  glassesOn:false, earringsOn:false, freckles:false, bg:'6366f1',
+  skin:'amber', hairStyle:'long1', hairColor:'brown',
+  expression:1, glassesOn:false, earringsOn:false, freckles:false, bg:'6366f1',
 };
 let _acOpen = false;
 
 const _acSkins = [
-  {id:'ecru',      hex:'#F5DFA0'}, {id:'apricot',   hex:'#F0AA80'},
-  {id:'ivory',     hex:'#E8C09A'}, {id:'fairLight', hex:'#D4956A'},
-  {id:'amber',     hex:'#C68642'}, {id:'warm',      hex:'#A05028'},
-  {id:'emmie',     hex:'#8B4513'}, {id:'wood',      hex:'#7B3800'},
-  {id:'koala',     hex:'#5C3117'}, {id:'black',     hex:'#3D1C02'},
-  {id:'opal',      hex:'#EDD5C4'}, {id:'yellow',    hex:'#F5E080'},
+  {id:'ecru',hex:'#F5DFA0',l:'Muy claro'}, {id:'apricot',hex:'#F0AA80',l:'Melocotón'},
+  {id:'ivory',hex:'#E8C09A',l:'Marfil'},   {id:'fairLight',hex:'#D4956A',l:'Claro'},
+  {id:'amber',hex:'#C68642',l:'Ámbar'},    {id:'warm',hex:'#A05028',l:'Cálido'},
+  {id:'emmie',hex:'#8B4513',l:'Marrón'},   {id:'wood',hex:'#7B3800',l:'Madera'},
+  {id:'koala',hex:'#5C3117',l:'Koala'},    {id:'black',hex:'#3D1C02',l:'Ébano'},
+  {id:'opal',hex:'#EDD5C4',l:'Ópalo'},     {id:'yellow',hex:'#F5E080',l:'Amarillo'},
 ];
 const _acHairCols = [
-  {id:'black',  hex:'#1A1A1A'}, {id:'brown',  hex:'#5C3317'},
-  {id:'brown2', hex:'#8B5E3C'}, {id:'auburn', hex:'#9B3A1A'},
-  {id:'red',    hex:'#CC2200'}, {id:'blonde', hex:'#FAC800'},
-  {id:'blonde2',hex:'#F0D060'}, {id:'gray',   hex:'#909090'},
-  {id:'silver', hex:'#C8C8C8'}, {id:'white',  hex:'#F2F2F2'},
-  {id:'pastel', hex:'#FFB7C5'},
+  {id:'black',hex:'#1A1A1A',l:'Negro'},  {id:'brown',hex:'#5C3317',l:'Marrón'},
+  {id:'brown2',hex:'#8B5E3C',l:'Castaño'},{id:'auburn',hex:'#9B3A1A',l:'Caoba'},
+  {id:'red',hex:'#CC2200',l:'Rojo'},     {id:'blonde',hex:'#FAC800',l:'Rubio'},
+  {id:'blonde2',hex:'#F0D060',l:'Dorado'},{id:'gray',hex:'#909090',l:'Gris'},
+  {id:'silver',hex:'#C8C8C8',l:'Plata'}, {id:'white',hex:'#F2F2F2',l:'Blanco'},
+  {id:'pastel',hex:'#FFB7C5',l:'Pastel'},
 ];
-const _acBgCols = ['6366f1','8b5cf6','ec4899','0ea5e9','10b981','f59e0b','ef4444','14b8a6','f97316','06b6d4','84cc16','a855f7'];
+const _acHairStyles = [
+  {id:'long1', l:'Liso largo'},  {id:'long4', l:'Ondulado'},
+  {id:'long7', l:'Rizado'},      {id:'long10',l:'Con fleco'},
+  {id:'long13',l:'Recogido'},    {id:'long16',l:'Coletas'},
+  {id:'short1',l:'Corto liso'},  {id:'short4',l:'Despeinado'},
+  {id:'short7',l:'Afro'},        {id:'short10',l:'Fade'},
+  {id:'short13',l:'Rapado lat.'},{id:'bald1', l:'Sin pelo'},
+];
+const _acExpressions = [
+  {v:1,i:'😊',l:'Feliz'},    {v:5,i:'😄',l:'Emocionado'},
+  {v:9,i:'😌',l:'Tranquilo'},{v:13,i:'🙂',l:'Amable'},
+  {v:17,i:'😏',l:'Pícaro'},  {v:21,i:'😎',l:'Cool'},
+  {v:25,i:'🤔',l:'Pensativo'},{v:29,i:'😐',l:'Neutral'},
+];
+const _acBgCols = ['6366f1','8b5cf6','ec4899','0ea5e9','10b981','f59e0b','ef4444','14b8a6','f97316','06b6d4','84cc16','a855f7','1e293b','64748b'];
 
-function _acHairMax() { return _ac.hairType==='bald'?2:_ac.hairType==='long'?20:16; }
+// URL usa seed que codifica todas las opciones — evita parámetros inciertos de DiceBear
 function _acBuildUrl() {
-  const pad = n => String(n).padStart(2,'0');
-  const hair = _ac.hairType==='bald' ? `bald0${_ac.hairNum}` : `${_ac.hairType}${pad(_ac.hairNum)}`;
-  const q = new URLSearchParams({
-    seed:'ZyraCustom', skinColor:_ac.skin, hair, hairColor:_ac.hairColor,
-    eyes:`variant${pad(_ac.eyes)}`, eyebrows:`variant${pad(_ac.eyebrows)}`,
-    mouth:`variant${pad(_ac.mouth)}`,
-    glassesProbability:  _ac.glassesOn  ? '100':'0',
-    earringsProbability: _ac.earringsOn ? '100':'0',
-    featuresProbability: _ac.freckles   ? '100':'0',
-    backgroundColor: _ac.bg, backgroundType:'solid',
-  });
-  if(_ac.glassesOn)  q.set('glasses','variant01');
-  if(_ac.earringsOn) q.set('earrings','variant01');
-  if(_ac.freckles)   q.set('features','freckles');
-  return `https://api.dicebear.com/9.x/adventurer/svg?${q.toString()}`;
+  const extras = (_ac.glassesOn?'g':'')+(_ac.earringsOn?'e':'')+(_ac.freckles?'f':'');
+  const seed = `zy-${_ac.skin}-${_ac.hairStyle}-${_ac.hairColor}-x${_ac.expression}${extras}`;
+  return `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(seed)}&skinColor=${_ac.skin}&backgroundColor=${_ac.bg}&backgroundType=solid`;
 }
-// Helpers para botones inline
-function _acSetSkin(v)      { _ac.skin=v;       _acRender(); }
-function _acSetHairCol(v)   { _ac.hairColor=v;  _acRender(); }
-function _acSetHairType(v)  { _ac.hairType=v; if(v==='bald')_ac.hairNum=1; _acRender(); }
-function _acHairDec()       { _ac.hairNum=Math.max(1,_ac.hairNum-1); _acRender(); }
-function _acHairInc()       { _ac.hairNum=Math.min(_acHairMax(),_ac.hairNum+1); _acRender(); }
-function _acFaceDec(k,max)  { _ac[k]=Math.max(1,_ac[k]-1); _acRender(); }
-function _acFaceInc(k,max)  { _ac[k]=Math.min(max,_ac[k]+1); _acRender(); }
-function _acToggle(k)       { _ac[k]=!_ac[k]; _acRender(); }
-function _acSetBg(v)        { _ac.bg=v; _acRender(); }
+function _acRandFrom(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function _acRandomize() {
+  _ac.skin       = _acRandFrom(_acSkins).id;
+  _ac.hairStyle  = _acRandFrom(_acHairStyles).id;
+  _ac.hairColor  = _acRandFrom(_acHairCols).id;
+  _ac.expression = _acRandFrom(_acExpressions).v;
+  _ac.bg         = _acRandFrom(_acBgCols);
+  _ac.glassesOn  = Math.random()<0.3;
+  _ac.earringsOn = Math.random()<0.3;
+  _ac.freckles   = Math.random()<0.2;
+  _acRender();
+}
+function _acSetSkin(v)      { _ac.skin=v;        _acRender(); }
+function _acSetHairStyle(v) { _ac.hairStyle=v;   _acRender(); }
+function _acSetHairCol(v)   { _ac.hairColor=v;   _acRender(); }
+function _acSetExpr(v)      { _ac.expression=v;  _acRender(); }
+function _acToggle(k)       { _ac[k]=!_ac[k];    _acRender(); }
+function _acSetBg(v)        { _ac.bg=v;           _acRender(); }
 function _acRender() {
   const box = document.getElementById('ac-box');
   if(!box) return;
   if(!_acOpen) { box.innerHTML=''; return; }
-  const sel = (cond) => cond ? 'var(--text)' : 'transparent';
-  const hairLabel = _ac.hairType==='long'?'Largo':_ac.hairType==='short'?'Corto':'Sin pelo';
+  const S = (a,b) => a===b ? 'var(--text)':'transparent';
+  const url = _acBuildUrl();
   box.innerHTML = `
-  <div style="background:var(--surface2);border-radius:16px;padding:16px 14px;border:1px solid var(--border);margin-top:12px">
-    <div style="display:flex;justify-content:center;margin-bottom:14px">
-      <img src="${_acBuildUrl()}" style="width:130px;height:130px;border-radius:50%;border:4px solid var(--accent);display:block"/>
+  <div style="background:var(--surface2);border-radius:18px;padding:18px 14px 16px;border:1px solid var(--border);margin-top:12px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:18px">
+      <div style="background:linear-gradient(135deg,#6366f1,#ec4899);border-radius:50%;padding:3px;width:144px;height:144px;flex-shrink:0">
+        <img src="${url}" style="width:100%;height:100%;border-radius:50%;display:block;background:#${_ac.bg}"
+          onerror="this.src='https://api.dicebear.com/9.x/adventurer/svg?seed=zyrafallback&backgroundColor=${_ac.bg}&backgroundType=solid'"/>
+      </div>
+      <button onclick="_acRandomize()" style="font-size:12px;padding:7px 18px;border-radius:20px;background:linear-gradient(135deg,#6366f1,#ec4899);color:#fff;border:none;cursor:pointer;font-weight:700">🎲 ¡Sorpréndeme!</button>
     </div>
-    <div style="margin-bottom:12px">
-      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">🎨 Tono de piel</div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">🎨 Tono de piel</div>
       <div style="display:flex;gap:5px;flex-wrap:wrap">
-        ${_acSkins.map(s=>`<button onclick="_acSetSkin('${s.id}')" title="${s.id}"
-          style="width:26px;height:26px;border-radius:50%;background:${s.hex};border:3px solid ${sel(_ac.skin===s.id)};cursor:pointer;transition:.1s"></button>`).join('')}
-      </div>
-    </div>
-    <div style="margin-bottom:12px">
-      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">💇 Pelo</div>
-      <div style="display:flex;gap:6px;margin-bottom:7px">
-        ${['long','short','bald'].map(t=>`<button onclick="_acSetHairType('${t}')"
-          style="font-size:11px;padding:3px 9px;border-radius:20px;border:2px solid ${_ac.hairType===t?'var(--accent)':'var(--border)'};background:${_ac.hairType===t?'var(--accent)':'transparent'};color:${_ac.hairType===t?'#fff':'var(--text)'};cursor:pointer;font-weight:600">
-          ${t==='long'?'Largo':t==='short'?'Corto':'Rapado'}</button>`).join('')}
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
-        <button onclick="_acHairDec()" style="width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:var(--surface);cursor:pointer">◀</button>
-        <span style="font-size:13px;font-weight:700;min-width:70px;text-align:center">${hairLabel} ${_ac.hairNum}</span>
-        <button onclick="_acHairInc()" style="width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:var(--surface);cursor:pointer">▶</button>
-        <span style="font-size:10px;color:var(--text3)">de ${_acHairMax()}</span>
-      </div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap">
-        ${_acHairCols.map(h=>`<button onclick="_acSetHairCol('${h.id}')" title="${h.id}"
-          style="width:22px;height:22px;border-radius:50%;background:${h.hex};border:3px solid ${sel(_ac.hairColor===h.id)};cursor:pointer"></button>`).join('')}
-      </div>
-    </div>
-    <div style="margin-bottom:12px">
-      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">👁️ Cara</div>
-      ${[{l:'Ojos',k:'eyes',max:26,i:'👁️'},{l:'Cejas',k:'eyebrows',max:15,i:'🤨'},{l:'Boca',k:'mouth',max:30,i:'👄'}].map(f=>`
-      <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
-        <span style="font-size:13px">${f.i}</span>
-        <span style="font-size:11px;color:var(--text3);min-width:36px">${f.l}</span>
-        <button onclick="_acFaceDec('${f.k}',${f.max})" style="width:24px;height:24px;border-radius:50%;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:13px">◀</button>
-        <span style="font-size:12px;font-weight:700;min-width:20px;text-align:center">${_ac[f.k]}</span>
-        <button onclick="_acFaceInc('${f.k}',${f.max})" style="width:24px;height:24px;border-radius:50%;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:13px">▶</button>
-        <span style="font-size:10px;color:var(--text3)">/${f.max}</span>
-      </div>`).join('')}
-    </div>
-    <div style="margin-bottom:12px">
-      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">✨ Extras</div>
-      <div style="display:flex;gap:14px;flex-wrap:wrap">
-        ${[{k:'glassesOn',l:'😎 Gafas'},{k:'earringsOn',l:'💎 Aretes'},{k:'freckles',l:'✨ Pecas'}].map(x=>`
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px">
-          <input type="checkbox" ${_ac[x.k]?'checked':''} onchange="_acToggle('${x.k}')"
-            style="width:15px;height:15px;accent-color:var(--accent)"> ${x.l}
-        </label>`).join('')}
+        ${_acSkins.map(s=>`<button onclick="_acSetSkin('${s.id}')" title="${s.l}"
+          style="width:28px;height:28px;border-radius:50%;background:${s.hex};border:3px solid ${S(_ac.skin,s.id)};cursor:pointer;transition:.1s"></button>`).join('')}
       </div>
     </div>
     <div style="margin-bottom:14px">
-      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">🌈 Fondo</div>
+      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">💇 Estilo de pelo</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:9px">
+        ${_acHairStyles.map(h=>{const a=_ac.hairStyle===h.id;return `<button onclick="_acSetHairStyle('${h.id}')"
+          style="font-size:11px;padding:5px 3px;border-radius:8px;border:2px solid ${a?'var(--accent)':'var(--border)'};background:${a?'rgba(99,102,241,.12)':'transparent'};color:${a?'var(--accent)':'var(--text)'};cursor:pointer;font-weight:${a?700:400}">${h.l}</button>`;}).join('')}
+      </div>
       <div style="display:flex;gap:5px;flex-wrap:wrap">
-        ${_acBgCols.map(c=>`<button onclick="_acSetBg('${c}')"
-          style="width:26px;height:26px;border-radius:50%;background:#${c};border:3px solid ${sel(_ac.bg===c)};cursor:pointer"></button>`).join('')}
+        ${_acHairCols.map(h=>`<button onclick="_acSetHairCol('${h.id}')" title="${h.l}"
+          style="width:24px;height:24px;border-radius:50%;background:${h.hex};border:3px solid ${S(_ac.hairColor,h.id)};cursor:pointer"></button>`).join('')}
       </div>
     </div>
-    <button onclick="saveCustomAvatar()" style="width:100%;padding:11px;border-radius:12px;background:var(--accent);color:#fff;font-size:13px;font-weight:700;border:none;cursor:pointer">💾 Guardar mi avatar</button>
+    <div style="margin-bottom:14px">
+      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">😊 Expresión</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${_acExpressions.map(e=>{const a=_ac.expression===e.v;return `<button onclick="_acSetExpr(${e.v})" title="${e.l}"
+          style="width:38px;height:38px;border-radius:50%;font-size:20px;border:3px solid ${a?'var(--accent)':'transparent'};background:${a?'rgba(99,102,241,.12)':'var(--surface)'};cursor:pointer;transition:.1s">${e.i}</button>`;}).join('')}
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">✨ Extras</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${[{k:'glassesOn',l:'😎 Gafas'},{k:'earringsOn',l:'💎 Aretes'},{k:'freckles',l:'🌟 Pecas'}].map(x=>{const a=_ac[x.k];return `<button onclick="_acToggle('${x.k}')"
+          style="font-size:12px;padding:6px 12px;border-radius:20px;border:2px solid ${a?'var(--accent)':'var(--border)'};background:${a?'rgba(99,102,241,.12)':'transparent'};color:${a?'var(--accent)':'var(--text)'};cursor:pointer;font-weight:${a?700:400}">${x.l}</button>`;}).join('')}
+      </div>
+    </div>
+    <div style="margin-bottom:16px">
+      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">🌈 Fondo</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">
+        ${_acBgCols.map(c=>`<button onclick="_acSetBg('${c}')" title="#${c}"
+          style="width:26px;height:26px;border-radius:50%;background:#${c};border:3px solid ${S(_ac.bg,c)};cursor:pointer"></button>`).join('')}
+      </div>
+    </div>
+    <button onclick="saveCustomAvatar()" style="width:100%;padding:13px;border-radius:14px;background:linear-gradient(135deg,#6366f1,#ec4899);color:#fff;font-size:14px;font-weight:700;border:none;cursor:pointer">
+      💾 Guardar mi avatar
+    </button>
   </div>`;
 }
 function openAvatarCreator() { _acOpen=!_acOpen; _acRender(); }
