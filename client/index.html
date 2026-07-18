@@ -7385,6 +7385,27 @@ function spotEmbedHTML(card, id, trackId) {
   </div>`;
 }
 
+function spotFallbackHTML(card, id) {
+  const q = encodeURIComponent(`${card.title} ${card.artist}`);
+  const spotSearch = `https://open.spotify.com/search/${q}`;
+  return `<div class="yt-player-wrap">
+    <div class="yt-player-header">
+      <span class="yt-player-icon">🎵</span>
+      <div class="yt-player-info">
+        <div class="yt-player-title">${safeHtml(card.title)}</div>
+        <div class="yt-player-artist">${safeHtml(card.artist)}</div>
+      </div>
+      <button class="yt-player-close" onclick="document.getElementById('${id}').innerHTML=''">✕</button>
+    </div>
+    <div style="padding:20px;text-align:center;background:#0f0f0f;border-radius:0 0 16px 16px">
+      <a href="${spotSearch}" target="_blank" rel="noopener"
+         style="display:inline-flex;align-items:center;gap:10px;background:#1db954;color:white;padding:14px 28px;border-radius:14px;font-weight:800;font-size:15px;text-decoration:none;box-shadow:0 6px 20px rgba(29,185,84,.4)">
+        ▶ Escuchar en Spotify
+      </a>
+    </div>
+  </div>`;
+}
+
 async function buildSpotifyPlayer(card, id) {
   // Cache local primero (0 peticiones)
   const cached = spotLsGet(card.title, card.artist);
@@ -7492,15 +7513,13 @@ async function toggleYTPlayer(cardEl, card, ytId) {
     if(a) a.textContent = "■ Cerrar";
     cardEl.style.borderColor = "var(--green)";
 
-    // Intentar Spotify primero si el servidor tiene credenciales
+    // Usar Spotify si el servidor tiene credenciales
     if(window.SPOTIFY_ENABLED) {
       c.innerHTML = ytLoadingHTML(card, ytId);
       const spotHtml = await buildSpotifyPlayer(card, ytId);
-      if(spotHtml) {
-        c.innerHTML = spotHtml;
-        setTimeout(() => c.scrollIntoView({behavior:"smooth",block:"nearest"}), 100);
-        return;
-      }
+      c.innerHTML = spotHtml || spotFallbackHTML(card, ytId);
+      setTimeout(() => c.scrollIntoView({behavior:"smooth",block:"nearest"}), 100);
+      return;
     }
 
     c.innerHTML = buildYTPlayer(card, ytId);
