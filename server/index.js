@@ -113,6 +113,7 @@ app.use(express.static(path.join(__dirname, "../client"), {
 }));
 
 app.use("/api/auth",          require("./routes/auth"));
+app.use("/api/auth",          require("./routes/oauth"));
 app.use("/api/profile",       require("./routes/profile"));
 app.use("/api/conversations", require("./routes/conversations"));
 app.use("/api/chat",          require("./routes/chat"));

@@ -995,6 +995,32 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
   background: #e8ecf8;
 }
 
+.social-btns {
+  display: flex;
+  gap: 10px;
+  margin: 14px 0 4px;
+}
+.social-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 8px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1.5px solid var(--border, #e2e8f0);
+  background: var(--card, #fff);
+  color: var(--text, #1e293b);
+  transition: background .15s, box-shadow .15s, transform .1s;
+}
+.social-btn:hover { background: var(--hover, #f1f5f9); box-shadow: 0 2px 8px rgba(0,0,0,.08); transform: translateY(-1px); }
+.social-btn:active { transform: translateY(0); }
+[data-theme="dark"] .social-btn { background: #1e2035; border-color: rgba(255,255,255,.1); color: #e2e8f0; }
+[data-theme="dark"] .social-btn:hover { background: #252840; }
+
 .auth-link {
   text-align: center;
   margin-top: 16px;

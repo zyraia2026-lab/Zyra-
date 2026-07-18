@@ -4,9 +4,19 @@ const bcrypt   = require("bcryptjs");
 const S = new mongoose.Schema({
   name:      { type: String, required: true, trim: true },
   email:     { type: String, required: true, unique: true, lowercase: true },
-  password:  { type: String, required: true, minlength: 8, select: false },
+  password:  { type: String, minlength: 8, select: false }, // opcional para usuarios OAuth
   darkMode:  { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now },
+
+  // ── OAuth providers ──
+  googleId:            { type: String, default: null },
+  spotifyId:           { type: String, default: null },
+  facebookId:          { type: String, default: null },
+  // Tokens Spotify para reproducción de música
+  spotifyAccessToken:  { type: String, default: null, select: false },
+  spotifyRefreshToken: { type: String, default: null, select: false },
+  spotifyTokenExpiry:  { type: Date,   default: null },
+  spotifyConnected:    { type: Boolean, default: false },
 
   // ── Suscripción ──
   plan:             { type: String, enum: ["free","basic","premium"], default: "free" },
