@@ -423,7 +423,7 @@ async function getSongsForUnknownArtist(artistName) {
       const videoId = item.id?.videoId;
       if (!videoId) continue;
       if (!verified.has(videoId)) continue;
-      const rawTitle     = item.snippet.title;
+      const rawTitle     = decodeHTMLEntities(item.snippet.title);
       const channelTitle = item.snippet.channelTitle || "";
       if (!isRelevantSong(rawTitle, artistName, channelTitle)) continue;
 
@@ -444,6 +444,16 @@ async function getSongsForUnknownArtist(artistName) {
   }
 
   return getSongsViaGroq(artistName);
+}
+
+function decodeHTMLEntities(str) {
+  return String(str || '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'");
 }
 
 function parseSongFromYT(ytTitle, requestedArtist) {
@@ -1210,15 +1220,14 @@ exports.sendMessage = async (req, res) => {
       };
 
       if (detected) {
-        // Usar la búsqueda pre-cargada en paralelo si coincide con el artista detectado
-        const ytSongs = earlyYTPromise
-          ? await earlyYTPromise
-          : await getSongsForUnknownArtist(detected.name).catch(()=>null);
-        songCards = ytResultsToCards(ytSongs, detected.name);
-        // Fallback a lista hardcodeada solo si YouTube falla
+        // Prioridad: lista hardcodeada (títulos limpios, sin duplicados) → YouTube solo para desconocidos
+        songCards = pickSongs(detected.key, 3, usedSongs, mood);
+        if (!songCards.length) songCards = pickSongs(detected.key, 3, [], mood);
         if (!songCards.length) {
-          songCards = pickSongs(detected.key, 3, usedSongs, mood);
-          if (!songCards.length) songCards = pickSongs(detected.key, 3, [], mood);
+          const ytSongs = earlyYTPromise
+            ? await earlyYTPromise
+            : await getSongsForUnknownArtist(detected.name).catch(()=>null);
+          songCards = ytResultsToCards(ytSongs, detected.name);
         }
       } else {
         const artistName = extractArtistName(message);
@@ -1511,14 +1520,14 @@ exports.streamMessage = async (req, res) => {
       };
 
       if (detected) {
-        // Reusar búsqueda YT que arrancó en paralelo — ya está lista o casi lista
-        const ytSongs = (_earlyKnownYT && detected.name === _earlyArtist?.name)
-          ? await _earlyKnownYT
-          : await getSongsForUnknownArtist(detected.name).catch(()=>null);
-        songCards = ytResultsToCards2(ytSongs, detected.name);
+        // Prioridad: lista hardcodeada (títulos limpios, sin duplicados) → YouTube solo para desconocidos
+        songCards = pickSongs(detected.key, 3, usedSongs, mood);
+        if (!songCards.length) songCards = pickSongs(detected.key, 3, [], mood);
         if (!songCards.length) {
-          songCards = pickSongs(detected.key, 3, usedSongs, mood);
-          if (!songCards.length) songCards = pickSongs(detected.key, 3, [], mood);
+          const ytSongs = (_earlyKnownYT && detected.name === _earlyArtist?.name)
+            ? await _earlyKnownYT
+            : await getSongsForUnknownArtist(detected.name).catch(()=>null);
+          songCards = ytResultsToCards2(ytSongs, detected.name);
         }
       } else {
         const artistName = extractArtistName(message);
