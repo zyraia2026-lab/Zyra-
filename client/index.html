@@ -4593,29 +4593,80 @@ function renderConnectedAccounts(u) {
   `).join('');
 }
 
+const _ZYRA_CHARS = [
+  { seed:"Zara",    bg:"b45ce2", label:"Zara"    },
+  { seed:"Luna",    bg:"6366f1", label:"Luna"    },
+  { seed:"Kai",     bg:"0ea5e9", label:"Kai"     },
+  { seed:"Nova",    bg:"ec4899", label:"Nova"    },
+  { seed:"Sage",    bg:"10b981", label:"Sage"    },
+  { seed:"River",   bg:"f59e0b", label:"River"   },
+  { seed:"Ash",     bg:"ef4444", label:"Ash"     },
+  { seed:"Skye",    bg:"14b8a6", label:"Skye"    },
+  { seed:"Ember",   bg:"f97316", label:"Ember"   },
+  { seed:"Orion",   bg:"3b82f6", label:"Orion"   },
+  { seed:"Lyra",    bg:"a855f7", label:"Lyra"    },
+  { seed:"Rex",     bg:"06b6d4", label:"Rex"     },
+  { seed:"Vera",    bg:"d946ef", label:"Vera"    },
+  { seed:"Jax",     bg:"84cc16", label:"Jax"     },
+  { seed:"Mia",     bg:"8b5cf6", label:"Mia"     },
+  { seed:"Leo",     bg:"eab308", label:"Leo"     },
+  { seed:"Nyx",     bg:"1e293b", label:"Nyx"     },
+  { seed:"Blaze",   bg:"dc2626", label:"Blaze"   },
+  { seed:"Storm",   bg:"475569", label:"Storm"   },
+  { seed:"Ivy",     bg:"16a34a", label:"Ivy"     },
+];
+function _dbUrl(seed, bg) {
+  return `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(seed)}&backgroundColor=${bg}&backgroundType=solid`;
+}
+
 function renderAvatarPicker(currentEmoji, currentColor) {
   const container = document.getElementById("avatar-emoji-picker");
   if(!container) return;
+  const currentPhoto = localStorage.getItem("zyra_photo") || "";
+
   const categories = [
-    { label: "🌿 Naturaleza & cosmos", emojis: ["🌿","🌊","🌙","🪐","🌸","🦋","🌺","🍃","⭐","🌻","🦅","🌈","🌋","❄️","🌊","🫧","🌾","✨","🪸","🌕","🌠","🍄","🫐","🌤️"] },
-    { label: "🦊 Animales fantásticos", emojis: ["🦊","🐉","🦁","🐺","🦄","🐯","🦅","🐬","🦋","🦝","🐝","🦈","🐙","🦎","🐲","🦜","🐻","🦩","🐸","🦋","🦓","🦥","🐧","🦭"] },
-    { label: "🕯️ Bienestar & espíritu", emojis: ["🕯️","💜","🧘","💫","🌀","🫶","✨","🌸","💎","🪷","🫧","🌙","🌊","🪬","💆","🌺","🎋","🪄","💜","🕊️","🫂","🌿","🩵","🔮"] },
-    { label: "🎧 Noche urbana", emojis: ["🎧","🎨","🌃","⚡","🎸","🛹","🎤","📸","🎬","🎮","🃏","🎲","🏙️","🎯","🎵","🔮","💿","🕶️","🖤","🎺","🌆","🃏","🎪","🎭"] },
+    { label: "🌿 Naturaleza & cosmos",  emojis: ["🌿","🌊","🌙","🪐","🌸","🦋","🌺","🍃","⭐","🌻","🦅","🌈","🌋","❄️","🫧","✨","🪸","🌕","🌠","🍄","🫐","🌤️"] },
+    { label: "🦊 Animales fantásticos", emojis: ["🦊","🐉","🦁","🐺","🦄","🐯","🦅","🐬","🦋","🦝","🐝","🦈","🐙","🦎","🐲","🦜","🐻","🦩","🐸","🦓","🦥","🐧"] },
+    { label: "🕯️ Bienestar & espíritu", emojis: ["🕯️","💜","🧘","💫","🌀","🫶","✨","🌸","💎","🪷","🫧","🌙","🌊","🪬","💆","🌺","🎋","🪄","🕊️","🫂","🩵","🔮"] },
+    { label: "🎧 Noche urbana",          emojis: ["🎧","🎨","🌃","⚡","🎸","🛹","🎤","📸","🎬","🎮","🃏","🎲","🏙️","🎯","🎵","🔮","💿","🕶️","🎺","🌆","🎪","🎭"] },
   ];
   const colors = ["#6366f1","#8b5cf6","#ec4899","#0ea5e9","#10b981","#f59e0b","#ef4444","#14b8a6","#f97316","#06b6d4","#84cc16","#a855f7"];
+
   container.innerHTML = `
+    <!-- ── Personajes Zyra ── -->
+    <div style="margin-bottom:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px">🎭 Personajes Zyra</div>
+        <button onclick="selectDicebearAvatar()" style="font-size:11px;padding:4px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--accent);cursor:pointer;font-weight:600">🎲 Aleatorio</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+        ${_ZYRA_CHARS.map(ch => {
+          const url = _dbUrl(ch.seed, ch.bg);
+          const sel = currentPhoto === url;
+          return `<button onclick="selectDicebearAvatar('${url}')" title="${ch.label}"
+            style="aspect-ratio:1;border-radius:50%;overflow:hidden;border:3px solid ${sel?"var(--sky)":"transparent"};cursor:pointer;padding:0;background:none;transition:all .2s;box-shadow:${sel?"0 0 0 2px var(--sky)":"none"}"
+            onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform=''">
+            <img src="${url}" alt="${ch.label}" style="width:100%;height:100%;display:block" loading="lazy"/>
+          </button>`;
+        }).join("")}
+      </div>
+    </div>
+
+    <!-- ── Emojis por temática ── -->
     ${categories.map(cat => `
-      <div style="margin-bottom:16px">
+      <div style="margin-bottom:14px">
         <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">${cat.label}</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px">
           ${cat.emojis.map(em => `
             <button onclick="selectAvatarEmoji('${em}')" title="${em}"
-              style="width:38px;height:38px;border-radius:50%;font-size:19px;border:3px solid ${em===currentEmoji?"var(--sky)":"var(--border)"};background:${em===currentEmoji?"rgba(14,165,233,.15)":"var(--surface)"};cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center"
+              style="width:36px;height:36px;border-radius:50%;font-size:18px;border:3px solid ${em===currentEmoji?"var(--sky)":"var(--border)"};background:${em===currentEmoji?"rgba(14,165,233,.15)":"var(--surface)"};cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center"
               onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform=''">${em}</button>
           `).join("")}
         </div>
       </div>
     `).join("")}
+
+    <!-- ── Color de fondo ── -->
     <div style="margin-top:4px">
       <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">🎨 Color de fondo</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -4626,6 +4677,20 @@ function renderAvatarPicker(currentEmoji, currentColor) {
         `).join("")}
       </div>
     </div>`;
+}
+
+async function selectDicebearAvatar(url) {
+  if(!url) {
+    // Generar aleatorio
+    const seed = Math.random().toString(36).slice(2,8);
+    const bg   = ["6366f1","8b5cf6","ec4899","0ea5e9","10b981","f59e0b","ef4444","14b8a6"][Math.floor(Math.random()*8)];
+    url = _dbUrl(seed, bg);
+  }
+  localStorage.setItem("zyra_photo", url);
+  localStorage.setItem("zyra_avatar_emoji", "");
+  await api("/profile", "PUT", { photoUrl: url, avatarEmoji: "" }).catch(()=>{});
+  applyAvatarEverywhere(url, "", localStorage.getItem("zyra_avatar_color") || "#6366f1");
+  renderAvatarPicker("", localStorage.getItem("zyra_avatar_color") || "#6366f1");
 }
 
 async function selectAvatarEmoji(emoji) {

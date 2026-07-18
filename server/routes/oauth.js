@@ -31,11 +31,11 @@ const PROVIDERS = {
     authUrl:    'https://www.facebook.com/v19.0/dialog/oauth',
     tokenUrl:   'https://graph.facebook.com/v19.0/oauth/access_token',
     profileUrl: 'https://graph.facebook.com/me?fields=id,name,email,picture',
-    scope:      'email,public_profile',
+    scope:      'public_profile',
     clientId:   () => process.env.FACEBOOK_APP_ID,
     secret:     () => process.env.FACEBOOK_APP_SECRET,
     idField:    'facebookId',
-    getProfile: d => ({ id: d.id, email: d.email, name: d.name, picture: d.picture?.data?.url }),
+    getProfile: d => ({ id: d.id, email: d.email || `fb_${d.id}@zyra.local`, name: d.name, picture: d.picture?.data?.url }),
   },
 };
 
@@ -84,11 +84,12 @@ router.get('/:provider/callback', async (req, res) => {
     const profileRes = await fetch(cfg.profileUrl, { headers: { Authorization: `Bearer ${tokens.access_token}` } });
     const profile    = await profileRes.json();
     const { id: providerId, email, name, picture } = cfg.getProfile(profile);
-    if (!email) throw new Error('El proveedor no entregó email');
+    if (!providerId) throw new Error('El proveedor no entregó ID de usuario');
 
-    // Buscar usuario existente por provider ID o email
+    // Buscar usuario existente por provider ID primero; por email solo si es real (no placeholder)
     let user = await User.findOne({ [cfg.idField]: providerId });
-    if (!user) user = await User.findOne({ email: email.toLowerCase() });
+    const isRealEmail = email && !email.endsWith('@zyra.local');
+    if (!user && isRealEmail) user = await User.findOne({ email: email.toLowerCase() });
 
     if (!user) {
       // Crear nuevo usuario OAuth
