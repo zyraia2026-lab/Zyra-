@@ -183,14 +183,17 @@ function getArtistFromHistory(history) {
       const name = m2[1].trim();
       if (name && name.length > 1 && name !== "algo") return { key: name.toLowerCase(), name };
     }
-    // 3. Extraer artista desconocido mencionado en el AI solo cuando anuncia música explícitamente
+    // 3. Extraer artista desconocido mencionado en el AI — SOLO cuando anuncia música activamente
     const c3 = msg.content || "";
-    if (/pong[oa]|ponerte|poniendo|canciones?\s+de|m[uú]sica\s+de/i.test(c3)) {
+    if (/(?:pongo|poniendo|ponerte)\s+(?:algo\s+de|de|a)\s+\w/i.test(c3)) {
       try {
         const extracted = extractArtistName(c3);
         if (extracted) {
           const words = extracted.split(/\s+/).filter(Boolean);
-          if (words.length >= 1 && words.length <= 4) {
+          // Rechazar si contiene palabras genéricas/pronombres — "esas opciones" nunca es artista
+          const NON_ARTIST = new Set(["esas","esos","estas","estos","opcion","opciones","alguna","alguno","algunas","algunos","otra","otro","otras","otros","nada","nadie","algun","lo","la","las","los","del","que","con","por"]);
+          const isGeneric = words.some(w => NON_ARTIST.has(w.toLowerCase()));
+          if (!isGeneric && words.length >= 1 && words.length <= 4) {
             const fmt = words.map(w => w[0].toUpperCase() + w.slice(1)).join(" ");
             return { key: extracted.toLowerCase(), name: fmt };
           }
@@ -243,6 +246,11 @@ function extractArtistName(message) {
     "ella","ellas","ellos","ello","esa","ese","eso","esto","esta","este",
     "aquel","aquella","aquello","aquellos","aquellas","esas","esos","estas","estos",
     "misma","mismo","todas","todos","nada","nadie","alguien",
+    // palabras genéricas del texto conversacional que confunden al extractor
+    "opciones","opcion","opción","esas opciones","alguna","alguno","algunas","algunos",
+    "esas","esos","ellas","otras","otros","otra","otro",
+    "las","los","del","que","con","por","para","como","mas","más",
+    "suave","rapida","rápida","bonita","bonito","buena","bueno","mala","malo",
   ]);
 
   const patterns = [
