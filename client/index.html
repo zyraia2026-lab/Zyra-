@@ -4594,122 +4594,188 @@ function renderConnectedAccounts(u) {
 }
 
 const _ZYRA_CHARS = [
-  { seed:"Zara",    bg:"b45ce2", label:"Zara"    },
-  { seed:"Luna",    bg:"6366f1", label:"Luna"    },
-  { seed:"Kai",     bg:"0ea5e9", label:"Kai"     },
-  { seed:"Nova",    bg:"ec4899", label:"Nova"    },
-  { seed:"Sage",    bg:"10b981", label:"Sage"    },
-  { seed:"River",   bg:"f59e0b", label:"River"   },
-  { seed:"Ash",     bg:"ef4444", label:"Ash"     },
-  { seed:"Skye",    bg:"14b8a6", label:"Skye"    },
-  { seed:"Ember",   bg:"f97316", label:"Ember"   },
-  { seed:"Orion",   bg:"3b82f6", label:"Orion"   },
-  { seed:"Lyra",    bg:"a855f7", label:"Lyra"    },
-  { seed:"Rex",     bg:"06b6d4", label:"Rex"     },
-  { seed:"Vera",    bg:"d946ef", label:"Vera"    },
-  { seed:"Jax",     bg:"84cc16", label:"Jax"     },
-  { seed:"Mia",     bg:"8b5cf6", label:"Mia"     },
-  { seed:"Leo",     bg:"eab308", label:"Leo"     },
-  { seed:"Nyx",     bg:"1e293b", label:"Nyx"     },
-  { seed:"Blaze",   bg:"dc2626", label:"Blaze"   },
-  { seed:"Storm",   bg:"475569", label:"Storm"   },
-  { seed:"Ivy",     bg:"16a34a", label:"Ivy"     },
+  { seed:"Zara",    bg:"b45ce2" }, { seed:"Luna",    bg:"6366f1" },
+  { seed:"Kai",     bg:"0ea5e9" }, { seed:"Nova",    bg:"ec4899" },
+  { seed:"Sage",    bg:"10b981" }, { seed:"River",   bg:"f59e0b" },
+  { seed:"Ash",     bg:"ef4444" }, { seed:"Skye",    bg:"14b8a6" },
+  { seed:"Ember",   bg:"f97316" }, { seed:"Orion",   bg:"3b82f6" },
+  { seed:"Lyra",    bg:"a855f7" }, { seed:"Rex",     bg:"06b6d4" },
+  { seed:"Vera",    bg:"d946ef" }, { seed:"Jax",     bg:"84cc16" },
+  { seed:"Mia",     bg:"8b5cf6" }, { seed:"Leo",     bg:"eab308" },
+  { seed:"Nyx",     bg:"1e293b" }, { seed:"Blaze",   bg:"dc2626" },
+  { seed:"Storm",   bg:"475569" }, { seed:"Ivy",     bg:"16a34a" },
 ];
 function _dbUrl(seed, bg) {
   return `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(seed)}&backgroundColor=${bg}&backgroundType=solid`;
 }
 
-function renderAvatarPicker(currentEmoji, currentColor) {
+// ── Estado del creador de avatar personalizado ──
+let _ac = {
+  skin:'amber', hairType:'long', hairNum:5, hairColor:'brown',
+  eyes:6, eyebrows:7, mouth:9,
+  glassesOn:false, earringsOn:false, freckles:false, bg:'6366f1',
+};
+let _acOpen = false;
+
+const _acSkins = [
+  {id:'ecru',      hex:'#F5DFA0'}, {id:'apricot',   hex:'#F0AA80'},
+  {id:'ivory',     hex:'#E8C09A'}, {id:'fairLight', hex:'#D4956A'},
+  {id:'amber',     hex:'#C68642'}, {id:'warm',      hex:'#A05028'},
+  {id:'emmie',     hex:'#8B4513'}, {id:'wood',      hex:'#7B3800'},
+  {id:'koala',     hex:'#5C3117'}, {id:'black',     hex:'#3D1C02'},
+  {id:'opal',      hex:'#EDD5C4'}, {id:'yellow',    hex:'#F5E080'},
+];
+const _acHairCols = [
+  {id:'black',  hex:'#1A1A1A'}, {id:'brown',  hex:'#5C3317'},
+  {id:'brown2', hex:'#8B5E3C'}, {id:'auburn', hex:'#9B3A1A'},
+  {id:'red',    hex:'#CC2200'}, {id:'blonde', hex:'#FAC800'},
+  {id:'blonde2',hex:'#F0D060'}, {id:'gray',   hex:'#909090'},
+  {id:'silver', hex:'#C8C8C8'}, {id:'white',  hex:'#F2F2F2'},
+  {id:'pastel', hex:'#FFB7C5'},
+];
+const _acBgCols = ['6366f1','8b5cf6','ec4899','0ea5e9','10b981','f59e0b','ef4444','14b8a6','f97316','06b6d4','84cc16','a855f7'];
+
+function _acHairMax() { return _ac.hairType==='bald'?2:_ac.hairType==='long'?20:16; }
+function _acBuildUrl() {
+  const pad = n => String(n).padStart(2,'0');
+  const hair = _ac.hairType==='bald' ? `bald0${_ac.hairNum}` : `${_ac.hairType}${pad(_ac.hairNum)}`;
+  const q = new URLSearchParams({
+    seed:'ZyraCustom', skinColor:_ac.skin, hair, hairColor:_ac.hairColor,
+    eyes:`variant${pad(_ac.eyes)}`, eyebrows:`variant${pad(_ac.eyebrows)}`,
+    mouth:`variant${pad(_ac.mouth)}`,
+    glassesProbability:  _ac.glassesOn  ? '100':'0',
+    earringsProbability: _ac.earringsOn ? '100':'0',
+    featuresProbability: _ac.freckles   ? '100':'0',
+    backgroundColor: _ac.bg, backgroundType:'solid',
+  });
+  if(_ac.glassesOn)  q.set('glasses','variant01');
+  if(_ac.earringsOn) q.set('earrings','variant01');
+  if(_ac.freckles)   q.set('features','freckles');
+  return `https://api.dicebear.com/9.x/adventurer/svg?${q.toString()}`;
+}
+// Helpers para botones inline
+function _acSetSkin(v)      { _ac.skin=v;       _acRender(); }
+function _acSetHairCol(v)   { _ac.hairColor=v;  _acRender(); }
+function _acSetHairType(v)  { _ac.hairType=v; if(v==='bald')_ac.hairNum=1; _acRender(); }
+function _acHairDec()       { _ac.hairNum=Math.max(1,_ac.hairNum-1); _acRender(); }
+function _acHairInc()       { _ac.hairNum=Math.min(_acHairMax(),_ac.hairNum+1); _acRender(); }
+function _acFaceDec(k,max)  { _ac[k]=Math.max(1,_ac[k]-1); _acRender(); }
+function _acFaceInc(k,max)  { _ac[k]=Math.min(max,_ac[k]+1); _acRender(); }
+function _acToggle(k)       { _ac[k]=!_ac[k]; _acRender(); }
+function _acSetBg(v)        { _ac.bg=v; _acRender(); }
+function _acRender() {
+  const box = document.getElementById('ac-box');
+  if(!box) return;
+  if(!_acOpen) { box.innerHTML=''; return; }
+  const sel = (cond) => cond ? 'var(--text)' : 'transparent';
+  const hairLabel = _ac.hairType==='long'?'Largo':_ac.hairType==='short'?'Corto':'Sin pelo';
+  box.innerHTML = `
+  <div style="background:var(--surface2);border-radius:16px;padding:16px 14px;border:1px solid var(--border);margin-top:12px">
+    <div style="display:flex;justify-content:center;margin-bottom:14px">
+      <img src="${_acBuildUrl()}" style="width:130px;height:130px;border-radius:50%;border:4px solid var(--accent);display:block"/>
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">🎨 Tono de piel</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">
+        ${_acSkins.map(s=>`<button onclick="_acSetSkin('${s.id}')" title="${s.id}"
+          style="width:26px;height:26px;border-radius:50%;background:${s.hex};border:3px solid ${sel(_ac.skin===s.id)};cursor:pointer;transition:.1s"></button>`).join('')}
+      </div>
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">💇 Pelo</div>
+      <div style="display:flex;gap:6px;margin-bottom:7px">
+        ${['long','short','bald'].map(t=>`<button onclick="_acSetHairType('${t}')"
+          style="font-size:11px;padding:3px 9px;border-radius:20px;border:2px solid ${_ac.hairType===t?'var(--accent)':'var(--border)'};background:${_ac.hairType===t?'var(--accent)':'transparent'};color:${_ac.hairType===t?'#fff':'var(--text)'};cursor:pointer;font-weight:600">
+          ${t==='long'?'Largo':t==='short'?'Corto':'Rapado'}</button>`).join('')}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+        <button onclick="_acHairDec()" style="width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:var(--surface);cursor:pointer">◀</button>
+        <span style="font-size:13px;font-weight:700;min-width:70px;text-align:center">${hairLabel} ${_ac.hairNum}</span>
+        <button onclick="_acHairInc()" style="width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:var(--surface);cursor:pointer">▶</button>
+        <span style="font-size:10px;color:var(--text3)">de ${_acHairMax()}</span>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">
+        ${_acHairCols.map(h=>`<button onclick="_acSetHairCol('${h.id}')" title="${h.id}"
+          style="width:22px;height:22px;border-radius:50%;background:${h.hex};border:3px solid ${sel(_ac.hairColor===h.id)};cursor:pointer"></button>`).join('')}
+      </div>
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">👁️ Cara</div>
+      ${[{l:'Ojos',k:'eyes',max:26,i:'👁️'},{l:'Cejas',k:'eyebrows',max:15,i:'🤨'},{l:'Boca',k:'mouth',max:30,i:'👄'}].map(f=>`
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
+        <span style="font-size:13px">${f.i}</span>
+        <span style="font-size:11px;color:var(--text3);min-width:36px">${f.l}</span>
+        <button onclick="_acFaceDec('${f.k}',${f.max})" style="width:24px;height:24px;border-radius:50%;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:13px">◀</button>
+        <span style="font-size:12px;font-weight:700;min-width:20px;text-align:center">${_ac[f.k]}</span>
+        <button onclick="_acFaceInc('${f.k}',${f.max})" style="width:24px;height:24px;border-radius:50%;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:13px">▶</button>
+        <span style="font-size:10px;color:var(--text3)">/${f.max}</span>
+      </div>`).join('')}
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">✨ Extras</div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap">
+        ${[{k:'glassesOn',l:'😎 Gafas'},{k:'earringsOn',l:'💎 Aretes'},{k:'freckles',l:'✨ Pecas'}].map(x=>`
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px">
+          <input type="checkbox" ${_ac[x.k]?'checked':''} onchange="_acToggle('${x.k}')"
+            style="width:15px;height:15px;accent-color:var(--accent)"> ${x.l}
+        </label>`).join('')}
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">🌈 Fondo</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">
+        ${_acBgCols.map(c=>`<button onclick="_acSetBg('${c}')"
+          style="width:26px;height:26px;border-radius:50%;background:#${c};border:3px solid ${sel(_ac.bg===c)};cursor:pointer"></button>`).join('')}
+      </div>
+    </div>
+    <button onclick="saveCustomAvatar()" style="width:100%;padding:11px;border-radius:12px;background:var(--accent);color:#fff;font-size:13px;font-weight:700;border:none;cursor:pointer">💾 Guardar mi avatar</button>
+  </div>`;
+}
+function openAvatarCreator() { _acOpen=!_acOpen; _acRender(); }
+async function saveCustomAvatar() {
+  const url = _acBuildUrl();
+  await selectDicebearAvatar(url);
+  _acOpen = false; _acRender();
+  zyraToast("Avatar guardado ✅","success");
+}
+
+function renderAvatarPicker() {
   const container = document.getElementById("avatar-emoji-picker");
   if(!container) return;
   const currentPhoto = localStorage.getItem("zyra_photo") || "";
-
-  const categories = [
-    { label: "🌿 Naturaleza & cosmos",  emojis: ["🌿","🌊","🌙","🪐","🌸","🦋","🌺","🍃","⭐","🌻","🦅","🌈","🌋","❄️","🫧","✨","🪸","🌕","🌠","🍄","🫐","🌤️"] },
-    { label: "🦊 Animales fantásticos", emojis: ["🦊","🐉","🦁","🐺","🦄","🐯","🦅","🐬","🦋","🦝","🐝","🦈","🐙","🦎","🐲","🦜","🐻","🦩","🐸","🦓","🦥","🐧"] },
-    { label: "🕯️ Bienestar & espíritu", emojis: ["🕯️","💜","🧘","💫","🌀","🫶","✨","🌸","💎","🪷","🫧","🌙","🌊","🪬","💆","🌺","🎋","🪄","🕊️","🫂","🩵","🔮"] },
-    { label: "🎧 Noche urbana",          emojis: ["🎧","🎨","🌃","⚡","🎸","🛹","🎤","📸","🎬","🎮","🃏","🎲","🏙️","🎯","🎵","🔮","💿","🕶️","🎺","🌆","🎪","🎭"] },
-  ];
-  const colors = ["#6366f1","#8b5cf6","#ec4899","#0ea5e9","#10b981","#f59e0b","#ef4444","#14b8a6","#f97316","#06b6d4","#84cc16","#a855f7"];
-
   container.innerHTML = `
-    <!-- ── Personajes Zyra ── -->
-    <div style="margin-bottom:20px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px">🎭 Personajes Zyra</div>
-        <button onclick="selectDicebearAvatar()" style="font-size:11px;padding:4px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--accent);cursor:pointer;font-weight:600">🎲 Aleatorio</button>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
-        ${_ZYRA_CHARS.map(ch => {
-          const url = _dbUrl(ch.seed, ch.bg);
-          const sel = currentPhoto === url;
-          return `<button onclick="selectDicebearAvatar('${url}')" title="${ch.label}"
-            style="aspect-ratio:1;border-radius:50%;overflow:hidden;border:3px solid ${sel?"var(--sky)":"transparent"};cursor:pointer;padding:0;background:none;transition:all .2s;box-shadow:${sel?"0 0 0 2px var(--sky)":"none"}"
-            onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform=''">
-            <img src="${url}" alt="${ch.label}" style="width:100%;height:100%;display:block" loading="lazy"/>
-          </button>`;
-        }).join("")}
-      </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px">🎭 Personajes Zyra</div>
+      <button onclick="selectDicebearAvatar()" style="font-size:11px;padding:4px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--accent);cursor:pointer;font-weight:600">🎲 Aleatorio</button>
     </div>
-
-    <!-- ── Emojis por temática ── -->
-    ${categories.map(cat => `
-      <div style="margin-bottom:14px">
-        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">${cat.label}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px">
-          ${cat.emojis.map(em => `
-            <button onclick="selectAvatarEmoji('${em}')" title="${em}"
-              style="width:36px;height:36px;border-radius:50%;font-size:18px;border:3px solid ${em===currentEmoji?"var(--sky)":"var(--border)"};background:${em===currentEmoji?"rgba(14,165,233,.15)":"var(--surface)"};cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center"
-              onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform=''">${em}</button>
-          `).join("")}
-        </div>
-      </div>
-    `).join("")}
-
-    <!-- ── Color de fondo ── -->
-    <div style="margin-top:4px">
-      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">🎨 Color de fondo</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${colors.map(col => `
-          <button onclick="selectAvatarColor('${col}')" title="${col}"
-            style="width:30px;height:30px;border-radius:50%;background:${col};border:3px solid ${col===(currentColor||"#6366f1")?"var(--text)":"transparent"};cursor:pointer;transition:all .2s"
-            onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform=''"></button>
-        `).join("")}
-      </div>
-    </div>`;
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px">
+      ${_ZYRA_CHARS.map(ch=>{
+        const url=_dbUrl(ch.seed,ch.bg); const sel=currentPhoto===url;
+        return `<button onclick="selectDicebearAvatar('${url}')" title="${ch.seed}"
+          style="aspect-ratio:1;border-radius:50%;overflow:hidden;border:3px solid ${sel?'var(--sky)':'transparent'};cursor:pointer;padding:0;background:none;transition:all .2s"
+          onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform=''">
+          <img src="${url}" style="width:100%;height:100%;display:block" loading="lazy"/>
+        </button>`;
+      }).join('')}
+    </div>
+    <button onclick="openAvatarCreator()" style="width:100%;padding:10px;border-radius:12px;background:var(--surface2);border:2px dashed var(--border);color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;transition:.2s"
+      onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+      ✏️ Crear mi propio avatar
+    </button>
+    <div id="ac-box"></div>`;
 }
 
 async function selectDicebearAvatar(url) {
   if(!url) {
-    // Generar aleatorio
     const seed = Math.random().toString(36).slice(2,8);
-    const bg   = ["6366f1","8b5cf6","ec4899","0ea5e9","10b981","f59e0b","ef4444","14b8a6"][Math.floor(Math.random()*8)];
+    const bg = _acBgCols[Math.floor(Math.random()*_acBgCols.length)];
     url = _dbUrl(seed, bg);
   }
   localStorage.setItem("zyra_photo", url);
   localStorage.setItem("zyra_avatar_emoji", "");
   await api("/profile", "PUT", { photoUrl: url, avatarEmoji: "" }).catch(()=>{});
-  applyAvatarEverywhere(url, "", localStorage.getItem("zyra_avatar_color") || "#6366f1");
-  renderAvatarPicker("", localStorage.getItem("zyra_avatar_color") || "#6366f1");
-}
-
-async function selectAvatarEmoji(emoji) {
-  localStorage.setItem("zyra_avatar_emoji", emoji);
-  localStorage.setItem("zyra_photo", "");
-  await api("/profile", "PUT", { avatarEmoji: emoji, photoUrl: "" }).catch(()=>{});
-  applyAvatarEverywhere("", emoji, localStorage.getItem("zyra_avatar_color") || "#6366f1");
-  renderAvatarPicker(emoji, localStorage.getItem("zyra_avatar_color") || "#6366f1");
-}
-
-async function selectAvatarColor(color) {
-  localStorage.setItem("zyra_avatar_color", color);
-  await api("/profile", "PUT", { avatarColor: color }).catch(()=>{});
-  applyAvatarEverywhere(
-    localStorage.getItem("zyra_photo"),
-    localStorage.getItem("zyra_avatar_emoji"),
-    color
-  );
-  renderAvatarPicker(localStorage.getItem("zyra_avatar_emoji"), color);
+  applyAvatarEverywhere(url, "", "");
+  renderAvatarPicker();
 }
 
 async function saveProfileInfo() {
