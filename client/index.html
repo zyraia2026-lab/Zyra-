@@ -4648,11 +4648,11 @@ const _acExpressions = [
 ];
 const _acBgCols = ['6366f1','8b5cf6','ec4899','0ea5e9','10b981','f59e0b','ef4444','14b8a6','f97316','06b6d4','84cc16','a855f7','1e293b','64748b'];
 
-// URL usa seed que codifica todas las opciones — evita parámetros inciertos de DiceBear
+// Solo backgroundColor es un parámetro confiable; todo lo demás va en el seed
 function _acBuildUrl() {
   const extras = (_ac.glassesOn?'g':'')+(_ac.earringsOn?'e':'')+(_ac.freckles?'f':'');
   const seed = `zy-${_ac.skin}-${_ac.hairStyle}-${_ac.hairColor}-x${_ac.expression}${extras}`;
-  return `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(seed)}&skinColor=${_ac.skin}&backgroundColor=${_ac.bg}&backgroundType=solid`;
+  return `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(seed)}&backgroundColor=${_ac.bg}&backgroundType=solid`;
 }
 function _acRandFrom(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 function _acRandomize() {
@@ -4669,7 +4669,15 @@ function _acRandomize() {
 // Actualiza SOLO el src del img — no re-renderiza el DOM completo
 function _acPatch() {
   const i = document.getElementById('ac-img');
-  if(i) i.src = _acBuildUrl();
+  if(!i) return;
+  const newSrc = _acBuildUrl();
+  if(i._acSrc === newSrc) return;
+  i._acSrc = newSrc;
+  i.style.opacity = '0.3';
+  i.style.transition = 'opacity .25s';
+  i.onload = () => { i.style.opacity = '1'; };
+  i.onerror = () => { i.style.opacity = '0.6'; };
+  i.src = newSrc;
 }
 function _acSetSkin(v) {
   _ac.skin = v; _acPatch();
@@ -4724,8 +4732,7 @@ function _acRender() {
   <div style="background:var(--surface2);border-radius:18px;padding:18px 14px 16px;border:1px solid var(--border);margin-top:12px">
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:18px">
       <div style="background:linear-gradient(135deg,#6366f1,#ec4899);border-radius:50%;padding:3px;width:144px;height:144px;flex-shrink:0">
-        <img id="ac-img" src="${url}" style="width:100%;height:100%;border-radius:50%;display:block;background:#${_ac.bg}"
-          onerror="this.src='https://api.dicebear.com/9.x/adventurer/svg?seed=zyrafallback&backgroundColor=${_ac.bg}&backgroundType=solid'"/>
+        <img id="ac-img" src="${url}" style="width:100%;height:100%;border-radius:50%;display:block;background:#${_ac.bg};transition:opacity .25s"/>
       </div>
       <button onclick="_acRandomize()" style="font-size:12px;padding:7px 18px;border-radius:20px;background:linear-gradient(135deg,#6366f1,#ec4899);color:#fff;border:none;cursor:pointer;font-weight:700">🎲 ¡Sorpréndeme!</button>
     </div>
