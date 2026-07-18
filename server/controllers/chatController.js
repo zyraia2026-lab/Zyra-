@@ -653,6 +653,7 @@ function parseResponse(text, book, quote, movie) {
     .replace(/\[CANCION:[^\]]+\]/gi,"").replace(/\[LIBRO:[^\]]+\]/gi,"")
     .replace(/\[FRASE:[^\]]+\]/gi,"").replace(/\[PELICULA:[^\]]+\]/gi,"")
     .replace(/\[EJERCICIO:[^\]]+\]/gi,"")
+    .replace(/https?:\/\/[^\s"')]+/gi,"")  // quitar URLs (Spotify, YouTube, etc.)
     .replace(/\n{3,}/g,"\n\n").trim();
 
   return { cleanText, cards };
