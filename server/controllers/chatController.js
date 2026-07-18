@@ -343,15 +343,24 @@ async function getVideoId(title, artist) {
       .replace(/[()[\]\/\\|]+/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
-    const [letraItems, lyricsItems, topicItems] = await Promise.all([
+    const [topicItems, letraItems, lyricsItems] = await Promise.all([
+      ytSearch(`${artist} ${titleClean} topic`),
       ytSearch(`${titleClean} ${artist} letra`),
       ytSearch(`${titleClean} ${artist} lyrics`),
-      ytSearch(`${artist} ${titleClean} topic`),
     ]);
 
     const isLabelCh = ch => /\bvevo\b|sony music|universal music|warner music|emi music/i.test(ch || "");
+    const isTopicCh = ch => /\btopic\b/i.test(ch || "");
 
-    // Prioridad: lyric videos de fans > canales topic (sellos pueden bloquear topic también)
+    // Topic channels primero — YouTube Music los licenció directamente
+    const topicCandidate = topicItems.find(it => isTopicCh(it.snippet?.channelTitle) && it.id?.videoId);
+    if (topicCandidate?.id?.videoId) {
+      const vid = topicCandidate.id.videoId;
+      _cacheSet(ytCache, key, vid, YT_MAX);
+      return vid;
+    }
+
+    // Fallback: lyric videos de fans
     const allItems = [
       ...letraItems.filter(it => !isLabelCh(it.snippet?.channelTitle)),
       ...lyricsItems.filter(it => !isLabelCh(it.snippet?.channelTitle)),
