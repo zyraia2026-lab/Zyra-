@@ -7169,44 +7169,55 @@ function testEmbeddable(videoId) {
 async function findPlayableVideoId(title, artist, excludeIds = []) {
   if (!window.YT_ENABLED) return null;
   const authHeader = { "Authorization": "Bearer " + token };
-  // Limpiar título: quitar "ft. X", paréntesis, slashes y chars raros que rompen la búsqueda
   const titleClean = title
     .replace(/\s*(?:ft\.|feat\.|featuring)[^()\[\]]+/gi, '')
     .replace(/[()[\]\/\\|]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
   const base = artist ? `${titleClean} ${artist}` : titleClean;
+  const isRetry = (excludeIds?.length || 0) > 0;
 
-  const [r1, r2, r3] = await Promise.all([
-    fetch(`/api/yt/search?q=${encodeURIComponent(base+' letra')}&maxResults=5`, { headers: authHeader }).then(r => r.json()).catch(() => null),
-    fetch(`/api/yt/search?q=${encodeURIComponent(base+' lyrics')}&maxResults=5`, { headers: authHeader }).then(r => r.json()).catch(() => null),
-    fetch(`/api/yt/search?q=${encodeURIComponent(base)}&maxResults=5`, { headers: authHeader }).then(r => r.json()).catch(() => null),
-  ]);
+  // En retry buscar covers/piano — menos Content ID que videos originales
+  const queries = isRetry
+    ? [`${base} letra`, `${base} lyrics`, `${base} cover`, `${titleClean} piano cover`]
+    : [`${base} letra`, `${base} lyrics`, base];
+
+  const fetches = queries.map(q =>
+    fetch(`/api/yt/search?q=${encodeURIComponent(q)}&maxResults=6`, { headers: authHeader })
+      .then(r => r.json()).catch(() => null)
+  );
+  const results = await Promise.all(fetches);
 
   const isMixVideo = t => /\bmix\b|\bmixtape\b|\bplaylist\b|\b[eé]xitos\b|\bmegamix\b/i.test(t || '');
   const isLabelCh  = ch => /\bvevo\b|sony music|universal music|warner music/i.test(ch || '');
-  const allItems = [
-    ...(r1?.items || []).filter(it => !isLabelCh(it.snippet?.channelTitle)),
-    ...(r2?.items || []).filter(it => !isLabelCh(it.snippet?.channelTitle)),
-    ...(r3?.items || []),
-  ].filter(it => !isMixVideo(it.snippet?.title));
+  // En retry: no filtrar canales — covers de fans en canales varios
+  const allItems = isRetry
+    ? (results.flatMap(r => r?.items || [])).filter(it => !isMixVideo(it.snippet?.title))
+    : [
+        ...(results[0]?.items || []).filter(it => !isLabelCh(it.snippet?.channelTitle)),
+        ...(results[1]?.items || []).filter(it => !isLabelCh(it.snippet?.channelTitle)),
+        ...(results[2]?.items || []),
+      ].filter(it => !isMixVideo(it.snippet?.title));
 
   const excludeSet = new Set(Array.isArray(excludeIds) ? excludeIds : [excludeIds].filter(Boolean));
   const seen = new Set();
   const candidates = allItems.map(i => i.id?.videoId)
     .filter(id => id && !excludeSet.has(id) && !seen.has(id) && seen.add(id))
-    .slice(0, 10);
+    .slice(0, 12);
   if (!candidates.length) return null;
 
-  // Probar de a 3 en paralelo desde ESTE browser — el único check confiable para Colombia
-  for (let i = 0; i < candidates.length; i += 3) {
-    const batch = candidates.slice(i, i + 3);
-    const results = await Promise.all(batch.map(id => testEmbeddable(id).then(ok => ({ id, ok }))));
-    const winner = results.find(r => r.ok);
-    if (winner) return { videoId: winner.id };
-  }
+  // Check server-side; si falla el check, devolver primero y dejar que onError maneje
+  try {
+    const statusRes = await fetch(`/api/yt/videos?ids=${candidates.slice(0, 10).join(',')}`, { headers: authHeader });
+    const statusData = await statusRes.json();
+    for (const item of (statusData.items || [])) {
+      if (item.status?.embeddable !== false && item.snippet?.liveBroadcastContent !== 'live') {
+        return { videoId: item.id };
+      }
+    }
+  } catch(e) { console.warn('YT status check error:', e.message); }
 
-  return null;
+  return candidates.length ? { videoId: candidates[0] } : null;
 }
 
 function buildYTPlayer(card, id) {
@@ -7237,36 +7248,8 @@ function buildYTPlayer(card, id) {
         } catch(_) { return false; }
       };
     };
-    // Inicializar player con thumbnail
     const html = ytEmbedHTML(card, id, card.videoId);
     setTimeout(() => ytInitPlayer(`yt-iframe-${id}`, card.videoId, `yt-fallback-${id}`, makeRetry(0)), 0);
-
-    // Pre-probar en background: si el video inicial está bloqueado en Colombia,
-    // encontrar uno bueno ANTES de que el usuario haga click para evitar el "Video unavailable"
-    if (window.YT_ENABLED) {
-      setTimeout(async () => {
-        try {
-          const ok = await testEmbeddable(card.videoId);
-          if (!ok) {
-            const result = await findPlayableVideoId(card.title, card.artist, [...triedIds]);
-            if (result?.videoId) {
-              triedIds.add(result.videoId);
-              activeVideoId = result.videoId;
-              // Si el usuario aún no hizo click (thumbnail todavía visible), actualizar silenciosamente
-              const outer = document.getElementById(id);
-              if (!outer) return;
-              const activatorKey = `yt-iframe-${id}`;
-              if (!outer.querySelector('iframe')) {
-                // Todavía en thumbnail — reemplazar con el video bueno
-                outer.innerHTML = ytEmbedHTML(card, id, result.videoId);
-                ytInitPlayer(activatorKey, result.videoId, `yt-fallback-${id}`, makeRetry(1));
-              }
-            }
-          }
-        } catch(_) {}
-      }, 0);
-    }
-
     return html;
   }
 
