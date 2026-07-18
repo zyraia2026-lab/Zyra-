@@ -373,10 +373,80 @@ async function getVideoId(title, artist) {
   } catch(e) { console.error("getVideoId error:", e.message); return null; }
 }
 
+/* ── Spotify Client Credentials ── */
+let _spotTok = null, _spotTokExp = 0;
+async function _getSpotToken() {
+  if (_spotTok && Date.now() < _spotTokExp) return _spotTok;
+  if (!process.env.SPOTIFY_CLIENT_ID || !process.env.SPOTIFY_CLIENT_SECRET) return null;
+  const r = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': 'Basic ' + Buffer.from(`${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`).toString('base64'),
+    },
+    body: 'grant_type=client_credentials',
+    signal: AbortSignal.timeout(5000),
+  });
+  const d = await r.json();
+  if (!d.access_token) return null;
+  _spotTok = d.access_token;
+  _spotTokExp = Date.now() + (d.expires_in - 60) * 1000;
+  return _spotTok;
+}
+
+async function getSongsViaSpotify(artistName) {
+  try {
+    const tok = await _getSpotToken();
+    if (!tok) return null;
+
+    // 1. Buscar el artista en Spotify
+    const sr = await fetch(
+      `https://api.spotify.com/v1/search?q=${encodeURIComponent(artistName)}&type=artist&limit=3`,
+      { headers: { Authorization: `Bearer ${tok}` }, signal: AbortSignal.timeout(5000) }
+    );
+    const sd = await sr.json();
+    const nameLower = artistName.toLowerCase();
+    const artists   = sd.artists?.items || [];
+    // Preferir coincidencia exacta de nombre
+    const artist = artists.find(a => a.name.toLowerCase() === nameLower)
+                || artists.find(a => a.name.toLowerCase().includes(nameLower) || nameLower.includes(a.name.toLowerCase()))
+                || artists[0];
+    if (!artist) return null;
+
+    // 2. Top tracks del artista
+    const tr = await fetch(
+      `https://api.spotify.com/v1/artists/${artist.id}/top-tracks?market=CO`,
+      { headers: { Authorization: `Bearer ${tok}` }, signal: AbortSignal.timeout(5000) }
+    );
+    const td  = await tr.json();
+    const tracks = (td.tracks || []).slice(0, 3);
+    if (!tracks.length) return null;
+
+    return tracks.map(t => ({
+      title:          t.name,
+      artist:         artist.name,
+      spotifyTrackId: t.id,
+      videoId:        null,
+    }));
+  } catch(e) {
+    console.error('[Spotify artist]', e.message);
+    return null;
+  }
+}
+
 async function getSongsForUnknownArtist(artistName) {
   const key = artistName.toLowerCase().trim();
   const songCached = _cacheGet(ytSongCache, key, SONG_TTL);
   if (songCached) return songCached;
+
+  // Spotify primero: datos exactos del artista, track IDs listos para embed
+  if (process.env.SPOTIFY_CLIENT_ID) {
+    const spotSongs = await getSongsViaSpotify(artistName).catch(() => null);
+    if (spotSongs?.length) {
+      _cacheSet(ytSongCache, key, spotSongs, SONG_MAX);
+      return spotSongs;
+    }
+  }
 
   if (!process.env.YT_API_KEY) {
     return getSongsViaGroq(artistName);
@@ -1208,7 +1278,11 @@ exports.sendMessage = async (req, res) => {
         const fmt = artistName.split(" ").map(w=>w[0].toUpperCase()+w.slice(1)).join(" ");
         const avail = ytSongs.filter(s=>!usedSongs.includes(s.title.toLowerCase()));
         const pool = avail.length ? avail : ytSongs;
-        return pool.slice(0,1).map(s=>({ type:"song", title:s.title, artist:s.artist||fmt, videoId:s.videoId||null }));
+        return pool.slice(0,1).map(s=>({
+          type:"song", title:s.title, artist:s.artist||fmt,
+          videoId:s.videoId||null,
+          ...(s.spotifyTrackId ? { spotifyTrackId: s.spotifyTrackId } : {}),
+        }));
       };
 
       if (detected) {
@@ -1508,7 +1582,11 @@ exports.streamMessage = async (req, res) => {
         const fmt = artistName.split(" ").map(w=>w[0].toUpperCase()+w.slice(1)).join(" ");
         const avail = ytSongs.filter(s=>!usedSongs.includes(s.title.toLowerCase()));
         const pool = avail.length ? avail : ytSongs;
-        return pool.slice(0,1).map(s=>({ type:"song", title:s.title, artist:s.artist||fmt, videoId:s.videoId||null }));
+        return pool.slice(0,1).map(s=>({
+          type:"song", title:s.title, artist:s.artist||fmt,
+          videoId:s.videoId||null,
+          ...(s.spotifyTrackId ? { spotifyTrackId: s.spotifyTrackId } : {}),
+        }));
       };
 
       if (detected) {

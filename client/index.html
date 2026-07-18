@@ -7387,7 +7387,13 @@ function spotFallbackHTML(card, id) {
 }
 
 async function buildSpotifyPlayer(card, id) {
-  // Cache local primero (0 peticiones)
+  // Track ID ya viene en la card (búsqueda Spotify del backend)
+  if (card.spotifyTrackId) {
+    spotLsSet(card.title, card.artist, card.spotifyTrackId);
+    return spotEmbedHTML(card, id, card.spotifyTrackId);
+  }
+
+  // Cache local (0 peticiones)
   const cached = spotLsGet(card.title, card.artist);
   if (cached) return spotEmbedHTML(card, id, cached);
 
@@ -7400,7 +7406,7 @@ async function buildSpotifyPlayer(card, id) {
       return spotEmbedHTML(card, id, d.trackId);
     }
   } catch(_) {}
-  return null; // no encontrado → usar YouTube
+  return null;
 }
 
 // localStorage cache para videoIds — 0 cuota en reproducciones repetidas
