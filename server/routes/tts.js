@@ -1,5 +1,6 @@
 const r = require("express").Router();
-const { protect } = require("../middleware/auth");
+const { protect }     = require("../middleware/auth");
+const { requirePlan } = require("../middleware/planGate");
 const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 const T = require("../controllers/ttsController");
 
@@ -11,7 +12,7 @@ const ttsLimiter = rateLimit({
   standardHeaders: true, legacyHeaders: false,
 });
 
-r.post("/speak", protect, ttsLimiter, T.speak);
-r.post("/audio", protect, ttsLimiter, T.audio);
+r.post("/speak", protect, requirePlan("premium"), ttsLimiter, T.speak);
+r.post("/audio", protect, requirePlan("premium"), ttsLimiter, T.audio);
 
 module.exports = r;

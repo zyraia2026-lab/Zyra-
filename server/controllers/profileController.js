@@ -49,7 +49,7 @@ exports.addEmotionRecord = async (req, res) => {
     const { emotion, intensity } = req.body;
     const note = String(req.body.note || "").substring(0, 500);
 
-    const VALID_EMOTIONS = ["feliz","tranquilo","ansioso","triste","enojado","confundido","esperanzado","agotado","motivado","nostalgico"];
+    const VALID_EMOTIONS = ["feliz","tranquilo","ansioso","triste","enojado","estresado","emocionado","cansado","motivado","solo"];
     if (!VALID_EMOTIONS.includes(emotion))
       return res.status(400).json({ message: "Emoción inválida" });
 

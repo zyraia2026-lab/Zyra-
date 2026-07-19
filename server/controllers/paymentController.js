@@ -176,7 +176,7 @@ exports.webhook = async (req, res) => {
 
   const sig = req.headers["stripe-signature"];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!webhookSecret) return res.status(200).json({ received: true, warning: "webhook secret not configured" });
+  if (!webhookSecret) return res.status(400).json({ error: "Webhook secret no configurado en el servidor." });
 
   let event;
   try {
