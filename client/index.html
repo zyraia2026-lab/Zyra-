@@ -4609,136 +4609,97 @@ function _dbUrl(seed, bg) {
   return `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(seed)}&backgroundColor=${bg}&backgroundType=solid`;
 }
 
-// ── CREADOR DE AVATAR SVG — control total feature a feature ──
-let _ac = { skin:'s4', hair:'h2', hairStyle:'long', expression:1, glassesOn:false, earringsOn:false, freckles:false, bg:'6366f1' };
+// ── CREADOR DE AVATAR — DiceBear adventurer con params independientes ──
+// Seed fijo por sesión → cara base estable; params explícitos → solo cambia el feature seleccionado
+let _ac = { seedBase:'Zyra', skin:'warm', hair:'long01', hairColor:'brown', glasses:false, earrings:false, bg:'6366f1' };
 let _acOpen = false;
 
+// Valores válidos de DiceBear adventurer v9
 const _acSkinPal = [
-  {id:'s1',hex:'#FDDBB4',l:'Muy claro'},{id:'s2',hex:'#F0C08A',l:'Melocotón'},
-  {id:'s3',hex:'#D4956A',l:'Claro'},    {id:'s4',hex:'#C68642',l:'Dorado'},
-  {id:'s5',hex:'#A0522D',l:'Cálido'},   {id:'s6',hex:'#7B3F00',l:'Marrón'},
-  {id:'s7',hex:'#4E2C10',l:'Oscuro'},   {id:'s8',hex:'#2A1506',l:'Ébano'},
+  {id:'ecru',      hex:'#F2D9B3',l:'Muy claro'},
+  {id:'apricot',   hex:'#EDBA96',l:'Melocotón'},
+  {id:'ivory',     hex:'#D89E77',l:'Claro'},
+  {id:'warm',      hex:'#C68642',l:'Dorado'},
+  {id:'tanned',    hex:'#A87040',l:'Bronceado'},
+  {id:'brown',     hex:'#7B4A25',l:'Marrón'},
+  {id:'darkBrown', hex:'#4A2810',l:'Oscuro'},
 ];
 const _acHairColPal = [
-  {id:'h1',hex:'#1A1A1A',l:'Negro'},   {id:'h2',hex:'#5C3317',l:'Marrón'},
-  {id:'h3',hex:'#8B5E3C',l:'Castaño'},{id:'h4',hex:'#C17F3C',l:'Caramelo'},
-  {id:'h5',hex:'#F2D56A',l:'Rubio'},   {id:'h6',hex:'#C03820',l:'Rojo'},
-  {id:'h7',hex:'#9B9B9B',l:'Gris'},    {id:'h8',hex:'#8B5CF6',l:'Morado'},
-  {id:'h9',hex:'#EC4899',l:'Rosa'},    {id:'ha',hex:'#E8E8E8',l:'Blanco'},
+  {id:'black',    hex:'#1A1A1A',l:'Negro'},
+  {id:'brown',    hex:'#5C3317',l:'Marrón'},
+  {id:'brown2',   hex:'#8B5E3C',l:'Castaño'},
+  {id:'auburn',   hex:'#8B2500',l:'Caoba'},
+  {id:'red',      hex:'#CC2200',l:'Rojo'},
+  {id:'blonde',   hex:'#F5C518',l:'Rubio'},
+  {id:'blonde2',  hex:'#F0DC82',l:'Dorado'},
+  {id:'gray',     hex:'#909090',l:'Gris'},
+  {id:'silverGray',hex:'#C8C8C8',l:'Plata'},
+  {id:'white',    hex:'#F0F0F0',l:'Blanco'},
+  {id:'pink',     hex:'#FFB7C5',l:'Rosa'},
+  {id:'pastel01', hex:'#B4D4F0',l:'Celeste'},
 ];
+// Estilos de pelo válidos de DiceBear adventurer
 const _acHairStylePal = [
-  {id:'long',  l:'Largo liso'},{id:'wavy',  l:'Ondulado'},
-  {id:'curly', l:'Rizado'},   {id:'medium',l:'Mediano'},
-  {id:'short', l:'Corto'},    {id:'afro',  l:'Afro'},
-  {id:'bun',   l:'Moño'},     {id:'bald',  l:'Sin pelo'},
-];
-const _acExprPal = [
-  {v:1,i:'😊',l:'Feliz'},{v:2,i:'😁',l:'Emocionado'},{v:3,i:'😎',l:'Cool'},
-  {v:4,i:'😐',l:'Neutral'},{v:5,i:'😉',l:'Pícaro'},{v:6,i:'🤔',l:'Pensativo'},
+  {id:'long01', l:'Liso largo'},  {id:'long02', l:'Largo 2'},
+  {id:'long03', l:'Largo 3'},     {id:'long04', l:'Ondas'},
+  {id:'long05', l:'Rizado'},      {id:'long06', l:'Con fleco'},
+  {id:'short01',l:'Corto liso'},  {id:'short02',l:'Corto 2'},
+  {id:'short03',l:'Despeinado'},  {id:'short04',l:'Muy corto'},
+  {id:'short05',l:'Rizado corto'},{id:'bald',   l:'Sin pelo'},
 ];
 const _acBgPal = ['6366f1','8b5cf6','ec4899','0ea5e9','10b981','f59e0b','ef4444','14b8a6','f97316','06b6d4','1e293b','64748b'];
+const _acSeeds = ['Aria','Blaze','Cleo','Dune','Echo','Fern','Gale','Halo','Iris','Jade','Kira','Lune','Mist','Nova','Opal','Pine','Rain','Sage','Teal','Vale','Wren','Yuki','Zion','Lyra','Rex','Storm'];
 
-// ── Generador SVG ──
-function _acGetHex(id,pal){ return (pal.find(p=>p.id===id)||pal[0]).hex; }
-function _acDarken(hex,pct){ const n=parseInt(hex.slice(1),16),d=Math.round(255*pct),r=Math.max(0,(n>>16)-d),g=Math.max(0,((n>>8)&255)-d),b=Math.max(0,(n&255)-d); return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join(''); }
-
-// Capa de pelo DETRÁS de la cara
-function _acHairB(c,s){
-  const top=`<ellipse cx="100" cy="62" rx="63" ry="42" fill="${c}"/>`;
-  if(s==='long')   return top+`<rect x="24" y="60" width="28" height="148" rx="14" fill="${c}"/><rect x="148" y="60" width="28" height="148" rx="14" fill="${c}"/>`;
-  if(s==='wavy')   return top+`<path d="M22,62 Q16,110 22,148 Q28,178 18,210 L52,210 Q44,178 52,148 Q58,110 52,62Z" fill="${c}"/><path d="M178,62 Q184,110 178,148 Q172,178 182,210 L148,210 Q156,178 148,148 Q142,110 148,62Z" fill="${c}"/>`;
-  if(s==='curly')  return top+`<path d="M24,62 C16,92 30,118 18,148 C8,172 26,196 20,212 L54,212 C48,196 34,172 44,148 C54,118 42,92 50,62Z" fill="${c}"/><path d="M176,62 C184,92 170,118 182,148 C192,172 174,196 180,212 L146,212 C152,196 166,172 156,148 C146,118 158,92 150,62Z" fill="${c}"/>`;
-  if(s==='medium') return top+`<rect x="26" y="60" width="26" height="85" rx="13" fill="${c}"/><rect x="148" y="60" width="26" height="85" rx="13" fill="${c}"/>`;
-  if(s==='short')  return top+`<rect x="28" y="60" width="24" height="52" rx="12" fill="${c}"/><rect x="148" y="60" width="24" height="52" rx="12" fill="${c}"/>`;
-  if(s==='afro')   return `<circle cx="100" cy="72" r="73" fill="${c}"/>`;
-  if(s==='bun')    return `<ellipse cx="100" cy="64" rx="60" ry="36" fill="${c}"/><circle cx="100" cy="34" r="24" fill="${c}"/><rect x="28" y="62" width="22" height="52" rx="11" fill="${c}"/><rect x="150" y="62" width="22" height="52" rx="11" fill="${c}"/>`;
-  return ''; // bald
+// Construye la URL de DiceBear con params individuales — cada feature es independiente
+function _acBuildUrl(){
+  let url = `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(_ac.seedBase)}&backgroundColor=${_ac.bg}&backgroundType=solid&skinColor=${_ac.skin}&hairColor=${_ac.hairColor}`;
+  if(_ac.hair !== 'bald') url += `&hair=${_ac.hair}`;
+  const acc=[];
+  if(_ac.glasses)  acc.push('roundGlasses');
+  if(_ac.earrings) acc.push('smallEarrings');
+  if(acc.length)   url += '&accessories='+acc.join(',');
+  return url;
 }
-// Capa de pelo ENCIMA de la cara (frente/copete)
-function _acHairF(c,s){
-  if(s==='afro'||s==='bald') return '';
-  if(s==='bun') return `<ellipse cx="100" cy="60" rx="63" ry="38" fill="${c}"/><circle cx="100" cy="34" r="24" fill="${c}"/>`;
-  return `<ellipse cx="100" cy="62" rx="63" ry="40" fill="${c}"/>`;
-}
-// Ojos
-function _acEyes(e){
-  if(e===1) return `<path d="M70,108Q80,98 90,108" stroke="#1a1a1a" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M110,108Q120,98 130,108" stroke="#1a1a1a" stroke-width="3.5" fill="none" stroke-linecap="round"/>`;
-  if(e===2) return `<ellipse cx="80" cy="108" rx="12" ry="14" fill="white"/><ellipse cx="80" cy="110" rx="8" ry="9" fill="#1a1a1a"/><ellipse cx="83" cy="107" rx="3" ry="3" fill="white"/><ellipse cx="120" cy="108" rx="12" ry="14" fill="white"/><ellipse cx="120" cy="110" rx="8" ry="9" fill="#1a1a1a"/><ellipse cx="123" cy="107" rx="3" ry="3" fill="white"/>`;
-  if(e===3) return `<ellipse cx="80" cy="108" rx="12" ry="9" fill="white"/><ellipse cx="80" cy="110" rx="7" ry="6" fill="#1a1a1a"/><ellipse cx="83" cy="108" rx="2.5" ry="2.5" fill="white"/><line x1="68" y1="102" x2="92" y2="102" stroke="#1a1a1a" stroke-width="3.5" stroke-linecap="round"/><ellipse cx="120" cy="108" rx="12" ry="9" fill="white"/><ellipse cx="120" cy="110" rx="7" ry="6" fill="#1a1a1a"/><ellipse cx="123" cy="108" rx="2.5" ry="2.5" fill="white"/><line x1="108" y1="102" x2="132" y2="102" stroke="#1a1a1a" stroke-width="3.5" stroke-linecap="round"/>`;
-  if(e===4) return `<ellipse cx="80" cy="108" rx="11" ry="12" fill="white"/><ellipse cx="80" cy="109" rx="7" ry="8" fill="#1a1a1a"/><ellipse cx="83" cy="107" rx="2.5" ry="2.5" fill="white"/><ellipse cx="120" cy="108" rx="11" ry="12" fill="white"/><ellipse cx="120" cy="109" rx="7" ry="8" fill="#1a1a1a"/><ellipse cx="123" cy="107" rx="2.5" ry="2.5" fill="white"/>`;
-  if(e===5) return `<path d="M68,108Q80,98 92,108" stroke="#1a1a1a" stroke-width="3.5" fill="none" stroke-linecap="round"/><ellipse cx="120" cy="108" rx="11" ry="12" fill="white"/><ellipse cx="120" cy="109" rx="7" ry="8" fill="#1a1a1a"/><ellipse cx="123" cy="107" rx="2.5" ry="2.5" fill="white"/>`;
-  if(e===6) return `<ellipse cx="80" cy="108" rx="11" ry="11" fill="white"/><ellipse cx="80" cy="109" rx="7" ry="7" fill="#1a1a1a"/><ellipse cx="83" cy="107" rx="2.5" ry="2.5" fill="white"/><ellipse cx="120" cy="109" rx="11" ry="12" fill="white"/><ellipse cx="120" cy="110" rx="7" ry="8" fill="#1a1a1a"/><ellipse cx="123" cy="108" rx="2.5" ry="2.5" fill="white"/>`;
-  return _acEyes(4);
-}
-// Cejas
-function _acBrows(e){
-  if(e===1) return `<path d="M68,95Q80,89 92,94" stroke="#1a1a1a" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M108,94Q120,89 132,95" stroke="#1a1a1a" stroke-width="3" fill="none" stroke-linecap="round"/>`;
-  if(e===2) return `<path d="M68,90Q80,83 92,89" stroke="#1a1a1a" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M108,89Q120,83 132,90" stroke="#1a1a1a" stroke-width="3" fill="none" stroke-linecap="round"/>`;
-  if(e===3) return `<line x1="68" y1="96" x2="93" y2="96" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round"/><line x1="107" y1="96" x2="132" y2="96" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round"/>`;
-  if(e===4) return `<path d="M68,94Q80,90 92,94" stroke="#1a1a1a" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M108,94Q120,90 132,94" stroke="#1a1a1a" stroke-width="3" fill="none" stroke-linecap="round"/>`;
-  if(e===5) return `<path d="M68,93Q80,88 92,93" stroke="#1a1a1a" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M108,90Q120,85 132,91" stroke="#1a1a1a" stroke-width="3" fill="none" stroke-linecap="round"/>`;
-  if(e===6) return `<path d="M68,96Q80,92 92,95" stroke="#1a1a1a" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M108,88Q120,84 132,91" stroke="#1a1a1a" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
-  return _acBrows(4);
-}
-// Boca
-function _acMouth(e){
-  if(e===1) return `<path d="M76,145Q100,165 124,145" stroke="#1a1a1a" stroke-width="3" fill="#f47d7d" stroke-linecap="round"/>`;
-  if(e===2) return `<path d="M72,143Q100,172 128,143" stroke="#1a1a1a" stroke-width="3" fill="#f47d7d" stroke-linecap="round"/><line x1="82" y1="157" x2="118" y2="157" stroke="white" stroke-width="2"/>`;
-  if(e===3) return `<path d="M82,148Q106,158 118,146" stroke="#1a1a1a" stroke-width="3" fill="none" stroke-linecap="round"/>`;
-  if(e===4) return `<line x1="84" y1="150" x2="116" y2="150" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round"/>`;
-  if(e===5) return `<path d="M80,147Q101,162 120,145" stroke="#1a1a1a" stroke-width="3" fill="#f47d7d" stroke-linecap="round"/>`;
-  if(e===6) return `<path d="M84,151Q100,146 116,151" stroke="#1a1a1a" stroke-width="3" fill="none" stroke-linecap="round"/>`;
-  return _acMouth(1);
-}
-// Construye el SVG completo con la cara actual
-function _buildAvatarSVG(){
-  const sk=_acGetHex(_ac.skin,_acSkinPal), hr=_acGetHex(_ac.hair,_acHairColPal), sd=_acDarken(sk,0.11), bg='#'+_ac.bg;
-  return `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-<circle cx="100" cy="100" r="100" fill="${bg}"/>
-${_acHairB(hr,_ac.hairStyle)}
-<ellipse cx="40" cy="118" rx="13" ry="16" fill="${sk}"/>
-<ellipse cx="160" cy="118" rx="13" ry="16" fill="${sk}"/>
-<ellipse cx="100" cy="122" rx="60" ry="72" fill="${sk}"/>
-<circle cx="72" cy="142" r="10" fill="#f4a0b0" opacity="0.22"/>
-<circle cx="128" cy="142" r="10" fill="#f4a0b0" opacity="0.22"/>
-${_acBrows(_ac.expression)}${_acEyes(_ac.expression)}
-<ellipse cx="100" cy="132" rx="6" ry="4" fill="${sd}" opacity="0.45"/>
-${_acMouth(_ac.expression)}
-${_ac.freckles?`<circle cx="73" cy="136" r="2.5" fill="${sd}" opacity="0.8"/><circle cx="82" cy="139" r="2" fill="${sd}" opacity="0.8"/><circle cx="68" cy="141" r="2" fill="${sd}" opacity="0.8"/><circle cx="127" cy="136" r="2.5" fill="${sd}" opacity="0.8"/><circle cx="118" cy="139" r="2" fill="${sd}" opacity="0.8"/><circle cx="132" cy="141" r="2" fill="${sd}" opacity="0.8"/>`:''}
-${_acHairF(hr,_ac.hairStyle)}
-${_ac.glassesOn?`<circle cx="80" cy="109" r="17" fill="rgba(180,215,255,0.2)" stroke="#1a1a1a" stroke-width="2.5"/><circle cx="120" cy="109" r="17" fill="rgba(180,215,255,0.2)" stroke="#1a1a1a" stroke-width="2.5"/><line x1="97" y1="109" x2="103" y2="109" stroke="#1a1a1a" stroke-width="2.5"/><line x1="38" y1="109" x2="63" y2="109" stroke="#1a1a1a" stroke-width="2.5"/><line x1="137" y1="109" x2="162" y2="109" stroke="#1a1a1a" stroke-width="2.5"/>`:''}
-${_ac.earringsOn?`<circle cx="30" cy="128" r="5" fill="#FFD700" stroke="#b8860b" stroke-width="1.5"/><circle cx="170" cy="128" r="5" fill="#FFD700" stroke="#b8860b" stroke-width="1.5"/>`:''}
-</svg>`;
-}
-
-// Actualiza SOLO el SVG del preview — instantáneo, sin red
-function _acPatch(){ const c=document.getElementById('ac-preview'); if(c) c.innerHTML=_buildAvatarSVG(); }
 
 function _acRandFrom(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 function _acRandomize(){
-  _ac.skin=_acRandFrom(_acSkinPal).id; _ac.hair=_acRandFrom(_acHairColPal).id;
-  _ac.hairStyle=_acRandFrom(_acHairStylePal).id; _ac.expression=_acRandFrom(_acExprPal).v;
-  _ac.bg=_acRandFrom(_acBgPal); _ac.glassesOn=Math.random()<0.3;
-  _ac.earringsOn=Math.random()<0.3; _ac.freckles=Math.random()<0.2;
+  _ac.seedBase  = _acRandFrom(_acSeeds);
+  _ac.skin      = _acRandFrom(_acSkinPal).id;
+  _ac.hair      = _acRandFrom(_acHairStylePal).id;
+  _ac.hairColor = _acRandFrom(_acHairColPal).id;
+  _ac.bg        = _acRandFrom(_acBgPal);
+  _ac.glasses   = Math.random()<0.25;
+  _ac.earrings  = Math.random()<0.25;
   _acPatch(); _acSyncBtns();
 }
+
+// Solo actualiza el src del img — instantáneo
+function _acPatch(){
+  const img=document.getElementById('ac-img'); if(!img) return;
+  const src=_acBuildUrl();
+  if(img.src===src) return;
+  img.style.opacity='0.35'; img.style.transition='opacity .3s';
+  img.onload=()=>{ img.style.opacity='1'; img.style.filter=''; };
+  img.onerror=()=>{ img.style.opacity='0.7'; img.style.filter='grayscale(.4)'; };
+  img.src=src;
+}
+
 function _acSetSkin(v){ _ac.skin=v; _acPatch(); document.querySelectorAll('[data-acskin]').forEach(b=>b.style.borderColor=b.dataset.acskin===v?'var(--text)':'transparent'); }
-function _acSetHair(v){ _ac.hair=v; _acPatch(); document.querySelectorAll('[data-achcol]').forEach(b=>b.style.borderColor=b.dataset.achcol===v?'var(--text)':'transparent'); }
-function _acSetHairStyle(v){ _ac.hairStyle=v; _acPatch(); document.querySelectorAll('[data-achstyle]').forEach(b=>{const a=b.dataset.achstyle===v;b.style.borderColor=a?'var(--accent)':'var(--border)';b.style.background=a?'rgba(99,102,241,.12)':'transparent';b.style.color=a?'var(--accent)':'var(--text)';b.style.fontWeight=a?700:400;}); }
-function _acSetExpr(v){ _ac.expression=v; _acPatch(); document.querySelectorAll('[data-acexpr]').forEach(b=>{const a=b.dataset.acexpr===String(v);b.style.borderColor=a?'var(--accent)':'transparent';b.style.background=a?'rgba(99,102,241,.12)':'var(--surface)';}); }
+function _acSetHairStyle(v){ _ac.hair=v; _acPatch(); document.querySelectorAll('[data-achstyle]').forEach(b=>{const a=b.dataset.achstyle===v;b.style.borderColor=a?'var(--accent)':'var(--border)';b.style.background=a?'rgba(99,102,241,.12)':'transparent';b.style.color=a?'var(--accent)':'var(--text)';b.style.fontWeight=a?700:400;}); }
+function _acSetHairCol(v){ _ac.hairColor=v; _acPatch(); document.querySelectorAll('[data-achcol]').forEach(b=>b.style.borderColor=b.dataset.achcol===v?'var(--text)':'transparent'); }
 function _acToggle(k){ _ac[k]=!_ac[k]; _acPatch(); const v=_ac[k]; document.querySelectorAll('[data-acextra="'+k+'"]').forEach(b=>{b.style.borderColor=v?'var(--accent)':'var(--border)';b.style.background=v?'rgba(99,102,241,.12)':'transparent';b.style.color=v?'var(--accent)':'var(--text)';b.style.fontWeight=v?700:400;}); }
 function _acSetBg(v){ _ac.bg=v; _acPatch(); document.querySelectorAll('[data-acbg]').forEach(b=>b.style.borderColor=b.dataset.acbg===v?'var(--text)':'transparent'); }
 function _acSyncBtns(){
   document.querySelectorAll('[data-acskin]').forEach(b=>b.style.borderColor=b.dataset.acskin===_ac.skin?'var(--text)':'transparent');
-  document.querySelectorAll('[data-achcol]').forEach(b=>b.style.borderColor=b.dataset.achcol===_ac.hair?'var(--text)':'transparent');
+  document.querySelectorAll('[data-achcol]').forEach(b=>b.style.borderColor=b.dataset.achcol===_ac.hairColor?'var(--text)':'transparent');
   document.querySelectorAll('[data-acbg]').forEach(b=>b.style.borderColor=b.dataset.acbg===_ac.bg?'var(--text)':'transparent');
-  _acSetHairStyle(_ac.hairStyle); _acSetExpr(_ac.expression);
-  ['glassesOn','earringsOn','freckles'].forEach(k=>{const v=_ac[k];document.querySelectorAll('[data-acextra="'+k+'"]').forEach(b=>{b.style.borderColor=v?'var(--accent)':'var(--border)';b.style.background=v?'rgba(99,102,241,.12)':'transparent';b.style.color=v?'var(--accent)':'var(--text)';b.style.fontWeight=v?700:400;});});
+  _acSetHairStyle(_ac.hair);
+  ['glasses','earrings'].forEach(k=>{const v=_ac[k];document.querySelectorAll('[data-acextra="'+k+'"]').forEach(b=>{b.style.borderColor=v?'var(--accent)':'var(--border)';b.style.background=v?'rgba(99,102,241,.12)':'transparent';b.style.color=v?'var(--accent)':'var(--text)';b.style.fontWeight=v?700:400;});});
 }
 function _acRender(){
   const box=document.getElementById('ac-box'); if(!box) return;
   if(!_acOpen){ box.innerHTML=''; return; }
-  const S=(a,b)=>a===b?'var(--accent)':'transparent';
+  const S=(a,b)=>a===b?'var(--text)':'transparent';
   const SB=(a,b)=>a===b?'rgba(99,102,241,.12)':'transparent';
   const SC=(a,b)=>a===b?'var(--accent)':'var(--text)';
   const SW=(a,b)=>a===b?700:400;
@@ -4746,7 +4707,7 @@ function _acRender(){
   <div style="background:var(--surface2);border-radius:18px;padding:18px 14px 16px;border:1px solid var(--border);margin-top:12px">
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:18px">
       <div style="background:linear-gradient(135deg,#6366f1,#ec4899);border-radius:50%;padding:3px;width:152px;height:152px;flex-shrink:0">
-        <div id="ac-preview" style="width:100%;height:100%;border-radius:50%;overflow:hidden">${_buildAvatarSVG()}</div>
+        <img id="ac-img" src="${_acBuildUrl()}" style="width:100%;height:100%;border-radius:50%;display:block;background:#${_ac.bg};transition:opacity .3s"/>
       </div>
       <button onclick="_acRandomize()" style="font-size:12px;padding:7px 18px;border-radius:20px;background:linear-gradient(135deg,#6366f1,#ec4899);color:#fff;border:none;cursor:pointer;font-weight:700">🎲 ¡Sorpréndeme!</button>
     </div>
@@ -4758,24 +4719,18 @@ function _acRender(){
     </div>
     <div style="margin-bottom:14px">
       <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">💇 Estilo de pelo</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:10px">
-        ${_acHairStylePal.map(h=>`<button onclick="_acSetHairStyle('${h.id}')" data-achstyle="${h.id}" style="font-size:11px;padding:5px 2px;border-radius:8px;border:2px solid ${h.id===_ac.hairStyle?'var(--accent)':'var(--border)'};background:${SB(h.id,_ac.hairStyle)};color:${SC(h.id,_ac.hairStyle)};cursor:pointer;font-weight:${SW(h.id,_ac.hairStyle)}">${h.l}</button>`).join('')}
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:10px">
+        ${_acHairStylePal.map(h=>`<button onclick="_acSetHairStyle('${h.id}')" data-achstyle="${h.id}" style="font-size:11px;padding:5px 3px;border-radius:8px;border:2px solid ${h.id===_ac.hair?'var(--accent)':'var(--border)'};background:${SB(h.id,_ac.hair)};color:${SC(h.id,_ac.hair)};cursor:pointer;font-weight:${SW(h.id,_ac.hair)}">${h.l}</button>`).join('')}
       </div>
       <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">🎨 Color de pelo</div>
       <div style="display:flex;gap:5px;flex-wrap:wrap">
-        ${_acHairColPal.map(h=>`<button onclick="_acSetHair('${h.id}')" data-achcol="${h.id}" title="${h.l}" style="width:26px;height:26px;border-radius:50%;background:${h.hex};border:3px solid ${S(_ac.hair,h.id)};cursor:pointer;transition:.15s"></button>`).join('')}
-      </div>
-    </div>
-    <div style="margin-bottom:14px">
-      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">😊 Expresión</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        ${_acExprPal.map(e=>`<button onclick="_acSetExpr(${e.v})" data-acexpr="${e.v}" title="${e.l}" style="width:40px;height:40px;border-radius:50%;font-size:22px;border:3px solid ${S(_ac.expression,e.v)};background:${_ac.expression===e.v?'rgba(99,102,241,.12)':'var(--surface)'};cursor:pointer;transition:.15s">${e.i}</button>`).join('')}
+        ${_acHairColPal.map(h=>`<button onclick="_acSetHairCol('${h.id}')" data-achcol="${h.id}" title="${h.l}" style="width:26px;height:26px;border-radius:50%;background:${h.hex};border:3px solid ${S(_ac.hairColor,h.id)};cursor:pointer;transition:.15s"></button>`).join('')}
       </div>
     </div>
     <div style="margin-bottom:14px">
       <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">✨ Extras</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${[{k:'glassesOn',l:'😎 Gafas'},{k:'earringsOn',l:'💎 Aretes'},{k:'freckles',l:'🌟 Pecas'}].map(x=>`<button onclick="_acToggle('${x.k}')" data-acextra="${x.k}" style="font-size:12px;padding:6px 12px;border-radius:20px;border:2px solid ${_ac[x.k]?'var(--accent)':'var(--border)'};background:${_ac[x.k]?'rgba(99,102,241,.12)':'transparent'};color:${_ac[x.k]?'var(--accent)':'var(--text)'};cursor:pointer;font-weight:${_ac[x.k]?700:400}">${x.l}</button>`).join('')}
+        ${[{k:'glasses',l:'😎 Gafas'},{k:'earrings',l:'💎 Aretes'}].map(x=>`<button onclick="_acToggle('${x.k}')" data-acextra="${x.k}" style="font-size:12px;padding:6px 12px;border-radius:20px;border:2px solid ${_ac[x.k]?'var(--accent)':'var(--border)'};background:${_ac[x.k]?'rgba(99,102,241,.12)':'transparent'};color:${_ac[x.k]?'var(--accent)':'var(--text)'};cursor:pointer;font-weight:${_ac[x.k]?700:400}">${x.l}</button>`).join('')}
       </div>
     </div>
     <div style="margin-bottom:16px">
@@ -4791,13 +4746,9 @@ function _acRender(){
 }
 function openAvatarCreator() { _acOpen=!_acOpen; _acRender(); }
 async function saveCustomAvatar() {
-  const svg = _buildAvatarSVG();
-  const url = 'data:image/svg+xml,' + encodeURIComponent(svg);
-  localStorage.setItem("zyra_photo", url);
-  localStorage.setItem("zyra_avatar_emoji", "");
-  await api("/profile","PUT",{photoUrl:url,avatarEmoji:""}).catch(()=>{});
-  applyAvatarEverywhere(url,"","");
-  _acOpen=false; _acRender(); renderAvatarPicker();
+  const url = _acBuildUrl();
+  await selectDicebearAvatar(url);
+  _acOpen=false; _acRender();
   zyraToast("Avatar guardado ✅","success");
 }
 
