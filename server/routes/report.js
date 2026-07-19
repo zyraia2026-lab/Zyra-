@@ -1,147 +1,246 @@
-const express = require("express");
-const router  = express.Router();
-const { protect }      = require("../middleware/auth");
-const { requirePlan }  = require("../middleware/planGate");
+const express    = require("express");
+const router     = express.Router();
+const { protect }     = require("../middleware/auth");
+const { requirePlan } = require("../middleware/planGate");
 const Profile      = require("../models/Profile");
 const Conversation = require("../models/Conversation");
 const Goal         = require("../models/Goal");
 const Journal      = require("../models/Journal");
 
-const EMOTION_LABELS = {
+const ELABELS = {
   feliz:"Feliz", triste:"Triste", ansioso:"Ansioso", enojado:"Enojado",
   tranquilo:"Tranquilo", estresado:"Estresado", emocionado:"Emocionado",
   cansado:"Cansado", motivado:"Motivado", solo:"Solo",
 };
-const EMOTION_EMOJIS = {
-  feliz:"😊", triste:"😔", ansioso:"😰", enojado:"😠", tranquilo:"😌",
-  estresado:"😤", emocionado:"🤩", cansado:"😴", motivado:"💪", solo:"🥺",
+const ECOLORS = {
+  feliz:"#f59e0b", triste:"#6366f1", ansioso:"#f97316", enojado:"#ef4444",
+  tranquilo:"#10b981", estresado:"#dc2626", emocionado:"#ec4899",
+  cansado:"#94a3b8", motivado:"#22c55e", solo:"#8b5cf6",
 };
 
 router.post("/pdf", protect, requirePlan("premium"), async (req, res) => {
   try {
     let PDFDocument;
-    try {
-      PDFDocument = require("pdfkit");
-    } catch(e) {
-      return res.status(503).json({ message: "Módulo PDF no disponible. Por favor intenta más tarde." });
-    }
+    try { PDFDocument = require("pdfkit"); }
+    catch(e) { return res.status(503).json({ message: "Modulo PDF no disponible. Intenta mas tarde." }); }
 
     const [pd, gd, jd, cd] = await Promise.all([
       Profile.findOne({ user: req.user._id }).select("emotionHistory").lean(),
-      Goal.find({ user: req.user._id }).sort({ createdAt: -1 }).select("title completed").lean(),
-      Journal.find({ user: req.user._id }).sort({ createdAt: -1 }).limit(10).select("content createdAt").lean(),
+      Goal.find({ user: req.user._id }).sort({ createdAt: -1 }).select("title completed createdAt").lean(),
+      Journal.find({ user: req.user._id }).sort({ createdAt: -1 }).limit(6).select("title content createdAt emotion").lean(),
       Conversation.countDocuments({ user: req.user._id }),
     ]);
 
-    const emotionHistory = (pd?.emotionHistory || []).slice(-30);
+    const emotionHistory = (pd?.emotionHistory || []).slice(-60);
     const emotionCounts  = {};
     emotionHistory.forEach(e => { emotionCounts[e.emotion] = (emotionCounts[e.emotion] || 0) + 1; });
-    const dominantEmotion = Object.entries(emotionCounts).sort((a,b)=>b[1]-a[1])[0]?.[0] || "N/A";
+    const sortedEmotions = Object.entries(emotionCounts).sort((a,b) => b[1]-a[1]);
+    const dominantEmotion = sortedEmotions[0]?.[0] || null;
     const goalsCompleted  = gd.filter(g => g.completed).length;
-    const now             = new Date();
-    const dateStr         = now.toLocaleDateString("es-CO", { year:"numeric", month:"long", day:"numeric" });
+    const now     = new Date();
+    const dateStr = now.toLocaleDateString("es-CO", { year:"numeric", month:"long", day:"numeric" });
+    const name    = (req.user.name || "Usuario").slice(0, 50);
 
-    const doc = new PDFDocument({ size: "A4", margin: 50, info: { Title: `Reporte Zyra — ${req.user.name}`, Author: "Zyra IA" } });
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename=zyra-reporte-${Date.now()}.pdf`);
-    doc.pipe(res);
-
-    // ── Header
-    doc.rect(0, 0, 595, 90).fill("#6366f1");
-    doc.fillColor("white").fontSize(26).font("Helvetica-Bold").text("Zyra", 50, 25);
-    doc.fontSize(11).font("Helvetica").text("Tu resumen personal de bienestar", 50, 55);
-    doc.fontSize(9).text(`Generado el ${dateStr}`, 50, 70);
-    doc.fillColor("#1e293b");
-
-    // ── Title
-    doc.moveDown(2);
-    doc.fontSize(20).font("Helvetica-Bold").fillColor("#6366f1")
-       .text(`Reporte de Bienestar — ${req.user.name}`, 50, 110, { align: "center" });
-
-    // ── Summary stats
-    doc.moveDown(1.2);
-    const statsY = doc.y;
-    const boxW   = 115;
-    const gap    = 10;
-    const stats  = [
-      { label: "Sesiones", value: String(cd) },
-      { label: "Metas creadas", value: String(gd.length) },
-      { label: "Metas logradas", value: String(goalsCompleted) },
-      { label: "Emoción frecuente", value: EMOTION_LABELS[dominantEmotion] || dominantEmotion },
-    ];
-    stats.forEach((s, i) => {
-      const x = 50 + i * (boxW + gap);
-      doc.rect(x, statsY, boxW, 60).fillAndStroke("#f8fafc", "#e2e8f0");
-      doc.fillColor("#6366f1").fontSize(20).font("Helvetica-Bold").text(s.value, x, statsY + 8, { width: boxW, align: "center" });
-      doc.fillColor("#64748b").fontSize(9).font("Helvetica").text(s.label, x, statsY + 34, { width: boxW, align: "center" });
+    const doc = new PDFDocument({
+      size: "A4", margin: 0,
+      info: { Title: `Reporte Zyra - ${name}`, Author: "Zyra IA", Subject: "Bienestar Emocional" }
     });
 
-    // ── Emotion history
-    doc.moveDown(0.5).y = statsY + 80;
-    doc.fillColor("#1e293b").fontSize(14).font("Helvetica-Bold").text("Historial de Emociones (últimos 30 registros)", 50);
-    doc.moveDown(0.4);
-    if (emotionHistory.length === 0) {
-      doc.fontSize(10).font("Helvetica").fillColor("#94a3b8").text("No hay registros de emociones aún.", 50);
-    } else {
-      const colW  = 75;
-      const rowH  = 20;
-      const cols  = Math.min(7, emotionHistory.length);
-      emotionHistory.slice(-cols * 4).forEach((e, i) => {
-        const col = i % cols;
-        const row = Math.floor(i / cols);
-        const x   = 50 + col * colW;
-        const y   = doc.y + row * rowH;
-        const label = EMOTION_LABELS[e.emotion] || e.emotion;
-        const emoji  = EMOTION_EMOJIS[e.emotion] || "•";
-        const d      = new Date(e.date).toLocaleDateString("es-CO", { month:"short", day:"numeric" });
-        doc.fontSize(9).font("Helvetica").fillColor("#475569")
-           .text(`${emoji} ${label}`, x, y, { width: colW - 4 })
-           .fontSize(7).fillColor("#94a3b8").text(d, x, y + 10, { width: colW - 4 });
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition",
+      `attachment; filename="zyra-reporte-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,"0")}.pdf"`);
+    doc.pipe(res);
+
+    const PW = 595.28;  // A4 width (pts)
+    const ML = 44;      // left/right margin
+    const CW = PW - ML*2;
+
+    // ── CABECERA ──────────────────────────────────────────────────────────
+    // Fondo principal purpura
+    doc.rect(0, 0, PW, 88).fill("#4c1d95");
+    // Banda decorativa izquierda
+    doc.rect(0, 0, 5, 88).fill("#ec4899");
+    // Banda de acento derecho
+    doc.rect(PW - 5, 0, 5, 88).fill("#8b5cf6");
+
+    // Marca
+    doc.fillColor("#ffffff").font("Helvetica-Bold").fontSize(24).text("Zyra", ML, 18);
+    doc.fillColor("#c4b5fd").font("Helvetica").fontSize(9)
+       .text("Bienestar Emocional con Inteligencia Artificial", ML, 46);
+
+    // Nombre y fecha a la derecha
+    doc.fillColor("#ffffff").font("Helvetica-Bold").fontSize(12)
+       .text(name, 0, 20, { width: PW - ML, align: "right" });
+    doc.fillColor("#c4b5fd").font("Helvetica").fontSize(8.5)
+       .text("Generado el " + dateStr, 0, 38, { width: PW - ML, align: "right" });
+
+    // Banda subtitulo
+    doc.rect(0, 88, PW, 22).fill("#5b21b6");
+    doc.fillColor("#ede9fe").font("Helvetica-Bold").fontSize(8.5)
+       .text("RESUMEN PERSONAL DE BIENESTAR EMOCIONAL", 0, 95, { width: PW, align: "center" });
+
+    let Y = 124;
+
+    // ── ESTADISTICAS ──────────────────────────────────────────────────────
+    const stats = [
+      { label: "Sesiones de chat",  value: String(cd),            color: "#6366f1" },
+      { label: "Metas creadas",     value: String(gd.length),     color: "#0ea5e9" },
+      { label: "Metas logradas",    value: String(goalsCompleted), color: "#22c55e" },
+      { label: "Check-ins",         value: String(emotionHistory.length), color: "#f59e0b" },
+    ];
+    const sw = (CW - 9) / 4;
+    stats.forEach((s, i) => {
+      const sx = ML + i * (sw + 3);
+      doc.rect(sx, Y, sw, 60).fill("#f8fafc");
+      doc.rect(sx, Y, sw, 3).fill(s.color);
+      doc.fillColor(s.color).font("Helvetica-Bold").fontSize(24)
+         .text(s.value, sx, Y + 10, { width: sw, align: "center" });
+      doc.fillColor("#64748b").font("Helvetica").fontSize(7.5)
+         .text(s.label, sx, Y + 42, { width: sw, align: "center" });
+    });
+    Y += 76;
+
+    // ── MAPA EMOCIONAL ────────────────────────────────────────────────────
+    if (sortedEmotions.length > 0) {
+      // Cabecera de seccion
+      doc.rect(ML, Y, CW, 18).fill("#ede9fe");
+      doc.rect(ML, Y, 4, 18).fill("#6366f1");
+      doc.fillColor("#4c1d95").font("Helvetica-Bold").fontSize(8.5)
+         .text("MAPA EMOCIONAL", ML + 10, Y + 5);
+      Y += 26;
+
+      // Recuadro emocion dominante
+      if (dominantEmotion) {
+        const dc = ECOLORS[dominantEmotion] || "#6366f1";
+        const dl = ELABELS[dominantEmotion] || dominantEmotion;
+        doc.rect(ML, Y, CW, 26).fill("#fafafa");
+        doc.rect(ML, Y, 4, 26).fill(dc);
+        doc.fillColor("#64748b").font("Helvetica").fontSize(8.5)
+           .text("Emocion mas frecuente:", ML + 12, Y + 4);
+        doc.fillColor(dc).font("Helvetica-Bold").fontSize(10.5)
+           .text(dl.toUpperCase(), ML + 140, Y + 3);
+        doc.fillColor("#94a3b8").font("Helvetica").fontSize(7.5)
+           .text("(" + (emotionCounts[dominantEmotion] || 0) + " registros)", ML + 140, Y + 15);
+        Y += 34;
+      }
+
+      // Grafico de barras horizontales
+      const maxC    = sortedEmotions[0][1];
+      const barMaxW = CW - 90;
+      const barH    = 12;
+      doc.fillColor("#94a3b8").font("Helvetica").fontSize(7)
+         .text("EMOCION", ML, Y).text("FRECUENCIA", ML + 76, Y);
+      Y += 12;
+
+      sortedEmotions.slice(0, 8).forEach(([em, cnt]) => {
+        const bc  = ECOLORS[em] || "#6366f1";
+        const bw  = Math.max(6, Math.round((cnt / maxC) * barMaxW));
+        const lbl = ELABELS[em] || em;
+        // Label
+        doc.fillColor("#475569").font("Helvetica").fontSize(8)
+           .text(lbl, ML, Y + 2, { width: 72 });
+        // Track (fondo)
+        doc.rect(ML + 76, Y, barMaxW, barH).fill("#f1f5f9");
+        // Barra coloreada
+        doc.rect(ML + 76, Y, bw, barH).fill(bc);
+        // Numero
+        doc.fillColor("#475569").font("Helvetica").fontSize(7.5)
+           .text(String(cnt), ML + 76 + barMaxW + 6, Y + 2);
+        Y += barH + 5;
       });
-      doc.moveDown(Math.ceil(Math.min(emotionHistory.length, 28) / cols) * 1.5);
+      Y += 14;
     }
 
-    // ── Goals
-    doc.moveDown(0.8);
-    doc.fillColor("#1e293b").fontSize(14).font("Helvetica-Bold").text("Metas Personales");
-    doc.moveDown(0.4);
-    if (gd.length === 0) {
-      doc.fontSize(10).font("Helvetica").fillColor("#94a3b8").text("No hay metas registradas.");
-    } else {
-      gd.slice(0, 10).forEach(g => {
-        const mark = g.completed ? "✓" : "○";
-        const col  = g.completed ? "#22c55e" : "#94a3b8";
-        doc.fontSize(10).font("Helvetica-Bold").fillColor(col).text(mark + " ", { continued: true })
-           .font("Helvetica").fillColor("#1e293b").text(g.title);
-      });
+    // ── METAS ─────────────────────────────────────────────────────────────
+    if (gd.length > 0) {
+      if (Y > 660) { doc.addPage(); Y = ML; }
+
+      doc.rect(ML, Y, CW, 18).fill("#e0f2fe");
+      doc.rect(ML, Y, 4, 18).fill("#0284c7");
+      doc.fillColor("#0c4a6e").font("Helvetica-Bold").fontSize(8.5)
+         .text("METAS PERSONALES", ML + 10, Y + 5);
+      Y += 26;
+
+      const done = gd.filter(g => g.completed);
+      const pend = gd.filter(g => !g.completed);
+
+      if (done.length > 0) {
+        doc.fillColor("#16a34a").font("Helvetica-Bold").fontSize(8).text("Completadas", ML, Y);
+        Y += 14;
+        done.slice(0, 10).forEach(g => {
+          if (Y > 770) { doc.addPage(); Y = ML; }
+          doc.rect(ML, Y + 1, 7, 7).fill("#22c55e");
+          doc.fillColor("#1e293b").font("Helvetica").fontSize(8.5)
+             .text((g.title || "").slice(0, 85), ML + 14, Y, { width: CW - 14 });
+          Y += 14;
+        });
+        Y += 6;
+      }
+
+      if (pend.length > 0) {
+        doc.fillColor("#64748b").font("Helvetica-Bold").fontSize(8).text("En progreso", ML, Y);
+        Y += 14;
+        pend.slice(0, 10).forEach(g => {
+          if (Y > 770) { doc.addPage(); Y = ML; }
+          // Cuadrado vacio (borde gris)
+          doc.rect(ML, Y + 1, 7, 7).fillAndStroke("#f8fafc", "#94a3b8");
+          doc.fillColor("#64748b").font("Helvetica").fontSize(8.5)
+             .text((g.title || "").slice(0, 85), ML + 14, Y, { width: CW - 14 });
+          Y += 14;
+        });
+      }
+      Y += 14;
     }
 
-    // ── Journal snippets
+    // ── DIARIO ────────────────────────────────────────────────────────────
     if (jd.length > 0) {
-      doc.moveDown(0.8);
-      doc.fillColor("#1e293b").fontSize(14).font("Helvetica-Bold").text("Entradas Recientes del Diario");
-      doc.moveDown(0.4);
-      jd.slice(0, 5).forEach(j => {
-        const d   = new Date(j.createdAt).toLocaleDateString("es-CO", { year:"numeric", month:"short", day:"numeric" });
-        const txt = (j.content || "").slice(0, 200) + ((j.content || "").length > 200 ? "…" : "");
-        doc.fontSize(9).font("Helvetica-Bold").fillColor("#475569").text(d);
-        doc.fontSize(9).font("Helvetica").fillColor("#64748b").text(txt, { indent: 10 });
-        doc.moveDown(0.3);
+      if (Y > 640) { doc.addPage(); Y = ML; }
+
+      doc.rect(ML, Y, CW, 18).fill("#fce7f3");
+      doc.rect(ML, Y, 4, 18).fill("#db2777");
+      doc.fillColor("#831843").font("Helvetica-Bold").fontSize(8.5)
+         .text("ENTRADAS DEL DIARIO", ML + 10, Y + 5);
+      Y += 26;
+
+      jd.forEach(j => {
+        const snippet   = (j.content || "").slice(0, 220);
+        const lineCount = Math.ceil(snippet.length / 88) || 1;
+        const cardH     = 14 + 12 + lineCount * 10 + 16;
+        if (Y + cardH > 790) { doc.addPage(); Y = ML; }
+
+        doc.rect(ML, Y, CW, cardH).fill("#fdf4ff");
+        doc.rect(ML, Y, 4, cardH).fill("#db2777");
+
+        const d = new Date(j.createdAt).toLocaleDateString("es-CO",
+          { year:"numeric", month:"short", day:"numeric" });
+        const emL = j.emotion ? (ELABELS[j.emotion] || j.emotion) : "";
+
+        doc.fillColor("#1e293b").font("Helvetica-Bold").fontSize(9)
+           .text((j.title || "Sin titulo").slice(0, 65), ML + 10, Y + 7);
+        doc.fillColor("#94a3b8").font("Helvetica").fontSize(7)
+           .text(d + (emL ? "  |  " + emL : ""), ML + 10, Y + 20);
+        doc.fillColor("#475569").font("Helvetica").fontSize(8.5)
+           .text(snippet + (snippet.length < (j.content||"").length ? "..." : ""),
+                 ML + 10, Y + 32, { width: CW - 20 });
+        Y += cardH + 8;
       });
     }
 
-    // ── Footer
-    const footerY = 780;
-    doc.rect(0, footerY, 595, 62).fill("#f8fafc");
-    doc.fontSize(8).font("Helvetica").fillColor("#94a3b8")
-       .text("Este reporte es generado automáticamente por Zyra IA y no reemplaza el consejo de un profesional de salud mental.", 50, footerY + 10, { align: "center", width: 495 })
-       .text("Zyra IA — Aquí estoy, siempre 💙", 50, footerY + 26, { align: "center", width: 495 });
+    // ── PIE DE PAGINA ─────────────────────────────────────────────────────
+    // Siempre al final del ultimo contenido, no fijo en la pagina
+    Y += 20;
+    if (Y > 790) { doc.addPage(); Y = ML; }
+    doc.rect(ML, Y, CW, 1).fill("#e2e8f0");
+    doc.fillColor("#94a3b8").font("Helvetica").fontSize(7.5)
+       .text(
+         "Este reporte es generado automaticamente por Zyra IA y no reemplaza la orientacion de un profesional de salud mental.",
+         ML, Y + 8, { width: CW, align: "center" })
+       .text("Zyra IA  -  Tu companera de bienestar emocional", ML, Y + 20, { width: CW, align: "center" });
 
     doc.end();
   } catch(e) {
-    console.error("PDF error:", e.message);
-    if (!res.headersSent) res.status(500).json({ message: "Error generando el reporte" });
+    console.error("[report/pdf]", e.message);
+    if (!res.headersSent) res.status(500).json({ message: "Error generando el reporte. Intenta de nuevo." });
   }
 });
 

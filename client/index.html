@@ -5952,15 +5952,24 @@ async function exportJournalPDF() {
   const btn = document.getElementById("btn-export-pdf");
   if (btn) { btn.textContent = "⏳ Generando..."; btn.disabled = true; }
   try {
-    const res = await fetch("/api/report/pdf", { method:"POST", headers: { Authorization: "Bearer " + localStorage.getItem("zyra_token"), "Content-Type":"application/json" } });
+    const res = await fetch("/api/report/pdf", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + localStorage.getItem("zyra_token") }
+    });
     if (res.ok) {
+      const contentType = res.headers.get("content-type") || "";
       const blob = await res.blob();
+      // Verify we actually got a PDF and not a JSON error
+      if (!contentType.includes("pdf") && blob.size < 500) throw new Error("not-pdf");
+      const now = new Date();
+      const fname = `zyra-reporte-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,"0")}.pdf`;
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a"); a.href = url; a.download = "zyra-reporte-" + Date.now() + ".pdf"; a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 3000);
-      zyraToast("PDF generado correctamente", "success");
+      const a = document.createElement("a");
+      a.href = url; a.download = fname;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      zyraToast("PDF descargado ✅", "success");
     } else {
-      // Fallback: print-based PDF via browser
       await exportPrintReport();
     }
   } catch(e) {
@@ -5971,47 +5980,155 @@ async function exportJournalPDF() {
 }
 async function exportPrintReport() {
   const [profRes, journalRes, goalsRes] = await Promise.allSettled([
-    api("/profile"), api("/journal"), api("/goals")
+    api("/profile"), api("/journal?limit=20"), api("/goals")
   ]);
   const prof    = profRes.status==="fulfilled" ? profRes.value : {};
   const entries = journalRes.status==="fulfilled" ? (journalRes.value.entries||journalRes.value||[]) : [];
   const goals   = goalsRes.status==="fulfilled" ? (goalsRes.value.goals||goalsRes.value||[]) : [];
-  const name    = user?.name || "Usuario";
-  const date    = new Date().toLocaleDateString("es-CO",{year:"numeric",month:"long",day:"numeric"});
-  const EMOTIONS_ES = {feliz:"😊 Feliz",triste:"😔 Triste",ansioso:"😰 Ansioso",enojado:"😠 Enojado",tranquilo:"😌 Tranquilo",estresado:"😤 Estresado",emocionado:"🤩 Emocionado",cansado:"😴 Cansado",motivado:"💪 Motivado",solo:"🥺 Solo"};
-  const w = window.open("","_blank","width=900,height=700");
-  w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte Zyra — ${safeHtml(name)}</title><style>
-    body{font-family:system-ui,sans-serif;color:#1e293b;max-width:800px;margin:0 auto;padding:32px;line-height:1.6}
-    .hdr{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border-radius:16px;padding:24px 32px;margin-bottom:32px}
-    .hdr h1{margin:0 0 4px;font-size:28px}
-    .hdr p{margin:0;opacity:.8;font-size:14px}
-    h2{color:#6366f1;border-bottom:2px solid #e0e7ff;padding-bottom:8px;margin-top:32px}
-    .stats{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px}
-    .stat{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px 20px;flex:1;min-width:120px;text-align:center}
-    .stat-n{font-size:28px;font-weight:800;color:#6366f1}
-    .stat-l{font-size:12px;color:#64748b;margin-top:4px}
-    .goal{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #f1f5f9}
-    .goal-ck{font-size:18px}
-    .entry{background:#f8fafc;border-radius:12px;padding:16px;margin-bottom:16px}
-    .entry-title{font-weight:700;margin-bottom:4px}
-    .entry-meta{font-size:12px;color:#64748b;margin-bottom:8px}
-    .entry-body{font-size:13px;color:#475569;white-space:pre-wrap}
-    .footer{margin-top:40px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;text-align:center}
-    @media print{.no-print{display:none}body{padding:0}}
+  const emotions = (prof.profile?.emotionHistory || prof.emotionHistory || []);
+  const emotionCounts = {};
+  emotions.forEach(e => { emotionCounts[e.emotion] = (emotionCounts[e.emotion]||0)+1; });
+  const sortedEm = Object.entries(emotionCounts).sort((a,b)=>b[1]-a[1]);
+  const maxEmC   = sortedEm[0]?.[1] || 1;
+  const name  = user?.name || "Usuario";
+  const date  = new Date().toLocaleDateString("es-CO",{year:"numeric",month:"long",day:"numeric"});
+  const ENAMES  = {feliz:"Feliz",triste:"Triste",ansioso:"Ansioso",enojado:"Enojado",tranquilo:"Tranquilo",estresado:"Estresado",emocionado:"Emocionado",cansado:"Cansado",motivado:"Motivado",solo:"Solo"};
+  const ECOLORS = {feliz:"#f59e0b",triste:"#6366f1",ansioso:"#f97316",enojado:"#ef4444",tranquilo:"#10b981",estresado:"#dc2626",emocionado:"#ec4899",cansado:"#94a3b8",motivado:"#22c55e",solo:"#8b5cf6"};
+  const EEMOJI  = {feliz:"😊",triste:"😔",ansioso:"😰",enojado:"😠",tranquilo:"😌",estresado:"😤",emocionado:"🤩",cansado:"😴",motivado:"💪",solo:"🥺"};
+  const w = window.open("","_blank","width=950,height=750");
+  if (!w) { zyraToast("Activa las ventanas emergentes para generar el reporte", "error"); return; }
+  w.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+  <title>Reporte Zyra — ${safeHtml(name)}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:system-ui,-apple-system,sans-serif;color:#1e293b;background:#f8fafc}
+    .page{max-width:860px;margin:0 auto;background:#fff;min-height:100vh}
+    /* Header */
+    .hdr{background:linear-gradient(135deg,#3b0764 0%,#5b21b6 40%,#6366f1 75%,#8b5cf6 100%);color:#fff;padding:30px 44px 26px;position:relative;overflow:hidden}
+    .hdr::after{content:'';position:absolute;right:-60px;top:-60px;width:240px;height:240px;background:rgba(255,255,255,.05);border-radius:50%}
+    .hdr::before{content:'';position:absolute;right:40px;bottom:-70px;width:160px;height:160px;background:rgba(236,72,153,.18);border-radius:50%}
+    .hdr-accent{position:absolute;left:0;top:0;width:5px;height:100%;background:#ec4899}
+    .hdr-brand{font-size:30px;font-weight:900;letter-spacing:-1.5px;position:relative}
+    .hdr-sub{font-size:12px;opacity:.65;margin:2px 0 18px;position:relative}
+    .hdr-row{display:flex;justify-content:space-between;align-items:flex-end;position:relative}
+    .hdr-name{font-size:18px;font-weight:700}
+    .hdr-date{font-size:11px;opacity:.75;text-align:right}
+    /* Stats */
+    .content{padding:32px 44px}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:30px}
+    .stat{background:#f8fafc;border-radius:10px;padding:16px 10px 12px;text-align:center;border-top:3px solid}
+    .stat-n{font-size:32px;font-weight:900;line-height:1;margin-bottom:5px}
+    .stat-l{font-size:10.5px;color:#64748b;font-weight:500}
+    /* Sections */
+    .sec{margin-bottom:28px}
+    .sec-hdr{display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid}
+    .sec-title{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.7px}
+    /* Emotion bars */
+    .em-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+    .em-lbl{font-size:12px;color:#475569;width:90px;flex-shrink:0}
+    .em-track{flex:1;height:13px;background:#f1f5f9;border-radius:6px;overflow:hidden}
+    .em-fill{height:100%;border-radius:6px;transition:width .4s}
+    .em-cnt{font-size:11px;color:#94a3b8;width:20px;text-align:right;flex-shrink:0}
+    /* Goals */
+    .goals-grid{display:flex;flex-direction:column;gap:6px}
+    .goal{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;font-size:12.5px;font-weight:500}
+    .goal-done{background:#f0fdf4;border-left:3px solid #22c55e}
+    .goal-pend{background:#f8fafc;border-left:3px solid #e2e8f0;color:#64748b}
+    /* Journal */
+    .entry{background:#fdf4ff;border-radius:10px;padding:14px 16px;margin-bottom:10px;border-left:3px solid #db2777;page-break-inside:avoid}
+    .entry-hdr{display:flex;align-items:baseline;gap:10px;margin-bottom:4px;flex-wrap:wrap}
+    .entry-title{font-size:13px;font-weight:700;color:#1e293b}
+    .entry-date{font-size:10px;color:#94a3b8}
+    .entry-emo{font-size:10px;color:#db2777;font-weight:600}
+    .entry-body{font-size:12px;color:#475569;line-height:1.65;white-space:pre-wrap}
+    /* Footer */
+    .footer{background:#f1f5f9;border-top:2px solid #6366f1;padding:18px 44px;text-align:center}
+    .footer p{font-size:10.5px;color:#94a3b8;line-height:1.6}
+    .print-btn{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:12px;padding:13px 34px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(99,102,241,.35);margin-top:22px;display:inline-block}
+    @media print{
+      .no-print{display:none!important}
+      body{background:#fff}
+      .hdr{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      .stat,.em-fill,.goal-done,.goal-pend,.entry{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    }
   </style></head><body>
-    <div class="hdr"><h1>💙 Reporte de Bienestar — ${safeHtml(name)}</h1><p>Generado el ${date} · Zyra IA</p></div>
-    <div class="stats">
-      <div class="stat"><div class="stat-n">${entries.length}</div><div class="stat-l">Entradas diario</div></div>
-      <div class="stat"><div class="stat-n">${goals.length}</div><div class="stat-l">Metas creadas</div></div>
-      <div class="stat"><div class="stat-n">${goals.filter(g=>g.completed).length}</div><div class="stat-l">Metas logradas</div></div>
-      <div class="stat"><div class="stat-n">${(prof.profile?.emotionHistory||[]).length}</div><div class="stat-l">Registros emocionales</div></div>
+  <div class="page">
+    <div class="hdr">
+      <div class="hdr-accent"></div>
+      <div class="hdr-brand">Zyra</div>
+      <div class="hdr-sub">Bienestar Emocional con Inteligencia Artificial</div>
+      <div class="hdr-row">
+        <div class="hdr-name">${safeHtml(name)}</div>
+        <div class="hdr-date">Reporte generado<br>${date}</div>
+      </div>
     </div>
-    ${goals.length?`<h2>🎯 Metas Personales</h2>${goals.map(g=>`<div class="goal"><span class="goal-ck">${g.completed?"✅":"⭕"}</span><span>${safeHtml(g.title||"Meta")}</span></div>`).join("")}`:""}
-    ${entries.length?`<h2>📔 Entradas del Diario</h2>${entries.slice(0,20).map(e=>`<div class="entry"><div class="entry-title">${safeHtml(e.title||"Sin título")}</div><div class="entry-meta">${new Date(e.createdAt).toLocaleDateString("es-CO",{year:"numeric",month:"long",day:"numeric"})} · ${EMOTIONS_ES[e.emotion]||""}</div><div class="entry-body">${safeHtml(e.content||"").slice(0,500)}${(e.content||"").length>500?"…":""}</div></div>`).join("")}`:""}
-    <div class="footer">Este reporte es generado por Zyra IA y no reemplaza el consejo de un profesional de salud mental. 💙</div>
-    <div class="no-print" style="text-align:center;margin:24px 0"><button onclick="window.print()" style="background:#6366f1;color:white;border:none;border-radius:10px;padding:12px 28px;font-size:15px;cursor:pointer;font-weight:700">🖨️ Guardar como PDF / Imprimir</button></div>
+    <div class="content">
+      <div class="stats">
+        <div class="stat" style="border-color:#6366f1">
+          <div class="stat-n" style="color:#6366f1">${emotions.length}</div>
+          <div class="stat-l">Check-ins</div>
+        </div>
+        <div class="stat" style="border-color:#0ea5e9">
+          <div class="stat-n" style="color:#0ea5e9">${goals.length}</div>
+          <div class="stat-l">Metas creadas</div>
+        </div>
+        <div class="stat" style="border-color:#22c55e">
+          <div class="stat-n" style="color:#22c55e">${goals.filter(g=>g.completed).length}</div>
+          <div class="stat-l">Metas logradas</div>
+        </div>
+        <div class="stat" style="border-color:#f59e0b">
+          <div class="stat-n" style="color:#f59e0b">${entries.length}</div>
+          <div class="stat-l">Entradas diario</div>
+        </div>
+      </div>
+      ${sortedEm.length>0?`
+      <div class="sec">
+        <div class="sec-hdr" style="border-color:#6366f1">
+          <div class="sec-title" style="color:#4c1d95">Mapa Emocional</div>
+        </div>
+        ${sortedEm.slice(0,8).map(([em,cnt])=>`
+        <div class="em-row">
+          <div class="em-lbl">${EEMOJI[em]||""} ${ENAMES[em]||em}</div>
+          <div class="em-track"><div class="em-fill" style="width:${Math.round(cnt/maxEmC*100)}%;background:${ECOLORS[em]||"#6366f1"}"></div></div>
+          <div class="em-cnt">${cnt}</div>
+        </div>`).join("")}
+      </div>`:""}
+      ${goals.length>0?`
+      <div class="sec">
+        <div class="sec-hdr" style="border-color:#0284c7">
+          <div class="sec-title" style="color:#0c4a6e">Metas Personales</div>
+        </div>
+        <div class="goals-grid">
+          ${goals.filter(g=>g.completed).slice(0,15).map(g=>`<div class="goal goal-done">✅ ${safeHtml(g.title||"Meta")}</div>`).join("")}
+          ${goals.filter(g=>!g.completed).slice(0,15).map(g=>`<div class="goal goal-pend">⭕ ${safeHtml(g.title||"Meta")}</div>`).join("")}
+        </div>
+      </div>`:""}
+      ${entries.length>0?`
+      <div class="sec">
+        <div class="sec-hdr" style="border-color:#db2777">
+          <div class="sec-title" style="color:#831843">Entradas del Diario</div>
+        </div>
+        ${entries.slice(0,10).map(e=>`
+        <div class="entry">
+          <div class="entry-hdr">
+            <div class="entry-title">${safeHtml(e.title||"Sin título")}</div>
+            <div class="entry-date">${new Date(e.createdAt).toLocaleDateString("es-CO",{year:"numeric",month:"short",day:"numeric"})}</div>
+            ${e.emotion?`<div class="entry-emo">${EEMOJI[e.emotion]||""} ${ENAMES[e.emotion]||e.emotion}</div>`:""}
+          </div>
+          <div class="entry-body">${safeHtml((e.content||"").slice(0,500))}${(e.content||"").length>500?"…":""}</div>
+        </div>`).join("")}
+      </div>`:""}
+    </div>
+    <div class="footer">
+      <p>Este reporte es generado automáticamente por Zyra IA.<br>No reemplaza la orientación de un profesional de salud mental.</p>
+    </div>
+    <div class="no-print" style="text-align:center;padding:24px 0 32px">
+      <button class="print-btn" onclick="window.print()">🖨️ Guardar como PDF / Imprimir</button>
+    </div>
+  </div>
   </body></html>`);
   w.document.close();
+  setTimeout(() => { try { w.print(); } catch(_){} }, 900);
 }
 
 function openEditJournal(id) {
