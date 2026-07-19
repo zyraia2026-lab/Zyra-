@@ -4442,6 +4442,10 @@ async function loadProfile() {
     const p = pd.profile;
 
     _updateAutoThemeUI();
+    // Sincronizar dark mode con el servidor (lo que el usuario configuró en otro dispositivo)
+    if (ud.user?.darkMode !== undefined && localStorage.getItem('zyra_theme_mode') !== 'manual') {
+      applyTheme(ud.user.darkMode ? 'dark' : 'light');
+    }
     // Update saved messages count label
     const _smCount = (() => { try { return JSON.parse(localStorage.getItem('zyra_saved_msgs')||'[]').length; } catch(e) { return 0; } })();
     const _smLabel = document.getElementById('saved-msgs-count-label');
@@ -9857,8 +9861,14 @@ function toggleTheme() {
   localStorage.setItem('zyra_theme_mode', 'manual');
   clearInterval(window._autoThemeInterval);
   const cur = document.documentElement.getAttribute('data-theme') || 'light';
-  applyTheme(cur === 'dark' ? 'light' : 'dark');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
   _updateAutoThemeUI();
+  // Persistir en servidor para que se mantenga en otros dispositivos
+  const tok = localStorage.getItem('zyra_token');
+  if (tok) {
+    fetch('/api/auth/settings', { method: 'PUT', headers: { Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' }, body: JSON.stringify({ darkMode: next === 'dark' }) }).catch(() => {});
+  }
 }
 function setThemeMode(mode) {
   localStorage.setItem('zyra_theme_mode', mode);
