@@ -76,7 +76,7 @@ exports.getOverview = async (req, res) => {
 
     // ── Hora del día ──
     const hourCounts = Array(24).fill(0);
-    history.forEach(h => { hourCounts[new Date(h.date).getHours()]++; });
+    history.forEach(h => { hourCounts[(new Date(h.date).getUTCHours() + 19) % 24]++; }); // Colombia UTC-5
     const peakHour = hourCounts.indexOf(Math.max(...hourCounts));
 
     // ── Stats generales ──

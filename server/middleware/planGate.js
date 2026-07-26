@@ -50,7 +50,11 @@ exports.checkMessageLimit = async (req, res, next) => {
     if (limits.messagesPerDay === Infinity) return next(); // premium = unlimited
 
     const now    = new Date();
-    const today  = now.toISOString().slice(0, 10); // "YYYY-MM-DD" UTC
+    // Colombia = UTC-5; compute YYYY-MM-DD in Colombia timezone for daily reset at local midnight
+    const col    = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+    const today  = col.getUTCFullYear() + "-" +
+                   String(col.getUTCMonth() + 1).padStart(2, "0") + "-" +
+                   String(col.getUTCDate()).padStart(2, "0");
 
     // Atomically: if the stored reset date is today, $inc by 1; otherwise reset to 1.
     // Pipeline update (MongoDB 4.2+) guarantees read-modify-write in a single op.
@@ -64,7 +68,7 @@ exports.checkMessageLimit = async (req, res, next) => {
               $cond: [
                 {
                   $eq: [
-                    { $dateToString: { format: "%Y-%m-%d", date: { $ifNull: ["$messagesResetAt", new Date(0)] } } },
+                    { $dateToString: { format: "%Y-%m-%d", date: { $ifNull: ["$messagesResetAt", new Date(0)] }, timezone: "America/Bogota" } },
                     today,
                   ],
                 },

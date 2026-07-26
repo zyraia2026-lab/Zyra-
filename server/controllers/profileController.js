@@ -127,8 +127,10 @@ exports.moodCheckin = async (req, res) => {
     const NEGATIVE = ["ansioso","triste","enojado","agotado","confundido"];
     const isNegative = NEGATIVE.includes(emotion);
 
-    // Verificar si ya hizo check-in hoy
-    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    // Verificar si ya hizo check-in hoy (Colombia UTC-5)
+    const _now = new Date();
+    const _col = new Date(_now.getTime() - 5 * 60 * 60 * 1000);
+    const todayStart = new Date(Date.UTC(_col.getUTCFullYear(), _col.getUTCMonth(), _col.getUTCDate()) + 5 * 60 * 60 * 1000);
     const p = await Profile.findOne({ user: req.user._id }).select("emotionHistory negativeStreakCount").lean();
     const alreadyToday = p?.emotionHistory?.some(h => new Date(h.date) >= todayStart);
     if (alreadyToday) return res.json({ success: true, alreadyDone: true });
@@ -161,7 +163,8 @@ exports.moodCheckin = async (req, res) => {
 
 exports.getMoodStatus = async (req, res) => {
   try {
-    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    const _n = new Date(); const _c = new Date(_n.getTime() - 5 * 60 * 60 * 1000);
+    const todayStart = new Date(Date.UTC(_c.getUTCFullYear(), _c.getUTCMonth(), _c.getUTCDate()) + 5 * 60 * 60 * 1000);
     const p = await Profile.findOne({ user: req.user._id }).select("emotionHistory currentEmotion").lean();
     const done = p?.emotionHistory?.some(h => new Date(h.date) >= todayStart) || false;
     res.json({ success: true, checkedInToday: done, currentEmotion: p?.currentEmotion || null });
