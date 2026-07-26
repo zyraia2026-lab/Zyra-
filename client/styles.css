@@ -2890,6 +2890,9 @@ body {
   /* Mostrar botón salir en nav móvil */
   .btn-logout { display: flex !important; padding: 7px 12px; font-size: 12px; }
   .btn-sm.purple { font-size: 10px; padding: 6px 10px; }
+  /* Botón modo oscuro en móvil: alinear con los demás botones */
+  .theme-toggle { width: 34px; height: 34px; font-size: 15px; border-radius: 8px; }
+  .nav-right { gap: 6px; }
 
   .container { padding: 16px 16px 90px; }
 
