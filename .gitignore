@@ -3,5 +3,8 @@ node_modules/
 server/.env
 .vscode/
 .sixth/
+.claude/
 tmp_*.json
 apk-build/
+*.local
+.DS_Store
