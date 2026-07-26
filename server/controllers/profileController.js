@@ -378,8 +378,9 @@ exports.getPlanStatus = async (req, res) => {
     const { plan, limits, expired } = getPlan(user);
 
     const now   = new Date();
+    const _col  = (d) => { const c = new Date(d.getTime() - 5*60*60*1000); return c.getUTCFullYear()+"-"+(c.getUTCMonth()+1)+"-"+c.getUTCDate(); };
     const reset = user.messagesResetAt ? new Date(user.messagesResetAt) : null;
-    const sameDay = reset && reset.toDateString() === now.toDateString();
+    const sameDay = reset && _col(reset) === _col(now);
     const messagesUsedToday = sameDay ? (user.messagesUsedToday || 0) : 0;
 
     res.json({
