@@ -255,6 +255,47 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
 [data-theme="dark"] .card-title { color: var(--text); }
 [data-theme="dark"] .stat-value { color: var(--text); }
 
+/* ══ Nav + botones en dark mode ══ */
+[data-theme="dark"] .nav-links { background: rgba(99,102,241,0.12); }
+[data-theme="dark"] .nav-btn { color: var(--text3); }
+[data-theme="dark"] .nav-btn:hover { background: rgba(99,102,241,0.15); color: var(--text); }
+[data-theme="dark"] .nav-btn.active { background: var(--surface); color: var(--accent); box-shadow: 0 2px 12px rgba(99,102,241,0.2); }
+[data-theme="dark"] .btn-sm { background: var(--surface); border-color: var(--border); color: var(--accent); }
+[data-theme="dark"] .btn-sm:hover { background: var(--border); }
+[data-theme="dark"] .btn-sm.purple { background: rgba(139,92,246,.18); color: #a78bfa; border-color: rgba(139,92,246,.3); }
+[data-theme="dark"] .btn-sm.purple:hover { background: rgba(139,92,246,.28); }
+[data-theme="dark"] .btn-icon { background: var(--surface); border-color: var(--border); color: var(--accent); }
+[data-theme="dark"] .btn-icon:hover { background: var(--border); }
+[data-theme="dark"] .btn-logout { border-color: var(--border); color: var(--text3); }
+[data-theme="dark"] .btn-logout:hover { background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.3); color: #f87171; }
+[data-theme="dark"] #page-dashboard,
+[data-theme="dark"] #page-wellness,
+[data-theme="dark"] #page-goals,
+[data-theme="dark"] #page-journal,
+[data-theme="dark"] #page-profile,
+[data-theme="dark"] #page-games,
+[data-theme="dark"] #page-analytics,
+[data-theme="dark"] #page-assistant { background: var(--bg); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .nav-links { background: rgba(99,102,241,0.12); }
+  :root:not([data-theme="light"]) .nav-btn { color: var(--text3); }
+  :root:not([data-theme="light"]) .nav-btn:hover { background: rgba(99,102,241,0.15); color: var(--text); }
+  :root:not([data-theme="light"]) .nav-btn.active { background: var(--surface); color: var(--accent); }
+  :root:not([data-theme="light"]) .btn-sm { background: var(--surface); border-color: var(--border); color: var(--accent); }
+  :root:not([data-theme="light"]) .btn-sm:hover { background: var(--border); }
+  :root:not([data-theme="light"]) .btn-sm.purple { background: rgba(139,92,246,.18); color: #a78bfa; border-color: rgba(139,92,246,.3); }
+  :root:not([data-theme="light"]) .btn-icon { background: var(--surface); border-color: var(--border); color: var(--accent); }
+  :root:not([data-theme="light"]) .btn-logout { border-color: var(--border); color: var(--text3); }
+  :root:not([data-theme="light"]) #page-dashboard,
+  :root:not([data-theme="light"]) #page-wellness,
+  :root:not([data-theme="light"]) #page-goals,
+  :root:not([data-theme="light"]) #page-journal,
+  :root:not([data-theme="light"]) #page-profile,
+  :root:not([data-theme="light"]) #page-games,
+  :root:not([data-theme="light"]) #page-analytics,
+  :root:not([data-theme="light"]) #page-assistant { background: var(--bg); }
+}
+
 /* ══ BOTÓN TEMA ══ */
 .theme-toggle {
   width: 38px; height: 38px; border-radius: 10px;

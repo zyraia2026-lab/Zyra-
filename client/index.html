@@ -52,221 +52,203 @@
 <!-- ══ SPLASH SCREEN ══ -->
 <div id="zyra-splash">
   <canvas id="spl-c"></canvas>
-  <div id="spl-rings" aria-hidden="true">
-    <div class="spl-r r1"></div>
-    <div class="spl-r r2"></div>
-    <div class="spl-r r3"></div>
-  </div>
   <div id="spl-ui">
     <h1 id="spl-title">
-      <span class="sw"><span class="sl" style="--i:0">Z</span></span><span
-           class="sw"><span class="sl" style="--i:1">y</span></span><span
-           class="sw"><span class="sl" style="--i:2">r</span></span><span
-           class="sw"><span class="sl" style="--i:3">a</span></span>
+      <span class="sl" data-i="0">Z</span><span
+           class="sl" data-i="1">y</span><span
+           class="sl" data-i="2">r</span><span
+           class="sl" data-i="3">a</span>
     </h1>
     <p id="spl-tag">Bienestar Emocional con IA</p>
-    <div id="spl-bar-wrap"><div id="spl-bar"></div></div>
-    <div id="spl-pct">0%</div>
+    <div id="spl-diamonds" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
   </div>
 </div>
 <style>
-/* ━━ Splash ━━ */
+/* ━━ Splash — Shooting Stars ━━ */
 #zyra-splash{
-  position:fixed;inset:0;z-index:99999;background:#050709;
+  position:fixed;inset:0;z-index:99999;background:#03040E;
   display:flex;align-items:center;justify-content:center;overflow:hidden;
-  transform:scale(1);
-  transition:opacity .55s cubic-bezier(.4,0,.2,1), transform .55s cubic-bezier(.4,0,.2,1), visibility 0s linear .55s;
+  transition:opacity .65s cubic-bezier(.4,0,.2,1),transform .65s cubic-bezier(.4,0,.2,1),visibility 0s linear .65s;
 }
-#zyra-splash.hidden{opacity:0;transform:scale(1.05);visibility:hidden;pointer-events:none}
-#spl-c{position:absolute;inset:0;width:100%;height:100%;will-change:contents}
-
-/* Rings */
-#spl-rings{position:absolute;inset:0;pointer-events:none;z-index:1}
-.spl-r{
-  position:absolute;border-radius:50%;top:50%;left:50%;
-  will-change:transform,opacity;
-  animation:spl-breathe 5.5s ease-in-out infinite;
-}
-.r1{width:280px;height:280px;margin:-140px 0 0 -140px;border:1px solid rgba(139,92,246,.16);animation-delay:0s}
-.r2{width:410px;height:410px;margin:-205px 0 0 -205px;border:1px solid rgba(99,102,241,.08);animation-delay:1.4s}
-.r3{width:540px;height:540px;margin:-270px 0 0 -270px;border:1px solid rgba(139,92,246,.04);animation-delay:2.8s}
-@keyframes spl-breathe{
-  0%,100%{transform:scale(1);opacity:.35}
-  50%{transform:scale(1.04);opacity:1}
-}
-
-/* UI */
+#zyra-splash.hidden{opacity:0;transform:scale(1.04);visibility:hidden;pointer-events:none}
+#spl-c{position:absolute;inset:0;width:100%;height:100%}
 #spl-ui{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center}
-
-/* Title — slide-up reveal per letter (GPU only: transform+opacity) */
 #spl-title{
   font-family:'Playfair Display',Georgia,serif;
-  font-size:clamp(78px,10.5vw,106px);
-  font-weight:700;letter-spacing:-2.5px;
+  font-size:clamp(80px,10.5vw,110px);
+  font-weight:700;letter-spacing:-2px;
   color:#fff;line-height:1;margin:0 0 20px;
 }
-.sw{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.08em}
 .sl{
   display:inline-block;
-  transform:translateY(110%);opacity:0;
-  will-change:transform,opacity;
-  animation:spl-slide .75s cubic-bezier(.16,1,.3,1) forwards;
-  animation-delay:calc(var(--i)*.09s + .08s);
+  opacity:0;transform:scale(.78);filter:blur(8px);
+  will-change:opacity,transform,filter;
 }
-@keyframes spl-slide{
-  0%{transform:translateY(110%);opacity:0}
-  20%{opacity:1}
-  100%{transform:translateY(0);opacity:1}
+.sl.lit{animation:letter-bloom .6s cubic-bezier(.34,1.56,.64,1) forwards}
+@keyframes letter-bloom{
+  0%  {opacity:0;transform:scale(.78);filter:blur(8px)}
+  42% {opacity:1;transform:scale(1.12);filter:blur(0) drop-shadow(0 0 28px #c084fc) drop-shadow(0 0 56px #8b5cf6)}
+  100%{opacity:1;transform:scale(1);  filter:blur(0) drop-shadow(0 0 12px rgba(192,132,252,.55))}
 }
-
-/* Tagline */
 #spl-tag{
-  font-size:10px;letter-spacing:5px;text-transform:uppercase;
-  color:rgba(148,163,184,.28);margin:0 0 58px;
-  opacity:0;transform:translateY(6px);
-  will-change:opacity,transform;
-  animation:spl-up .8s cubic-bezier(.16,1,.3,1) .52s forwards;
+  font-size:10px;letter-spacing:5.5px;text-transform:uppercase;
+  color:rgba(148,163,184,.3);margin:0 0 52px;
+  opacity:0;animation:spl-fadein .8s ease 1.6s forwards;
 }
-@keyframes spl-up{to{opacity:1;transform:translateY(0)}}
-
-/* Progress bar */
-#spl-bar-wrap{
-  width:180px;height:1px;background:rgba(255,255,255,.04);
-  border-radius:1px;overflow:visible;position:relative;
-  opacity:0;animation:spl-fade .4s ease .45s forwards;
+@keyframes spl-fadein{to{opacity:1}}
+#spl-diamonds{display:flex;gap:10px}
+#spl-diamonds span{
+  width:6px;height:6px;
+  background:rgba(255,255,255,.08);
+  transform:rotate(45deg);border-radius:1px;
+  will-change:background,box-shadow;
 }
-#spl-bar{
-  height:1px;width:0%;border-radius:1px;position:relative;
-  background:linear-gradient(90deg,#4f46e5,#8b5cf6,#c084fc);
-  will-change:width;
-  animation:spl-fill 1.6s cubic-bezier(0,.7,.3,1) .45s forwards;
+#spl-diamonds span.on{animation:dia-on .35s ease forwards}
+@keyframes dia-on{
+  to{background:#c084fc;box-shadow:0 0 10px 3px rgba(192,132,252,.65),0 0 20px 6px rgba(139,92,246,.35)}
 }
-#spl-bar::after{
-  content:'';position:absolute;right:0;top:50%;
-  width:7px;height:7px;border-radius:50%;background:#fff;
-  box-shadow:0 0 10px 3px #a78bfa,0 0 22px 7px rgba(167,139,250,.38);
-  transform:translate(50%,-50%);
-}
-#spl-pct{
-  margin-top:16px;font-size:9px;letter-spacing:2.5px;
-  color:rgba(148,163,184,.18);font-variant-numeric:tabular-nums;
-  opacity:0;animation:spl-fade .4s ease .45s forwards;
-  min-width:36px;text-align:center;
-}
-@keyframes spl-fade{to{opacity:1}}
-@keyframes spl-fill{to{width:90%}}
 </style>
 <script>
 !function(){
   var C=document.getElementById('spl-c');if(!C)return;
-  var X=C.getContext('2d'),W,H,T=0,mx,my,alive=true;
-  var sprites=[],vig=null;
+  var X=C.getContext('2d'),W,H,T=0,alive=true;
+  var stars=[],shoots=[],sparks=[];
 
-  /* 4 aurora blobs — pre-rendered sprites for zero per-frame gradient cost */
-  var L=[
-    {ax:.5,ay:.44,fx:.30,fy:.20,px:0,  py:0,  h:240,rm:.65,al:.40},
-    {ax:.5,ay:.50,fx:.22,fy:.28,px:1.7,py:.9, h:272,rm:.68,al:.36},
-    {ax:.5,ay:.42,fx:.26,fy:.19,px:3.2,py:2.2,h:216,rm:.55,al:.33},
-    {ax:.5,ay:.55,fx:.28,fy:.24,px:.85,py:4.1,h:294,rm:.52,al:.29},
-  ];
-
-  /* Stars */
-  var S=[];
+  /* ── Twinkle stars ── */
   function mkStars(){
-    S=[];var n=Math.min(55,Math.round(W*H/15000));
-    for(var i=0;i<n;i++)S.push({x:Math.random(),y:Math.random(),sp:Math.random()*.5+.15,ph:Math.random()*6.28});
-  }
-
-  /* Build offscreen sprite for each blob (called once on resize) */
-  function mkSprites(){
-    sprites=L.map(function(l){
-      var sz=Math.ceil(Math.min(W,H)*l.rm*2.4);
-      var oc=document.createElement('canvas');oc.width=oc.height=sz;
-      var ox=oc.getContext('2d');
-      var g=ox.createRadialGradient(sz/2,sz/2,0,sz/2,sz/2,sz/2);
-      g.addColorStop(0,  'hsla('+l.h+',88%,68%,1)');
-      g.addColorStop(.45,'hsla('+(l.h+26)+',78%,54%,.42)');
-      g.addColorStop(1,  'hsla('+(l.h+52)+',68%,42%,0)');
-      ox.fillStyle=g;ox.fillRect(0,0,sz,sz);
-      return{oc:oc,sz:sz,al:l.al};
+    stars=[];
+    var n=Math.min(130,Math.round(W*H/7000));
+    for(var i=0;i<n;i++) stars.push({
+      x:Math.random(), y:Math.random(),
+      r:Math.random()*.9+.2,
+      ph:Math.random()*6.28,
+      sp:Math.random()*.55+.15
     });
   }
 
-  /* Pre-render two-layer vignette (called once on resize) */
-  function mkVig(){
-    vig=document.createElement('canvas');vig.width=W;vig.height=H;
-    var vx=vig.getContext('2d'),r=Math.min(W,H);
-    var v=vx.createRadialGradient(W/2,H/2,0,W/2,H/2,r*.4);
-    v.addColorStop(0,'rgba(5,7,9,.58)');v.addColorStop(1,'rgba(5,7,9,0)');
-    vx.fillStyle=v;vx.fillRect(0,0,W,H);
-    var e=vx.createRadialGradient(W/2,H/2,r*.22,W/2,H/2,r*.92);
-    e.addColorStop(0,'rgba(5,7,9,0)');e.addColorStop(1,'rgba(5,7,9,.82)');
-    vx.fillStyle=e;vx.fillRect(0,0,W,H);
+  /* ── Add a shooting star ── */
+  function shoot(x,y,angle,speed,len,col){
+    var vx=Math.cos(angle)*speed, vy=Math.sin(angle)*speed;
+    shoots.push({x:x,y:y,vx:vx,vy:vy,trail:[],maxT:len,life:1,col:col||'255,255,255'});
   }
 
-  function resize(){
-    W=C.width=innerWidth;H=C.height=innerHeight;
-    mx=W/2;my=H/2;
-    mkSprites();mkVig();mkStars();
+  /* ── Sparkle burst at pixel position ── */
+  function burst(cx,cy,n,col){
+    for(var i=0;i<n;i++){
+      var a=Math.random()*6.28, sp=Math.random()*3.5+1.2;
+      sparks.push({x:cx,y:cy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
+        life:1,dur:Math.random()*.45+.45,r:Math.random()*2+.7,col:col});
+    }
   }
 
+  function resize(){W=C.width=innerWidth;H=C.height=innerHeight;mkStars();}
+
+  /* ── Render loop ── */
   function frame(){
     if(!alive)return;
-    T+=.002;
-    X.fillStyle='#050709';X.fillRect(0,0,W,H);
+    T+=1/60;
 
-    /* Aurora — drawImage sprites with screen blend (fast texture blits) */
-    X.save();X.globalCompositeOperation='screen';
-    var pull=.015;
-    L.forEach(function(l,i){
-      var sp=sprites[i];if(!sp)return;
-      var cx=W*(l.ax+l.fx*Math.sin(T+l.px))+(mx-W*.5)*pull;
-      var cy=H*(l.ay+l.fy*Math.cos(T+l.py))+(my-H*.5)*pull;
-      var sc=1+.06*Math.sin(T*1.35+l.px);
-      var ds=sp.sz*sc;
-      X.globalAlpha=sp.al*(1+.12*Math.sin(T*.8+l.px));
-      X.drawImage(sp.oc,cx-ds/2,cy-ds/2,ds,ds);
-    });
-    X.globalAlpha=1;X.restore();
+    /* Deep space background with subtle nebula glow */
+    X.fillStyle='#03040E';X.fillRect(0,0,W,H);
+    var nb=X.createRadialGradient(W*.5,H*.45,0,W*.5,H*.45,Math.max(W,H)*.55);
+    nb.addColorStop(0,'rgba(60,20,100,.22)');
+    nb.addColorStop(.5,'rgba(30,10,60,.10)');
+    nb.addColorStop(1,'rgba(0,0,0,0)');
+    X.fillStyle=nb;X.fillRect(0,0,W,H);
 
-    /* Vignette (one cached drawImage) */
-    if(vig)X.drawImage(vig,0,0);
-
-    /* Stars */
-    X.fillStyle='#fff';
-    S.forEach(function(s){
-      X.globalAlpha=.12+.55*(0.5+0.5*Math.sin(T*s.sp*2.1+s.ph));
-      X.fillRect(s.x*W,s.y*H,1,1);
+    /* Twinkle stars */
+    stars.forEach(function(s){
+      var a=.06+.5*(0.5+0.5*Math.sin(T*s.sp+s.ph));
+      X.globalAlpha=a;
+      X.fillStyle='#fff';
+      X.fillRect(s.x*W,s.y*H,s.r,s.r);
     });
     X.globalAlpha=1;
+
+    /* Shooting stars */
+    shoots.forEach(function(s){
+      s.x+=s.vx;s.y+=s.vy;
+      s.trail.push({x:s.x,y:s.y});
+      if(s.trail.length>s.maxT)s.trail.shift();
+      s.life-=.016;
+      if(s.trail.length>1){
+        for(var j=1;j<s.trail.length;j++){
+          var p=(j/s.trail.length)*Math.max(0,s.life);
+          X.strokeStyle='rgba('+s.col+','+p+')';
+          X.lineWidth=.8+p*2;
+          X.beginPath();X.moveTo(s.trail[j-1].x,s.trail[j-1].y);X.lineTo(s.trail[j].x,s.trail[j].y);X.stroke();
+        }
+        /* glowing head */
+        X.shadowBlur=14;X.shadowColor='rgba('+s.col+',.9)';
+        X.fillStyle='rgba('+s.col+','+Math.max(0,s.life)+')';
+        X.beginPath();X.arc(s.x,s.y,1.6,0,6.28);X.fill();
+        X.shadowBlur=0;
+      }
+    });
+    shoots=shoots.filter(function(s){return s.life>0&&s.x>-200&&s.x<W+200&&s.y>-200&&s.y<H+200;});
+
+    /* Sparkle particles */
+    sparks.forEach(function(p){
+      p.x+=p.vx;p.y+=p.vy;p.vx*=.93;p.vy*=.93;
+      p.life-=1/(60*p.dur);
+      var a=Math.max(0,p.life);
+      X.globalAlpha=a*a;
+      X.shadowBlur=7;X.shadowColor='rgba('+p.col+',.8)';
+      X.fillStyle='rgba('+p.col+',1)';
+      X.beginPath();X.arc(p.x,p.y,p.r*Math.max(.1,a),0,6.28);X.fill();
+    });
+    X.globalAlpha=1;X.shadowBlur=0;
+    sparks=sparks.filter(function(p){return p.life>0;});
 
     if(alive)requestAnimationFrame(frame);
   }
 
-  /* Mouse/touch */
-  document.addEventListener('mousemove',function(e){mx=e.clientX;my=e.clientY;});
-  document.addEventListener('touchmove',function(e){if(e.touches[0]){mx=e.touches[0].clientX;my=e.touches[0].clientY;}},{passive:true});
+  /* ── Shooting star schedule ── */
+  var PI=Math.PI;
+  var schedule=[
+    {t:180, a:PI*.22, sp:28,len:44,c:'255,230,190'},
+    {t:380, a:PI*.18, sp:22,len:34,c:'210,195,255'},
+    {t:650, a:PI*.25, sp:26,len:40,c:'255,240,200'},
+    {t:1050,a:PI*.20, sp:20,len:32,c:'200,215,255'},
+    {t:1500,a:PI*.23, sp:24,len:38,c:'255,225,180'},
+    {t:2100,a:PI*.17, sp:18,len:28,c:'215,200,255'},
+    {t:2700,a:PI*.21, sp:22,len:36,c:'255,235,195'},
+    {t:3400,a:PI*.19, sp:20,len:30,c:'200,220,255'},
+  ];
+  schedule.forEach(function(s,idx){
+    setTimeout(function(){
+      if(!alive)return;
+      /* start from random top-edge position, fly diagonally down-right */
+      var sx=Math.random()*W*.6, sy=-10;
+      shoot(sx,sy,s.a,s.sp,s.len,s.c);
+    },s.t);
+  });
 
-  /* % counter — tied to bar animation: starts at .45s, runs 1.6s to 90% */
-  var pEl=document.getElementById('spl-pct');
-  var barEl=document.getElementById('spl-bar');
-  if(pEl){var p0=Date.now();
-    !function tick(){
-      var el=Date.now()-p0-450;if(el<0){requestAnimationFrame(tick);return;}
-      var p=Math.min(90,Math.round(el/1600*90));
-      pEl.textContent=p+'%';if(p<90)requestAnimationFrame(tick);
-    }();
-  }
+  /* ── Letter glow activation ── */
+  var letters=document.querySelectorAll('#spl-title .sl');
+  letters.forEach(function(el,i){
+    setTimeout(function(){
+      el.classList.add('lit');
+      var rc=el.getBoundingClientRect();
+      var cx=rc.left+rc.width/2, cy=rc.top+rc.height*.4;
+      burst(cx,cy,18,'192,132,252');
+      setTimeout(function(){burst(cx,cy,10,'255,215,160');},90);
+      setTimeout(function(){burst(cx,cy,6,'180,220,255');},180);
+    },780+i*175);
+  });
 
-  /* Jump to 100% the moment the splash starts hiding, then kill canvas */
+  /* ── Loading diamonds ── */
+  var dots=document.querySelectorAll('#spl-diamonds span');
+  dots.forEach(function(d,i){
+    setTimeout(function(){if(d)d.classList.add('on');},1700+i*130);
+  });
+
+  /* ── Kill canvas when splash hides ── */
   var obs=new MutationObserver(function(){
     var s=document.getElementById('zyra-splash');
-    if(s&&s.classList.contains('hidden')){
-      obs.disconnect();
-      if(barEl){barEl.style.animation='none';barEl.style.transition='width .18s ease';barEl.style.width='100%';}
-      if(pEl){pEl.textContent='100%';}
-      setTimeout(function(){alive=false;},700);
-    }
+    if(s&&s.classList.contains('hidden')){obs.disconnect();setTimeout(function(){alive=false;},700);}
   });
   var sp=document.getElementById('zyra-splash');
   if(sp)obs.observe(sp,{attributes:true,attributeFilter:['class']});
@@ -1470,14 +1452,19 @@
 <div class="container db-container">
 
   <!-- ══ HERO ══ -->
-  <div id="db-hero-card" style="display:flex;align-items:center;justify-content:space-between;gap:24px;background:var(--surface,#fff);border:1.5px solid var(--border,rgba(99,102,241,.12));border-radius:24px;padding:32px 36px;margin-bottom:36px;box-shadow:0 2px 24px rgba(99,102,241,.07)">
-    <div style="flex:1;min-width:0">
-      <p style="font-size:14px;color:var(--text3);font-weight:600;margin:0 0 4px" id="hero-greeting">Buenos días,</p>
-      <h1 style="font-size:34px;font-weight:900;color:var(--text);margin:0 0 10px;line-height:1.1" id="hero-name">Cargando...</h1>
-      <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(99,102,241,.08);border:1.5px solid rgba(99,102,241,.15);padding:7px 16px;border-radius:99px;font-size:13px;color:var(--text2);font-weight:700;margin-bottom:10px;cursor:pointer;transition:all .18s" id="hero-status" onclick="document.getElementById('emotion-form').classList.contains('open')?null:toggleEmotionForm();document.getElementById('page-dashboard').querySelector('#emotion-form').scrollIntoView({behavior:'smooth',block:'center'})" title="Registrar cómo me siento">😌 Estado: Tranquilo ✏️</div>
-      <p style="font-size:13px;color:var(--text3);margin:0;line-height:1.6" id="daily-quote">Tu espacio personal de bienestar emocional.</p>
+  <div id="db-hero-card" style="background:var(--surface,#fff);border:1.5px solid var(--border,rgba(99,102,241,.12));border-radius:24px;padding:26px 30px 20px;margin-bottom:28px;box-shadow:0 2px 24px rgba(99,102,241,.07)">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px">
+      <div style="flex:1;min-width:0">
+        <p style="font-size:13px;color:var(--text3);font-weight:600;margin:0 0 3px" id="hero-greeting">Buenos días,</p>
+        <h1 style="font-size:28px;font-weight:900;color:var(--text);margin:0 0 8px;line-height:1.1" id="hero-name">Cargando...</h1>
+        <p style="font-size:12px;color:var(--text3);margin:0;line-height:1.5" id="daily-quote">Tu espacio personal de bienestar emocional.</p>
+      </div>
+      <div style="flex-shrink:0;font-size:56px;line-height:1;filter:drop-shadow(0 3px 12px rgba(99,102,241,.2))" id="hero-emoji">🌊</div>
     </div>
-    <div style="font-size:72px;line-height:1;flex-shrink:0;filter:drop-shadow(0 4px 16px rgba(99,102,241,.2))" id="hero-emoji">🌊</div>
+    <div style="border-top:1px solid var(--border,rgba(99,102,241,.1));padding-top:12px">
+      <p style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin:0 0 9px" id="quick-emo-label">¿Cómo te sientes ahora?</p>
+      <div id="quick-emo-circles" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+    </div>
   </div>
 
   <!-- ══ ACCIONES RÁPIDAS ══ -->
@@ -4327,6 +4314,22 @@ function applyAvatarEverywhere(photoUrl, emoji, color) {
   });
 }
 
+function applyStreakBadge(streakDays) {
+  const ring = streakDays >= 30 ? '#f59e0b' : streakDays >= 14 ? '#f97316' : streakDays >= 7 ? '#6366f1' : null;
+  ["nav-avatar","nav-avatar2","nav-avatar3","nav-avatar4","nav-avatarw","nav-avatarp","nav-avatar-planes","nav-avatar-games","nav-avatar-analytics"].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (ring) {
+      el.style.outline = `2.5px solid ${ring}`;
+      el.style.outlineOffset = '2px';
+      if (streakDays >= 7) el.title = `🔥 ${streakDays} días de racha`;
+    } else {
+      el.style.outline = '';
+      el.style.outlineOffset = '';
+    }
+  });
+}
+
 function updateNav() {
   if(!user) return;
   applyAvatarEverywhere(
@@ -4977,9 +4980,10 @@ async function loadDashboard() {
     const p = pd.profile;
     const em = EMOTIONS.find(e => e.key === p.currentEmotion) || EMOTIONS[1];
     document.getElementById("hero-emoji").textContent = em.emoji;
-    document.getElementById("hero-status").textContent = em.emoji + " Estado: " + em.label + " ✏️";
     document.getElementById("st-emotion").textContent = em.label;
     document.getElementById("st-em-icon").textContent = em.emoji;
+    renderQuickEmoPicker(p.currentEmotion);
+    applyStreakBadge(p.streakDays || 0);
     const goals = Array.isArray(gd?.goals) ? gd.goals : (Array.isArray(gd) ? gd : []);
     const entries = Array.isArray(jd?.entries) ? jd.entries : (Array.isArray(jd) ? jd : []);
     animateCount("st-sessions", p.sessionsCount || 0);
@@ -5032,6 +5036,44 @@ async function loadDashboard() {
   renderTodayOverview();
   renderWellbeingScore();
 }
+
+function renderQuickEmoPicker(currentEmotion) {
+  const wrap = document.getElementById('quick-emo-circles');
+  const label = document.getElementById('quick-emo-label');
+  if (!wrap) return;
+  wrap.innerHTML = EMOTIONS.map(e => {
+    const sel = e.key === currentEmotion;
+    return `<button onclick="quickLogEmotion('${e.key}')" style="border:2px solid ${sel ? e.color : 'transparent'};background:${sel ? e.color+'22' : 'var(--bg,rgba(99,102,241,.06))'};border-radius:99px;padding:5px 11px;cursor:pointer;font-size:12px;display:inline-flex;align-items:center;gap:4px;transition:all .15s;color:var(--text);font-family:inherit;font-weight:${sel ? '700' : '500'};outline:none" onmouseover="this.style.background='${e.color}22';this.style.borderColor='${e.color}'" onmouseout="${sel ? '' : "this.style.background='var(--bg,rgba(99,102,241,.06))';this.style.borderColor='transparent'"}">${e.emoji} ${e.label}</button>`;
+  }).join('');
+  if (label) {
+    const cur = EMOTIONS.find(e => e.key === currentEmotion);
+    label.textContent = cur ? `Hoy: ${cur.emoji} ${cur.label} · toca para cambiar` : '¿Cómo te sientes ahora?';
+  }
+}
+
+async function quickLogEmotion(key) {
+  const em = EMOTIONS.find(e => e.key === key);
+  if (!em) return;
+  try {
+    await api('/profile/emotion', 'POST', { emotion: key, intensity: 5 });
+    localStorage.setItem('zyra_last_emotion_date', new Date().toDateString());
+    localStorage.setItem('zyra_checkin_emotion_' + new Date().toDateString(), key);
+    const heroEmoji = document.getElementById('hero-emoji');
+    if (heroEmoji) heroEmoji.textContent = em.emoji;
+    const stEmo = document.getElementById('st-emotion');
+    if (stEmo) stEmo.textContent = em.label;
+    const stIcon = document.getElementById('st-em-icon');
+    if (stIcon) stIcon.textContent = em.emoji;
+    const dot = document.getElementById('emotion-checkin-dot');
+    if (dot) dot.style.display = 'none';
+    renderQuickEmoPicker(key);
+    if (typeof triggerMission === 'function') triggerMission('log_emotion');
+    zyraToast(em.emoji + ' ' + em.label + ' registrado', 'success');
+  } catch(err) {
+    zyraToast('Error al guardar. Intenta de nuevo.', 'error');
+  }
+}
+
 async function checkDeliveredFutureNotes() {
   if (!token) return;
   const key = "zyra_fn_seen_" + new Date().toDateString();
@@ -6581,21 +6623,48 @@ function stopBreath() {
 
 function renderMeditation(el) {
   const items = [
-    {e:"🌅",t:"Para arrancar el día",d:"5 min",desc:"Calma antes de que todo empiece",q:"meditacion guiada mañana español 5 minutos"},
+    {e:"🌅",t:"Para arrancar el día",d:"5 min",desc:"Calma antes de que todo empiece",q:"meditacion guiada mañana español"},
     {e:"😴",t:"Para dormir profundo",d:"10 min",desc:"Suelta el día y descansa de verdad",q:"meditacion para dormir profundo español"},
-    {e:"😰",t:"Cuando sientes ansiedad",d:"8 min",desc:"Vuelve al presente, paso a paso",q:"meditacion ansiedad español mindfulness"},
+    {e:"😰",t:"Cuando sientes ansiedad",d:"8 min",desc:"Vuelve al presente, paso a paso",q:"meditacion ansiedad mindfulness español"},
     {e:"💪",t:"Autoestima y confianza",d:"12 min",desc:"Para cuando no te sientes suficiente",q:"meditacion autoestima confianza español"},
-    {e:"🌊",t:"Solo estar presente",d:"7 min",desc:"Sin tener que hacer nada más",q:"mindfulness basico español principiantes"},
-    {e:"🌙",t:"Cierre del día",d:"15 min",desc:"Soltar lo que pasó y descansar",q:"meditacion nocturna gratitud español"},
+    {e:"🌊",t:"Solo estar presente",d:"7 min",desc:"Sin tener que hacer nada más",q:"mindfulness meditacion presente español"},
+    {e:"🌙",t:"Cierre del día",d:"15 min",desc:"Soltar lo que pasó y descansar",q:"meditacion nocturna relajacion español"},
   ];
   el.innerHTML = `<div class="meditation-grid">${items.map(m=>`
-    <div class="meditation-card" onclick="playMedia('${m.q}','${m.t}','meditation-player')">
+    <div class="meditation-card" onclick="openMedSpotify(${JSON.stringify(m.q)},${JSON.stringify(m.t)},${JSON.stringify(m.e)})">
       <span class="meditation-card-emoji">${m.e}</span>
       <div class="meditation-card-title">${m.t}</div>
       <div class="meditation-card-desc">${m.desc}</div>
       <span class="badge blue">⏱ ${m.d}</span>
     </div>`).join("")}</div>
   <div id="meditation-player" style="margin-top:22px"></div>`;
+}
+
+function openMedSpotify(query, title, emoji) {
+  const player = document.getElementById('meditation-player');
+  if (!player) return;
+  const spotUrl = 'https://open.spotify.com/search/' + encodeURIComponent(query);
+  const uid = 'msp' + Date.now();
+  player.innerHTML = `
+    <div class="card" style="max-width:560px;margin:0 auto;text-align:center">
+      <div class="card-header" style="justify-content:space-between">
+        <span class="card-title">${emoji} ${title}</span>
+        <button class="btn-xs" onclick="document.getElementById('meditation-player').innerHTML=''">× Cerrar</button>
+      </div>
+      <div style="padding:24px 20px 20px;display:flex;flex-direction:column;align-items:center;gap:14px">
+        <p style="color:var(--text2);font-size:13px;margin:0;line-height:1.5">Encontrarás meditaciones guiadas en español para <strong>${title.toLowerCase()}</strong></p>
+        <a href="${spotUrl}" target="_blank" rel="noopener"
+           style="display:inline-flex;align-items:center;gap:10px;background:#1DB954;color:#000;
+                  padding:13px 28px;border-radius:99px;font-weight:700;font-size:14px;text-decoration:none;
+                  box-shadow:0 4px 20px rgba(29,185,84,.4);transition:transform .15s"
+           onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="black"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+          Abrir en Spotify
+        </a>
+        <p style="font-size:11px;color:var(--text3);margin:0">Necesitas tener Spotify instalado o abierto en el navegador</p>
+      </div>
+    </div>`;
+  player.scrollIntoView({behavior:'smooth'});
 }
 
 function renderMusic(el) {
@@ -9917,13 +9986,15 @@ async function quickEmotionSelect(emotion) {
   const emojiMap = {feliz:'😊',tranquilo:'😌',ansioso:'😰',triste:'😢',enojado:'😠',motivado:'💪',agotado:'😴',esperanzado:'🌟',confundido:'😕',nostalgico:'🥹'};
   try {
     await api('/profile/emotion','POST',{emotion,note:'',intensity:5});
-    const st=document.getElementById('hero-status'); const he=document.getElementById('hero-emoji');
+    localStorage.setItem('zyra_last_emotion_date', new Date().toDateString());
+    localStorage.setItem('zyra_checkin_emotion_' + new Date().toDateString(), emotion);
+    const he=document.getElementById('hero-emoji');
     const stEm=document.getElementById('st-emotion'); const stEi=document.getElementById('st-em-icon');
-    if(st) st.textContent=`${emojiMap[emotion]||'😌'} Estado: ${emotion.charAt(0).toUpperCase()+emotion.slice(1)}`;
     if(he) he.textContent=emojiMap[emotion]||'🌊';
     if(stEm) stEm.textContent=emotion.charAt(0).toUpperCase()+emotion.slice(1);
     if(stEi) stEi.textContent=emojiMap[emotion]||'😌';
-    // Registrado — sin diálogo nativo que interrumpa
+    const dot=document.getElementById('emotion-checkin-dot'); if(dot) dot.style.display='none';
+    renderQuickEmoPicker(emotion);
   } catch(e){}
 }
 function closeQuickEmotion() {
