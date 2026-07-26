@@ -1,13 +1,13 @@
 const r = require("express").Router();
 const { protect }     = require("../middleware/auth");
 const { requirePlan } = require("../middleware/planGate");
-const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
+const { rateLimit } = require("express-rate-limit");
 const T = require("../controllers/ttsController");
 
 const ttsLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 30,
-  keyGenerator: (req) => req.user?._id?.toString() || ipKeyGenerator(req),
+  keyGenerator: (req) => req.user?._id?.toString() || req.ip || "unknown",
   message: { message: "Demasiadas peticiones de voz. Espera un momento." },
   standardHeaders: true, legacyHeaders: false,
 });

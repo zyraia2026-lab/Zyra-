@@ -94,8 +94,9 @@ exports.sendDailyReminders = async () => {
   const Goal = require("../models/Goal");
   try {
     const now  = new Date();
-    const hour = now.getHours();
-    const min  = now.getMinutes();
+    // Convertir a hora Colombia (UTC-5) porque los usuarios guardan su hora local
+    const hour = (now.getUTCHours() + 19) % 24;   // +19 = -5 en módulo 24
+    const min  = now.getUTCMinutes();
 
     // ── 1. Recordatorio diario personalizado (con emoción) ──
     const profiles = await Profile.find({

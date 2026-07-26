@@ -151,10 +151,12 @@ setInterval(() => {
   require("./controllers/pushController").sendDailyReminders().catch(() => {});
 }, 60_000);
 
-// ── Cron: reportes semanales cada lunes a las 9:00am exacto
+// ── Cron: reportes semanales cada lunes a las 9:00am Colombia (UTC-5 = 14:00 UTC)
 setInterval(() => {
   const now = new Date();
-  if (now.getDay() === 1 && now.getHours() === 9 && now.getMinutes() === 0) {
+  const colHour = (now.getUTCHours() + 19) % 24;
+  const colDay  = new Date(now.getTime() - 5 * 60 * 60 * 1000).getUTCDay();
+  if (colDay === 1 && colHour === 9 && now.getUTCMinutes() === 0) {
     require("./controllers/weeklyReportController").cronGenerateAll().catch(() => {});
   }
 }, 60_000);

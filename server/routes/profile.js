@@ -1,5 +1,5 @@
 const r = require("express").Router();
-const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
+const { rateLimit } = require("express-rate-limit");
 const {
   getProfile,
   updateProfile,
@@ -24,7 +24,7 @@ const { requirePlan }  = require("../middleware/planGate");
 const pinLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
-  keyGenerator: (req) => (req.user?._id?.toString() || "") + "_" + ipKeyGenerator(req),
+  keyGenerator: (req) => (req.user?._id?.toString() || req.ip || "unknown") + "_" + (req.ip || "unknown"),
   message: { message: "Demasiados intentos de PIN. Espera 15 minutos." },
   standardHeaders: true,
   legacyHeaders: false,

@@ -46,10 +46,16 @@ exports.ACHIEVEMENTS   = ACHIEVEMENTS;
 exports.REWARDS        = REWARDS;
 
 /* ── helpers ── */
+// Colombia = UTC-5. Compara fechas en hora Colombia para que las misiones
+// se reseteen a medianoche local, no a medianoche UTC (7pm Colombia).
+function colDateStr(d) {
+  const col = new Date(d.getTime() - 5 * 60 * 60 * 1000);
+  return col.getUTCFullYear() + '-' + (col.getUTCMonth() + 1) + '-' + col.getUTCDate();
+}
 function isMissionsReset(p) {
   const reset = p.missionsResetAt ? new Date(p.missionsResetAt) : null;
   if (!reset) return true;
-  return reset.toDateString() !== new Date().toDateString();
+  return colDateStr(reset) !== colDateStr(new Date());
 }
 
 function checkAchievements(p, newStreak, newCoins, completedMissions, journalCount) {
