@@ -704,6 +704,22 @@
 <!-- ══ SOS CRISIS FAB ══ -->
 <button class="sos-fab" id="sos-fab" onclick="showCrisisOverlay()" style="display:none" title="Apoyo de emergencia · Recursos de crisis">🆘</button>
 
+<!-- ══ QUICK CALM FAB ══ -->
+<button id="calm-fab" onclick="openCalmOverlay()" style="display:none;position:fixed;bottom:140px;right:20px;z-index:8900;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:50%;width:50px;height:50px;font-size:22px;cursor:pointer;box-shadow:0 4px 20px rgba(99,102,241,.4);align-items:center;justify-content:center;transition:transform .15s" title="Momento de calma — 60 segundos" onmouseenter="this.style.transform='scale(1.1)'" onmouseleave="this.style.transform='scale(1)'">🧘</button>
+<!-- ══ CALM OVERLAY ══ -->
+<div id="calm-overlay" style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(10,10,30,0.92);backdrop-filter:blur(16px);align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:24px">
+  <button onclick="closeCalmOverlay()" style="position:absolute;top:20px;right:20px;background:rgba(255,255,255,.1);border:none;color:#fff;border-radius:50%;width:40px;height:40px;font-size:18px;cursor:pointer">×</button>
+  <div style="font-size:14px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:2px;margin-bottom:24px" id="calm-overlay-label">Respira conmigo</div>
+  <div id="calm-circle" style="width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(99,102,241,.4),rgba(139,92,246,.15));border:3px solid rgba(99,102,241,.5);display:flex;align-items:center;justify-content:center;flex-direction:column;margin:0 auto 24px;transition:transform 4s ease,opacity .3s">
+    <div id="calm-phase" style="font-size:18px;font-weight:700;color:#fff;margin-bottom:6px">Inhala</div>
+    <div id="calm-secs" style="font-size:32px;font-weight:900;color:rgba(255,255,255,.9)">4</div>
+  </div>
+  <div id="calm-progress-bar" style="width:200px;height:4px;background:rgba(255,255,255,.15);border-radius:99px;margin:0 auto 16px;overflow:hidden">
+    <div id="calm-progress-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#6366f1,#8b5cf6);border-radius:99px;transition:width 1s linear"></div>
+  </div>
+  <div id="calm-rounds-display" style="font-size:13px;color:rgba(255,255,255,.5)">Ronda 1 de 4</div>
+</div>
+
 <!-- ══ AMBIENT SOUND FAB ══ -->
 <button class="ambient-fab" id="ambient-fab" onclick="toggleAmbientPanel()" style="display:none" title="Sonidos ambientales">🎧</button>
 <div class="ambient-panel" id="ambient-panel" style="display:none">
@@ -1528,6 +1544,12 @@
     </div>
   </div>
 
+  <!-- ══ PARA TI HOY ══ -->
+  <div id="para-ti-hoy-section" style="margin-bottom:28px;display:none">
+    <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">✨ Para ti hoy</div>
+    <div id="para-ti-hoy-card"></div>
+  </div>
+
   <!-- ══ HOY: PLAN + INTENCIÓN (side by side) ══ -->
   <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">Tu día</div>
   <div class="grid2" style="margin-bottom:32px">
@@ -1556,6 +1578,15 @@
           <input id="daily-intention-input" type="text" maxlength="120" placeholder="¿Con qué intención quieres vivir este día?" style="flex:1;background:rgba(255,255,255,.06);border:1.5px solid rgba(99,102,241,.25);border-radius:12px;color:var(--text);font-size:13px;padding:9px 14px;outline:none;font-family:inherit" onkeydown="if(event.key==='Enter')saveDailyIntention()"/>
           <button onclick="saveDailyIntention()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;border-radius:10px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">Guardar</button>
         </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px" id="intention-chips">
+          <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.3px;width:100%;margin-bottom:2px">O elige una:</div>
+          <button class="intention-chip" onclick="selectIntention(this)">Ser paciente conmigo mismo/a</button>
+          <button class="intention-chip" onclick="selectIntention(this)">Hacer una cosa bien hoy</button>
+          <button class="intention-chip" onclick="selectIntention(this)">Cuidar mi energía</button>
+          <button class="intention-chip" onclick="selectIntention(this)">Estar presente</button>
+          <button class="intention-chip" onclick="selectIntention(this)">Agradecer algo pequeño</button>
+          <button class="intention-chip" onclick="selectIntention(this)">No compararme con nadie</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1575,6 +1606,7 @@
           <span>Monedas Zyra</span>
           <span id="coins-big-display">🪙 0</span>
         </div>
+        <div id="next-achievement-strip" style="margin-top:10px;min-height:20px"></div>
         <div class="streak-milestones">
           <div class="streak-mile" id="sm-3">🔥 3</div>
           <div class="streak-mile" id="sm-7">⚡ 7</div>
@@ -1627,6 +1659,17 @@
         <div id="mood-mini-trend-bars" style="display:flex;gap:6px;align-items:flex-end;min-height:70px"></div>
       </div>
     </div>
+  </div>
+
+  <!-- ══ CALENDARIO EMOCIONAL ══ -->
+  <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px;margin-top:4px">Calendario del mes</div>
+  <div class="card" style="margin-bottom:32px;padding:18px 20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:14px;font-weight:800;color:var(--text)" id="mood-cal-title"></div>
+      <div style="font-size:11px;color:var(--text3)">Cada día = tu emoción registrada</div>
+    </div>
+    <div id="mood-calendar-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center"></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px" id="mood-cal-legend"></div>
   </div>
 
   <!-- ══ SESIONES + METAS ══ -->
@@ -1803,6 +1846,7 @@
     <button class="wellness-tab" id="wtab-sleep" onclick="openWellness('sleep')">😴 Sueño</button>
     <button class="wellness-tab" id="wtab-focus" onclick="openWellness('focus')">⏱ Enfoque</button>
     <button class="wellness-tab" id="wtab-habits" onclick="openWellness('habits')">✅ Hábitos</button>
+    <button class="wellness-tab" id="wtab-cbt" onclick="openWellness('cbt')">🧠 Reestructurar</button>
   </div>
   <div id="wellness-content"></div>
 </div>
@@ -3702,6 +3746,67 @@ function closeCrisisOverlay() {
   zyraCrisisLocked = false;
 }
 
+let _calmTimer = null;
+let _calmRound = 0;
+let _calmPhaseIdx = 0;
+let _calmSecsLeft = 0;
+const CALM_PHASES = [{t:"Inhala",d:4},{t:"Mantén",d:4},{t:"Exhala",d:4},{t:"Pausa",d:4}];
+const CALM_TOTAL_ROUNDS = 4;
+function openCalmOverlay() {
+  const ov = document.getElementById("calm-overlay");
+  if (!ov) return;
+  ov.style.display = "flex";
+  document.body.style.overflow = "hidden";
+  _calmRound = 0; _calmPhaseIdx = 0;
+  runCalmPhase();
+}
+function closeCalmOverlay() {
+  const ov = document.getElementById("calm-overlay");
+  if (ov) ov.style.display = "none";
+  document.body.style.overflow = "";
+  if (_calmTimer) { clearInterval(_calmTimer); _calmTimer = null; }
+}
+function runCalmPhase() {
+  if (_calmTimer) { clearInterval(_calmTimer); _calmTimer = null; }
+  if (_calmRound >= CALM_TOTAL_ROUNDS) {
+    const ph = document.getElementById("calm-phase");
+    const sc = document.getElementById("calm-secs");
+    const lb = document.getElementById("calm-overlay-label");
+    if (ph) ph.textContent = "Listo 🌟";
+    if (sc) sc.textContent = "";
+    if (lb) lb.textContent = "Ejercicio completado";
+    document.getElementById("calm-progress-fill").style.width = "100%";
+    if (navigator.vibrate) navigator.vibrate([80,40,80,40,120]);
+    setTimeout(closeCalmOverlay, 2500);
+    return;
+  }
+  const phase = CALM_PHASES[_calmPhaseIdx];
+  _calmSecsLeft = phase.d;
+  const ph = document.getElementById("calm-phase");
+  const sc = document.getElementById("calm-secs");
+  const circ = document.getElementById("calm-circle");
+  const rd = document.getElementById("calm-rounds-display");
+  const pf = document.getElementById("calm-progress-fill");
+  if (ph) ph.textContent = phase.t;
+  if (sc) sc.textContent = _calmSecsLeft;
+  if (circ) { circ.style.transform = phase.t === "Inhala" ? "scale(1.2)" : phase.t === "Exhala" ? "scale(0.85)" : "scale(1)"; circ.style.transitionDuration = phase.d + "s"; }
+  if (rd) rd.textContent = "Ronda " + (_calmRound + 1) + " de " + CALM_TOTAL_ROUNDS;
+  const totalSecs = CALM_TOTAL_ROUNDS * CALM_PHASES.reduce((s,p)=>s+p.d,0);
+  const doneSecs = _calmRound * CALM_PHASES.reduce((s,p)=>s+p.d,0) + CALM_PHASES.slice(0,_calmPhaseIdx).reduce((s,p)=>s+p.d,0);
+  if (pf) pf.style.width = (doneSecs / totalSecs * 100) + "%";
+  if (navigator.vibrate) navigator.vibrate(30);
+  _calmTimer = setInterval(() => {
+    _calmSecsLeft--;
+    if (sc) sc.textContent = _calmSecsLeft;
+    if (_calmSecsLeft <= 0) {
+      clearInterval(_calmTimer); _calmTimer = null;
+      _calmPhaseIdx++;
+      if (_calmPhaseIdx >= CALM_PHASES.length) { _calmPhaseIdx = 0; _calmRound++; }
+      runCalmPhase();
+    }
+  }, 1000);
+}
+
 /* ══════════════════════════════════════════
    MEMORIAS
 ══════════════════════════════════════════ */
@@ -4990,10 +5095,12 @@ async function loadDashboard() {
     animateCount("st-goals", goals.filter(g => !g.completed).length);
     animateCount("st-journal", entries.length);
     renderEmotions(p.currentEmotion);
+    renderParaTiHoy(p.currentEmotion, hd.history || [], p.streakDays || 0);
     renderChart(hd.history);
     renderDashConvs(cd.conversations || []);
     renderDashGoals(goals);
     renderMoodMiniTrend(hd.history || []);
+    renderMoodCalendar(hd.history || []);
     renderJournalMemory(entries);
     window._journalCacheForHeatmap = entries;
     renderWeeklySummary(entries);
@@ -5035,6 +5142,95 @@ async function loadDashboard() {
   setTimeout(showDailyCheckin, 1500);
   renderTodayOverview();
   renderWellbeingScore();
+}
+
+function renderParaTiHoy(emotion, history, streak) {
+  const section = document.getElementById("para-ti-hoy-section");
+  const card = document.getElementById("para-ti-hoy-card");
+  if (!section || !card) return;
+  const h = new Date().getHours();
+  const timeSlot = h < 12 ? "mañana" : h < 17 ? "tarde" : h < 21 ? "noche" : "madrugada";
+  const RECS = {
+    ansioso: { icon:"🌬️", title:"Respira conmigo", desc:"La ansiedad se calma con la respiración 4-7-8. Solo 2 minutos.", btn:"Empezar respiración", action:"showPage('wellness');setTimeout(()=>openWellness('breath'),100)", color:"rgba(99,102,241,.08)", border:"rgba(99,102,241,.2)" },
+    triste:  { icon:"🧘", title:"Un momento contigo", desc:"La meditación ayuda cuando la tristeza pesa. Aquí tienes una.", btn:"Ir a meditación", action:"showPage('wellness');setTimeout(()=>openWellness('meditation'),100)", color:"rgba(139,92,246,.08)", border:"rgba(139,92,246,.2)" },
+    enojado: { icon:"📔", title:"Escribe lo que sientes", desc:"El diario es el mejor lugar para soltar lo que carga.", btn:"Abrir mi diario", action:"showPage('journal');setTimeout(toggleJournalForm,200)", color:"rgba(239,68,68,.07)", border:"rgba(239,68,68,.18)" },
+    agotado: { icon:"😴", title:"Regístra cómo dormiste", desc:"El cansancio y el sueño están conectados. ¿Cómo fue tu descanso?", btn:"Ir a sueño", action:"showPage('wellness');setTimeout(()=>openWellness('sleep'),100)", color:"rgba(245,158,11,.08)", border:"rgba(245,158,11,.2)" },
+    motivado: { icon:"🎯", title:"Aprovecha esta energía", desc:"Estás motivado/a — es el mejor momento para avanzar en una meta.", btn:"Ver mis metas", action:"showPage('goals')", color:"rgba(16,185,129,.08)", border:"rgba(16,185,129,.2)" },
+    feliz:   { icon:"🙏", title:"Anota tu gratitud", desc:"Los días buenos merecen ser reconocidos. Escribe 3 cosas.", btn:"Ir a gratitud", action:"showPage('wellness');setTimeout(()=>openWellness('gratitude'),100)", color:"rgba(16,185,129,.08)", border:"rgba(16,185,129,.2)" },
+    confundido: { icon:"💬", title:"Habla con Zyra", desc:"Cuando no sabes qué pasa, ayuda ponerlo en palabras.", btn:"Hablar con Zyra", action:"showPage('assistant')", color:"rgba(99,102,241,.08)", border:"rgba(99,102,241,.2)" },
+  };
+  const defaultByTime = {
+    mañana: { icon:"🌅", title:"Empieza con intención", desc:"Un buen día empieza antes del mediodía. ¿Cuál es tu intención de hoy?", btn:"Escribir intención", action:"document.getElementById('daily-intention-input')?.focus()", color:"rgba(251,146,60,.08)", border:"rgba(251,146,60,.2)" },
+    tarde:  { icon:"⏱", title:"Tiempo de enfoque", desc:"La tarde es ideal para el modo Pomodoro. ¿En qué quieres avanzar?", btn:"Modo Pomodoro", action:"showPage('wellness');setTimeout(()=>openWellness('focus'),100)", color:"rgba(99,102,241,.08)", border:"rgba(99,102,241,.2)" },
+    noche:  { icon:"📔", title:"Cierra el día escribiendo", desc:"¿Qué fue lo más significativo de hoy? El diario lo recuerda por ti.", btn:"Abrir mi diario", action:"showPage('journal');setTimeout(toggleJournalForm,200)", color:"rgba(139,92,246,.08)", border:"rgba(139,92,246,.2)" },
+    madrugada: { icon:"😴", title:"¿No puedes dormir?", desc:"La meditación guiada para dormir puede ayudarte ahora mismo.", btn:"Meditación para dormir", action:"showPage('wellness');setTimeout(()=>openWellness('meditation'),100)", color:"rgba(30,136,229,.08)", border:"rgba(30,136,229,.2)" },
+  };
+  const rec = RECS[emotion] || defaultByTime[timeSlot];
+  const streakBonus = streak >= 7 ? `<div style="font-size:11px;color:#f59e0b;font-weight:700;margin-top:6px">🔥 Llevas ${streak} días seguidos — ¡vas muy bien!</div>` : "";
+  card.innerHTML = `<div style="background:${rec.color};border:1.5px solid ${rec.border};border-radius:18px;padding:18px 20px;display:flex;align-items:center;gap:16px">
+    <div style="font-size:44px;flex-shrink:0;line-height:1">${rec.icon}</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:4px">${rec.title}</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.5">${rec.desc}</div>
+      ${streakBonus}
+    </div>
+    <button onclick="${rec.action}" style="flex-shrink:0;background:var(--accent);border:none;color:#fff;border-radius:12px;padding:10px 16px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">${rec.btn}</button>
+  </div>`;
+  section.style.display = "block";
+}
+
+function renderMoodCalendar(history) {
+  const titleEl = document.getElementById("mood-cal-title");
+  const grid = document.getElementById("mood-calendar-grid");
+  const legend = document.getElementById("mood-cal-legend");
+  if (!grid) return;
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const monthNames = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  if (titleEl) titleEl.textContent = monthNames[month] + " " + year;
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const EMO_EMOJI = {feliz:"😊",tranquilo:"😌",ansioso:"😰",triste:"😢",enojado:"😤",confundido:"🤔",esperanzado:"🌟",agotado:"😮",motivado:"💪",nostalgico:"🌅"};
+  const dayMap = {};
+  (history || []).forEach(h => {
+    const d = new Date(h.date);
+    if (d.getFullYear() === year && d.getMonth() === month) {
+      const key = d.getDate();
+      if (!dayMap[key]) dayMap[key] = {};
+      dayMap[key][h.emotion] = (dayMap[key][h.emotion] || 0) + 1;
+    }
+  });
+  const getDayEmo = (day) => { const m = dayMap[day]; if (!m) return null; return Object.entries(m).sort((a,b)=>b[1]-a[1])[0]?.[0]; };
+  const DAY_LABELS = ["D","L","M","M","J","V","S"];
+  let html = DAY_LABELS.map(d=>`<div style="font-size:10px;font-weight:700;color:var(--text3);padding:2px 0">${d}</div>`).join("");
+  const startPad = (firstDay + 7) % 7;
+  for (let i = 0; i < startPad; i++) html += `<div></div>`;
+  const today = now.getDate();
+  const usedEmos = new Set();
+  for (let d = 1; d <= daysInMonth; d++) {
+    const emo = getDayEmo(d);
+    if (emo) usedEmos.add(emo);
+    const isToday = d === today;
+    const emoji = emo ? EMO_EMOJI[emo] || "•" : (d < today ? "·" : "");
+    const bg = isToday ? "background:rgba(99,102,241,.15);border:1.5px solid rgba(99,102,241,.4)" : emo ? "background:var(--surface)" : "";
+    html += `<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:${emo?15:11}px;color:${emo?"inherit":"var(--text3)"};${bg};cursor:default" title="${emo||""}">${emoji}</div>`;
+  }
+  grid.innerHTML = html;
+  if (legend) {
+    legend.innerHTML = [...usedEmos].map(e=>`<span style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px">${EMO_EMOJI[e]||""} <span style="text-transform:capitalize">${e}</span></span>`).join("");
+  }
+}
+
+function selectIntention(btn) {
+  const inp = document.getElementById("daily-intention-input");
+  if (!inp) return;
+  inp.value = btn.textContent;
+  inp.focus();
+  document.querySelectorAll(".intention-chip").forEach(c => c.style.borderColor = "");
+  btn.style.borderColor = "var(--accent)";
+  btn.style.background = "rgba(99,102,241,.1)";
+  btn.style.color = "var(--accent)";
 }
 
 function renderQuickEmoPicker(currentEmotion) {
@@ -6501,7 +6697,7 @@ function loadWellness() {
 }
 function openWellness(tab) {
   currentWTab = tab;
-  ["breath","meditation","music","affirmations","gratitude","water","sleep","focus","habits"].forEach(t => {
+  ["breath","meditation","music","affirmations","gratitude","water","sleep","focus","habits","cbt"].forEach(t => {
     const btn = document.getElementById("wtab-"+t);
     if(btn) btn.className = t===tab ? "wellness-tab active" : "wellness-tab";
   });
@@ -6516,6 +6712,7 @@ function openWellness(tab) {
   else if(tab==="sleep")        renderSleepTracker(el);
   else if(tab==="focus")        renderPomodoro(el);
   else if(tab==="habits")       renderHabitsTracker(el);
+  else if(tab==="cbt")          renderCBTTool(el);
 }
 const BREATH_TECHS = {
   '478':  { name:'4-7-8', desc:'Inhala <strong>4s</strong> · mantén <strong>7s</strong> · exhala <strong>8s</strong>. La más poderosa para calmar la ansiedad rápido.', phases:[{t:"Inhala",d:4,cls:"inhale"},{t:"Mantén",d:7,cls:""},{t:"Exhala",d:8,cls:"exhale"}] },
@@ -10133,6 +10330,8 @@ if(_origShowPage) {
     if(fab) fab.style.display=isLogged?'flex':'none';
     const sosFab=document.getElementById('sos-fab');
     if(sosFab) sosFab.style.display=isLogged?'flex':'none';
+    const calmFab=document.getElementById('calm-fab');
+    if(calmFab) calmFab.style.display=isLogged?'flex':'none';
     // Mobile speed-dial: visible on logged-in pages on small screens
     const mobSD = document.getElementById('mob-speed-dial');
     if (mobSD) {
@@ -12198,6 +12397,21 @@ function renderGamification(s) {
       missionDot.style.display = pending > 0 ? 'block' : 'none';
     }
   }
+  renderNextAchievement(s);
+}
+
+function renderNextAchievement(s) {
+  const el = document.getElementById("next-achievement-strip");
+  if (!el || !s) return;
+  const streak = s.streak || 0;
+  const streakMilestones = [{n:3,id:"streak_3",label:"En racha",emoji:"🔥"},{n:7,id:"streak_7",label:"Una semana",emoji:"⚡"},{n:14,id:"streak_14",label:"Dos semanas",emoji:"🌙"},{n:30,id:"streak_30",label:"Un mes",emoji:"👑"}];
+  const next = streakMilestones.find(m => streak < m.n);
+  if (!next) { el.innerHTML = '<div style="font-size:11px;color:#f59e0b;text-align:center">👑 ¡Lograste todos los logros de racha!</div>'; return; }
+  const pct = Math.round((streak / next.n) * 100);
+  el.innerHTML = `<div style="font-size:10px;color:var(--text3);margin-bottom:4px;font-weight:700">Próximo logro: ${next.emoji} ${next.label} — ${streak}/${next.n} días</div>
+  <div style="background:var(--border);border-radius:99px;height:6px;overflow:hidden">
+    <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#f97316,#f59e0b);border-radius:99px;transition:width .4s ease"></div>
+  </div>`;
 }
 
 async function triggerMission(missionId) {
@@ -14244,6 +14458,103 @@ function renderHabitsTracker(el) {
     const _ck = "zyra_habit_confetti_" + new Date().toDateString();
     if (!sessionStorage.getItem(_ck)) { sessionStorage.setItem(_ck, "1"); launchHabitConfetti(); }
   }
+}
+
+let _cbtStep = 0;
+const _cbtData = {};
+function renderCBTTool(el) {
+  _cbtStep = 0;
+  Object.keys(_cbtData).forEach(k => delete _cbtData[k]);
+  showCBTStep(el);
+}
+const CBT_STEPS = [
+  { id:"situation", q:"¿Qué situación te está afectando?", placeholder:"Describe brevemente qué pasó o está pasando...", icon:"📍", hint:"Solo los hechos, sin interpretación." },
+  { id:"thought", q:"¿Qué pensamiento automático tuviste?", placeholder:"Lo que tu mente dijo de inmediato...", icon:"💭", hint:"Ej: 'Soy un fracaso', 'Nada va a mejorar', 'Todos me rechazan'" },
+  { id:"evidence_for", q:"¿Qué evidencia tienes A FAVOR de ese pensamiento?", placeholder:"Hechos concretos que lo apoyan...", icon:"⚖️", hint:"Solo hechos reales, no suposiciones." },
+  { id:"evidence_against", q:"¿Qué evidencia tienes EN CONTRA?", placeholder:"Hechos que contradicen ese pensamiento...", icon:"🔍", hint:"Busca momentos en que lo contrario fue cierto." },
+  { id:"reframe", q:"¿Cómo podrías ver esta situación de forma más equilibrada?", placeholder:"Un pensamiento más realista y compasivo...", icon:"🌱", hint:"No tiene que ser positivo — solo más justo contigo." },
+];
+function showCBTStep(el) {
+  if (!el) el = document.getElementById("wellness-content");
+  if (!el) return;
+  if (_cbtStep >= CBT_STEPS.length) { showCBTResult(el); return; }
+  const s = CBT_STEPS[_cbtStep];
+  const progress = Math.round((_cbtStep / CBT_STEPS.length) * 100);
+  el.innerHTML = `<div class="card" style="max-width:560px;margin:0 auto">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+      <div style="background:rgba(99,102,241,.1);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${s.icon}</div>
+      <div style="flex:1">
+        <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Paso ${_cbtStep+1} de ${CBT_STEPS.length}</div>
+        <div style="height:4px;background:var(--border);border-radius:99px;margin-top:5px;overflow:hidden"><div style="height:100%;width:${progress}%;background:linear-gradient(90deg,var(--accent),var(--purple));border-radius:99px"></div></div>
+      </div>
+    </div>
+    <div style="font-size:17px;font-weight:800;color:var(--text);margin-bottom:8px">${s.q}</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;font-style:italic">${s.hint}</div>
+    <textarea id="cbt-input-${s.id}" placeholder="${s.placeholder}" style="width:100%;min-height:100px;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;color:var(--text);font-size:13px;padding:13px 15px;outline:none;font-family:inherit;resize:vertical;box-sizing:border-box">${_cbtData[s.id]||""}</textarea>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      ${_cbtStep > 0 ? `<button onclick="_cbtStep--;showCBTStep()" style="background:var(--surface);border:1.5px solid var(--border);color:var(--text2);border-radius:12px;padding:12px 20px;font-size:13px;cursor:pointer">← Atrás</button>` : ""}
+      <button onclick="cbtNext('${s.id}')" style="flex:1;background:linear-gradient(135deg,var(--accent),var(--purple));border:none;color:#fff;border-radius:12px;padding:12px 20px;font-size:14px;font-weight:700;cursor:pointer">${_cbtStep===CBT_STEPS.length-1?"Ver mi reencuadre →":"Siguiente →"}</button>
+    </div>
+    <button onclick="renderCBTTool(document.getElementById('wellness-content'))" style="display:block;width:100%;text-align:center;margin-top:12px;background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer">✕ Empezar de nuevo</button>
+  </div>`;
+}
+function cbtNext(fieldId) {
+  const ta = document.getElementById("cbt-input-" + fieldId);
+  const val = ta ? ta.value.trim() : "";
+  if (!val) { zyraToast("Escribe algo antes de continuar", "error"); return; }
+  _cbtData[fieldId] = val;
+  _cbtStep++;
+  showCBTStep();
+}
+function showCBTResult(el) {
+  const labels = {situation:"Situación",thought:"Pensamiento automático",evidence_for:"Evidencia a favor",evidence_against:"Evidencia en contra",reframe:"Pensamiento alternativo"};
+  const icons = {situation:"📍",thought:"💭",evidence_for:"⚖️",evidence_against:"🔍",reframe:"🌱"};
+  const rows = CBT_STEPS.map(s=>`<div style="padding:12px 0;border-bottom:1px solid var(--border)">
+    <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${icons[s.id]} ${labels[s.id]}</div>
+    <div style="font-size:14px;color:var(--text);line-height:1.6">${safeHtml(_cbtData[s.id]||"")}</div>
+  </div>`).join("");
+  el.innerHTML = `<div class="card" style="max-width:560px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:40px;margin-bottom:8px">🌱</div>
+      <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:6px">Tu reencuadre está listo</div>
+      <div style="font-size:13px;color:var(--text3);line-height:1.6">Ver el pensamiento desde otro ángulo no lo resuelve todo — pero cambia cómo lo llevas.</div>
+    </div>
+    <div style="background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(139,92,246,.06));border:1.5px solid rgba(99,102,241,.2);border-radius:14px;padding:16px 18px;margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">🌱 Tu pensamiento alternativo</div>
+      <div style="font-size:15px;font-weight:700;color:var(--text);font-style:italic;line-height:1.6">"${safeHtml(_cbtData.reframe||"")}"</div>
+    </div>
+    <details style="margin-bottom:16px">
+      <summary style="font-size:13px;color:var(--text3);cursor:pointer;font-weight:600;padding:8px 0">Ver el proceso completo</summary>
+      <div style="margin-top:8px">${rows}</div>
+    </details>
+    <div style="display:flex;gap:10px">
+      <button onclick="saveCBTToJournal()" style="flex:1;background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;border-radius:12px;padding:13px;font-size:13px;font-weight:700;cursor:pointer">📔 Guardar en mi diario</button>
+      <button onclick="renderCBTTool(document.getElementById('wellness-content'))" style="background:var(--surface);border:1.5px solid var(--border);color:var(--text2);border-radius:12px;padding:13px 18px;font-size:13px;cursor:pointer">Repetir</button>
+    </div>
+  </div>`;
+}
+function saveCBTToJournal() {
+  const content = [
+    "SITUACIÓN: " + (_cbtData.situation||""),
+    "",
+    "PENSAMIENTO AUTOMÁTICO: " + (_cbtData.thought||""),
+    "",
+    "EVIDENCIA A FAVOR: " + (_cbtData.evidence_for||""),
+    "",
+    "EVIDENCIA EN CONTRA: " + (_cbtData.evidence_against||""),
+    "",
+    "PENSAMIENTO ALTERNATIVO: " + (_cbtData.reframe||""),
+  ].join("\n");
+  showPage('journal');
+  setTimeout(() => {
+    const form = document.getElementById("add-journal-form");
+    if (form && !form.classList.contains("show")) toggleJournalForm();
+    const titleEl = document.getElementById("journal-title");
+    const contentEl = document.getElementById("journal-content");
+    if (titleEl) titleEl.value = "Ejercicio de reestructuración cognitiva";
+    if (contentEl) { contentEl.value = content; updateJournalCharCount(contentEl); }
+    zyraToast("✓ Ejercicio listo en el diario — guárdalo cuando quieras", "success");
+  }, 400);
 }
 
 /* ══════════════════════════════════════════

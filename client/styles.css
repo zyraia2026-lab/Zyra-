@@ -3975,3 +3975,15 @@ body {
   .card { break-inside: avoid; box-shadow: none !important; border: 1px solid #e5e7eb !important; }
   :root { --text: #111; --text3: #555; --bg: #fff; --bg2: #f9fafb; --border: #e5e7eb; --card: #fff; --accent: #6366f1; }
 }
+
+.intention-chip { background: var(--surface); border: 1.5px solid var(--border); color: var(--text2); border-radius: 20px; padding: 5px 12px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .15s; font-family: inherit; }
+.intention-chip:hover { background: rgba(99,102,241,.1); border-color: rgba(99,102,241,.3); color: var(--accent); }
+
+#calm-overlay { display: none; }
+#calm-overlay.open { display: flex; }
+
+#mood-calendar-grid > div { transition: transform .1s; }
+#mood-calendar-grid > div:hover { transform: scale(1.15); }
+
+.cbt-step-indicator { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+.cbt-step-indicator.active { background: var(--accent); }
