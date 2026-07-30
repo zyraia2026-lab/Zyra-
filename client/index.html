@@ -5245,6 +5245,7 @@ async function loadDashboard() {
       if (el) el.innerHTML = '—';
     });
   }
+  if (!token || !user) return;
   loadDailyChallenge();
   loadDailyIntention();
   loadMentalHealthTip();
@@ -5253,17 +5254,17 @@ async function loadDashboard() {
   const lastEmDate = localStorage.getItem('zyra_last_emotion_date');
   const dot = document.getElementById('emotion-checkin-dot');
   if (dot) dot.style.display = lastEmDate === new Date().toDateString() ? 'none' : 'inline-block';
-  // Smart habit nudges (afternoon/evening only)
+  // Smart habit nudges (afternoon/evening only) — only if still on dashboard
   const hour = new Date().getHours();
-  if (hour >= 15) {
+  if (hour >= 15 && token && user) {
     const waterToday = parseInt(localStorage.getItem("zyra_water_" + new Date().toDateString()) || "0");
-    if (waterToday < 4) setTimeout(() => zyraToast("💧 Solo "+waterToday+" vasos hoy — no se te olvide tomar agua", "info"), 2000);
-    else if (waterToday < 8 && hour >= 19) setTimeout(() => zyraToast("💧 "+waterToday+"/8 vasos — casi llegas", "info"), 2000);
+    if (waterToday < 4) setTimeout(() => { if(window._zyraCurrentPage==='dashboard') zyraToast("💧 Solo "+waterToday+" vasos hoy — no se te olvide tomar agua", "info"); }, 2000);
+    else if (waterToday < 8 && hour >= 19) setTimeout(() => { if(window._zyraCurrentPage==='dashboard') zyraToast("💧 "+waterToday+"/8 vasos — casi llegas", "info"); }, 2000);
   }
   // Check for delivered future notes
-  checkDeliveredFutureNotes();
+  if (token && user) checkDeliveredFutureNotes();
   // Show daily mood check-in if not done today
-  setTimeout(showDailyCheckin, 1500);
+  setTimeout(() => { if(window._zyraCurrentPage==='dashboard') showDailyCheckin(); }, 1500);
   renderTodayOverview();
   renderWellbeingScore();
 }
@@ -11726,7 +11727,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
   // No mostrar durante llamada de voz ni al inicio — solo si el usuario lo solicita
   const vcPage = document.getElementById('page-voice-call');
   const isInCall = vcPage && vcPage.classList.contains('page') && getComputedStyle(vcPage).display !== 'none';
-  if (!isInCall) {
+  if (!isInCall && token) {
     const banner = document.getElementById('pwa-install-banner');
     if (banner) { banner.style.display = 'flex'; }
   }
