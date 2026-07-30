@@ -9,7 +9,7 @@ const ttsLimiter = rateLimit({
   max: 30,
   keyGenerator: (req) => req.user?._id?.toString() || req.ip || "unknown",
   message: { message: "Demasiadas peticiones de voz. Espera un momento." },
-  standardHeaders: true, legacyHeaders: false,
+  standardHeaders: true, legacyHeaders: false, validate: { keyGenerator: false },
 });
 
 r.post("/speak", protect, requirePlan("premium"), ttsLimiter, T.speak);

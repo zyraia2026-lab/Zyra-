@@ -7,7 +7,7 @@ const ytLimiter = rateLimit({
   max: 20,
   keyGenerator: (req) => req.user?._id?.toString() || req.ip || "unknown",
   message: { message: "Demasiadas búsquedas. Espera un momento." },
-  standardHeaders: true, legacyHeaders: false,
+  standardHeaders: true, legacyHeaders: false, validate: { keyGenerator: false },
 });
 
 // GET /api/yt/search?q=...&maxResults=1

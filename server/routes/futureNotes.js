@@ -6,9 +6,9 @@ const { rateLimit } = require("express-rate-limit");
 const noteLimiter = rateLimit({
   windowMs: 60_000,
   max: 10,
-  keyGenerator: (req) => req.user?._id?.toString() || req.ip,
+  keyGenerator: (req) => req.user?._id?.toString() || req.ip || "unknown",
   message: { message: "Demasiadas peticiones. Espera un momento." },
-  standardHeaders: true, legacyHeaders: false,
+  standardHeaders: true, legacyHeaders: false, validate: { keyGenerator: false },
 });
 
 /* POST /api/future-notes — crear nota */
