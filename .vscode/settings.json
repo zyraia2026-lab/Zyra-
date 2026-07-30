@@ -1,3 +1,7 @@
 {
-    "claudeCodeChat.permissions.yoloMode": false
+    "claudeCodeChat.permissions.yoloMode": false,
+    "files.exclude": {
+        "**/.claude": true,
+        "**/refs/original": true
+    }
 }

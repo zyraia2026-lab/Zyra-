@@ -63,8 +63,13 @@
     <div id="spl-diamonds" aria-hidden="true">
       <span></span><span></span><span></span><span></span><span></span>
     </div>
+    <div id="spl-cam-hint" style="margin-top:16px;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:rgba(148,163,184,0);transition:color 1s ease;opacity:0">
+      ✋ Mueve tu mano para interactuar
+    </div>
+    <button id="spl-enter" onclick="closeSplash()" style="opacity:0;margin-top:36px;background:linear-gradient(135deg,rgba(99,102,241,.9),rgba(139,92,246,.9));border:1.5px solid rgba(192,132,252,.4);border-radius:50px;color:#fff;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:14px 44px;cursor:pointer;transition:opacity .8s ease,transform .3s ease,box-shadow .3s ease;box-shadow:0 0 30px rgba(139,92,246,.3)" onmouseenter="this.style.transform='scale(1.05)';this.style.boxShadow='0 0 50px rgba(139,92,246,.6)'" onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 0 30px rgba(139,92,246,.3)'">Entrar a Zyra</button>
   </div>
 </div>
+<video id="spl-video" autoplay muted playsinline style="display:none;width:1px;height:1px;opacity:0;position:fixed;top:0;left:0"></video>
 <style>
 /* ━━ Splash — Shooting Stars ━━ */
 #zyra-splash{
@@ -109,6 +114,8 @@
 @keyframes dia-on{
   to{background:#c084fc;box-shadow:0 0 10px 3px rgba(192,132,252,.65),0 0 20px 6px rgba(139,92,246,.35)}
 }
+#spl-enter:active{transform:scale(.96)!important}
+#spl-cam-hint.show{color:rgba(148,163,184,.45);opacity:1}
 </style>
 <script>
 !function(){
@@ -202,6 +209,7 @@
     X.globalAlpha=1;X.shadowBlur=0;
     sparks=sparks.filter(function(p){return p.life>0;});
 
+    drawHandLayer();
     if(alive)requestAnimationFrame(frame);
   }
 
@@ -239,10 +247,83 @@
     },780+i*175);
   });
 
+  /* ── Rastro de mano ── */
+  var hx=-1,hy=-1,hOpen=false,hTrail=[],hBurst=[];
+  var EMO_PARTICLES=['😊','🌟','💜','✨','🌸','💙','🔮','🌈','💫','❤️'];
+  window._setSplHand=function(x,y){hx=x;hy=y;};
+  window._setSplBurst=function(x,y){emojiBurst(x,y);};
+
+  function drawHandLayer(){
+    if(hx>0&&hy>0){
+      hTrail.push({x:hx,y:hy,t:1});
+      if(hTrail.length>28)hTrail.shift();
+    }
+    hTrail.forEach(function(p,i){
+      p.t-=.04;
+      var a=Math.max(0,p.t);
+      X.globalAlpha=a*.55;
+      X.beginPath();X.arc(p.x,p.y,4+i*.15,0,6.28);
+      X.fillStyle='rgba(192,132,252,1)';
+      X.shadowBlur=18;X.shadowColor='rgba(192,132,252,.8)';
+      X.fill();
+      X.shadowBlur=0;
+    });
+    hTrail=hTrail.filter(function(p){return p.t>0;});
+    X.globalAlpha=1;
+    if(hx>0&&hy>0){
+      var g=X.createRadialGradient(hx,hy,0,hx,hy,40);
+      g.addColorStop(0,'rgba(192,132,252,.35)');g.addColorStop(1,'rgba(0,0,0,0)');
+      X.fillStyle=g;X.beginPath();X.arc(hx,hy,40,0,6.28);X.fill();
+    }
+    hBurst=hBurst.filter(function(p){
+      p.x+=p.vx;p.y+=p.vy;p.vy+=.15;p.vx*=.97;p.life-=.025;
+      var a=Math.max(0,p.life);
+      X.globalAlpha=a;X.font=(p.size*a+p.size*.3)+'px serif';
+      X.textAlign='center';X.textBaseline='middle';
+      X.fillText(p.emoji,p.x,p.y);
+      return p.life>0;
+    });
+    X.globalAlpha=1;X.textAlign='left';X.textBaseline='alphabetic';
+  }
+
+  function emojiBurst(cx,cy){
+    for(var i=0;i<12;i++){
+      var a=Math.random()*6.28,sp=Math.random()*6+3;
+      hBurst.push({
+        x:cx,y:cy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-3,
+        life:1,size:24+Math.random()*18,
+        emoji:EMO_PARTICLES[Math.floor(Math.random()*EMO_PARTICLES.length)]
+      });
+    }
+    burst(cx,cy,20,'192,132,252');
+    burst(cx,cy,12,'255,215,160');
+  }
+
   /* ── Loading diamonds ── */
   var dots=document.querySelectorAll('#spl-diamonds span');
   dots.forEach(function(d,i){
     setTimeout(function(){if(d)d.classList.add('on');},1700+i*130);
+  });
+
+  /* ── Mostrar botón Entrar después de letras + diamantes ── */
+  setTimeout(function(){
+    var btn=document.getElementById('spl-enter');
+    var hint=document.getElementById('spl-cam-hint');
+    if(btn){btn.style.opacity='1';}
+    if(hint){hint.classList.add('show');}
+    initSplashCamera();
+  },2800);
+
+  /* ── Interacción con ratón y toque ── */
+  document.getElementById('spl-c').addEventListener('mousemove',function(e){
+    hx=e.clientX;hy=e.clientY;
+  });
+  document.getElementById('spl-c').addEventListener('touchmove',function(e){
+    e.preventDefault();
+    if(e.touches.length){hx=e.touches[0].clientX;hy=e.touches[0].clientY;}
+  },{passive:false});
+  document.getElementById('spl-c').addEventListener('click',function(e){
+    emojiBurst(e.clientX,e.clientY);
   });
 
   /* ── Kill canvas when splash hides ── */
@@ -256,6 +337,49 @@
   window.addEventListener('resize',resize);
   resize();frame();
 }();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<script>
+function initSplashCamera(){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return;
+  if(typeof Hands==='undefined'||typeof Camera==='undefined')return;
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:320,height:240}})
+  .then(function(stream){
+    var vid=document.getElementById('spl-video');
+    if(!vid)return;
+    vid.srcObject=stream;
+    vid.play().catch(function(){});
+    var hands=new Hands({locateFile:function(f){return'https://cdn.jsdelivr.net/npm/@mediapipe/hands/'+f;}});
+    hands.setOptions({maxNumHands:1,modelComplexity:0,minDetectionConfidence:.7,minTrackingConfidence:.5});
+    hands.onResults(function(r){
+      if(!r.multiHandLandmarks||!r.multiHandLandmarks.length){window._splHx=-1;window._splHy=-1;return;}
+      var lm=r.multiHandLandmarks[0];
+      var W2=window.innerWidth,H2=window.innerHeight;
+      window._splHx=(1-lm[0].x)*W2;
+      window._splHy=lm[0].y*H2;
+      var tips=[8,12,16,20],bases=[6,10,14,18],ext=0;
+      for(var i=0;i<4;i++)if(lm[tips[i]].y<lm[bases[i]].y)ext++;
+      var wasOpen=window._splOpen;
+      window._splOpen=ext>=3;
+      if(window._splOpen&&!wasOpen&&window._splHx>0){
+        if(typeof window._setSplBurst==='function')window._setSplBurst(window._splHx,window._splHy);
+      }
+      if(window._splHx>0){
+        if(typeof window._setSplHand==='function')window._setSplHand(window._splHx,window._splHy);
+      }
+    });
+    var cam=new Camera(vid,{onFrame:async function(){await hands.send({image:vid});},width:320,height:240});
+    cam.start().catch(function(){});
+    window._splCamStream=stream;
+  }).catch(function(){});
+}
+function closeSplash(){
+  var s=document.getElementById('zyra-splash');
+  if(s)s.classList.add('hidden');
+  if(window._splCamStream){window._splCamStream.getTracks().forEach(function(t){t.stop();});}
+}
 </script>
 
 <!-- ══ TERMS ACCEPTANCE — FIRST TIME ══ -->
@@ -9303,17 +9427,13 @@ function _initApp() {
   } else {
     showPage("landing");
   }
-  setTimeout(() => {
-    const s = document.getElementById("zyra-splash");
-    if (s) s.classList.add("hidden");
-  }, 900);
 }
 
-// Splash safety-net: si el load handler falla, ocultar el splash en 2.5s de todos modos
+// Safety-net: cerrar automáticamente después de 18s si el usuario no hace clic en "Entrar"
 setTimeout(() => {
   const s = document.getElementById("zyra-splash");
-  if (s && !s.classList.contains("hidden")) s.classList.add("hidden");
-}, 2500);
+  if (s && !s.classList.contains("hidden")) { s.classList.add("hidden"); if(window._splCamStream)window._splCamStream.getTracks().forEach(t=>t.stop()); }
+}, 18000);
 
 function toggleVoice() {
   if(!sr) return zyraToast("Usa Chrome o Edge para el reconocimiento de voz", "error");
