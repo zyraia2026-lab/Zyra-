@@ -4,8 +4,8 @@
 ════════════════════════════════════════ */
 
 const LIMITS = {
-  free:    { messagesPerDay: 15,  goals: 3,  journal: 10,  conversations: 5,  voice: false, emergencyContact: false, export: false, report: false },
-  basic:   { messagesPerDay: 100, goals: 10, journal: 30,  conversations: 30, voice: false, emergencyContact: true,  export: true,  report: false },
+  free:    { messagesPerDay: 15,  goals: 3,  journal: Infinity, conversations: 5,  voice: false, emergencyContact: false, export: false, report: false },
+  basic:   { messagesPerDay: 100, goals: 10, journal: Infinity, conversations: 30, voice: false, emergencyContact: true,  export: true,  report: false },
   premium: { messagesPerDay: Infinity, goals: Infinity, journal: Infinity, conversations: Infinity, voice: true, emergencyContact: true, export: true, report: true },
 };
 

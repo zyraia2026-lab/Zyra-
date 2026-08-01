@@ -892,23 +892,51 @@ async function buildSystemPrompt(userId, userName, message = "") {
       const d = new Date(h.date); dayBuckets[d.getDay()].t += POS.has(h.emotion)?1:NEG.has(h.emotion)?-1:0; dayBuckets[d.getDay()].n++;
       hourCounts[d.getHours()]++;
     });
-    const valid = dayBuckets.map((b,i) => b.n >= 3 ? {day:DAYS_ES[i], score:b.t/b.n} : null).filter(Boolean);
+    const valid = dayBuckets.map((b,i) => b.n >= 3 ? {day:DAYS_ES[i], score:b.t/b.n, idx:i} : null).filter(Boolean);
+    const todayDow = new Date().getDay();
     if (valid.length >= 2) {
       const best  = valid.reduce((a,b) => b.score > a.score ? b : a);
       const worst = valid.reduce((a,b) => b.score < a.score ? b : a);
       if (best.score  > 0.25) memoryBlock += `\n- Sus mejores días suelen ser los ${best.day.toLowerCase()}`;
-      if (worst.score < -0.25 && worst.day !== best.day) memoryBlock += `\n- Los ${worst.day.toLowerCase()} suelen ser más pesados para ella/él`;
+      if (worst.score < -0.25 && worst.day !== best.day) {
+        memoryBlock += `\n- Los ${worst.day.toLowerCase()} suelen ser más pesados para ella/él`;
+        // Si HOY es el día patrón negativo, avisa a Zyra
+        if (worst.idx === todayDow) {
+          memoryBlock += `\n- NOTA IMPORTANTE: HOY es ${worst.day} — su día más difícil según el historial. Si el ánimo sale en la conversación, ya sabes el contexto. No lo saques tú a no ser que la conversación vaya ahí.`;
+        }
+      }
+      if (best.idx === todayDow && best.score > 0.25) {
+        memoryBlock += `\n- HOY es ${best.day} — su mejor día según el historial. Si el tono es positivo, síguele el ánimo.`;
+      }
     }
     const peakH = hourCounts.indexOf(Math.max(...hourCounts));
     if (Math.max(...hourCounts) >= 3) {
       const label = peakH < 12 ? "mañanas" : peakH < 17 ? "tardes" : "noches";
       memoryBlock += `\n- Suele conectarse más por las ${label}`;
     }
+
+    // ── Temas recurrentes en notas del diario emocional ──
+    const noteWords = fullHistory
+      .filter(h => h.note && h.note.length > 3)
+      .map(h => h.note.toLowerCase());
+    const TOPIC_PATTERNS = [
+      { key: "trabajo",   re: /trabajo|jefe|oficina|empresa|reunión|proyecto|estrés laboral/ },
+      { key: "relación",  re: /pareja|novio|novia|relaci[oó]n|amor|ruptura|celos|discusi[oó]n/ },
+      { key: "familia",   re: /mam[aá]|pap[aá]|hermano|familia|casa|padres/ },
+      { key: "dinero",    re: /plata|dinero|deuda|gasto|factura|econom/ },
+      { key: "salud",     re: /salud|dolor|enferm|cansancio|sue[ñn]o|dormir/ },
+    ];
+    const recTopics = TOPIC_PATTERNS
+      .filter(t => noteWords.some(n => t.re.test(n)))
+      .map(t => t.key);
+    if (recTopics.length > 0) {
+      memoryBlock += `\n- Temas que suelen aparecer en su estado emocional: ${recTopics.join(", ")}`;
+    }
   }
 
   const negStreak = profile?.negativeStreakCount || 0;
   if (negStreak >= 3) {
-    memoryBlock += `\n- Ha tenido varios días seguidos difíciles. NO lo menciones ni lo asumas — espera que salga en la conversación. Si sale, pregunta directamente qué está pasando, nada de frases de apoyo genérico.`;
+    memoryBlock += `\n- Ha tenido varios días seguidos difíciles (racha de ${negStreak} días). NO lo menciones ni lo asumas — espera que salga en la conversación. Si sale, pregunta directamente qué está pasando, nada de frases de apoyo genérico.`;
   }
 
   const activeGoals = goals.filter(g => !g.completed);

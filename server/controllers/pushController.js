@@ -208,3 +208,104 @@ exports.sendDailyReminders = async () => {
     console.error("[Push] sendDailyReminders error:", e.message);
   }
 };
+
+/* ─── Zyra Proactiva: push iniciado por Zyra según patrones emocionales ─── */
+const NEGATIVE_EMOS = new Set(["triste", "ansioso", "enojado", "agotado", "confundido"]);
+const DAY_ES = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+
+exports.sendProactiveCheckIn = async () => {
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
+  try {
+    const now    = new Date();
+    const colNow = new Date(now.getTime() - 5 * 60 * 60 * 1000); // UTC-5
+    const hour   = colNow.getUTCHours();
+    const dow    = colNow.getUTCDay(); // 0=dom … 6=sáb
+    const todayStr = colNow.toISOString().slice(0, 10);
+
+    // Solo entre 10:00 y 10:04 Colombia
+    if (hour !== 10 || colNow.getUTCMinutes() > 4) return;
+
+    // Usuarios con suscripción push activa
+    const subs = await PushSub.find({}).select("user").lean();
+    if (!subs.length) return;
+    const userIds = subs.map(s => s.user);
+
+    const profiles = await Profile.find({
+      user: { $in: userIds },
+    }).select("user emotionHistory currentEmotion lastProactiveAt").lean();
+
+    const DEDUP_HOURS = 20;
+    let sent = 0;
+
+    for (const p of profiles) {
+      // No enviar más de una proactiva cada 20 h
+      if (p.lastProactiveAt) {
+        const diffH = (now - new Date(p.lastProactiveAt)) / (1000 * 60 * 60);
+        if (diffH < DEDUP_HOURS) continue;
+      }
+
+      const history = Array.isArray(p.emotionHistory) ? p.emotionHistory : [];
+
+      // ── Detectar patrón día-de-semana negativo ──
+      // Buscar registros del mismo día de semana en las últimas 3 semanas
+      const sameDoWEntries = history
+        .filter(e => {
+          const d = new Date(e.date);
+          const dc = new Date(d.getTime() - 5 * 60 * 60 * 1000);
+          return dc.getUTCDay() === dow && e.date !== todayStr;
+        })
+        .slice(-3);
+
+      const sameDoWNeg = sameDoWEntries.filter(e => NEGATIVE_EMOS.has(e.emotion)).length;
+      const dowPattern = sameDoWNeg >= 2 && sameDoWEntries.length >= 2;
+
+      // ── Detectar racha negativa (3+ días consecutivos) ──
+      const recent = [...history].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+      const negStreak = recent.filter(e => NEGATIVE_EMOS.has(e.emotion)).length >= 3;
+
+      // ── Construir mensaje ──
+      let title, body;
+      if (dowPattern) {
+        const dayName = DAY_ES[dow];
+        const emo     = p.currentEmotion || recent[0]?.emotion;
+        if (emo && NEGATIVE_EMOS.has(emo)) {
+          title = "Zyra está pensando en ti 💜";
+          body  = `Los ${dayName}s últimamente te han estado pesando. ¿Cómo estás hoy? Aquí estoy.`;
+        } else {
+          title = `Feliz ${dayName} 💙`;
+          body  = `¿Cómo arranca este ${dayName}? Cuéntame cuando quieras.`;
+        }
+      } else if (negStreak) {
+        title = "Oye, ¿cómo estás? 💜";
+        body  = "Llevas unos días difíciles. No tienes que estarlo sola/o — aquí estoy si quieres hablar.";
+      } else {
+        // Check-in de mañana sin patrón especial — solo enviar a ~30% para no saturar
+        if (Math.random() > 0.30) continue;
+        const MORNING_MSGS = [
+          "Buenos días 🌅 ¿Cómo arranca el día?",
+          "Ey, ¿cómo estás hoy? Cuéntame lo que sea 💬",
+          "Nuevo día, nueva oportunidad. ¿Cómo te sientes? 💙",
+          "¿Qué hay de nuevo? Estoy por acá 💜",
+        ];
+        title = "Zyra te saluda ✨";
+        body  = MORNING_MSGS[Math.floor(Math.random() * MORNING_MSGS.length)];
+      }
+
+      await sendToUser(p.user, {
+        title,
+        body,
+        icon:  "/Imagenes/1000154669.png",
+        badge: "/Imagenes/1000154669.png",
+        tag:   "zyra-proactive",
+        data:  { url: "/?p=assistant" },
+      });
+
+      // Actualizar lastProactiveAt sin cambiar esquema — MongoDB acepta campos extra
+      await Profile.updateOne({ _id: p._id }, { $set: { lastProactiveAt: now } });
+      sent++;
+    }
+    if (sent) console.log(`[Push] Proactivos enviados: ${sent} usuarios`);
+  } catch(e) {
+    console.error("[Push] sendProactiveCheckIn error:", e.message);
+  }
+};
