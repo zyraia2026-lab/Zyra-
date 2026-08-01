@@ -1799,6 +1799,10 @@ textarea.chat-ta::placeholder{color:var(--placeholder);-webkit-text-fill-color:v
 .btn-feedback:hover:not(:disabled){opacity:1;background:rgba(139,92,246,.08);transform:scale(1.15)}
 .btn-feedback:disabled{cursor:default}
 .btn-feedback.voted{opacity:1;color:var(--purple)}
+.btn-save-journal{display:block;background:none;border:none;cursor:pointer;font-size:11px;color:rgba(255,255,255,.55);opacity:0;transition:opacity .18s,transform .18s;padding:0;line-height:1;text-align:right;margin-top:4px;letter-spacing:.5px}
+.msg.user:hover .btn-save-journal{opacity:.7}
+.btn-save-journal:hover{opacity:1 !important;transform:scale(1.15)}
+.btn-save-journal[data-saved]{opacity:.9 !important;color:rgba(255,255,255,.9)}
 .prompt-chips{display:flex;flex-wrap:wrap;gap:8px;padding:4px 16px 8px}
 .prompt-chip{background:white;border:1.5px solid #ddd6f8;border-radius:20px;padding:7px 16px;font-size:12px;cursor:pointer;color:var(--purple);font-weight:600;transition:all .16s var(--ease);white-space:nowrap;box-shadow:0 2px 8px rgba(99,65,224,.07)}
 .prompt-chip:hover{background:var(--purple);color:#fff;border-color:var(--purple);transform:translateY(-2px);box-shadow:0 5px 16px rgba(99,65,224,.25)}

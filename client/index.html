@@ -7676,10 +7676,35 @@ async function loadAssistant() {
   if(currentConvId) await openConv(currentConvId); else newChat();
   zyraMaybeShowWelcome();
   setTimeout(restoreChatDraft, 200);
+  _startPlaceholderRotation();
   // Auto-focus chat input on desktop
   if (!('ontouchstart' in window)) {
     setTimeout(() => document.getElementById("chat-input")?.focus(), 350);
   }
+}
+
+const _PLACEHOLDERS = [
+  "Cuéntame lo que sea...",
+  "¿Qué está pasando hoy?",
+  "¿Cómo te sientes ahora mismo?",
+  "¿En qué te puedo acompañar?",
+  "Comparte lo que tengas en mente...",
+  "¿Hubo algo difícil hoy?",
+  "Ponme música o cuéntame algo...",
+  "¿Qué está dando vueltas en tu cabeza?",
+  "Aquí estoy, dime todo...",
+  "¿Algo bueno pasó hoy?",
+];
+let _phIdx = 0, _phTimer = null;
+function _startPlaceholderRotation() {
+  if (_phTimer) return; // ya corriendo
+  const inp = document.getElementById("chat-input");
+  if (!inp) return;
+  _phTimer = setInterval(() => {
+    if (document.activeElement === inp || inp.value) return; // no rotar si el usuario está escribiendo
+    _phIdx = (_phIdx + 1) % _PLACEHOLDERS.length;
+    inp.setAttribute("placeholder", _PLACEHOLDERS[_phIdx]);
+  }, 4000);
 }
 let _allConversations = [];
 async function loadHistory() {
@@ -8686,17 +8711,49 @@ function showResponseChips(text) {
   const msgs = document.getElementById("messages"); if (!msgs) return;
   const old = document.getElementById("prompt-chips"); if (old) old.remove();
   const tl = (text || "").toLowerCase();
-  let chips = [["💙","Cuéntame más"],["🙏","Gracias, eso ayuda"],["🤔","¿Qué puedo hacer?"],["😌","Ya me siento mejor"]];
-  if (tl.includes("respir") || tl.includes("ansiedad") || tl.includes("calma"))
-    chips = [["🌬️","Respiremos juntos"],["💙","Necesito más apoyo"],["🙏","Gracias, me ayuda"],["😌","Ya me siento mejor"]];
-  else if (tl.includes("triste") || tl.includes("solo") || tl.includes("llorar") || tl.includes("dolor"))
+
+  let chips;
+  // Música/Spotify (debe ir primero porque suele incluir otras palabras)
+  if (tl.includes("spotify") || tl.includes("canción") || tl.includes("cancion") || tl.includes("playlist") || tl.includes("artista") || tl.includes("álbum") || tl.includes("pista"))
+    chips = [["🎵","Otra canción"],["🎧","Algo más tranquilo"],["🔥","Algo más energético"],["✨","Me gustó, gracias"]];
+  else if (tl.includes("youtube") || tl.includes("video") || tl.includes("escucha"))
+    chips = [["▶️","Ponme otro video"],["💙","Cuéntame más"],["🙏","Gracias"]];
+  // Emociones difíciles
+  else if (tl.includes("ansiedad") || tl.includes("ansios") || tl.includes("nervios") || tl.includes("pánico"))
+    chips = [["🌬️","Hagamos un ejercicio de respiración"],["💙","Necesito más apoyo"],["🙏","Gracias, me ayuda"],["😌","Ya estoy mejor"]];
+  else if (tl.includes("triste") || tl.includes("llorar") || tl.includes("dolor") || tl.includes("pena"))
     chips = [["💙","Quiero hablar más de esto"],["🤗","Necesito que me escuches"],["🙏","Gracias por estar aquí"],["💪","¿Cómo salgo de esto?"]];
-  else if (tl.includes("meta") || tl.includes("objetivo") || tl.includes("logr"))
-    chips = [["🎯","Quiero crear una meta"],["💪","Dame más motivación"],["📋","¿Cómo me organizo?"],["💙","Cuéntame más"]];
-  else if (tl.includes("sueño") || tl.includes("dormir") || tl.includes("noche"))
+  else if (tl.includes("solo") || tl.includes("soledad") || tl.includes("aislad"))
+    chips = [["🤗","Quiero contarte más"],["💜","¿Qué puedo hacer?"],["🙏","Gracias"],["📅","¿Cómo conecto con otros?"]];
+  else if (tl.includes("enojad") || tl.includes("rabia") || tl.includes("furioso") || tl.includes("frustrad"))
+    chips = [["😤","Sí, estoy muy frustrad@"],["💙","Ayúdame a calmarlo"],["🗣️","Quiero desahogarme"],["🙏","Gracias"]];
+  else if (tl.includes("agotad") || tl.includes("cansad") || tl.includes("sin energía") || tl.includes("agobiado"))
+    chips = [["😴","Necesito descansar"],["⚡","Dame energía"],["💙","Cuéntame más"],["🙏","Gracias"]];
+  // Salud y sueño
+  else if (tl.includes("sueño") || tl.includes("dormir") || tl.includes("noche") || tl.includes("insomnio"))
     chips = [["🌙","No puedo dormir"],["😴","Dame un ejercicio de relajación"],["💙","Sigo con pensamientos"],["🙏","Gracias"]];
-  else if (tl.includes("music") || tl.includes("cancion") || tl.includes("playlist"))
-    chips = [["🎵","Dame otra recomendación"],["💙","Cuéntame más"],["🙏","Me gustó eso"],["😌","Ya estoy mejor"]];
+  // Trabajo y metas
+  else if (tl.includes("trabajo") || tl.includes("jefe") || tl.includes("oficina") || tl.includes("laboral"))
+    chips = [["😤","Es muy estresante"],["💡","¿Qué me recomiendas?"],["💙","Cuéntame más"],["😌","Gracias, me ayudó"]];
+  else if (tl.includes("meta") || tl.includes("objetivo") || tl.includes("logr") || tl.includes("hábito"))
+    chips = [["🎯","Quiero crear una meta"],["💪","Dame más motivación"],["📋","¿Cómo me organizo?"],["💙","Cuéntame más"]];
+  // Relaciones
+  else if (tl.includes("pareja") || tl.includes("novio") || tl.includes("novia") || tl.includes("relación") || tl.includes("amor"))
+    chips = [["💔","Quiero hablar más de esto"],["💡","¿Qué hago?"],["🤗","Necesito apoyo"],["🙏","Gracias"]];
+  else if (tl.includes("familia") || tl.includes("mamá") || tl.includes("papá") || tl.includes("hermano"))
+    chips = [["👨‍👩‍👧","Quiero contarte más"],["💙","Necesito consejo"],["🙏","Gracias por escuchar"]];
+  // Contenido de conocimiento/explicación
+  else if (tl.includes("porque") || tl.includes("explicar") || tl.includes("científic") || tl.includes("histor") || tl.includes("económ"))
+    chips = [["🤓","Cuéntame más sobre esto"],["💡","Dame otro ejemplo"],["❓","¿Por qué sucede eso?"],["👍","Entendido, gracias"]];
+  // Respira / calma
+  else if (tl.includes("respir") || tl.includes("calma") || tl.includes("medita") || tl.includes("relajación"))
+    chips = [["🌬️","Respiremos juntos"],["🧘","Dame otro ejercicio"],["💙","Necesito más apoyo"],["😌","Ya estoy mejor"]];
+  // Default contextual
+  else if (text && text.endsWith("?"))
+    chips = [["💙","Cuéntame más"],["🤔","No estoy segur@"],["✅","Sí, exactamente"],["🙏","Gracias"]];
+  else
+    chips = [["💙","Cuéntame más"],["🙏","Gracias, eso ayuda"],["🤔","¿Qué puedo hacer?"],["😌","Ya estoy mejor"]];
+
   const div = document.createElement("div");
   div.id = "prompt-chips"; div.className = "prompt-chips response-chips";
   div.innerHTML = _chipHTML(chips);
@@ -8752,9 +8809,29 @@ function addUserMsg(text, ts) {
   if(photo) { avInner = `<img src="${photo.replace(/"/g,'%22')}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`; avStyle = "background:transparent"; }
   else if(emoji) { avInner = emoji; avStyle = `background:${color}`; }
   else { avInner = init; avStyle = `background:${color}`; }
+  const encT = encodeURIComponent(text);
   div.innerHTML = `<div class="msg-av user" style="${avStyle}">${avInner}</div>
-    <div class="msg-bubble">${safeHtml(text)}<div class="msg-time">${time}</div></div>`;
+    <div class="msg-bubble">${safeHtml(text)}
+      <div class="msg-time">${time}</div>
+      <button class="btn-save-journal" onclick="saveUserMsgToJournal(this,decodeURIComponent(this.dataset.t))" data-t="${encT}" title="Guardar en diario">✦</button>
+    </div>`;
   msgs.insertBefore(div, typing); msgs.scrollTop = msgs.scrollHeight;
+}
+
+function saveUserMsgToJournal(btn, text) {
+  if (btn.dataset.saved) return;
+  btn.dataset.saved = "1";
+  btn.textContent = "✓ Guardado";
+  // Merge into the journal draft
+  try {
+    const raw = localStorage.getItem("zyra_journal_draft");
+    const draft = raw ? JSON.parse(raw) : { t: "", c: "", e: "" };
+    draft.c = draft.c ? draft.c + "\n\n" + text : text;
+    localStorage.setItem("zyra_journal_draft", JSON.stringify(draft));
+  } catch(e) {
+    localStorage.setItem("zyra_journal_draft", JSON.stringify({ t: "", c: text, e: "" }));
+  }
+  zyraToast("✦ Guardado en tu diario — ábrelo para completar 💜", "success", 3000);
 }
 
 function showTyping(show) { const t = document.getElementById("typing-indicator"); if(t) t.className = "typing"+(show?" show":""); }
