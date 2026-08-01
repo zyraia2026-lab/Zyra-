@@ -8,7 +8,7 @@ const checkoutLimiter = rateLimit({
   max: 10,
   keyGenerator: (req) => req.user?._id?.toString() || req.ip || "unknown",
   message: { message: "Demasiados intentos de pago. Espera antes de intentar de nuevo." },
-  standardHeaders: true, legacyHeaders: false, validate: { keyGenerator: false },
+  standardHeaders: true, legacyHeaders: false, validate: { keyGeneratorIpFallback: false },
 });
 
 const verifyLimiter = rateLimit({
@@ -16,7 +16,7 @@ const verifyLimiter = rateLimit({
   max: 20,
   keyGenerator: (req) => req.user?._id?.toString() || req.ip || "unknown",
   message: { message: "Demasiadas verificaciones. Espera un momento." },
-  standardHeaders: true, legacyHeaders: false, validate: { keyGenerator: false },
+  standardHeaders: true, legacyHeaders: false, validate: { keyGeneratorIpFallback: false },
 });
 
 r.post("/checkout", protect, checkoutLimiter, P.createCheckout);

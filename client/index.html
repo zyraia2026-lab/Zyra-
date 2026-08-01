@@ -8063,16 +8063,10 @@ async function toggleYTPlayer(cardEl, card, ytId) {
     if(a) a.textContent = "■ Cerrar";
     cardEl.style.borderColor = "var(--green)";
 
-    // Usar Spotify si el servidor tiene credenciales
-    if(window.SPOTIFY_ENABLED) {
-      c.innerHTML = ytLoadingHTML(card, ytId);
-      const spotHtml = await buildSpotifyPlayer(card, ytId);
-      c.innerHTML = spotHtml || spotFallbackHTML(card, ytId);
-      setTimeout(() => c.scrollIntoView({behavior:"smooth",block:"nearest"}), 100);
-      return;
-    }
-
-    c.innerHTML = buildYTPlayer(card, ytId);
+    // Spotify primero; si no encuentra la canción → YouTube como fallback
+    c.innerHTML = ytLoadingHTML(card, ytId);
+    const spotHtml = await buildSpotifyPlayer(card, ytId);
+    c.innerHTML = spotHtml || buildYTPlayer(card, ytId);
     setTimeout(() => c.scrollIntoView({behavior:"smooth",block:"nearest"}), 100);
   } else {
     c.innerHTML = ""; if(a) a.textContent = "▶ Escuchar";
@@ -8125,7 +8119,7 @@ function addBotMsg(text, ts, cards) {
         const ytId = "ytp-"+(++ytPlayerCount);
         cHTML += `<div class="card-item song" onclick="toggleYTPlayer(this,${JSON.stringify(c).replace(/"/g,"&quot;")},'${ytId}')">
           <span class="card-icon">🎵</span>
-          <div class="card-info"><div class="card-title">${safeHtml(c.title)}</div><div class="card-sub">${safeHtml(c.artist)}</div></div>
+          <div class="card-info" style="min-width:0;overflow:hidden"><div class="card-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${safeHtml(c.title)}</div><div class="card-sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${safeHtml(c.artist)}</div></div>
           <span class="card-action" id="act-${ytId}">▶ Escuchar</span>
         </div><div id="${ytId}"></div>`;
       } else if(c.type === "book") {

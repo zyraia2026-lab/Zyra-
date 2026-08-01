@@ -14,7 +14,7 @@ const chatLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => false,
-  validate: { keyGenerator: false },
+  validate: { keyGeneratorIpFallback: false },
 });
 
 r.post("/",       protect, chatLimiter, checkMessageLimit, safetyGuard, sendMessage);

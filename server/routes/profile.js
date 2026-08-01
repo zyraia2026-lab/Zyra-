@@ -28,7 +28,7 @@ const pinLimiter = rateLimit({
   message: { message: "Demasiados intentos de PIN. Espera 15 minutos." },
   standardHeaders: true,
   legacyHeaders: false,
-  validate: { keyGenerator: false },
+  validate: { keyGeneratorIpFallback: false },
 });
 
 // ── Perfil básico ──

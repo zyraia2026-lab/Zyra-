@@ -8,7 +8,7 @@ const noteLimiter = rateLimit({
   max: 10,
   keyGenerator: (req) => req.user?._id?.toString() || req.ip || "unknown",
   message: { message: "Demasiadas peticiones. Espera un momento." },
-  standardHeaders: true, legacyHeaders: false, validate: { keyGenerator: false },
+  standardHeaders: true, legacyHeaders: false, validate: { keyGeneratorIpFallback: false },
 });
 
 /* POST /api/future-notes — crear nota */
