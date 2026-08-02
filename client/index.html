@@ -2315,6 +2315,7 @@ async function b2bSubmitContact() {
     <button class="btn-sm" id="gf-habitos" onclick="filterGoalsCat('habitos')" style="font-size:11px;padding:6px 12px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">⚡ Hábitos</button>
     <button class="btn-sm" id="gf-relaciones" onclick="filterGoalsCat('relaciones')" style="font-size:11px;padding:6px 12px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">💛 Relaciones</button>
     <button class="btn-sm" id="gf-trabajo" onclick="filterGoalsCat('trabajo')" style="font-size:11px;padding:6px 12px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">💼 Trabajo</button>
+    <button class="btn-sm" id="gf-mindfulness" onclick="filterGoalsCat('mindfulness')" style="font-size:11px;padding:6px 12px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">🌊 Mindfulness</button>
     <button class="btn-sm" id="gf-personal" onclick="filterGoalsCat('personal')" style="font-size:11px;padding:6px 12px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">⭐ Personal</button>
     <button class="btn-sm" id="gf-completed" onclick="filterGoalsCat('completed')" style="font-size:11px;padding:6px 12px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">✅ Completadas</button>
   </div>
@@ -2542,7 +2543,7 @@ async function b2bSubmitContact() {
     <div style="padding:0 0 8px">
       <input id="hist-search" type="search" aria-label="Buscar en historial de conversaciones" placeholder="🔍 Buscar..." oninput="filterHistory(this.value)" style="width:100%;box-sizing:border-box;padding:7px 11px;background:var(--surface2,rgba(255,255,255,.04));border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:12px;outline:none"/>
     </div>
-    <div id="hist-list"><div class="empty" style="font-size:12px;padding:16px 0">Sin sesiones aún</div></div>
+    <div id="hist-list"><div class="empty" style="font-size:12px;padding:16px 0;text-align:center">Sin sesiones aún<br><span style="font-size:11px;opacity:.6;display:block;margin-top:4px">Tu primera conversación aparecerá aquí</span></div></div>
   </div>
   <div class="chat-box">
     <div class="chat-header">
@@ -5954,7 +5955,7 @@ function renderGoalsStats(goals) {
 }
 function filterGoalsCat(cat, silent) {
   _goalsCurrentFilter = cat;
-  ['all','bienestar','habitos','relaciones','trabajo','personal','completed'].forEach(k => {
+  ['all','bienestar','habitos','relaciones','trabajo','mindfulness','personal','completed'].forEach(k => {
     const b = document.getElementById('gf-'+k);
     if (!b) return;
     if (k === cat) { b.className = 'btn-sm accent'; b.style.cssText = 'font-size:11px;padding:6px 12px'; }
@@ -7139,6 +7140,19 @@ function selectTestOpt(idx) {
 function showTestResult() {
   const mood = TEST_Q[0].opts[testAnswers[0]]?.v || "tranquilo";
   const need = TEST_Q[7].opts[testAnswers[7]]?.v || "talk";
+
+  // Q2=sleep(0=bien,3=mal), Q3=social(0=bien,3=aislado), Q4=carga(0=ok,3=abrumado), Q5=ejercicio(0=mucho,3=ninguno)
+  const sleep    = testAnswers[1] ?? 1;
+  const social   = testAnswers[2] ?? 1;
+  const mental   = testAnswers[3] ?? 1;
+  const physical = testAnswers[4] ?? 1;
+
+  const insights = [];
+  if (sleep >= 2)    insights.push("Dormir mal le pesa al cuerpo y al ánimo — esta noche intenta acostar 30 min antes de lo normal.");
+  if (social >= 2)   insights.push("Te has sentido algo solo/a últimamente. A veces un mensaje corto a alguien que quieres cambia el día.");
+  if (mental >= 2)   insights.push("Llevas bastante en la cabeza. Sacar eso afuera — escribiéndolo o hablándolo — lo hace más manejable.");
+  if (physical >= 2) insights.push("Mover el cuerpo aunque sea 10 minutos hoy puede cambiar cómo te sientes el resto del día.");
+
   const results = {
     feliz:     {emoji:"🌟",title:"Hoy estás bien",desc:"Y eso vale. Los días buenos no son accidente — algo en ti los está construyendo. Úsalo: avanza en algo que importa, conéctate con alguien, o simplemente nótalo.",color:"#10b981"},
     tranquilo: {emoji:"🌊",title:"Estás en calma",desc:"La calma no es aburrimiento — es poder. Úsala para pensar claro, descansar de verdad, o simplemente estar. Zyra aquí si quieres hablar.",color:"#0ea5e9"},
@@ -7155,6 +7169,10 @@ function showTestResult() {
     music:      `<button class="btn-primary" style="width:auto;padding:13px 28px" onclick="showPage('wellness');setTimeout(()=>openWellness('music'),100)">🎵 Buscar música</button>`,
     movie:      `<button class="btn-primary" style="width:auto;padding:13px 28px" onclick="showPage('assistant');setTimeout(()=>{document.getElementById('chat-input').value='Recomiéndame una película para ver hoy';sendMsg();},600)">🎬 Que Zyra recomiende algo</button>`,
   };
+  const insightsHtml = insights.length ? `
+    <div style="margin:16px 0 0;padding:14px 16px;background:rgba(255,255,255,.06);border-radius:12px;text-align:left">
+      ${insights.map(i => `<div style="font-size:12px;color:rgba(255,255,255,.75);line-height:1.6;margin-bottom:6px">💡 ${i}</div>`).join("")}
+    </div>` : "";
   document.getElementById("test-page-wrap").innerHTML = `
     <div class="test-header">
       <img src="${LOGO}" class="test-header-logo" alt="Zyra"/>
@@ -7165,6 +7183,7 @@ function showTestResult() {
       <span class="test-result-emoji">${r.emoji}</span>
       <div class="test-result-title">${r.title}</div>
       <div class="test-result-desc">${r.desc}</div>
+      ${insightsHtml}
       <div class="test-result-actions">
         ${actions[need] || actions.talk}
         <button class="btn-sm" onclick="showPage('dashboard')" style="padding:13px 20px">Ir al inicio</button>
