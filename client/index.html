@@ -747,8 +747,8 @@ function closeSplash(){
       <div class="plan-icon">👑</div>
       <div class="plan-name">Premium</div>
       <div class="plan-price">
-        <span class="plan-amount" id="price-premium-amount">$24.900</span><span class="plan-period" id="price-premium-period"> COP/mes</span>
-        <div id="price-premium-alt" style="font-size:11px;color:#fbbf24;margin-top:3px">o $249.000 COP/año (ahorra 17%)</div>
+        <span class="plan-amount" id="price-premium-amount">$39.900</span><span class="plan-period" id="price-premium-period"> COP/mes</span>
+        <div id="price-premium-alt" style="font-size:11px;color:#fbbf24;margin-top:3px">o $399.000 COP/año (ahorra 17%)</div>
       </div>
       <div class="plan-desc">La experiencia Zyra completa, sin límites</div>
       <ul class="plan-features">
@@ -5862,23 +5862,42 @@ async function saveEmotion() {
     if(btn) { btn.disabled = false; btn.textContent = "Guardar Registro"; }
   }
 }
+const _MOOD_VAL = { feliz:5, motivado:5, esperanzado:4, tranquilo:4, confundido:3, ansioso:3, nostalgico:3, agotado:2, triste:2, enojado:2 };
 function renderChart(history) {
   const el = document.getElementById("emotion-chart");
   if(!history || !history.length) { el.innerHTML = '<div class="chart-empty"><span style="font-size:32px;opacity:.3">📊</span><span>Registra emociones para ver la gráfica</span></div>'; return; }
-  const last = history.slice(-14); const maxH = 120;
-  el.innerHTML = last.map(h => {
+  const last = history.slice(-14);
+  const W = 560, H = 130, PL = 8, PR = 8, PT = 12, PB = 36;
+  const cW = W - PL - PR, cH = H - PT - PB;
+  const pts = last.map((h, i) => {
+    const v = (_MOOD_VAL[h.emotion] || 3) - 1; // 0-4
+    const x = PL + (last.length === 1 ? cW/2 : i / (last.length - 1) * cW);
+    const y = PT + cH - (v / 4) * cH;
     const em = EMOTIONS.find(e => e.key === h.emotion) || EMOTIONS[1];
-    const idx = EMOTIONS.findIndex(e => e.key === h.emotion);
-    const intensity = h.intensity || 5;
-    const barH = Math.max(16, ((idx+1)/EMOTIONS.length) * maxH * (intensity/10) * 1.4);
     const date = new Date(h.date);
-    const label = date.getDate() + "/" + (date.getMonth()+1);
-    return `<div class="chart-bar-col" title="${em.label} — ${label}">
-      <div class="chart-bar" style="height:${barH}px;background:${em.color};opacity:.85"></div>
-      <div class="chart-emoji">${em.emoji}</div>
-      <div class="chart-date">${label}</div>
-    </div>`;
-  }).join("");
+    return { x, y, em, label: date.getDate()+"/"+(date.getMonth()+1) };
+  });
+  // smooth bezier path
+  let path = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 1; i < pts.length; i++) {
+    const cp = (pts[i].x - pts[i-1].x) * 0.45;
+    path += ` C ${pts[i-1].x+cp} ${pts[i-1].y}, ${pts[i].x-cp} ${pts[i].y}, ${pts[i].x} ${pts[i].y}`;
+  }
+  const fillPath = path + ` L ${pts[pts.length-1].x} ${H-PB} L ${pts[0].x} ${H-PB} Z`;
+  const dots = pts.map((p,i) => `<circle cx="${p.x}" cy="${p.y}" r="4" fill="${p.em.color}" stroke="var(--bg2)" stroke-width="2"><title>${p.em.label} (${p.label})</title></circle>`).join("");
+  const labels = pts.filter((_,i)=> last.length<=7 || i%2===0).map(p => `<text x="${p.x}" y="${H-PB+14}" text-anchor="middle" style="font-size:9px;fill:var(--text3)">${p.label}</text>`).join("");
+  const emojis = pts.map(p => `<text x="${p.x}" y="${p.y-8}" text-anchor="middle" style="font-size:11px">${p.em.emoji}</text>`).join("");
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:${H}px;display:block;overflow:visible">
+    <defs>
+      <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#6366f1" stop-opacity="0.35"/>
+        <stop offset="100%" stop-color="#6366f1" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <path d="${fillPath}" fill="url(#cg)"/>
+    <path d="${path}" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    ${dots}${emojis}${labels}
+  </svg>`;
 }
 function renderDashConvs(convs) {
   const el = document.getElementById("dash-convs");
@@ -10112,6 +10131,44 @@ let vcConvId    = null;
 let vcCurrentSong = null;
 let vcSpeaking  = false;
 let vcActive    = false; // true while voice-call page is open
+let _vcAudioCtx = null, _vcAnalyser = null, _vcWaveRAF = null, _vcMicStream = null;
+
+async function vcStartMicViz() {
+  if (_vcMicStream) return;
+  try {
+    _vcMicStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    _vcAudioCtx  = new (window.AudioContext || window.webkitAudioContext)();
+    const src    = _vcAudioCtx.createMediaStreamSource(_vcMicStream);
+    _vcAnalyser  = _vcAudioCtx.createAnalyser();
+    _vcAnalyser.fftSize = 32;
+    _vcAnalyser.smoothingTimeConstant = 0.75;
+    src.connect(_vcAnalyser);
+    const data = new Uint8Array(_vcAnalyser.frequencyBinCount);
+    const bars = document.querySelectorAll('.vc-wave-bars span');
+    const wf   = document.getElementById('vc-waveform');
+    if (wf) wf.classList.add('live');
+    (function draw() {
+      if (!_vcAnalyser) return;
+      _vcWaveRAF = requestAnimationFrame(draw);
+      _vcAnalyser.getByteFrequencyData(data);
+      bars.forEach((bar, i) => {
+        const v = data[i % data.length] / 255;
+        bar.style.height  = `${Math.round(4 + v * 26)}px`;
+        bar.style.opacity = String(0.35 + v * 0.65);
+      });
+    })();
+  } catch(e) { /* micrófono no disponible — CSS animation ya cubre el fallback */ }
+}
+
+function vcStopMicViz() {
+  if (_vcWaveRAF)  { cancelAnimationFrame(_vcWaveRAF); _vcWaveRAF = null; }
+  if (_vcMicStream){ _vcMicStream.getTracks().forEach(t => t.stop()); _vcMicStream = null; }
+  if (_vcAudioCtx) { try { _vcAudioCtx.close(); } catch(e){} _vcAudioCtx = null; }
+  _vcAnalyser = null;
+  const wf = document.getElementById('vc-waveform');
+  if (wf) wf.classList.remove('live');
+  document.querySelectorAll('.vc-wave-bars span').forEach(b => { b.style.height = ''; b.style.opacity = ''; });
+}
 
 function openVoiceCall() {
   if (!checkPlanAccess('voice')) { showUpgradePrompt('voice', 'premium'); return; }
@@ -10239,6 +10296,7 @@ function endVoiceCall() {
   destroyZyra3DAvatar();
   if(vcTimer) { clearInterval(vcTimer); vcTimer = null; }
   if(vcSR) { try { vcSR.abort(); } catch(e){} vcSR = null; }
+  vcStopMicViz();
   window.speechSynthesis.cancel();
   if(_vcAudioPlaying) { try { _vcAudioPlaying.pause(); _vcAudioPlaying.currentTime = 0; } catch(e){} _vcAudioPlaying = null; }
   vcListening = false; vcSpeaking = false;
@@ -10278,6 +10336,7 @@ function vcToggleListen() {
     vcSetListening(true);
     vcSetStatus('Escuchándote...');
     vcSetWaveLabel('Habla ahora...');
+    vcStartMicViz();
   } catch(e) {
     vcSR = null;
     vcSetWaveLabel('Error al iniciar micrófono: '+e.message);
@@ -10377,10 +10436,12 @@ function vcOnSpeakEnd(isGreeting) {
   vcSpeaking = false;
   vcSetBodyClass(false);
   vcSetStatus('En llamada');
-  vcSetWaveLabel('Toca el micrófono para hablar');
   vcSetWaveActive(false, false);
   if (!vcMuted && !vcListening) {
-    setTimeout(() => { if (!vcListening && !vcSpeaking) vcStartListening(); }, 400);
+    vcSetWaveLabel('Tu turno...');
+    setTimeout(() => { if (!vcListening && !vcSpeaking && vcActive) vcStartListening(); }, 400);
+  } else {
+    vcSetWaveLabel('Toca el micrófono para hablar');
   }
 }
 
@@ -10393,6 +10454,7 @@ function vcStartListening() {
     vcSetListening(true);
     vcSetStatus('Escuchándote...');
     vcSetWaveLabel('Habla ahora...');
+    vcStartMicViz();
   } catch(e) { console.warn('vcStartListening:', e.message); }
 }
 
@@ -10716,7 +10778,7 @@ function vcSetListening(val) {
   if(btn)  btn.classList.toggle('listening',val);
   if(icon) icon.textContent = val?'🔴':'🎤';
   if(val) vcSetWaveActive(true,false);
-  else if(!vcSpeaking) vcSetWaveActive(false,false);
+  else { vcStopMicViz(); if(!vcSpeaking) vcSetWaveActive(false,false); }
 }
 function vcSetStatus(text) { const el=document.getElementById('vc-status'); if(el) el.textContent=text; }
 function vcSetWaveLabel(text) { const el=document.getElementById('vc-wave-label'); if(el) el.textContent=text; }

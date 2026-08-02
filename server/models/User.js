@@ -38,6 +38,9 @@ const S = new mongoose.Schema({
   referralCount:      { type: Number, default: 0 },
   referralRewardUsed: { type: Boolean, default: false },
 
+  // ── Retención ──
+  nudgeSentAt: { type: Date, default: null },
+
   // ── Admin ──
   isDisabled: { type: Boolean, default: false },
   disabledAt: { type: Date, default: null },
