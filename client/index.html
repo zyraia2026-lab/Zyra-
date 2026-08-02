@@ -4699,11 +4699,29 @@ function renderStreakMap(activityDates) {
 }
 
 /* ── PDF Download (Premium) ── */
-function downloadAnalyticsPDF() {
-  const prev = document.title;
-  document.title = "Zyra — Mi Progreso Emocional";
-  window.print();
-  setTimeout(() => { document.title = prev; }, 1000);
+async function downloadAnalyticsPDF() {
+  const btn = document.querySelector('[onclick="downloadAnalyticsPDF()"]');
+  const orig = btn?.textContent;
+  if(btn) { btn.disabled = true; btn.textContent = "Generando PDF..."; }
+  try {
+    const r = await fetch("/api/report/pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) },
+      signal: AbortSignal.timeout(30000),
+    });
+    if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.message || "Error generando PDF"); }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `zyra-progreso-${new Date().toISOString().slice(0,7)}.pdf`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    zyraToast("PDF descargado ✓", "success");
+  } catch(e) {
+    zyraToast(e.message || "Error descargando PDF", "error");
+  } finally {
+    if(btn) { btn.disabled = false; btn.textContent = orig; }
+  }
 }
 
 /* ── Weekly Report ── */
@@ -5374,7 +5392,10 @@ async function loadPaymentHistory() {
     // Remove last border
     const items = list.querySelectorAll("[style*='border-bottom']");
     if (items.length) items[items.length-1].style.borderBottom = "none";
-  } catch(e) { if(card) card.style.display = "none"; }
+  } catch(e) {
+    if(card) card.style.display = "none";
+    console.warn("loadPaymentHistory:", e.message);
+  }
 }
 /* ── REFERIDOS ── */
 let _referralCode = null;
