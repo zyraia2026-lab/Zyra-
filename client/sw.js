@@ -1,6 +1,9 @@
-// ══ ZYRA SERVICE WORKER v5.1 ══
-const CACHE_NAME = 'zyra-v5';
-const STATIC_ASSETS = ['/', '/index.html', '/styles.css', '/manifest.json'];
+// ══ ZYRA SERVICE WORKER v5.2 ══
+const CACHE_NAME = 'zyra-v5.2';
+const STATIC_ASSETS = [
+  '/', '/index.html', '/styles.css', '/manifest.json',
+  '/Imagenes/1000154669.png',
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(
