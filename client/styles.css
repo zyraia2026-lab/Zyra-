@@ -21,10 +21,9 @@ a:active,
   transform: scale(0.96) !important;
 }
 
-/* Elements that animate frequently get their own GPU layer */
+/* GPU layer only for interactive controls that animate on every tap */
 button,.btn-primary,.btn-sm,.btn-xs,.btn-icon,.btn-feedback,
-.prompt-chip,.mobile-nav-btn,.game-tab,.nav-btn,.emotion-btn,
-.card,.quick-card,.conv-item,.journal-item,.habit-item{
+.prompt-chip,.mobile-nav-btn,.game-tab,.nav-btn,.emotion-btn{
   will-change: transform;
 }
 

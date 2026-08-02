@@ -3572,7 +3572,8 @@ let user  = (() => { try { return JSON.parse(localStorage.getItem("zyra_user") |
     history.replaceState({}, '', location.pathname);
   } else if (authError) {
     history.replaceState({}, '', location.pathname);
-    setTimeout(() => alert('Error al iniciar sesión: ' + decodeURIComponent(authError)), 500);
+    const _msg = decodeURIComponent(authError).replace(/[<>"']/g, "");
+    setTimeout(() => zyraToast("Error al iniciar sesión: " + _msg, "error", 6000), 800);
   }
 })();
 
@@ -3615,6 +3616,17 @@ function releaseFocus() { if (_trapCleanup) _trapCleanup(); }
 function safeHtml(str) {
   if (str == null) return "";
   return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+function sanitizeReportHtml(html) {
+  if (!html) return "";
+  return String(html)
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<iframe[\s\S]*?>/gi, "")
+    .replace(/<object[\s\S]*?>/gi, "")
+    .replace(/<embed[\s\S]*?>/gi, "")
+    .replace(/\son\w+\s*=\s*["'][^"']*["']/gi, "")
+    .replace(/\son\w+\s*=[^\s>]*/gi, "")
+    .replace(/javascript\s*:/gi, "");
 }
 
 /* ══ TOASTS & CONFIRM (reemplazo de alert/confirm) ══ */
@@ -3752,7 +3764,7 @@ async function api(path, method="GET", body=null, timeoutMs=15000) {
   return d;
 }
 async function apiPublic(path, method="GET", body=null) {
-  const opts = {method, headers:{"Content-Type":"application/json"}};
+  const opts = {method, headers:{"Content-Type":"application/json"}, signal: AbortSignal.timeout(15000)};
   if(body) opts.body = JSON.stringify(body);
   let r;
   try { r = await fetch("/api" + path, opts); }
@@ -3812,11 +3824,17 @@ function startResendTimer(p, s=60) {
   }, 1000);
 }
 async function resendCode(type) {
+  const p = type === "login" ? "vl" : "vr";
+  const link = document.getElementById(p === "vl" ? "vl-resend" : "vr-resend");
+  if(link) { link.style.pointerEvents = "none"; link.style.opacity = "0.4"; }
   try {
     await api("/auth/resend-code", "POST", {email: pendingEmail});
-    const p = type === "login" ? "vl" : "vr";
     clearCodeInputs(p); startResendTimer(p);
-  } catch(e) { zyraToast(e.message, "error"); }
+    zyraToast("Código reenviado ✓", "success");
+  } catch(e) {
+    zyraToast(e.message, "error");
+    if(link) { link.style.pointerEvents = "auto"; link.style.opacity = "1"; }
+  }
 }
 function showError(id, msg) { const e = document.getElementById(id); if(e) { e.textContent = msg; e.style.display = "block"; } }
 function hideError(id) { const e = document.getElementById(id); if(e) { e.style.display = "none"; e.textContent = ""; } }
@@ -4724,7 +4742,7 @@ async function generateWeeklyReport(force = false) {
           <span style="font-size:13px;color:var(--text3)">Emoción principal: <strong style="color:var(--accent)">${safeHtml(r.mainEmotion||"—")}</strong></span>
           ${r.cached ? '<span style="font-size:11px;color:var(--text3);background:rgba(255,255,255,.05);padding:2px 8px;border-radius:20px">Guardado</span>' : ""}
         </div>
-        <div style="font-size:14px;line-height:1.8;color:var(--text)">${r.html}</div>`;
+        <div style="font-size:14px;line-height:1.8;color:var(--text)">${sanitizeReportHtml(r.html)}</div>`;
     }
   } catch(e) {
     const msg = e.status === 403 ? "Esta función requiere Plan Básico o Premium 🔒" : e.message;
@@ -4788,7 +4806,7 @@ async function loadWeeklyReport(id) {
           <span style="font-size:13px;color:var(--text3)">Emoción principal: <strong style="color:var(--accent)">${safeHtml(r.mainEmotion||"—")}</strong></span>
           <span style="font-size:11px;color:var(--text3);background:rgba(255,255,255,.05);padding:2px 8px;border-radius:20px">Guardado</span>
         </div>
-        <div style="font-size:14px;line-height:1.8;color:var(--text)">${r.html}</div>`;
+        <div style="font-size:14px;line-height:1.8;color:var(--text)">${sanitizeReportHtml(r.html)}</div>`;
     }
   } catch(e) {
     if (body) body.innerHTML = '<div style="text-align:center;padding:40px 0;color:var(--text3)">No se pudo cargar este reporte.</div>';
@@ -5801,13 +5819,13 @@ document.addEventListener("DOMContentLoaded", () => {
   if(slider) slider.oninput = () => { document.getElementById("intensity-val").textContent = slider.value; };
   initGdprBanner();
   initPasswordToggles();
-  // Update notification badge after a short delay so token is available
   setTimeout(updateNotifBadge, 1200);
-  // Refresh badge every 5 minutes
-  setInterval(updateNotifBadge, 5 * 60 * 1000);
+  window._notifBadgeInterval = setInterval(updateNotifBadge, 5 * 60 * 1000);
 });
 async function saveEmotion() {
   if(!selectedEmotion) return zyraToast("Selecciona una emoción primero", "error");
+  const btn = document.querySelector('#emotion-form .btn-primary');
+  if(btn) { btn.disabled = true; btn.textContent = "Guardando..."; }
   const note = document.getElementById("emotion-note").value;
   const intensity = parseInt(document.getElementById("emotion-intensity").value) || 5;
   try {
@@ -5817,7 +5835,10 @@ async function saveEmotion() {
     document.getElementById("emotion-note").value = ""; selectedEmotion = "";
     document.getElementById("emotion-form").style.display = "none"; loadDashboard();
     triggerMission('log_emotion');
-  } catch(e) { zyraToast(e.message, "error"); }
+  } catch(e) {
+    zyraToast(e.message, "error");
+    if(btn) { btn.disabled = false; btn.textContent = "Guardar Registro"; }
+  }
 }
 function renderChart(history) {
   const el = document.getElementById("emotion-chart");
@@ -9618,17 +9639,21 @@ function selectMood(emotion) {
 
 async function submitMoodCheckin() {
   if (!_selectedMood) return;
+  const btn = document.getElementById("mood-submit-btn");
+  if(btn) { btn.disabled = true; btn.textContent = "Guardando..."; }
   const note = document.getElementById("mood-note-input")?.value?.trim() || "";
   try {
     await api("/profile/mood-checkin", "POST", { emotion: _selectedMood, note });
     closeMoodCheckin();
     zyraToast(`✨ Registrado — hoy te sientes ${_selectedMood}`, "success");
-    // Si el usuario está en el chat, personalizar el primer mensaje
     if (_selectedMood === "triste" || _selectedMood === "ansioso" || _selectedMood === "agotado") {
       const inp = document.getElementById("chat-input");
       if (inp && !inp.value) inp.value = `Me siento ${_selectedMood} hoy`;
     }
-  } catch(e) { zyraToast("Error guardando humor", "error"); }
+  } catch(e) {
+    zyraToast("Error guardando humor", "error");
+    if(btn) { btn.disabled = false; btn.textContent = "Guardar y continuar"; }
+  }
 }
 
 function closeMoodCheckin() {
@@ -10381,26 +10406,7 @@ async function vcSpeakBackend(clean, isGreeting) {
   }
 }
 
-// Polling periódico para obtener el video D-ID cuando esté listo
-function vcStartDIDPolling(talkId, myToken, audio) {
-  let attempts = 0;
-  const MAX = 40; // máx ~48s
-  const interval = setInterval(async () => {
-    if (vcDIDToken !== myToken || attempts++ > MAX) { clearInterval(interval); return; }
-    try {
-      const r = await fetch('/api/tts/video/' + talkId, {
-        headers: token ? { Authorization: 'Bearer ' + token } : {}
-      });
-      const d = await r.json();
-      if (d.status === 'done' && d.videoUrl) {
-        clearInterval(interval);
-        vcShowDIDVideo(d.videoUrl, myToken);
-      } else if (d.status === 'error' || d.status === 'not_found') {
-        clearInterval(interval);
-      }
-    } catch(e) { /* ignorar errores de red */ }
-  }, 1200);
-}
+function vcStartDIDPolling() { /* reservado para futura integración D-ID — ruta no activa */ }
 
 // Muestra el video D-ID (muted, solo visual lip sync) — solo si Zyra aún habla
 function vcShowDIDVideo(videoUrl, myToken) {

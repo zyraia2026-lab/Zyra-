@@ -1625,7 +1625,7 @@ exports.streamMessage = async (req, res) => {
       const built = await buildSystemPrompt(req.user._id, req.user.name, message);
       systemPrompt = built.prompt;
       _streamNegStreak = built.negStreak;
-    } catch(e) {}
+    } catch(e) { console.error("buildSystemPrompt/stream error:", e.message); }
 
     if (dailyContext) {
       systemPrompt += `\n\n📅 LO QUE PASÓ HOY (usa esto si viene al caso — no lo menciones de golpe): ${dailyContext}`;
