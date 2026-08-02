@@ -8,3 +8,6 @@ tmp_*.json
 apk-build/
 *.local
 .DS_Store
+.zyra-screenshots/
+scripts/zyra-test.js
+scripts/test-edge.js

@@ -3618,14 +3618,14 @@ function safeHtml(str) {
 }
 
 /* ══ TOASTS & CONFIRM (reemplazo de alert/confirm) ══ */
-function zyraToast(msg, type = "info", duration = 3200) {
+function zyraToast(msg, type = "info", duration = 3200, rawHtml = false) {
   const stack = document.getElementById("zyra-toast-stack");
   if (!stack) { console.log(msg); return; }
   const icons = { success: "✅", error: "⚠️", info: "💬", warning: "🟡" };
   const el = document.createElement("div");
   el.className = "zyra-toast " + type;
   el.innerHTML = `<span class="zyra-toast-icon">${icons[type]||icons.info}</span>
-    <span class="zyra-toast-msg">${safeHtml(msg)}</span>
+    <span class="zyra-toast-msg">${rawHtml ? msg : safeHtml(msg)}</span>
     <button class="zyra-toast-close" aria-label="Cerrar">✕</button>`;
   el.querySelector(".zyra-toast-close").onclick = () => removeToast(el);
   stack.appendChild(el);
@@ -7697,14 +7697,15 @@ const _PLACEHOLDERS = [
 ];
 let _phIdx = 0, _phTimer = null;
 function _startPlaceholderRotation() {
-  if (_phTimer) return; // ya corriendo
+  if (_phTimer) clearInterval(_phTimer); // reiniciar si ya corría (ej. volver al chat)
   const inp = document.getElementById("chat-input");
   if (!inp) return;
   _phTimer = setInterval(() => {
-    if (document.activeElement === inp || inp.value) return; // no rotar si el usuario está escribiendo
+    if (window._zyraCurrentPage !== "assistant") { clearInterval(_phTimer); _phTimer = null; return; }
+    if (document.activeElement === inp || inp.value) return;
     _phIdx = (_phIdx + 1) % _PLACEHOLDERS.length;
     inp.setAttribute("placeholder", _PLACEHOLDERS[_phIdx]);
-  }, 4000);
+  }, 6000); // 6s en vez de 4s — menos ansioso
 }
 let _allConversations = [];
 async function loadHistory() {
@@ -8182,10 +8183,10 @@ function ytLoadingHTML(card, id) {
       </div>
       <button class="yt-player-close" onclick="document.getElementById('${id}').innerHTML=''">✕</button>
     </div>
-    <div style="padding:28px;text-align:center;background:#0f0f0f;border-radius:0 0 16px 16px">
+    <div style="padding:28px;text-align:center;background:#0a1a0f;border-radius:0 0 16px 16px">
       <div style="display:inline-flex;align-items:center;gap:10px;color:rgba(255,255,255,.5);font-size:13px">
-        <div style="width:18px;height:18px;border:2px solid rgba(255,255,255,.2);border-top-color:#ff0000;border-radius:50%;animation:spin .8s linear infinite"></div>
-        Cargando...
+        <div style="width:18px;height:18px;border:2px solid rgba(255,255,255,.2);border-top-color:#1db954;border-radius:50%;animation:spin .8s linear infinite"></div>
+        Buscando en Spotify...
       </div>
     </div>
     <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
@@ -8837,7 +8838,7 @@ function saveUserMsgToJournal(btn, text) {
   } catch(e) {
     localStorage.setItem("zyra_journal_draft", JSON.stringify({ t: "", c: text, e: "" }));
   }
-  zyraToast("✦ Guardado en tu diario — ábrelo para completar 💜", "success", 3000);
+  zyraToast(`✦ Guardado — <span style="text-decoration:underline;cursor:pointer" onclick="showPage('journal')">Ver diario →</span>`, "success", 4000, true);
 }
 
 function showTyping(show) { const t = document.getElementById("typing-indicator"); if(t) t.className = "typing"+(show?" show":""); }
