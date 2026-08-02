@@ -1524,10 +1524,14 @@ exports.sendMessage = async (req, res) => {
       cards.push({ type:"quote", text:q.text, author:q.author });
     }
 
-    // YouTube IDs
-    cards = await Promise.all(cards.map(async card =>
-      card.type === "song" ? { ...card, videoId: card.videoId || await getVideoId(card.title, card.artist).catch(()=>null) } : card
-    ));
+    // YouTube IDs — solo si la canción NO tiene spotifyTrackId (Spotify tiene prioridad)
+    const spotifyConfigured = !!(process.env.SPOTIFY_CLIENT_ID && process.env.SPOTIFY_CLIENT_SECRET);
+    cards = await Promise.all(cards.map(async card => {
+      if (card.type !== "song") return card;
+      if (card.spotifyTrackId) return card; // ya tiene Spotify, no necesita YT
+      if (spotifyConfigured) return card;   // Spotify está activo: no agregar YT para no crear fallback falso
+      return { ...card, videoId: card.videoId || await getVideoId(card.title, card.artist).catch(()=>null) };
+    }));
 
     const msgPair = [
       { role:"user",      content:message,   timestamp:new Date() },
@@ -1848,9 +1852,14 @@ exports.streamMessage = async (req, res) => {
       cards.push({ type:"quote", text:q.text, author:q.author });
     }
 
-    cards = await Promise.all(cards.map(async card =>
-      card.type === "song" ? { ...card, videoId: card.videoId || await getVideoId(card.title, card.artist).catch(()=>null) } : card
-    ));
+    // YouTube IDs — solo si la canción NO tiene spotifyTrackId (Spotify tiene prioridad)
+    const _spotConf = !!(process.env.SPOTIFY_CLIENT_ID && process.env.SPOTIFY_CLIENT_SECRET);
+    cards = await Promise.all(cards.map(async card => {
+      if (card.type !== "song") return card;
+      if (card.spotifyTrackId) return card;
+      if (_spotConf) return card;
+      return { ...card, videoId: card.videoId || await getVideoId(card.title, card.artist).catch(()=>null) };
+    }));
 
     // ── Save to DB ──
     let conv;

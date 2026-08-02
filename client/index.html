@@ -8367,10 +8367,16 @@ async function toggleYTPlayer(cardEl, card, ytId) {
     if(a) a.textContent = "■ Cerrar";
     cardEl.style.borderColor = "var(--green)";
 
-    // Spotify primero; si no encuentra la canción → YouTube como fallback
+    // Spotify primero. Si falla y Spotify está activo → botón Spotify (NUNCA YouTube cuando Spotify está configurado)
     c.innerHTML = ytLoadingHTML(card, ytId);
     const spotHtml = await buildSpotifyPlayer(card, ytId);
-    c.innerHTML = spotHtml || buildYTPlayer(card, ytId);
+    if (spotHtml) {
+      c.innerHTML = spotHtml;
+    } else if (window.SPOTIFY_ENABLED) {
+      c.innerHTML = spotFallbackHTML(card, ytId); // Canción no encontrada en Spotify → botón de búsqueda Spotify
+    } else {
+      c.innerHTML = buildYTPlayer(card, ytId);    // Solo YouTube si Spotify no está configurado
+    }
     setTimeout(() => c.scrollIntoView({behavior:"smooth",block:"nearest"}), 100);
   } else {
     c.innerHTML = ""; if(a) a.textContent = "▶ Escuchar";
