@@ -9609,7 +9609,7 @@ async function sendMsg() {
       const d = await r.json().catch(() => ({}));
       if (d.crisis) { zyraTriggerCrisis(); chatHistory.pop(); return; }
       if (r.status === 429 || d.limitReached) {
-        addBotMsg("Ey, por hoy llegué al límite de mensajes. Si quieres seguir hablando, mejora tu plan 💜");
+        addBotMsg("Llegamos al límite de mensajes de hoy en tu plan Gratis. Si quieres seguir, el plan Básico te da 100 mensajes al día por $9.900 COP/mes. Estoy aquí cuando quieras volver 💜");
         showUpgradePrompt("messages", "basic");
         _zyraMessagesRemaining = 0; updateMsgsRemainingUI();
       } else {
@@ -10134,15 +10134,18 @@ let vcActive    = false; // true while voice-call page is open
 let _vcAudioCtx = null, _vcAnalyser = null, _vcWaveRAF = null, _vcMicStream = null;
 
 async function vcStartMicViz() {
-  if (_vcMicStream) return;
+  if (_vcWaveRAF) return; // ya animando
   try {
-    _vcMicStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-    _vcAudioCtx  = new (window.AudioContext || window.webkitAudioContext)();
-    const src    = _vcAudioCtx.createMediaStreamSource(_vcMicStream);
-    _vcAnalyser  = _vcAudioCtx.createAnalyser();
-    _vcAnalyser.fftSize = 32;
-    _vcAnalyser.smoothingTimeConstant = 0.75;
-    src.connect(_vcAnalyser);
+    // Pedir stream solo una vez por sesión
+    if (!_vcMicStream) {
+      _vcMicStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      _vcAudioCtx  = new (window.AudioContext || window.webkitAudioContext)();
+      const src    = _vcAudioCtx.createMediaStreamSource(_vcMicStream);
+      _vcAnalyser  = _vcAudioCtx.createAnalyser();
+      _vcAnalyser.fftSize = 32;
+      _vcAnalyser.smoothingTimeConstant = 0.75;
+      src.connect(_vcAnalyser);
+    }
     const data = new Uint8Array(_vcAnalyser.frequencyBinCount);
     const bars = document.querySelectorAll('.vc-wave-bars span');
     const wf   = document.getElementById('vc-waveform');
@@ -10161,6 +10164,15 @@ async function vcStartMicViz() {
 }
 
 function vcStopMicViz() {
+  // Detiene solo la animación — mantiene el stream vivo para el próximo turno
+  if (_vcWaveRAF) { cancelAnimationFrame(_vcWaveRAF); _vcWaveRAF = null; }
+  const wf = document.getElementById('vc-waveform');
+  if (wf) wf.classList.remove('live');
+  document.querySelectorAll('.vc-wave-bars span').forEach(b => { b.style.height = ''; b.style.opacity = ''; });
+}
+
+function vcTeardownMicViz() {
+  // Llamar solo al terminar la llamada — libera el stream y AudioContext
   if (_vcWaveRAF)  { cancelAnimationFrame(_vcWaveRAF); _vcWaveRAF = null; }
   if (_vcMicStream){ _vcMicStream.getTracks().forEach(t => t.stop()); _vcMicStream = null; }
   if (_vcAudioCtx) { try { _vcAudioCtx.close(); } catch(e){} _vcAudioCtx = null; }
@@ -10296,7 +10308,7 @@ function endVoiceCall() {
   destroyZyra3DAvatar();
   if(vcTimer) { clearInterval(vcTimer); vcTimer = null; }
   if(vcSR) { try { vcSR.abort(); } catch(e){} vcSR = null; }
-  vcStopMicViz();
+  vcTeardownMicViz();
   window.speechSynthesis.cancel();
   if(_vcAudioPlaying) { try { _vcAudioPlaying.pause(); _vcAudioPlaying.currentTime = 0; } catch(e){} _vcAudioPlaying = null; }
   vcListening = false; vcSpeaking = false;
@@ -12495,9 +12507,12 @@ async function loadPlanStatus() {
 function updateMsgsRemainingUI() {
   const el = document.getElementById('chat-msgs-remaining');
   if (!el) return;
-  if (_zyraMessagesRemaining === null || _zyraMessagesRemaining === undefined) { el.textContent = ''; return; }
-  el.textContent = _zyraMessagesRemaining + ' mensajes restantes hoy';
-  el.style.color = _zyraMessagesRemaining <= 3 ? '#ef4444' : 'var(--text3)';
+  const n = _zyraMessagesRemaining;
+  if (n === null || n === undefined || n > 5) { el.innerHTML = ''; return; }
+  if (n <= 0) { el.innerHTML = ''; return; }
+  const color = n <= 2 ? '#ef4444' : n <= 4 ? '#f59e0b' : 'var(--text3)';
+  const uplink = n <= 3 ? ` · <a href="#" onclick="event.preventDefault();showPage('planes')" style="color:var(--accent);text-decoration:none;font-weight:600">Ampliar plan</a>` : '';
+  el.innerHTML = `<span style="color:${color}">${n} mensaje${n !== 1 ? 's' : ''} restante${n !== 1 ? 's' : ''} hoy${uplink}</span>`;
 }
 
 function checkPlanAccess(feature) {
@@ -12514,36 +12529,39 @@ function checkPlanAccess(feature) {
 }
 
 function showUpgradePrompt(feature, requiredPlan) {
-  const planNames = { basic: 'Básico', premium: 'Premium ✦' };
-  const featureNames = {
-    voice: 'Llamadas de voz con Zyra',
-    emergencyContact: 'Contacto de emergencia',
-    export: 'Exportar tus datos',
-    messages: 'Mensajes ilimitados',
-    report: 'Reportes en PDF',
-    pdf: 'Exportar PDF del diario',
-    goals: 'Más metas activas',
-    journal: 'Más entradas de diario',
-    conversations: 'Más conversaciones guardadas',
+  const isPremium = requiredPlan === 'premium';
+  const featureCopy = {
+    voice:            { icon:'📞', title:'Llamada de voz con Zyra', desc:'Habla con Zyra en tiempo real como si fuera una llamada. Sin escribir — solo hablar.' },
+    emergencyContact: { icon:'🆘', title:'Contacto de emergencia', desc:'Agrega a alguien de confianza. Si Zyra detecta una crisis, te ayuda a avisarle.' },
+    export:           { icon:'📤', title:'Exportar tus datos', desc:'Todos tus registros, conversaciones y diario en un archivo tuyo, para siempre.' },
+    messages:         { icon:'💬', title:'Más mensajes con Zyra', desc:'Ya usaste los mensajes de hoy. Con el plan Básico tienes 100 al día.' },
+    report:           { icon:'📊', title:'Reportes en PDF', desc:'Tu semana emocional completa, con análisis de IA, lista para compartir o guardar.' },
+    pdf:              { icon:'📄', title:'Exportar PDF del diario', desc:'Guarda tus entradas de diario en PDF — bonito, ordenado, tuyo.' },
+    goals:            { icon:'🎯', title:'Más metas activas', desc:'Con el plan Básico puedes tener hasta 10 metas activas al mismo tiempo.' },
+    journal:          { icon:'📔', title:'Más entradas de diario', desc:'Alcanzaste el límite del plan Gratis. Con Básico, 30 entradas al mes.' },
+    conversations:    { icon:'🗂', title:'Más conversaciones', desc:'Con el plan Básico guardas todas tus conversaciones con Zyra.' },
   };
-  const fname = featureNames[feature] || feature;
-  const pname = planNames[requiredPlan] || requiredPlan;
-  // Show upgrade modal
+  const fc = featureCopy[feature] || { icon:'🔒', title: feature, desc:'Disponible en un plan superior.' };
+  const planLabel = isPremium ? 'Premium ✦' : 'Básico';
+  const planPrice = isPremium ? '$39.900/mes' : '$9.900/mes';
+  const planColor = isPremium ? '#f59e0b' : 'var(--accent)';
   const existing = document.getElementById('zyra-upgrade-modal');
   if (existing) existing.remove();
   const modal = document.createElement('div');
   modal.id = 'zyra-upgrade-modal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px';
   modal.innerHTML = `
-    <div style="background:var(--surface);border-radius:20px;padding:32px;max-width:360px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4)">
-      <div style="font-size:40px;margin-bottom:12px">🔒</div>
-      <h3 style="margin:0 0 8px;font-size:18px;color:var(--text)">Esto no está en tu plan actual</h3>
-      <p style="color:var(--text3);font-size:14px;line-height:1.6;margin-bottom:24px">
-        <strong style="color:var(--text)">${fname}</strong> está en el plan <strong style="color:var(--accent)">${pname}</strong>. Súbete cuando quieras.
-      </p>
+    <div style="background:var(--surface);border-radius:24px;padding:32px 28px;max-width:360px;width:100%;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.5);border:1px solid var(--border)">
+      <div style="font-size:44px;margin-bottom:12px">${fc.icon}</div>
+      <h3 style="margin:0 0 8px;font-size:18px;color:var(--text);font-weight:700">${fc.title}</h3>
+      <p style="color:var(--text3);font-size:14px;line-height:1.65;margin-bottom:20px">${fc.desc}</p>
+      <div style="background:rgba(99,102,241,.07);border:1px solid var(--border);border-radius:14px;padding:14px 18px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between">
+        <span style="color:var(--text2);font-size:13px">Plan <strong style="color:${planColor}">${planLabel}</strong></span>
+        <span style="color:${planColor};font-weight:700;font-size:15px">${planPrice}</span>
+      </div>
       <div style="display:flex;gap:10px">
-        <button onclick="document.getElementById('zyra-upgrade-modal').remove()" style="flex:1;padding:12px;border:1px solid var(--border);border-radius:10px;background:transparent;color:var(--text3);cursor:pointer;font-size:14px">Cancelar</button>
-        <button onclick="document.getElementById('zyra-upgrade-modal').remove();showPage('planes')" style="flex:1;padding:12px;border:none;border-radius:10px;background:var(--accent);color:#fff;cursor:pointer;font-size:14px;font-weight:600">Ver planes →</button>
+        <button onclick="document.getElementById('zyra-upgrade-modal').remove()" style="flex:1;padding:13px;border:1px solid var(--border);border-radius:12px;background:transparent;color:var(--text3);cursor:pointer;font-size:14px">Ahora no</button>
+        <button onclick="document.getElementById('zyra-upgrade-modal').remove();showPage('planes')" style="flex:2;padding:13px;border:none;border-radius:12px;background:${isPremium?'linear-gradient(135deg,#f59e0b,#d97706)':'var(--accent)'};color:#fff;cursor:pointer;font-size:14px;font-weight:700">Ver planes →</button>
       </div>
     </div>`;
   document.body.appendChild(modal);
@@ -12570,16 +12588,16 @@ function toggleBilling() {
     if (basicAmt) basicAmt.textContent = '$99.000';
     if (basicPer) basicPer.textContent = ' COP/año';
     if (basicAlt) basicAlt.textContent = 'o $9.900 COP/mes';
-    if (premAmt)  premAmt.textContent  = '$249.000';
+    if (premAmt)  premAmt.textContent  = '$399.000';
     if (premPer)  premPer.textContent  = ' COP/año';
-    if (premAlt)  premAlt.textContent  = 'o $24.900 COP/mes';
+    if (premAlt)  premAlt.textContent  = 'o $39.900 COP/mes';
   } else {
     if (basicAmt) basicAmt.textContent = '$9.900';
     if (basicPer) basicPer.textContent = ' COP/mes';
     if (basicAlt) basicAlt.textContent = 'o $99.000 COP/año';
-    if (premAmt)  premAmt.textContent  = '$24.900';
+    if (premAmt)  premAmt.textContent  = '$39.900';
     if (premPer)  premPer.textContent  = ' COP/mes';
-    if (premAlt)  premAlt.textContent  = 'o $249.000 COP/año (ahorra 17%)';
+    if (premAlt)  premAlt.textContent  = 'o $399.000 COP/año (ahorra 17%)';
   }
 }
 
