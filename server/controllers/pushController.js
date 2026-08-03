@@ -388,3 +388,63 @@ exports.sendSundayReflection = async () => {
     console.error("[Push] sendSundayReflection error:", e.message);
   }
 };
+
+/* ─── Seguimiento de memorias con fechas próximas ─── */
+exports.sendMemoryFollowUps = async () => {
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
+  try {
+    const Memory = require("../models/Memory");
+    const now    = new Date();
+    const colNow = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+    const hour   = colNow.getUTCHours();
+
+    // Solo entre 18:00 y 18:04 Colombia
+    if (hour !== 18 || colNow.getUTCMinutes() > 4) return;
+
+    const tomorrow  = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const dayAfter  = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+
+    // Memorias con followUpDate mañana o pasado, no notificadas aún
+    const pending = await Memory.find({
+      followUpDate: { $gte: tomorrow, $lte: dayAfter },
+      followUpDone: false,
+    }).select("user content followUpDate").lean();
+
+    if (!pending.length) return;
+
+    const subs = await PushSub.find({}).select("user").lean();
+    const subSet = new Set(subs.map(s => s.user.toString()));
+
+    const byUser = {};
+    pending.forEach(m => {
+      const uid = m.user.toString();
+      if (!subSet.has(uid)) return;
+      if (!byUser[uid]) byUser[uid] = [];
+      byUser[uid].push(m);
+    });
+
+    let sent = 0;
+    for (const [uid, mems] of Object.entries(byUser)) {
+      const first = mems[0];
+      // Truncar el contenido para la notificación
+      const shortContent = first.content.length > 80 ? first.content.substring(0, 77) + "..." : first.content;
+      const followDate   = new Date(first.followUpDate);
+      const isToday      = followDate.toDateString() === now.toDateString();
+      const isTomorrow   = followDate.toDateString() === tomorrow.toDateString();
+      const whenStr      = isToday ? "hoy" : isTomorrow ? "mañana" : "pronto";
+
+      await sendToUser(uid, {
+        title: `Zyra se acordó 💜`,
+        body:  `Me contaste algo sobre esto que pasa ${whenStr}: ${shortContent}`,
+        icon:  "/Imagenes/1000154669.png",
+        badge: "/Imagenes/1000154669.png",
+        tag:   "zyra-followup",
+        data:  { url: "/?p=assistant" },
+      });
+      sent++;
+    }
+    if (sent) console.log(`[Push] Follow-up de memorias enviado: ${sent} usuarios`);
+  } catch(e) {
+    console.error("[Push] sendMemoryFollowUps error:", e.message);
+  }
+};

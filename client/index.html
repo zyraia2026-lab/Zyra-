@@ -9677,7 +9677,7 @@ function finalizeBotMsgStream(div, text, cards, convId, msgsLeft) {
         <button class="btn-feedback" onclick="saveMsgToJournal(decodeURIComponent(this.dataset.t))" data-t="${encodeURIComponent(text)}" title="Guardar en diario" style="color:#8b5cf6;border-color:rgba(139,92,246,.3)">📔</button>
       </div>`;
   }
-  if (convId && convId !== String(currentConvId)) { currentConvId = String(convId); loadHistory(); }
+  if (convId && convId !== String(currentConvId)) { currentConvId = String(convId); loadHistory(); setTimeout(loadHistory, 2000); }
   if (msgsLeft !== undefined && msgsLeft !== null) { _zyraMessagesRemaining = msgsLeft; updateMsgsRemainingUI(); }
 }
 

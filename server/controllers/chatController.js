@@ -1606,6 +1606,7 @@ exports.sendMessage = async (req, res) => {
         const title = message.length > 60 ? message.substring(0,57)+"..." : message;
         conv = await Conversation.create({ user:req.user._id, title, messages:msgPair }).catch(()=>null);
         await Profile.findOneAndUpdate({ user:req.user._id }, { $inc:{ sessionsCount:1 }, lastSession:new Date() }).catch(()=>{});
+        generateConvTitle(conv?._id, message, cleanText).catch(()=>{});
       }
       // Extraer memorias de forma asíncrona (no bloquea la respuesta)
       extractAndSaveMemories(req.user._id, req.user.name, message, cleanText).catch(() => {});
@@ -1625,6 +1626,38 @@ exports.sendMessage = async (req, res) => {
     res.status(500).json({ message: "Error interno: " + e.message });
   }
 };
+
+/* ── Generar título de conversación con IA (async, fire & forget) ── */
+async function generateConvTitle(convId, userMsg, botReply) {
+  if (!groq || !convId) return;
+  try {
+    const snippet = botReply.substring(0, 150).replace(/\n/g, " ");
+    const r = await groq.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      messages: [{
+        role: "user",
+        content: `Eres un asistente que genera títulos cortos para conversaciones de bienestar emocional.
+
+Usuario dijo: "${userMsg.substring(0, 200)}"
+Respuesta del asistente: "${snippet}"
+
+Crea un título de 3 a 6 palabras en español que describa de qué trata esta conversación.
+REGLAS:
+- Sin comillas ni puntos finales
+- Sin palabras vacías como "Conversación sobre" o "Hablando de"
+- Concreto y descriptivo: "Ansiedad antes del examen", "Pelea con mi mamá", "Rutina matutina nueva"
+- Si es muy genérico, usa algo como "Charla de bienestar" o "Apoyo emocional"
+Responde SOLO con el título, nada más.`
+      }],
+      temperature: 0.4,
+      max_tokens: 30,
+    });
+    const title = (r.choices[0]?.message?.content || "").trim().replace(/^["']|["']$/g, "").substring(0, 80);
+    if (title.length > 3) {
+      await Conversation.updateOne({ _id: convId }, { title }).catch(() => {});
+    }
+  } catch (_) {}
+}
 
 /* ════════════════════════════════════════
    STREAM MESSAGE (SSE)
@@ -1916,6 +1949,7 @@ exports.streamMessage = async (req, res) => {
           const title = message.length > 60 ? message.substring(0,57)+"..." : message;
           conv = await Conversation.create({ user:req.user._id, title, messages:msgPair }).catch(()=>null);
           await Profile.findOneAndUpdate({ user:req.user._id }, { $inc:{ sessionsCount:1 }, lastSession:new Date() }).catch(()=>{});
+          generateConvTitle(conv?._id, message, cleanText).catch(()=>{});
         }
       }
       extractAndSaveMemories(req.user._id, req.user.name, message, cleanText).catch(()=>{});

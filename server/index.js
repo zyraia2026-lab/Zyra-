@@ -152,6 +152,7 @@ setInterval(() => {
   pc.sendDailyReminders().catch(() => {});
   pc.sendProactiveCheckIn().catch(() => {});
   pc.sendSundayReflection().catch(() => {});
+  pc.sendMemoryFollowUps().catch(() => {});
 }, 60_000);
 
 // ── Cron: reportes semanales cada lunes a las 9:00am Colombia (UTC-5 = 14:00 UTC)
