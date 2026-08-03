@@ -39,6 +39,7 @@ const REWARDS = [
   { id: "theme_midnight",label: "Tema Medianoche",   emoji: "🌌", cost: 60,  type: "theme" },
   { id: "frame_glow",    label: "Marco Resplandor",  emoji: "✨", cost: 70,  type: "frame" },
   { id: "frame_rainbow", label: "Marco Arcoíris",    emoji: "🌈", cost: 90,  type: "frame" },
+  { id: "streak_freeze", label: "Congelador de Racha", emoji: "🧊", cost: 50, type: "consumable", desc: "Protege tu racha si fallas un día. Se usa automáticamente." },
 ];
 
 exports.DAILY_MISSIONS = DAILY_MISSIONS;
@@ -83,7 +84,7 @@ function checkAchievements(p, newStreak, newCoins, completedMissions, journalCou
 /* GET /api/gamification/status */
 exports.getStatus = async (req, res) => {
   try {
-    let p = await Profile.findOne({ user: req.user._id }).select("streakDays coins equippedBadge missionsCompletedToday missionsResetAt achievements unlockedItems").lean();
+    let p = await Profile.findOne({ user: req.user._id }).select("streakDays coins equippedBadge missionsCompletedToday missionsResetAt achievements unlockedItems streakFreezes").lean();
     if (!p) p = (await Profile.create({ user: req.user._id })).toObject();
 
     const needsReset = isMissionsReset(p);
@@ -94,6 +95,7 @@ exports.getStatus = async (req, res) => {
       completed: completedToday.includes(m.id),
     }));
 
+    const freezes = p.streakFreezes || 0;
     res.json({
       success: true,
       streak:        p.streakDays || 0,
@@ -102,6 +104,7 @@ exports.getStatus = async (req, res) => {
       missions,
       missionsCompleted: completedToday.length,
       missionsTotal:     DAILY_MISSIONS.length,
+      streakFreezes: freezes,
       achievements: ACHIEVEMENTS.map(a => ({ ...a, earned: (p.achievements || []).includes(a.id) })),
       rewards:      REWARDS.map(r => ({ ...r, unlocked: (p.unlockedItems || []).includes(r.id) })),
     });
@@ -111,7 +114,7 @@ exports.getStatus = async (req, res) => {
 /* POST /api/gamification/visit  — llamar al abrir la app (actualiza racha) */
 exports.recordVisit = async (req, res) => {
   try {
-    let p = await Profile.findOne({ user: req.user._id }).select("streakDays lastActiveDate coins sessionsCount achievements missionsCompletedToday missionsResetAt").lean();
+    let p = await Profile.findOne({ user: req.user._id }).select("streakDays lastActiveDate coins sessionsCount achievements missionsCompletedToday missionsResetAt streakFreezes unlockedItems").lean();
     if (!p) p = (await Profile.create({ user: req.user._id })).toObject();
 
     const now  = new Date();
@@ -121,11 +124,23 @@ exports.recordVisit = async (req, res) => {
     let streak = p.streakDays || 0;
     let coinsEarned = 0;
     let streakReset = false;
+    let freezeUsed  = false;
     const previousStreak = streak;
 
+    // Streak freeze: consumable stored in streakFreezes count
+    // Synced from unlockedItems purchases - each purchase of streak_freeze adds 1
+    const freezes = p.streakFreezes || 0;
+
     if (diff === null || diff > 1) {
-      streakReset = streak >= 3; // only meaningful if they had a real streak
-      streak = 1; // reset o primer día
+      if (diff === 2 && freezes > 0) {
+        // Missed exactly one day — use a freeze to protect the streak
+        freezeUsed = true;
+        streak += 1; // count the frozen day as a streak continuation
+        coinsEarned = 5;
+      } else {
+        streakReset = streak >= 3;
+        streak = 1;
+      }
     } else if (diff === 1) {
       streak += 1;
       coinsEarned = 5; // bonus día consecutivo
@@ -150,6 +165,7 @@ exports.recordVisit = async (req, res) => {
       sessionsCount:  (p.sessionsCount || 0) + (diff !== 0 ? 1 : 0),
       updatedAt:      now,
     };
+    if (freezeUsed) update.streakFreezes = Math.max(0, freezes - 1);
     // Reset misiones si es nuevo día
     if (isMissionsReset(p)) {
       update.missionsCompletedToday = [];
@@ -164,6 +180,8 @@ exports.recordVisit = async (req, res) => {
       coinsEarned: coinsEarned + achBonus,
       newAchievements: fresh.map(id => ACHIEVEMENTS.find(a => a.id === id)).filter(Boolean),
       streakReset,
+      freezeUsed,
+      streakFreezes: freezeUsed ? Math.max(0, freezes - 1) : freezes,
       previousStreak: streakReset ? previousStreak : undefined,
     });
   } catch(e) { res.status(500).json({ message: e.message }); }
@@ -226,6 +244,22 @@ exports.redeemReward = async (req, res) => {
   try {
     const reward = REWARDS.find(r => r.id === req.params.id);
     if (!reward) return res.status(400).json({ message: "Recompensa desconocida" });
+
+    // Consumables (streak_freeze) can be bought multiple times — increment counter
+    if (reward.type === "consumable") {
+      const p = await Profile.findOne({ user: req.user._id }).select("coins streakFreezes").lean();
+      if (!p) return res.status(404).json({ message: "Perfil no encontrado" });
+      if ((p.coins || 0) < reward.cost) {
+        return res.status(403).json({ notEnoughCoins: true, need: reward.cost, have: p.coins || 0,
+          message: `Necesitas ${reward.cost} monedas. Tienes ${p.coins || 0}.` });
+      }
+      const updated = await Profile.findOneAndUpdate(
+        { user: req.user._id, coins: { $gte: reward.cost } },
+        { $inc: { coins: -reward.cost, streakFreezes: 1 }, updatedAt: new Date() },
+        { new: true }
+      ).select("coins streakFreezes").lean();
+      return res.json({ success: true, reward, newCoins: updated.coins, streakFreezes: updated.streakFreezes });
+    }
 
     // Atomic: only deduct coins if the item isn't already unlocked AND coins >= cost
     const extraFields = reward.type === "theme" ? { theme: reward.id.replace("theme_", "") } : {};

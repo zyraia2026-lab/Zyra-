@@ -2067,6 +2067,7 @@ async function b2bSubmitContact() {
           <div class="streak-mile" id="sm-14">🌙 14</div>
           <div class="streak-mile" id="sm-30">👑 30</div>
         </div>
+        <div id="streak-freeze-badge" style="display:none;margin-top:8px;font-size:11px;color:rgba(99,182,255,.9);font-weight:700">🧊 <span id="streak-freeze-count">0</span> congelador<span id="streak-freeze-plural">es</span> de racha</div>
       </div>
       <button class="btn-sm" style="margin-top:12px;width:100%;font-size:12px" onclick="openRewardsShop()">🛍️ Tienda de recompensas</button>
     </div>
@@ -3909,16 +3910,17 @@ function showPage(name) {
   const authPages = ['landing','login','register','verify-login','verify-register','forgot-password','reset-password'];
   const fab = document.getElementById("fab-qn");
   if (fab) fab.classList.toggle("visible", !authPages.includes(name));
-  if(name === "dashboard") { loadDashboard(); setTimeout(loadGamification, 300); setTimeout(updateNotifBadge, 600); }
-  if(name === "assistant") { loadAssistant(); setTimeout(showDailyCheckin, 900); setTimeout(updateNotifBadge, 600); }
-  if(name === "goals")     { loadGoals(); }
-  if(name === "planes")    setTimeout(function(){ if(typeof loadPlanesPage==="function") loadPlanesPage(); }, 150);
-  if(name === "journal")   { loadJournal(); loadFutureNotes(); }
-  if(name === "wellness")  loadWellness();
-  if(name === "profile")   loadProfile();
-  if(name === "analytics") loadAnalytics();
-  if(name === "admin")     loadAdminPanel();
-  if(name === "games")     { setTimeout(() => openGame(window._currentGame || 'breath'), 50); }
+  if(name === "dashboard")    { loadDashboard(); setTimeout(loadGamification, 300); setTimeout(updateNotifBadge, 600); }
+  if(name === "assistant")    { loadAssistant(); setTimeout(showDailyCheckin, 900); setTimeout(updateNotifBadge, 600); }
+  if(name === "goals")        { loadGoals(); }
+  if(name === "planes")       setTimeout(function(){ if(typeof loadPlanesPage==="function") loadPlanesPage(); }, 150);
+  if(name === "journal")      { loadJournal(); loadFutureNotes(); }
+  if(name === "wellness")     loadWellness();
+  if(name === "profile")      loadProfile();
+  if(name === "analytics")    loadAnalytics();
+  if(name === "admin")        loadAdminPanel();
+  if(name === "games")        { setTimeout(() => openGame(window._currentGame || 'breath'), 50); }
+  if(name === "weekly-report") { showPage("planes"); setTimeout(() => { if(typeof openWeeklyReport==="function") openWeeklyReport(); }, 400); return; }
 
   // ── Tabbar móvil: mostrar/ocultar y marcar activo ──
   const noTabPages = ['landing','login','register','verify-login','verify-register','voice-call','forgot-password','reset-password','admin'];
@@ -4805,6 +4807,9 @@ async function generateWeeklyReport(force = false) {
   try {
     const d = await api(`/weekly-report/generate${force ? "?force=1" : ""}`, "POST");
     const r = d.report;
+    // Mark report as viewed for this week's notification
+    localStorage.setItem("zyra_report_viewed_" + _thisWeekMonday(), "1");
+    setTimeout(updateNotifBadge, 300);
     if(label) {
       const wOf = new Date(r.weekOf);
       const wEnd = new Date(wOf.getTime() + 7*86400000);
@@ -6735,6 +6740,8 @@ async function addJournalEntry() {
     clearJournalFilter();
     loadJournal();
     triggerMission('write_journal');
+    localStorage.setItem("zyra_journal_saved_" + new Date().toDateString(), "1");
+    renderWellbeingScore();
   } catch(e) {
     if (e.status === 403 && e.data?.limitReached) { showUpgradePrompt('journal', 'basic'); }
     else zyraToast(e.message, "error");
@@ -13420,6 +13427,12 @@ async function loadGamification() {
     renderGamification(status);
 
     // Welcome back toast when streak was reset
+    if (visitData?.freezeUsed && !sessionStorage.getItem('zyra_freeze_shown')) {
+      const remaining = visitData.streakFreezes ?? 0;
+      setTimeout(() => zyraToast(`🧊 Congelador de racha usado — tu racha de ${visitData.streak} días sobrevivió. ${remaining > 0 ? `Te quedan ${remaining}.` : 'Ya no tienes más.'}`, 'info', 5500), 1500);
+      sessionStorage.setItem('zyra_freeze_shown', '1');
+    }
+
     if (visitData?.streakReset && !sessionStorage.getItem('zyra_comeback_shown')) {
       const prev = visitData.previousStreak || 0;
       const msgs = [
@@ -13482,6 +13495,17 @@ function renderGamification(s) {
     const el = document.getElementById('sm-' + n);
     if (el) el.classList.toggle('reached', s.streak >= n);
   });
+
+  // Streak freeze indicator
+  const fbadge = document.getElementById('streak-freeze-badge');
+  const fcount = document.getElementById('streak-freeze-count');
+  const fplural = document.getElementById('streak-freeze-plural');
+  if (fbadge && fcount) {
+    const fr = s.streakFreezes || 0;
+    fbadge.style.display = fr > 0 ? '' : 'none';
+    fcount.textContent = fr;
+    if (fplural) fplural.textContent = fr === 1 ? '' : 'es';
+  }
 
   // Missions
   const ml = document.getElementById('missions-list');
@@ -13632,8 +13656,19 @@ async function openRewardsShop() {
     const grid = document.getElementById('rewards-grid');
     if (grid) {
       const equipped = s.equippedBadge || "";
+      const freezeCount = s.streakFreezes || 0;
       grid.innerHTML = s.rewards.map(r => {
         const isEquipped = r.type === "badge" && equipped === r.id;
+        if (r.type === "consumable") {
+          return `
+          <div class="reward-card" onclick="redeemReward('${r.id}')" style="cursor:pointer;position:relative">
+            ${freezeCount > 0 ? `<div style="position:absolute;top:6px;right:8px;background:var(--accent);color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:8px">×${freezeCount}</div>` : ""}
+            <div class="r-emoji">${r.emoji}</div>
+            <div class="r-name">${r.label}</div>
+            <div style="font-size:10px;color:var(--text3);margin:3px 0 6px;line-height:1.4">${r.desc || ''}</div>
+            <div class="r-cost">🪙 ${r.cost}</div>
+          </div>`;
+        }
         return `
         <div class="reward-card ${r.unlocked ? 'owned' : ''}" onclick="${r.unlocked ? '' : `redeemReward('${r.id}')`}" style="${r.unlocked ? 'cursor:default' : 'cursor:pointer'}">
           <div class="r-emoji">${r.emoji}</div>
@@ -13659,7 +13694,11 @@ async function redeemReward(rewardId) {
   try {
     const d = await api('/gamification/redeem/' + rewardId, 'POST');
     if (d.alreadyOwned) { zyraToast('Ya tienes este ítem', 'info'); return; }
-    zyraToast('¡Desbloqueado! 🎉 -' + (_gamifStatus?.rewards?.find(r=>r.id===rewardId)?.cost||'?') + '🪙', 'success');
+    if (rewardId === 'streak_freeze') {
+      zyraToast(`🧊 Congelador de racha x${d.streakFreezes} — se usa automáticamente si fallas un día.`, 'success', 4000);
+    } else {
+      zyraToast('¡Desbloqueado! 🎉 -' + (_gamifStatus?.rewards?.find(r=>r.id===rewardId)?.cost||'?') + '🪙', 'success');
+    }
     await openRewardsShop();
     const cc = document.getElementById('nav-coins-count');
     if (cc) cc.textContent = d.newCoins;
@@ -15225,6 +15264,13 @@ function renderWellbeingScore() {
   try { if (gratitude && JSON.parse(gratitude).length > 0) gratDone = true; } catch(e) {}
   checks.push({ label: "🙏 Gratitud", done: gratDone, nav: "showPage('wellness');setTimeout(()=>openWellness('gratitude'),100)" });
 
+  const challengeDone = !!localStorage.getItem("zyra_challenge_done_" + today);
+  checks.push({ label: "⚡ Reto", done: challengeDone, nav: "showPage('dashboard')" });
+
+  const journalDraft = localStorage.getItem("zyra_journal_saved_" + today);
+  if (journalDraft) checks.push({ label: "📔 Diario", done: true, nav: "showPage('journal')" });
+  else checks.push({ label: "📔 Diario", done: false, nav: "showPage('journal');setTimeout(toggleJournalForm,200)" });
+
   if (checks.length === 0) { wrap.style.display = "none"; return; }
 
   let score = 0;
@@ -15778,6 +15824,14 @@ function renderJournalTagCloud() {
 /* ══════════════════════════════════════════
    NOTIFICATION BELL SYSTEM
 ══════════════════════════════════════════ */
+function _thisWeekMonday() {
+  const d = new Date();
+  const day = d.getDay();
+  d.setDate(d.getDate() - day + (day === 0 ? -6 : 1));
+  d.setHours(0, 0, 0, 0);
+  return d.toDateString();
+}
+
 function computeNotifs() {
   if (!token) return [];
   const notifs = [];
@@ -15813,6 +15867,15 @@ function computeNotifs() {
   try { if (gratStr && JSON.parse(gratStr).length > 0) gratDone = true; } catch(e) {}
   if (!gratDone && h >= 18) {
     notifs.push({ icon: "🙏", text: "3 cosas por las que estar agradecido/a — termina el día con eso.", action: "showPage('wellness');setTimeout(()=>openWellness('gratitude'),100);closeNotifPanel()" });
+  }
+
+  // Weekly report notification (basic/premium only, show Mon-Wed while fresh)
+  const dow = today.getDay();
+  if ((user?.plan === "basic" || user?.plan === "premium") && dow >= 1 && dow <= 3) {
+    const mondayStr = _thisWeekMonday();
+    if (!localStorage.getItem("zyra_report_viewed_" + mondayStr)) {
+      notifs.push({ icon: "📊", text: "Tu reporte semanal de Zyra está listo. ¿Cómo fue tu semana?", action: "closeNotifPanel();showPage('planes');setTimeout(()=>openWeeklyReport(),400)" });
+    }
   }
 
   return notifs;

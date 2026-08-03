@@ -147,8 +147,7 @@ exports.sendDailyReminders = async () => {
       let reSent = 0;
       for (const p of inactiveProfiles) {
         if (!subUserIds.has(p.user.toString())) continue;
-        const pool = p.currentEmotion && EMO_MESSAGES[p.currentEmotion] ? EMO_MESSAGES[p.currentEmotion] : RE_MSGS;
-        const msg  = pool[Math.floor(Math.random() * pool.length)];
+        const msg  = RE_MSGS[Math.floor(Math.random() * RE_MSGS.length)];
         await sendToUser(p.user, {
           title: "Zyra te extraña 💜",
           body:  msg,
@@ -307,5 +306,71 @@ exports.sendProactiveCheckIn = async () => {
     if (sent) console.log(`[Push] Proactivos enviados: ${sent} usuarios`);
   } catch(e) {
     console.error("[Push] sendProactiveCheckIn error:", e.message);
+  }
+};
+
+/* ─── Domingo nocturno: reflexión de la semana ─── */
+exports.sendSundayReflection = async () => {
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
+  try {
+    const now    = new Date();
+    const colNow = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+    const hour   = colNow.getUTCHours();
+    const dow    = colNow.getUTCDay();
+    if (dow !== 0 || hour !== 20 || colNow.getUTCMinutes() > 4) return;
+
+    const subs = await PushSub.find({}).select("user").lean();
+    if (!subs.length) return;
+    const userIds = subs.map(s => s.user);
+
+    const profiles = await Profile.find({ user: { $in: userIds } })
+      .select("user emotionHistory lastSundayReflectionAt streakDays").lean();
+
+    const DEDUP_HOURS = 22;
+    const SUNDAY_MSGS = [
+      { title: "¿Cómo fue tu semana? 🌙", body: "Tomaste decisiones, viviste momentos. Vale la pena pausar y contarlos." },
+      { title: "Cierre de semana 💜", body: "Antes de que llegue el lunes: ¿qué fue lo más valioso de esta semana?" },
+      { title: "Una semana más 🌿", body: "¿Qué aprendiste de ti mismo/a esta semana? Tu diario te espera." },
+      { title: "Reflexión dominical ✨", body: "Las semanas pasan rápido. Pausa un momento — ¿cómo te fue?" },
+    ];
+
+    let sent = 0;
+    for (const p of profiles) {
+      if (p.lastSundayReflectionAt) {
+        const diffH = (now - new Date(p.lastSundayReflectionAt)) / (1000 * 60 * 60);
+        if (diffH < DEDUP_HOURS) continue;
+      }
+
+      const history = Array.isArray(p.emotionHistory) ? p.emotionHistory : [];
+      const weekAgo = new Date(now.getTime() - 7 * 86400000);
+      const weekEntries = history.filter(e => new Date(e.date) >= weekAgo);
+
+      let title, body;
+      if (weekEntries.length >= 5) {
+        title = "Tu semana en Zyra 📊";
+        body  = `Registraste ${weekEntries.length} días esta semana. Tu reporte semanal llega mañana 💜`;
+      } else if ((p.streakDays || 0) >= 7) {
+        title = `¡${p.streakDays} días seguidos! 🔥`;
+        body  = "Una semana más de racha. ¿Cómo cierras el domingo?";
+      } else {
+        const m = SUNDAY_MSGS[Math.floor(Math.random() * SUNDAY_MSGS.length)];
+        title = m.title;
+        body  = m.body;
+      }
+
+      await sendToUser(p.user, {
+        title, body,
+        icon:  "/Imagenes/1000154669.png",
+        badge: "/Imagenes/1000154669.png",
+        tag:   "zyra-sunday",
+        data:  { url: "/?p=journal" },
+      });
+
+      await Profile.updateOne({ _id: p._id }, { $set: { lastSundayReflectionAt: now } });
+      sent++;
+    }
+    if (sent) console.log(`[Push] Reflexión dominical enviada: ${sent} usuarios`);
+  } catch(e) {
+    console.error("[Push] sendSundayReflection error:", e.message);
   }
 };

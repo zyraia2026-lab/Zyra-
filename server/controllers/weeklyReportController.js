@@ -197,7 +197,8 @@ exports.getOne = async (req, res) => {
 
 /* ── Cron: generar reportes automáticos cada lunes ── */
 exports.cronGenerateAll = async () => {
-  const User = require("../models/User");
+  const User      = require("../models/User");
+  const { sendToUser } = require("./pushController");
   const users = await User.find({ plan: { $in: ["basic","premium"] } }).select("_id name email").lean();
   console.log(`📊 Generando reportes semanales para ${users.length} usuarios...`);
   let ok = 0;
@@ -217,6 +218,21 @@ exports.cronGenerateAll = async () => {
         if (process.env.EMAIL_USER) {
           await sendWeeklyReport(u.email, u.name, html, data).catch(() => {});
         }
+        // Push notification: report is ready
+        const firstName = (u.name || "").split(" ")[0] || "hola";
+        const topEmo = data.topEmotion || "";
+        const EMO_LABELS = { feliz:"feliz", tranquilo:"tranquilo/a", ansioso:"ansioso/a", triste:"con tristeza", enojado:"enojado/a", confundido:"confundido/a", esperanzado:"esperanzado/a", agotado:"agotado/a", motivado:"motivado/a", nostalgico:"nostálgico/a" };
+        const body = topEmo && EMO_LABELS[topEmo]
+          ? `Tu semana en resumen: tu emoción más frecuente fue "${EMO_LABELS[topEmo]}". Lee el análisis completo.`
+          : "Tu resumen semanal está listo. Revisa cómo fue tu semana.";
+        await sendToUser(u._id, {
+          title: "📊 Tu reporte semanal llegó",
+          body,
+          icon:  "/Imagenes/1000154669.png",
+          badge: "/Imagenes/1000154669.png",
+          tag:   "zyra-weekly-report",
+          data:  { url: "/?p=weekly-report" },
+        }).catch(() => {});
         ok++;
       }
     } catch(e) { console.error(`Report error for ${u._id}:`, e.message); }
