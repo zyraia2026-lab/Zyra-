@@ -43,6 +43,8 @@ const S = new mongoose.Schema({
   reminderHour:       { type: Number, default: 9 },   // hora 0-23
   reminderMinute:     { type: Number, default: 0 },
   lastReminderSentAt: { type: Date, default: null },
+  lastProactiveAt:    { type: Date, default: null },
+  lastSundayReflectionAt: { type: Date, default: null },
 
   // ── Personalización ──
   theme: { type: String, enum: ["default","ocean","forest","sunset","midnight"], default: "default" },
