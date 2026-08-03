@@ -120,8 +120,11 @@ exports.recordVisit = async (req, res) => {
 
     let streak = p.streakDays || 0;
     let coinsEarned = 0;
+    let streakReset = false;
+    const previousStreak = streak;
 
     if (diff === null || diff > 1) {
+      streakReset = streak >= 3; // only meaningful if they had a real streak
       streak = 1; // reset o primer día
     } else if (diff === 1) {
       streak += 1;
@@ -160,6 +163,8 @@ exports.recordVisit = async (req, res) => {
       streak,
       coinsEarned: coinsEarned + achBonus,
       newAchievements: fresh.map(id => ACHIEVEMENTS.find(a => a.id === id)).filter(Boolean),
+      streakReset,
+      previousStreak: streakReset ? previousStreak : undefined,
     });
   } catch(e) { res.status(500).json({ message: e.message }); }
 };

@@ -13387,6 +13387,21 @@ async function loadGamification() {
     _gamifStatus = status;
     renderGamification(status);
 
+    // Welcome back toast when streak was reset
+    if (visitData?.streakReset && !sessionStorage.getItem('zyra_comeback_shown')) {
+      const prev = visitData.previousStreak || 0;
+      const msgs = [
+        `Volviste. Eso es lo que importa — no los días que faltaste.`,
+        `Aquí estás de nuevo. No se perdió todo — solo tomaste un descanso.`,
+        `La racha se rompe, el hábito no. Bienvenido/a de vuelta 💜`,
+      ];
+      const msg = prev >= 14 ? `Tenías ${prev} días. Pero volviste — y eso es lo que importa.`
+                : prev >= 7  ? `Tu racha de ${prev} días se pausó. Hoy empieza una nueva. 💪`
+                : msgs[prev % msgs.length];
+      setTimeout(() => zyraToast(msg, 'info', 5000), 1500);
+      sessionStorage.setItem('zyra_comeback_shown', '1');
+    }
+
     // Show new achievement toasts + profile dot
     if (visitData?.newAchievements?.length) {
       const STREAK_ACH_MAP = { streak_3:3, streak_7:7, streak_14:14, streak_30:30 };
