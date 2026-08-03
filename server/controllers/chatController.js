@@ -788,7 +788,7 @@ const FACTUAL_RE = /\b(cómo funciona|explícame|qué es|qué son|cómo se (hace
 
 function detectMessageMode(text) {
   if (FACTUAL_RE.test(text)) return "factual";
-  const emoRE = /\b(triste|ansioso|ansiosa|mal|muy mal|pesado|agotado|agotada|sola|solo|llorar|llorando|angustia|miedo|pánico|deprimido|deprimida|no puedo más|no aguanto|me duele|me siento)\b/i;
+  const emoRE = /\b(triste|ansioso|ansiosa|mal|muy mal|pesado|agotado|agotada|sola|solo|llorar|llorando|angustia|miedo|pánico|deprimido|deprimida|no puedo más|no aguanto|me duele|me siento|bajoneado|bajoneada|estresado|estresada|frustrado|frustrada|abrumado|abrumada|desesperado|desesperada|cansado|cansada|me está costando|lo estoy pasando mal|necesito hablar|me tiene mal|no sé qué hacer|me siento perdido|me siento perdida|vacío|vacía|me cuesta|me rompe|me parte)\b/i;
   if (emoRE.test(text)) return "emotional";
   return "casual";
 }
@@ -874,10 +874,23 @@ async function buildSystemPrompt(userId, userName, message = "") {
   const currentEmotion = profile?.currentEmotion || null;
   if (currentEmotion) memoryBlock += `\n- Estado emocional actual: ${currentEmotion}`;
 
+  // Check if user explicitly logged an emotion today (Colombia time)
+  const todayColStr = new Date(new Date().getTime() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const emotionHistory = profile?.emotionHistory?.slice(-7) || [];
+  const todayLog = emotionHistory.find(h =>
+    new Date(new Date(h.date).getTime() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10) === todayColStr
+  );
+  if (todayLog) {
+    memoryBlock += `\n- Emoción que registró HOY: ${todayLog.emotion}${todayLog.note ? ` ("${todayLog.note}")` : ""}. Úsalo si la conversación va ahí — no lo saques de golpe.`;
+  }
   if (emotionHistory.length > 0) {
-    const summary = emotionHistory.map(e => `${e.emotion}${e.note ? ` ("${e.note}")` : ""}`).join(", ");
-    memoryBlock += `\n- Historial emocional reciente: ${summary}`;
+    const pastLogs = emotionHistory.filter(h =>
+      new Date(new Date(h.date).getTime() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10) !== todayColStr
+    );
+    if (pastLogs.length > 0) {
+      const summary = pastLogs.map(e => `${e.emotion}${e.note ? ` ("${e.note}")` : ""}`).join(", ");
+      memoryBlock += `\n- Historial emocional reciente: ${summary}`;
+    }
   }
 
   // ── Patrones por día de semana (detectados del historial completo) ──
@@ -889,11 +902,13 @@ async function buildSystemPrompt(userId, userName, message = "") {
     const dayBuckets = Array.from({length:7}, () => ({t:0, n:0}));
     const hourCounts = Array(24).fill(0);
     fullHistory.forEach(h => {
-      const d = new Date(h.date); dayBuckets[d.getDay()].t += POS.has(h.emotion)?1:NEG.has(h.emotion)?-1:0; dayBuckets[d.getDay()].n++;
-      hourCounts[d.getHours()]++;
+      const dCol = new Date(new Date(h.date).getTime() - 5 * 60 * 60 * 1000);
+      const dow = dCol.getUTCDay();
+      dayBuckets[dow].t += POS.has(h.emotion)?1:NEG.has(h.emotion)?-1:0; dayBuckets[dow].n++;
+      hourCounts[dCol.getUTCHours()]++;
     });
     const valid = dayBuckets.map((b,i) => b.n >= 3 ? {day:DAYS_ES[i], score:b.t/b.n, idx:i} : null).filter(Boolean);
-    const todayDow = new Date().getDay();
+    const todayDow = new Date(new Date().getTime() - 5 * 60 * 60 * 1000).getUTCDay();
     if (valid.length >= 2) {
       const best  = valid.reduce((a,b) => b.score > a.score ? b : a);
       const worst = valid.reduce((a,b) => b.score < a.score ? b : a);
@@ -989,12 +1004,13 @@ async function buildSystemPrompt(userId, userName, message = "") {
     memoryBlock += `\n\n════ LO QUE RECUERDAS DE ${firstName.toUpperCase()} ════\n${persistentMemories}`;
   }
 
-  // ── Hora, fecha y momento del día ──
+  // ── Hora, fecha y momento del día (zona horaria Colombia UTC-5) ──
   {
     const now = new Date();
-    const h = now.getHours();
-    const timeStr = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
-    const dateStr = now.toLocaleDateString('es-CO', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    const colNow = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+    const h = colNow.getUTCHours();
+    const timeStr = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'America/Bogota' });
+    const dateStr = now.toLocaleDateString('es-CO', { weekday:'long', year:'numeric', month:'long', day:'numeric', timeZone: 'America/Bogota' });
     const period = h < 6 ? 'madrugada' : h < 12 ? 'mañana' : h < 18 ? 'tarde' : 'noche';
     memoryBlock = `\n- Fecha y hora actual: ${dateStr}, ${timeStr} (${period} en Colombia). Usa la fecha para entender referencias a eventos recientes ("hoy", "este año", "ayer", etc.). NUNCA menciones la hora ni el período del día espontáneamente — solo si el usuario lo menciona.` + memoryBlock;
   }
@@ -1392,15 +1408,6 @@ exports.sendMessage = async (req, res) => {
     if (!rawResponse) {
       rawResponse = "Ey, aquí estoy. ¿Qué está pasando?";
     }
-
-    try {
-      const alreadyMentioned = (history || []).some(m =>
-        m.role === "assistant" && m.content?.includes("noto que esta semana")
-      );
-      if (_negStreak >= 3 && !alreadyMentioned && !rawResponse.toLowerCase().includes("semana")) {
-        rawResponse = `Oye, noto que esta semana ha estado pesada varios días seguidos — eso no es fácil. ${rawResponse}`;
-      }
-    } catch(_) {}
 
     let cleanText = "";
     let cards = [];
