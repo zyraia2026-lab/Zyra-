@@ -864,7 +864,7 @@ async function getReasoningContext(message) {
 ════════════════════════════════════════ */
 async function buildSystemPrompt(userId, userName, message = "") {
   const [profile, goals, journals] = await Promise.all([
-    Profile.findOne({ user: userId }).select("currentEmotion emotionHistory negativeStreakCount sessionsCount streakDays achievements").lean().catch(() => null),
+    Profile.findOne({ user: userId }).select("currentEmotion emotionHistory negativeStreakCount sessionsCount streakDays achievements onboardingReason").lean().catch(() => null),
     Goal.find({ user: userId }).sort({ createdAt:-1 }).limit(10).select("title completed").lean().catch(() => []),
     Journal.find({ user: userId }).sort({ createdAt:-1 }).limit(3).select("title content _id").lean().catch(() => []),
   ]);
@@ -964,6 +964,11 @@ async function buildSystemPrompt(userId, userName, message = "") {
     }
   }
 
+  if (profile?.onboardingReason) {
+    const REASON_MAP = { ansiedad:"manejar la ansiedad", tristeza:"superar la tristeza", motivacion:"encontrar motivación", hablar:"tener a alguien con quien hablar", habitos:"construir buenos hábitos", otro:"algo personal" };
+    const reasonLabel = REASON_MAP[profile.onboardingReason] || profile.onboardingReason;
+    memoryBlock += `\n- Por qué empezó a usar Zyra: ${reasonLabel}. Úsalo si viene al caso — no lo saques forzado.`;
+  }
   if (profile?.sessionsCount > 0) {
     memoryBlock += `\n- Lleva ${profile.sessionsCount} sesiones usando Zyra`;
   }

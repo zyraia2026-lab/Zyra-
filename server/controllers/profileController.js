@@ -13,7 +13,7 @@ exports.getProfile = async (req, res) => {
 // ── UPDATE perfil básico ──
 exports.updateProfile = async (req, res) => {
   try {
-    const allowed = ["bio","photoUrl","avatarEmoji","avatarColor","currentEmotion","theme","onboardingDone","reminderEnabled","reminderHour","reminderMinute"];
+    const allowed = ["bio","photoUrl","avatarEmoji","avatarColor","currentEmotion","theme","onboardingDone","onboardingReason","reminderEnabled","reminderHour","reminderMinute"];
     const update = {};
     allowed.forEach(k => { if (req.body[k] !== undefined) update[k] = req.body[k]; });
 

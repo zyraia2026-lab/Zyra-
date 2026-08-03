@@ -47,7 +47,8 @@ const S = new mongoose.Schema({
   theme: { type: String, enum: ["default","ocean","forest","sunset","midnight"], default: "default" },
 
   // ── Onboarding ──
-  onboardingDone: { type: Boolean, default: false },
+  onboardingDone:   { type: Boolean, default: false },
+  onboardingReason: { type: String, default: "" }, // ansiedad|tristeza|motivacion|hablar|habitos|otro
 
   // ── Eventos de crisis (para historial interno) ──
   crisisEvents: [{ message: String, timestamp: { type: Date, default: Date.now } }],
