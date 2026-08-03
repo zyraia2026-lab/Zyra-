@@ -262,6 +262,12 @@ exports.sendProactiveCheckIn = async () => {
       const recent = [...history].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
       const negStreak = recent.filter(e => NEGATIVE_EMOS.has(e.emotion)).length >= 3;
 
+      // ── Detectar semana emocionalmente positiva (5+ positivas en últimos 7 días) ──
+      const POSITIVE_EMOS = new Set(["feliz","tranquilo","esperanzado","motivado"]);
+      const weekAgoMs = now.getTime() - 7 * 86400000;
+      const weekEntries = history.filter(e => new Date(e.date).getTime() >= weekAgoMs);
+      const posWeek = weekEntries.filter(e => POSITIVE_EMOS.has(e.emotion)).length >= 5;
+
       // ── Construir mensaje ──
       let title, body;
       if (dowPattern) {
@@ -277,6 +283,15 @@ exports.sendProactiveCheckIn = async () => {
       } else if (negStreak) {
         title = "Oye, ¿cómo estás? 💜";
         body  = "Llevas unos días difíciles. No tienes que estarlo sola/o — aquí estoy si quieres hablar.";
+      } else if (posWeek) {
+        // Semana emocionalmente fuerte — celebrar sin exagerar
+        const POS_WEEK_MSGS = [
+          "Esta semana has estado bien. En serio. ¿Lo sientes tú también? 🌟",
+          "Tu semana ha tenido buena energía. Me alegra verte así 💙",
+          "Cinco días con buen ánimo no es casualidad — algo estás haciendo bien 🌿",
+        ];
+        title = "Qué semana tan buena ✨";
+        body  = POS_WEEK_MSGS[Math.floor(Math.random() * POS_WEEK_MSGS.length)];
       } else {
         // Check-in de mañana sin patrón especial — solo enviar a ~30% para no saturar
         if (Math.random() > 0.30) continue;
@@ -299,7 +314,6 @@ exports.sendProactiveCheckIn = async () => {
         data:  { url: "/?p=assistant" },
       });
 
-      // Actualizar lastProactiveAt sin cambiar esquema — MongoDB acepta campos extra
       await Profile.updateOne({ _id: p._id }, { $set: { lastProactiveAt: now } });
       sent++;
     }
