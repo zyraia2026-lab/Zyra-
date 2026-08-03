@@ -6709,9 +6709,22 @@ function renderJournal(entries, updateCache = true) {
         ${em?`<span class="badge purple">${em.emoji} ${em.label}</span>`:""}
         <span style="color:var(--text3);font-size:11px">${(e.content||"").trim().split(/\s+/).filter(Boolean).length} palabras</span>
         ${((e.content||"").match(/#\w+/g)||[]).slice(0,3).map(tag=>`<span style="font-size:10px;color:var(--accent);background:rgba(99,102,241,.1);border-radius:20px;padding:2px 7px;font-weight:700">${safeHtml(tag)}</span>`).join("")}
+        <button onclick="talkZyraAboutEntry(${JSON.stringify(e.title||'')},${JSON.stringify((e.content||'').substring(0,400))})" style="background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);color:var(--accent);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;cursor:pointer;transition:all .15s" title="Hablar con Zyra sobre esta entrada">💬 Hablar con Zyra</button>
       </div>
     </div>`;
   }).join("");
+}
+function talkZyraAboutEntry(title, content) {
+  const snippet = content.length > 200 ? content.substring(0, 197) + "..." : content;
+  const msg = title
+    ? `Escribí esto en mi diario: "${title}"\n\n${snippet}\n\nAyúdame a reflexionar sobre esto.`
+    : `Escribí esto en mi diario:\n\n${snippet}\n\nAyúdame a reflexionar sobre esto.`;
+  newChat();
+  showPage("assistant");
+  setTimeout(() => {
+    const inp = document.getElementById("chat-input");
+    if (inp) { inp.value = msg; onInput(); }
+  }, 300);
 }
 function timeAgo(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -7959,12 +7972,29 @@ function filterHistory(q) {
   const filtered = q ? _allConversations.filter(c => c.title?.toLowerCase().includes(q.toLowerCase())) : _allConversations;
   renderHistory(filtered);
 }
+function _fmtConvAge(dateStr) {
+  if (!dateStr) return "";
+  const diffMs  = Date.now() - new Date(dateStr).getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffH   = Math.floor(diffMs / 3600000);
+  const diffD   = Math.floor(diffMs / 86400000);
+  if (diffMin < 1)  return "ahora";
+  if (diffMin < 60) return diffMin + " min";
+  if (diffH   < 24) return diffH   + " h";
+  if (diffD   === 1) return "ayer";
+  if (diffD   < 7)  return diffD + "d";
+  if (diffD   < 30) return Math.floor(diffD/7) + "sem";
+  return Math.floor(diffD/30) + "mes";
+}
 function renderHistory(convs) {
   const el = document.getElementById("hist-list");
   if(!convs.length) { el.innerHTML = '<div class="empty" style="font-size:12px;padding:16px 0">Sin sesiones aún</div>'; return; }
   el.innerHTML = convs.map(c => `
     <div class="hist-item ${c._id===currentConvId?"active":""}" onclick="openConv('${c._id}')">
-      <span class="hist-title" ondblclick="startRenameConv(event,'${c._id}',this)" title="Doble clic para renombrar">${safeHtml(c.title)}</span>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:4px;min-width:0">
+        <span class="hist-title" ondblclick="startRenameConv(event,'${c._id}',this)" title="Doble clic para renombrar" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${safeHtml(c.title)}</span>
+        <span style="font-size:10px;color:var(--text3);white-space:nowrap;flex-shrink:0">${_fmtConvAge(c.updatedAt)}</span>
+      </div>
       <button class="hist-del" onclick="delConv(event,'${c._id}')">×</button>
     </div>`).join("");
 }
