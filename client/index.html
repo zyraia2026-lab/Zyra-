@@ -2453,7 +2453,7 @@ async function b2bSubmitContact() {
       <div class="add-form" id="add-journal-form">
         <div class="form-row">
           <input type="text" id="journal-title" placeholder="Título de la entrada (opcional)" oninput="savejournalDraft()"/>
-          <select id="journal-emotion" onchange="savejournalDraft()">
+          <select id="journal-emotion" onchange="savejournalDraft();injectJournalMoodPrompts()">
             <option value="">Sin emoción</option>
             <option value="feliz">😊 Feliz</option>
             <option value="tranquilo">😌 Tranquilo</option>
@@ -5645,6 +5645,7 @@ async function loadDashboard() {
     renderQuickEmoPicker(p.currentEmotion);
     applyStreakBadge(p.streakDays || 0);
     const goals = Array.isArray(gd?.goals) ? gd.goals : (Array.isArray(gd) ? gd : []);
+    _goalsAllItems = goals;
     const entries = Array.isArray(jd?.entries) ? jd.entries : (Array.isArray(jd) ? jd : []);
     animateCount("st-sessions", p.sessionsCount || 0);
     animateCount("st-goals", goals.filter(g => !g.completed).length);
@@ -5743,13 +5744,16 @@ function renderParaTiHoy(emotion, history, streak) {
   const h = new Date().getHours();
   const timeSlot = h < 12 ? "mañana" : h < 17 ? "tarde" : h < 21 ? "noche" : "madrugada";
   const RECS = {
-    ansioso: { icon:"🌬️", title:"Respira conmigo", desc:"La ansiedad se calma con la respiración 4-7-8. Solo 2 minutos.", btn:"Empezar respiración", action:"showPage('wellness');setTimeout(()=>openWellness('breath'),100)", color:"rgba(99,102,241,.08)", border:"rgba(99,102,241,.2)" },
-    triste:  { icon:"🧘", title:"Un momento contigo", desc:"La meditación ayuda cuando la tristeza pesa. Aquí tienes una.", btn:"Ir a meditación", action:"showPage('wellness');setTimeout(()=>openWellness('meditation'),100)", color:"rgba(139,92,246,.08)", border:"rgba(139,92,246,.2)" },
-    enojado: { icon:"📔", title:"Escribe lo que sientes", desc:"El diario es el mejor lugar para soltar lo que carga.", btn:"Abrir mi diario", action:"showPage('journal');setTimeout(toggleJournalForm,200)", color:"rgba(239,68,68,.07)", border:"rgba(239,68,68,.18)" },
-    agotado: { icon:"😴", title:"Regístra cómo dormiste", desc:"El cansancio y el sueño están conectados. ¿Cómo fue tu descanso?", btn:"Ir a sueño", action:"showPage('wellness');setTimeout(()=>openWellness('sleep'),100)", color:"rgba(245,158,11,.08)", border:"rgba(245,158,11,.2)" },
-    motivado: { icon:"🎯", title:"Aprovecha esta energía", desc:"Estás motivado/a — es el mejor momento para avanzar en una meta.", btn:"Ver mis metas", action:"showPage('goals')", color:"rgba(16,185,129,.08)", border:"rgba(16,185,129,.2)" },
-    feliz:   { icon:"🙏", title:"Anota tu gratitud", desc:"Los días buenos merecen ser reconocidos. Escribe 3 cosas.", btn:"Ir a gratitud", action:"showPage('wellness');setTimeout(()=>openWellness('gratitude'),100)", color:"rgba(16,185,129,.08)", border:"rgba(16,185,129,.2)" },
-    confundido: { icon:"💬", title:"Habla con Zyra", desc:"Cuando no sabes qué pasa, ayuda ponerlo en palabras.", btn:"Hablar con Zyra", action:"showPage('assistant')", color:"rgba(99,102,241,.08)", border:"rgba(99,102,241,.2)" },
+    ansioso:     { icon:"🌬️", title:"Respira conmigo", desc:"La ansiedad se calma con la respiración 4-7-8. Solo 2 minutos.", btn:"Empezar respiración", action:"showPage('wellness');setTimeout(()=>openWellness('breath'),100)", color:"rgba(99,102,241,.08)", border:"rgba(99,102,241,.2)" },
+    triste:      { icon:"🧘", title:"Un momento contigo", desc:"La meditación ayuda cuando la tristeza pesa. Aquí tienes una.", btn:"Ir a meditación", action:"showPage('wellness');setTimeout(()=>openWellness('meditation'),100)", color:"rgba(139,92,246,.08)", border:"rgba(139,92,246,.2)" },
+    enojado:     { icon:"📔", title:"Escribe lo que sientes", desc:"El diario es el mejor lugar para soltar lo que carga.", btn:"Abrir mi diario", action:"showPage('journal');setTimeout(toggleJournalForm,200)", color:"rgba(239,68,68,.07)", border:"rgba(239,68,68,.18)" },
+    agotado:     { icon:"😴", title:"Registra cómo dormiste", desc:"El cansancio y el sueño están conectados. ¿Cómo fue tu descanso?", btn:"Ir a sueño", action:"showPage('wellness');setTimeout(()=>openWellness('sleep'),100)", color:"rgba(245,158,11,.08)", border:"rgba(245,158,11,.2)" },
+    motivado:    { icon:"🎯", title:"Aprovecha esta energía", desc:"Estás motivado/a — es el mejor momento para avanzar en una meta.", btn:"Ver mis metas", action:"showPage('goals')", color:"rgba(16,185,129,.08)", border:"rgba(16,185,129,.2)" },
+    feliz:       { icon:"🙏", title:"Anota tu gratitud", desc:"Los días buenos merecen ser reconocidos. Escribe 3 cosas.", btn:"Ir a gratitud", action:"showPage('wellness');setTimeout(()=>openWellness('gratitude'),100)", color:"rgba(16,185,129,.08)", border:"rgba(16,185,129,.2)" },
+    confundido:  { icon:"💬", title:"Habla con Zyra", desc:"Cuando no sabes qué pasa, ayuda ponerlo en palabras.", btn:"Hablar con Zyra", action:"showPage('assistant')", color:"rgba(99,102,241,.08)", border:"rgba(99,102,241,.2)" },
+    tranquilo:   { icon:"📔", title:"Un buen momento para escribir", desc:"La calma es perfecta para reflexionar. ¿Qué quieres recordar de hoy?", btn:"Abrir mi diario", action:"showPage('journal');setTimeout(toggleJournalForm,200)", color:"rgba(16,185,129,.06)", border:"rgba(16,185,129,.18)" },
+    esperanzado: { icon:"🎯", title:"Transforma esa esperanza", desc:"Cuando hay esperanza, es el momento ideal para comprometerte con una meta.", btn:"Ver mis metas", action:"showPage('goals')", color:"rgba(251,146,60,.08)", border:"rgba(251,146,60,.2)" },
+    nostalgico:  { icon:"📔", title:"Ponlo en palabras", desc:"La nostalgia trae recuerdos que valen la pena guardar. Escríbelos hoy.", btn:"Abrir mi diario", action:"showPage('journal');setTimeout(toggleJournalForm,200)", color:"rgba(139,92,246,.07)", border:"rgba(139,92,246,.2)" },
   };
   const defaultByTime = {
     mañana: { icon:"🌅", title:"Empieza con intención", desc:"Un buen día empieza antes del mediodía. ¿Cuál es tu intención de hoy?", btn:"Escribir intención", action:"document.getElementById('daily-intention-input')?.focus()", color:"rgba(251,146,60,.08)", border:"rgba(251,146,60,.2)" },
@@ -5883,6 +5887,7 @@ async function quickLogEmotion(key) {
     const dot = document.getElementById('emotion-checkin-dot');
     if (dot) dot.style.display = 'none';
     renderQuickEmoPicker(key);
+    renderParaTiHoy(key, [], _gamifStatus?.streak || 0);
     if (typeof triggerMission === 'function') triggerMission('log_emotion');
     zyraToast(em.emoji + ' ' + em.label + ' registrado', 'success');
     setTimeout(() => showZyraEmotionReaction(key), 800);
@@ -6483,7 +6488,8 @@ const JOURNAL_PROMPTS = {
 function injectJournalMoodPrompts() {
   const wrap = document.getElementById("journal-mood-prompts");
   if (!wrap) return;
-  const emo = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString());
+  const dropVal = document.getElementById("journal-emotion")?.value;
+  const emo = dropVal || localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString());
   const prompts = JOURNAL_PROMPTS[emo] || ["¿Qué fue lo más significativo de hoy?", "¿Qué aprendí hoy?", "¿Qué agradezco de este día?"];
   wrap.style.display = "flex";
   wrap.innerHTML = prompts.map(p => `<button onclick="useJournalPrompt(${JSON.stringify(p)})" style="font-size:11px;padding:5px 10px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">✍️ ${p}</button>`).join("");
@@ -9868,6 +9874,8 @@ async function sendMsg() {
   if (localStorage.getItem("zyra_journal_saved_" + _today)) _dcParts.push("Escribió en el diario hoy");
   const _grat = (() => { try { return JSON.parse(localStorage.getItem("zyra_gratitude_" + _today) || "[]"); } catch(e) { return []; } })();
   if (_grat.length > 0) _dcParts.push(`Gratitud de hoy: "${_grat[0]}"${_grat.length > 1 ? ` y ${_grat.length - 1} más` : ""}`);
+  const _intention = localStorage.getItem("zyra_intention_" + _today);
+  if (_intention) _dcParts.push(`Su intención de hoy: "${_intention}"`);
   const dailyContext = _dcParts.join(". ");
 
   try {
@@ -10665,6 +10673,8 @@ async function vcSendMessage(text) {
     if (_vcWater) _vcDcParts.push(`Agua: ${_vcWater}/8 vasos`);
     if (localStorage.getItem("zyra_challenge_done_" + _vcToday)) _vcDcParts.push("Completó el reto del día");
     if (localStorage.getItem("zyra_journal_saved_" + _vcToday)) _vcDcParts.push("Escribió en el diario hoy");
+    const _vcIntention = localStorage.getItem("zyra_intention_" + _vcToday);
+    if (_vcIntention) _vcDcParts.push(`Su intención de hoy: "${_vcIntention}"`);
     const vcDailyCtx = _vcDcParts.join(". ") || undefined;
     const d = await api('/chat','POST',{message:text,conversationId:vcConvId,history:vcHistoryPayload,mode:'voice',dailyContext:vcDailyCtx});
 
@@ -11297,6 +11307,7 @@ async function quickEmotionSelect(emotion) {
     if(stEi) stEi.textContent=emojiMap[emotion]||'😌';
     const dot=document.getElementById('emotion-checkin-dot'); if(dot) dot.style.display='none';
     renderQuickEmoPicker(emotion);
+    renderParaTiHoy(emotion, [], _gamifStatus?.streak || 0);
   } catch(e){}
 }
 function closeQuickEmotion() {
@@ -15405,8 +15416,9 @@ function renderWellbeingScore() {
 
   const scoreColor = score >= 70 ? "#10b981" : score >= 40 ? "#f59e0b" : "#6366f1";
   const scoreEmoji = score >= 80 ? "🌟" : score >= 60 ? "💪" : score >= 40 ? "🌱" : "💙";
+  const scoreLabel = score >= 85 ? "Día excelente" : score >= 70 ? "Vas muy bien" : score >= 55 ? "En progreso" : score >= 35 ? "Empieza fuerte" : "Comenzando";
 
-  valEl.textContent = scoreEmoji + " " + score;
+  valEl.innerHTML = `<span style="font-size:18px;font-weight:900">${scoreEmoji} ${score}</span><span style="font-size:10px;font-weight:600;color:${scoreColor};margin-left:6px;opacity:.8">${scoreLabel}</span>`;
   valEl.style.color = scoreColor;
   barEl.style.width = score + "%";
   barEl.style.background = `linear-gradient(90deg, ${scoreColor}, ${score >= 70 ? "#22c55e" : "#6366f1"})`;
@@ -15565,12 +15577,14 @@ function submitCheckin(emotion) {
   zyraToast(resp, "success", 5000);
   renderTodayOverview();
   renderWellbeingScore();
+  renderParaTiHoy(emotion, [], _gamifStatus?.streak || 0);
   updateNotifBadge();
   // Persiste en el servidor (emotionHistory) — fire & forget
   if (token) {
     api("/profile/mood-checkin", "POST", { emotion }).catch(() => {});
     triggerMission("log_emotion");
   }
+  setTimeout(() => showZyraEmotionReaction(emotion), 1000);
 }
 
 /* ══════════════════════════════════════════
@@ -15990,6 +16004,17 @@ function computeNotifs() {
   try { if (gratStr && JSON.parse(gratStr).length > 0) gratDone = true; } catch(e) {}
   if (!gratDone && h >= 18) {
     notifs.push({ icon: "🙏", text: "3 cosas por las que estar agradecido/a — termina el día con eso.", action: "showPage('wellness');setTimeout(()=>openWellness('gratitude'),100);closeNotifPanel()" });
+  }
+
+  // Goal due-soon / overdue alerts
+  const _nowMs = Date.now();
+  const _soonGoals = (_goalsAllItems||[]).filter(g => !g.completed && g.dueDate && (new Date(g.dueDate).getTime() - _nowMs) < 3 * 86400000 && new Date(g.dueDate).getTime() > _nowMs);
+  const _overdueGoals = (_goalsAllItems||[]).filter(g => !g.completed && g.dueDate && new Date(g.dueDate).getTime() < _nowMs);
+  if (_overdueGoals.length) {
+    notifs.push({ icon: "⚠️", text: `${_overdueGoals.length} meta${_overdueGoals.length>1?"s":""} vencida${_overdueGoals.length>1?"s":""} — ¿las reprogramamos?`, action: "showPage('goals');closeNotifPanel()" });
+  }
+  if (_soonGoals.length) {
+    notifs.push({ icon: "🎯", text: `${_soonGoals.length} meta${_soonGoals.length>1?"s":""} con fecha límite pronto: "${_soonGoals[0].title}"`, action: "showPage('goals');closeNotifPanel()" });
   }
 
   // Negative emotional streak — welfare check
