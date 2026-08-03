@@ -12573,9 +12573,22 @@ function showUpgradePrompt(feature, requiredPlan) {
       <div style="font-size:44px;margin-bottom:12px">${fc.icon}</div>
       <h3 style="margin:0 0 8px;font-size:18px;color:var(--text);font-weight:700">${fc.title}</h3>
       <p style="color:var(--text3);font-size:14px;line-height:1.65;margin-bottom:20px">${fc.desc}</p>
-      <div style="background:rgba(99,102,241,.07);border:1px solid var(--border);border-radius:14px;padding:14px 18px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between">
-        <span style="color:var(--text2);font-size:13px">Plan <strong style="color:${planColor}">${planLabel}</strong></span>
-        <span style="color:${planColor};font-weight:700;font-size:15px">${planPrice}</span>
+      <div style="background:rgba(99,102,241,.07);border:1px solid var(--border);border-radius:14px;padding:14px 18px;margin-bottom:22px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <span style="color:var(--text2);font-size:13px">Plan <strong style="color:${planColor}">${planLabel}</strong></span>
+          <span style="color:${planColor};font-weight:700;font-size:15px">${planPrice}</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;text-align:left">
+          ${isPremium
+            ? `<span style="font-size:12px;color:var(--text3)">★ Mensajes ilimitados con Zyra</span>
+               <span style="font-size:12px;color:var(--text3)">★ Llamadas de voz en tiempo real</span>
+               <span style="font-size:12px;color:var(--text3)">★ Reportes PDF + exportar datos</span>
+               <span style="font-size:12px;color:var(--text3)">★ Metas y diario ilimitados</span>`
+            : `<span style="font-size:12px;color:var(--text3)">✓ 100 mensajes con Zyra al día</span>
+               <span style="font-size:12px;color:var(--text3)">✓ 10 metas · 30 entradas de diario</span>
+               <span style="font-size:12px;color:var(--text3)">✓ Exportar datos · Sin anuncios</span>`
+          }
+        </div>
       </div>
       <div style="display:flex;gap:10px">
         <button onclick="document.getElementById('zyra-upgrade-modal').remove()" style="flex:1;padding:13px;border:1px solid var(--border);border-radius:12px;background:transparent;color:var(--text3);cursor:pointer;font-size:14px">Ahora no</button>
