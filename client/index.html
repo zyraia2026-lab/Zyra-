@@ -5639,7 +5639,10 @@ async function loadDashboard() {
     animateCount("st-journal", entries.length);
     renderEmotions(p.currentEmotion);
     renderParaTiHoy(p.currentEmotion, hd.history || [], p.streakDays || 0);
-    if ((p.negativeStreakCount || 0) >= 3) showNegativeStreakBanner(p.negativeStreakCount);
+    // Cache negative streak for notification bell
+    const negSC = p.negativeStreakCount || 0;
+    if (negSC >= 3) { localStorage.setItem('zyra_neg_streak_count', String(negSC)); showNegativeStreakBanner(negSC); }
+    else localStorage.removeItem('zyra_neg_streak_count');
     renderChart(hd.history);
     renderDashConvs(cd.conversations || []);
     renderDashGoals(goals);
@@ -11373,9 +11376,18 @@ function miniPlayerClose() {
 ════════════════════════════════════════ */
 async function getPersonalizedAffirmation() {
   try {
-    const d=await api('/chat','POST',{message:'Dame UNA sola afirmación positiva muy personal y corta para mí ahora mismo. Solo la afirmación entre comillas, máximo 20 palabras.',history:[]});
-    return d.response?d.response.replace(/^["']|["']$/g,'').trim():null;
-  } catch{return null;}
+    const emo    = localStorage.getItem('zyra_last_emotion') || '';
+    const streak = _gamifStatus?.streak || 0;
+    const parts  = [];
+    if (emo) parts.push(`me siento ${emo}`);
+    if (streak >= 7) parts.push(`llevo ${streak} días seguidos`);
+    const ctx = parts.length ? `Contexto: ${parts.join(', ')}. ` : '';
+    const d = await api('/chat', 'POST', {
+      message: `${ctx}Dame UNA sola afirmación positiva, breve y cálida para mí ahora mismo. Máximo 18 palabras. Solo la afirmación, sin comillas ni introducción.`,
+      history: [], noSave: true,
+    });
+    return d.response ? d.response.replace(/^["'«»]|["'«»]$/g,'').trim() : null;
+  } catch { return null; }
 }
 
 /* ════════════════════════════════════════
@@ -15867,6 +15879,12 @@ function computeNotifs() {
   try { if (gratStr && JSON.parse(gratStr).length > 0) gratDone = true; } catch(e) {}
   if (!gratDone && h >= 18) {
     notifs.push({ icon: "🙏", text: "3 cosas por las que estar agradecido/a — termina el día con eso.", action: "showPage('wellness');setTimeout(()=>openWellness('gratitude'),100);closeNotifPanel()" });
+  }
+
+  // Negative emotional streak — welfare check
+  const negStreak = parseInt(localStorage.getItem('zyra_neg_streak_count') || '0');
+  if (negStreak >= 3 && !sessionStorage.getItem('zyra_neg_banner_dismissed')) {
+    notifs.push({ icon: '💜', text: `Llevas ${negStreak} días con emociones difíciles. Zyra está aquí — cuéntale lo que está pasando.`, action: "showPage('assistant');closeNotifPanel()" });
   }
 
   // Weekly report notification (basic/premium only, show Mon-Wed while fresh)
