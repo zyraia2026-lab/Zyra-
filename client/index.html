@@ -8029,7 +8029,28 @@ function newChat() {
     `${name} 🌙 A esta hora los pensamientos se sienten más pesados. ¿Qué está pasando?`,
   ];
   let welcome;
-  if (hour >= 6 && hour < 12)      welcome = _mornGreets[Math.floor(Math.random()*_mornGreets.length)];
+  // ── Context-aware greeting based on last conversation ──
+  const _lastConv = _allConversations && _allConversations.length > 0 ? _allConversations[0] : null;
+  const _lastConvAge = _lastConv?.updatedAt ? Math.floor((Date.now() - new Date(_lastConv.updatedAt)) / 86400000) : null;
+  const _RETURN_GREETS = [
+    `Hola de nuevo, ${name} 💙 Cuéntame qué fue.`,
+    `${name}, estaba por aquí. ¿Qué hay?`,
+    `Por acá estoy, ${name}. ¿Qué pasó desde la última vez?`,
+    `${name}, qué bueno verte de nuevo 💙`,
+  ];
+  if (_lastConvAge !== null && _lastConvAge >= 3 && _lastConvAge <= 30) {
+    // User hasn't opened a new chat in 3+ days
+    welcome = _RETURN_GREETS[Math.floor(Math.random() * _RETURN_GREETS.length)];
+  } else if (_lastConv?.title && _lastConvAge === 0 && (Date.now() - new Date(_lastConv.updatedAt)) > 10 * 60 * 1000 && _lastConv.title !== "Nueva sesión") {
+    // Had a meaningful conversation earlier today (>10 min ago) — reference it subtly
+    const _shortTitle = _lastConv.title.length > 40 ? _lastConv.title.substring(0, 37) + "..." : _lastConv.title;
+    const _CONTINUE_GREETS = [
+      `${name} 💙 ¿Seguimos con lo de "${_shortTitle}"?`,
+      `Estaba pensando en lo que hablamos de "${_shortTitle}". ¿Cómo va?`,
+      `De vuelta 💙 ¿Algo nuevo desde lo de "${_shortTitle}"?`,
+    ];
+    welcome = _CONTINUE_GREETS[Math.floor(Math.random() * _CONTINUE_GREETS.length)];
+  } else if (hour >= 6 && hour < 12)      welcome = _mornGreets[Math.floor(Math.random()*_mornGreets.length)];
   else if (hour >= 12 && hour < 18) welcome = _afteGreets[Math.floor(Math.random()*_afteGreets.length)];
   else if (hour >= 18 && hour < 22) welcome = _eveGreets[Math.floor(Math.random()*_eveGreets.length)];
   else                               welcome = _nightGreets[Math.floor(Math.random()*_nightGreets.length)];
@@ -9799,7 +9820,12 @@ async function sendMsg() {
       const d = await r.json().catch(() => ({}));
       if (d.crisis) { zyraTriggerCrisis(); chatHistory.pop(); return; }
       if (r.status === 429 || d.limitReached) {
-        addBotMsg("Llegamos al límite de mensajes de hoy en tu plan Gratis. Si quieres seguir, el plan Básico te da 100 mensajes al día por $9.900 COP/mes. Estoy aquí cuando quieras volver 💜");
+        const _limitMsgs = [
+          "Llegamos a los 15 mensajes de hoy — ese es el límite del plan Gratis 💙 Si quieres seguir, el plan Básico te da 100 por $9.900/mes. Mañana volvemos.",
+          "Por hoy llegamos al límite de mensajes del plan Gratis. Pero no te vayas lejos — mañana empezamos de cero, o el plan Básico te da 100 al día por $9.900 COP/mes 💜",
+          "15 mensajes completados. No es fácil parar justo cuando más quieres hablar 💙 Con el plan Básico tendrías 100 al día — $9.900/mes.",
+        ];
+        addBotMsg(_limitMsgs[Math.floor(Math.random() * _limitMsgs.length)]);
         showUpgradePrompt("messages", "basic");
         _zyraMessagesRemaining = 0; updateMsgsRemainingUI();
       } else {
