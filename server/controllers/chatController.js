@@ -1748,16 +1748,16 @@ exports.streamMessage = async (req, res) => {
             const delta = chunk.choices[0]?.delta?.content || "";
             if (delta) { rawResponse += delta; send({ t: delta }); }
           }
-          if (rawResponse.length > streakPrefix.length) { console.log(`✅ Groq stream [${userPlan}] ${model}`); break; }
+          if (rawResponse.length > 0) { console.log(`✅ Groq stream [${userPlan}] ${model}`); break; }
         } catch(e) {
           console.error(`❌ Groq stream ${model}:`, e.message);
         }
       }
     }
 
-    if (!rawResponse || rawResponse === streakPrefix) {
+    if (!rawResponse) {
       const fallback = "Ey, aquí estoy. ¿Qué está pasando?";
-      rawResponse = streakPrefix + fallback;
+      rawResponse = fallback;
       send({ t: fallback });
     }
 
