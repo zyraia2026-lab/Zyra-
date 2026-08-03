@@ -5665,6 +5665,38 @@ async function loadDashboard() {
   loadDailyIntention();
   loadMentalHealthTip();
   loadTodayPlan();
+  // Update quick card badges with live today data
+  (() => {
+    const today = new Date().toDateString();
+    // Habits
+    const habitBadge = document.getElementById("qc-habits-badge");
+    if (habitBadge) {
+      const habits = getHabits();
+      if (habits.length) {
+        const done = habits.filter(h => isHabitDone(h.id)).length;
+        if (done === habits.length) { habitBadge.textContent = "✓ Todos"; habitBadge.className = "badge green"; }
+        else if (done > 0) { habitBadge.textContent = done + "/" + habits.length + " ✓"; habitBadge.className = "badge orange"; }
+        else { habitBadge.textContent = "0/" + habits.length; habitBadge.className = "badge"; }
+      }
+    }
+    // Breathing sessions
+    const breathDone = parseInt(localStorage.getItem("zyra_breath_" + today) || "0");
+    const breathCard = document.querySelector('.quick-card[onclick*="breath"]');
+    if (breathCard && breathDone > 0) {
+      const breathBadge = breathCard.querySelector('.badge');
+      if (breathBadge) { breathBadge.textContent = "✓ " + breathDone + " hecha" + (breathDone > 1 ? "s" : ""); breathBadge.className = "badge green"; }
+    }
+    // Today's emotion check-in on chat card
+    const todayEmo = localStorage.getItem("zyra_checkin_emotion_" + today);
+    if (todayEmo) {
+      const chatCard = document.querySelector('.quick-card[onclick*="assistant"]');
+      const EMOJI = { feliz:"😊", tranquilo:"😌", ansioso:"😰", triste:"😢", enojado:"😤", confundido:"🤔", esperanzado:"🌟", agotado:"😮‍💨", motivado:"💪", nostalgico:"🌅" };
+      if (chatCard) {
+        const chatBadge = chatCard.querySelector('.badge');
+        if (chatBadge) { chatBadge.textContent = (EMOJI[todayEmo] || "💬") + " Aquí estoy"; chatBadge.className = "badge purple"; }
+      }
+    }
+  })();
   // Check-in dot: show pulsing dot if no emotion logged today
   const lastEmDate = localStorage.getItem('zyra_last_emotion_date');
   const dot = document.getElementById('emotion-checkin-dot');
