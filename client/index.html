@@ -2177,11 +2177,26 @@ async function b2bSubmitContact() {
     </div>
   </div>
 
+  <!-- ══ TIP DEL DÍA ══ -->
+  <div id="mh-tip-wrap" style="display:none;margin-bottom:28px">
+    <div style="background:linear-gradient(135deg,rgba(6,182,212,.08),rgba(14,165,233,.04));border:1.5px solid rgba(6,182,212,.2);border-radius:16px;padding:14px 18px;display:flex;align-items:flex-start;gap:12px">
+      <span style="font-size:22px;flex-shrink:0;margin-top:1px">🧠</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:10px;font-weight:800;color:rgba(6,182,212,.9);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px">¿Sabías que?</div>
+        <div id="mh-tip-text" style="font-size:13px;color:var(--text2);line-height:1.6"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ RESUMEN SEMANAL ══ -->
+  <div id="weekly-summary-wrap" style="display:none;margin-bottom:28px">
+    <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">Esta semana ✦</div>
+    <div id="weekly-summary-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px"></div>
+  </div>
+
   <!-- Widgets ocultos necesarios para JS -->
   <div style="display:none">
     <div id="today-overview-wrap"><div id="today-overview-content"></div></div>
-    <div id="mh-tip-wrap"><div id="mh-tip-text"></div></div>
-    <div id="weekly-summary-wrap"><div id="weekly-summary-grid"></div></div>
   </div>
 
 </div>
@@ -4367,7 +4382,7 @@ async function loadAnalytics() {
 }
 
 function renderAnalytics(d, el) {
-  const { stats, emotionFrequency, dayOfWeekPattern, weeklyTrend, bestDay, worstDay, insight, topWords, activityDates } = d;
+  const { stats, emotionFrequency, dayOfWeekPattern, weeklyTrend, bestDay, worstDay, insight, insights, topWords, activityDates } = d;
   const EMOTION_EMOJI = { feliz:"😊", tranquilo:"😌", ansioso:"😰", triste:"😢", enojado:"😤", confundido:"🤔", esperanzado:"🌟", agotado:"😮‍💨", motivado:"💪", nostalgico:"🌅" };
   const SCORE_COLOR = s => s === null ? "#6b7280" : s > 0.2 ? "#22c55e" : s > -0.2 ? "#f59e0b" : "#ef4444";
   const BAR_W = n => n > 0 ? Math.round((n / (emotionFrequency[0]?.count||1)) * 100) : 0;
@@ -4397,10 +4412,7 @@ function renderAnalytics(d, el) {
   el.innerHTML = `
 <div class="container" style="padding-bottom:80px">
 
-  ${insight ? `<div style="background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(139,92,246,.1));border:1px solid rgba(99,102,241,.25);border-radius:16px;padding:16px 20px;margin-bottom:20px;display:flex;gap:12px;align-items:flex-start">
-    <span style="font-size:20px;flex-shrink:0">💡</span>
-    <p style="font-size:14px;color:var(--text);margin:0;line-height:1.6">${safeHtml(insight)}</p>
-  </div>` : ""}
+  ${(() => { const ins_list = insights && insights.length ? insights : (insight ? [insight] : []); return ins_list.length ? `<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">${ins_list.map((ins,idx)=>`<div style="background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.07));border:1px solid rgba(99,102,241,.2);border-radius:16px;padding:14px 18px;display:flex;gap:12px;align-items:flex-start"><span style="font-size:18px;flex-shrink:0">${idx===0?"💡":idx===1?"🔍":"✦"}</span><p style="font-size:13px;color:var(--text);margin:0;line-height:1.6">${safeHtml(ins)}</p></div>`).join("")}</div>` : ""; })()}
 
   <!-- Stats -->
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:20px">
@@ -8959,6 +8971,21 @@ async function copyMsg(btn, text) {
     setTimeout(() => btn.textContent = orig, 1500);
   } catch(e) {}
 }
+function saveMsgToJournal(text) {
+  if (!text) return;
+  // Strip markdown for cleaner journal content
+  const plain = text.replace(/\*\*(.*?)\*\*/g,'$1').replace(/\*(.*?)\*/g,'$1').replace(/`(.*?)`/g,'$1').trim();
+  const todayEmo = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString()) || "";
+  localStorage.setItem("zyra_journal_draft", JSON.stringify({ t:"Reflexión de hoy", c:plain, e:todayEmo }));
+  showPage("journal");
+  setTimeout(() => {
+    const form = document.getElementById("add-journal-form");
+    if (form && !form.classList.contains("show")) toggleJournalForm();
+    restoreJournalDraft();
+    document.getElementById("journal-content")?.focus();
+  }, 300);
+  zyraToast("✦ Abriendo tu diario con esta reflexión", "info", 2500);
+}
 function exportCurrentChat() {
   const msgs = document.querySelectorAll("#messages .msg");
   if (!msgs.length) return zyraToast("No hay mensajes para exportar", "info");
@@ -9587,12 +9614,13 @@ function finalizeBotMsgStream(div, text, cards, convId, msgsLeft) {
   const bubble = div.querySelector(".msg-bubble");
   if (bubble) {
     bubble.innerHTML = `${renderMarkdown(text)}
-      <div style="display:flex;align-items:center;gap:6px;margin-top:6px">
+      <div style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap">
         <div class="msg-time">${time}</div>
         <button class="btn-tts" onclick="speakMsgEL(this,decodeURIComponent(this.dataset.t))" data-t="${encodeURIComponent(text)}" title="Escuchar">🔊</button>
         <button class="btn-feedback" onclick="copyMsg(this,decodeURIComponent(this.dataset.t))" data-t="${encodeURIComponent(text)}" title="Copiar mensaje">📋</button>
         <button class="btn-feedback" onclick="rateMsg(this,'up')" title="Útil">👍</button>
         <button class="btn-feedback" onclick="rateMsg(this,'down')" title="No útil">👎</button>
+        <button class="btn-feedback" onclick="saveMsgToJournal(decodeURIComponent(this.dataset.t))" data-t="${encodeURIComponent(text)}" title="Guardar en diario" style="color:#8b5cf6;border-color:rgba(139,92,246,.3)">📔</button>
       </div>`;
   }
   if (convId && convId !== String(currentConvId)) { currentConvId = String(convId); loadHistory(); }
@@ -14513,8 +14541,12 @@ const MH_TIPS = [
   "La aceptación — no la resignación — es el primer paso hacia el cambio real.",
 ];
 function loadMentalHealthTip() {
-  const el = document.getElementById("mh-tip-text");
-  if (el) el.textContent = MH_TIPS[new Date().getDate() % MH_TIPS.length];
+  const wrap = document.getElementById("mh-tip-wrap");
+  const el   = document.getElementById("mh-tip-text");
+  if (el) {
+    el.textContent = MH_TIPS[new Date().getDate() % MH_TIPS.length];
+    if (wrap) wrap.style.display = "";
+  }
 }
 
 /* ══════════════════════════════════════════

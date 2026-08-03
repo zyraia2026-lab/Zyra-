@@ -104,18 +104,45 @@ exports.getOverview = async (req, res) => {
       }
     }
 
-    // ── Insight generado ──
-    let insight = null;
+    // ── Insights generados (varios) ──
     const timeLabel = peakHour < 12 ? "mañanas" : peakHour < 17 ? "tardes" : "noches";
+    const insightsList = [];
+
     if (bestDay && bestDay.score !== null && bestDay.score > 0) {
-      insight = `Los ${bestDay.day.toLowerCase()} tienden a ser tus mejores días. Cuando puedas, aprovéchalos.`;
-    } else if (worstDay && worstDay.score !== null && worstDay.score < 0) {
-      insight = `Los ${worstDay.day.toLowerCase()} suelen ser más pesados. Vale la pena cuidarte un poco más ese día.`;
-    } else if (positivityRate >= 60) {
-      insight = `El ${positivityRate}% de tus registros han sido positivos. Eso no es poca cosa.`;
-    } else if (history.length > 5) {
-      insight = `Registras más por las ${timeLabel}. Es cuando más procesas el día — y eso tiene sentido.`;
+      insightsList.push(`Los ${bestDay.day.toLowerCase()} tienden a ser tus mejores días. Cuando puedas, aprovéchalos.`);
     }
+    if (worstDay && worstDay.score !== null && worstDay.score < 0 && worstDay !== bestDay) {
+      insightsList.push(`Los ${worstDay.day.toLowerCase()} suelen ser más pesados. Vale la pena cuidarte un poco más ese día.`);
+    }
+    if (positivityRate >= 60) {
+      insightsList.push(`El ${positivityRate}% de tus registros han sido positivos. Eso no es poca cosa.`);
+    } else if (positivityRate > 0 && positivityRate < 40 && history.length >= 5) {
+      insightsList.push(`Has pasado períodos difíciles. Que estés aquí registrándolo ya dice mucho de ti.`);
+    }
+    // Trend insight: compare most recent week vs prior week
+    if (weeklyTrend.length >= 2) {
+      const last  = weeklyTrend[weeklyTrend.length - 1];
+      const prior = weeklyTrend[weeklyTrend.length - 2];
+      if (last.score !== null && prior.score !== null) {
+        if (last.score > prior.score + 0.2) {
+          insightsList.push(`Tu ánimo mejoró esta semana en comparación con la anterior. Algo está funcionando.`);
+        } else if (last.score < prior.score - 0.2) {
+          insightsList.push(`Esta semana fue más pesada que la anterior. Nota qué cambió — a veces el patrón dice más que el momento.`);
+        }
+      }
+    }
+    if (journalStreak >= 3) {
+      insightsList.push(`Llevas ${journalStreak} días seguidos escribiendo en tu diario. Eso es autodisciplina real.`);
+    }
+    if (completedGoals >= 2) {
+      insightsList.push(`Ya completaste ${completedGoals} meta${completedGoals !== 1 ? "s" : ""}. Eso no lo hace quien no se propone cosas.`);
+    }
+    if (insightsList.length === 0 && history.length > 5) {
+      insightsList.push(`Registras más por las ${timeLabel}. Es cuando más procesas el día — y eso tiene sentido.`);
+    }
+
+    const insights = insightsList.slice(0, 3);
+    const insight  = insights[0] || null; // backward compat
 
     // ── Word frequency from journals ──
     const STOP_WORDS = new Set([
@@ -163,6 +190,7 @@ exports.getOverview = async (req, res) => {
       bestDay,
       worstDay,
       insight,
+      insights,
       topWords,
       activityDates,
     });
