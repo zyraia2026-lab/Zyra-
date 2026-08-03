@@ -7800,8 +7800,15 @@ const AFF_CATS = {
   ],
 };
 let _affCurrentCat = 'all';
+let _affCatManual = false; // true if user manually picked a category
 
 function renderAffirmations(el) {
+  // Auto-select category based on today's emotion if user hasn't picked manually
+  if (!_affCatManual) {
+    const emo = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString());
+    const EMO_CAT = { ansioso:"calm", enojado:"calm", tranquilo:"calm", feliz:"gratitude", esperanzado:"gratitude", motivado:"confidence" };
+    if (emo && EMO_CAT[emo]) _affCurrentCat = EMO_CAT[emo];
+  }
   let affs = AFF_CATS[_affCurrentCat] || AFF_CATS.all;
   let idx = new Date().getDate() % affs.length;
   el.innerHTML = `
@@ -7835,6 +7842,7 @@ function renderAffirmations(el) {
 }
 function switchAffCat(cat) {
   _affCurrentCat = cat;
+  _affCatManual = true;
   const el = document.getElementById("wellness-content");
   if (el) renderAffirmations(el);
 }
