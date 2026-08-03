@@ -19,6 +19,7 @@ const S = new mongoose.Schema({
 
   // ── Gamificación ──
   coins:                  { type: Number, default: 0 },
+  streakFreezes:          { type: Number, default: 0 },
   missionsCompletedToday: [{ type: String }],
   missionsResetAt:        { type: Date, default: null },
   achievements:           [{ type: String }],

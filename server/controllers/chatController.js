@@ -864,13 +864,19 @@ async function getReasoningContext(message) {
 ════════════════════════════════════════ */
 async function buildSystemPrompt(userId, userName, message = "") {
   const [profile, goals, journals] = await Promise.all([
-    Profile.findOne({ user: userId }).select("currentEmotion emotionHistory negativeStreakCount sessionsCount streakDays achievements onboardingReason").lean().catch(() => null),
+    Profile.findOne({ user: userId }).select("currentEmotion emotionHistory negativeStreakCount sessionsCount streakDays achievements onboardingReason bio").lean().catch(() => null),
     Goal.find({ user: userId }).sort({ createdAt:-1 }).limit(10).select("title completed priority progress dueDate category").lean().catch(() => []),
     Journal.find({ user: userId }).sort({ createdAt:-1 }).limit(3).select("title content _id").lean().catch(() => []),
   ]);
 
   let memoryBlock = "";
   const firstName = userName ? userName.split(" ")[0] : "amigo/a";
+
+  // Bio personal del usuario (si la escribió)
+  if (profile?.bio?.trim()) {
+    memoryBlock += `\n- Lo que ${firstName} escribió de sí mismo/a: ${profile.bio.trim().substring(0, 200)}`;
+  }
+
   const currentEmotion = profile?.currentEmotion || null;
   if (currentEmotion) memoryBlock += `\n- Estado emocional actual: ${currentEmotion}`;
 
@@ -881,15 +887,21 @@ async function buildSystemPrompt(userId, userName, message = "") {
     new Date(new Date(h.date).getTime() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10) === todayColStr
   );
   if (todayLog) {
-    memoryBlock += `\n- Emoción que registró HOY: ${todayLog.emotion}${todayLog.note ? ` ("${todayLog.note}")` : ""}. Úsalo si la conversación va ahí — no lo saques de golpe.`;
+    const intStr = todayLog.intensity && todayLog.intensity !== 5 ? ` (intensidad ${todayLog.intensity}/10)` : "";
+    memoryBlock += `\n- Emoción que registró HOY: ${todayLog.emotion}${intStr}${todayLog.note ? ` — "${todayLog.note}"` : ""}. Úsalo si la conversación va ahí — no lo saques de golpe.`;
   }
   if (emotionHistory.length > 0) {
     const pastLogs = emotionHistory.filter(h =>
       new Date(new Date(h.date).getTime() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10) !== todayColStr
     );
     if (pastLogs.length > 0) {
-      const summary = pastLogs.map(e => `${e.emotion}${e.note ? ` ("${e.note}")` : ""}`).join(", ");
-      memoryBlock += `\n- Historial emocional reciente: ${summary}`;
+      const fmtEntry = e => {
+        const parts = [e.emotion];
+        if (e.intensity && e.intensity >= 7) parts.push(`intensidad ${e.intensity}/10`);
+        if (e.note) parts.push(`"${e.note}"`);
+        return parts.join(" ");
+      };
+      memoryBlock += `\n- Historial emocional reciente: ${pastLogs.map(fmtEntry).join(", ")}`;
     }
   }
 
