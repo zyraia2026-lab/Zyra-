@@ -865,7 +865,7 @@ async function getReasoningContext(message) {
 async function buildSystemPrompt(userId, userName, message = "") {
   const [profile, goals, journals] = await Promise.all([
     Profile.findOne({ user: userId }).select("currentEmotion emotionHistory negativeStreakCount sessionsCount streakDays achievements onboardingReason").lean().catch(() => null),
-    Goal.find({ user: userId }).sort({ createdAt:-1 }).limit(10).select("title completed").lean().catch(() => []),
+    Goal.find({ user: userId }).sort({ createdAt:-1 }).limit(10).select("title completed priority progress dueDate category").lean().catch(() => []),
     Journal.find({ user: userId }).sort({ createdAt:-1 }).limit(3).select("title content _id").lean().catch(() => []),
   ]);
 
@@ -956,7 +956,18 @@ async function buildSystemPrompt(userId, userName, message = "") {
 
   const activeGoals = goals.filter(g => !g.completed);
   if (activeGoals.length > 0) {
-    memoryBlock += `\n- Metas activas: ${activeGoals.map(g => g.title).join(", ")}`;
+    const now = new Date();
+    const fmtGoal = g => {
+      const parts = [g.title];
+      if (g.progress > 0) parts.push(`${g.progress}% completado`);
+      if (g.priority === "alta") parts.push("prioridad alta");
+      if (g.dueDate) {
+        const daysLeft = Math.ceil((new Date(g.dueDate) - now) / 86400000);
+        if (daysLeft >= 0 && daysLeft <= 14) parts.push(`vence en ${daysLeft} día${daysLeft !== 1 ? "s" : ""}`);
+      }
+      return parts.join(" · ");
+    };
+    memoryBlock += `\n- Metas activas: ${activeGoals.map(fmtGoal).join(" | ")}`;
   }
 
   const recentDone = goals.filter(g => g.completed).slice(0, 2);
@@ -1304,11 +1315,9 @@ exports.sendMessage = async (req, res) => {
     );
 
     let systemPrompt = `Eres Zyra — la mejor amiga de quien te habla. Hablas SOLO en español latinoamericano, natural y cálido. CERO palabras en inglés mezcladas (nada de "down", "cool", "random", "ok", "mood"). Respuestas cortas, 2-3 oraciones máximo. No eres IA, eres Zyra.`;
-    let _negStreak = 0;
     try {
       const built = await buildSystemPrompt(req.user._id, req.user.name, message);
       systemPrompt = built.prompt;
-      _negStreak = built.negStreak;
     } catch(e) {
       console.error("buildSystemPrompt error:", e.message);
     }
@@ -1632,11 +1641,9 @@ exports.streamMessage = async (req, res) => {
     );
 
     let systemPrompt = `Eres Zyra — la mejor amiga de quien te habla. Hablas SOLO en español latinoamericano, natural y cálido. CERO palabras en inglés mezcladas (nada de "down", "cool", "random", "ok", "mood"). Respuestas cortas, 2-3 oraciones máximo. No eres IA, eres Zyra.`;
-    let _streamNegStreak = 0;
     try {
       const built = await buildSystemPrompt(req.user._id, req.user.name, message);
       systemPrompt = built.prompt;
-      _streamNegStreak = built.negStreak;
     } catch(e) { console.error("buildSystemPrompt/stream error:", e.message); }
 
     if (dailyContext) {
@@ -1704,17 +1711,7 @@ exports.streamMessage = async (req, res) => {
     const _earlyUnknownYT = _earlyUnknownArtist
       ? getSongsForUnknownArtist(_earlyUnknownArtist).catch(() => null) : null;
 
-    // ── Negative streak prefix (antes del stream para que el cliente lo vea) ──
     let rawResponse = "";
-    let streakPrefix = "";
-    try {
-      const alreadyMentioned = (history || []).some(m => m.role === "assistant" && m.content?.includes("noto que esta semana"));
-      if (_streamNegStreak >= 3 && !alreadyMentioned && !_earlyMusicOverride) {
-        streakPrefix = "Oye, noto que esta semana ha estado pesada varios días seguidos — eso no es fácil. ";
-        rawResponse = streakPrefix;
-        send({ t: streakPrefix });
-      }
-    } catch(_) {}
 
     // ── Stream Groq — skip si es petición de música con artista conocido ──
     if (_earlyMusicOverride) {

@@ -9764,6 +9764,10 @@ async function sendMsg() {
   if (_breath) _dcParts.push(`Respiración: ${_breath} sesión(es)`);
   const _sleep = localStorage.getItem("zyra_sleep_" + _today);
   if (_sleep) { try { const s = JSON.parse(_sleep); _dcParts.push(`Sueño anoche: ${s.hours}h`); } catch(e) {} }
+  if (localStorage.getItem("zyra_challenge_done_" + _today)) _dcParts.push("Completó el reto del día");
+  if (localStorage.getItem("zyra_journal_saved_" + _today)) _dcParts.push("Escribió en el diario hoy");
+  const _grat = (() => { try { return JSON.parse(localStorage.getItem("zyra_gratitude_" + _today) || "[]"); } catch(e) { return []; } })();
+  if (_grat.length > 0) _dcParts.push(`Gratitud de hoy: "${_grat[0]}"${_grat.length > 1 ? ` y ${_grat.length - 1} más` : ""}`);
   const dailyContext = _dcParts.join(". ");
 
   try {
@@ -10554,6 +10558,8 @@ async function vcSendMessage(text) {
     if (_vcEmo) _vcDcParts.push(`Check-in de hoy: se siente "${_vcEmo}"`);
     const _vcWater = parseInt(localStorage.getItem("zyra_water_" + _vcToday) || "0");
     if (_vcWater) _vcDcParts.push(`Agua: ${_vcWater}/8 vasos`);
+    if (localStorage.getItem("zyra_challenge_done_" + _vcToday)) _vcDcParts.push("Completó el reto del día");
+    if (localStorage.getItem("zyra_journal_saved_" + _vcToday)) _vcDcParts.push("Escribió en el diario hoy");
     const vcDailyCtx = _vcDcParts.join(". ") || undefined;
     const d = await api('/chat','POST',{message:text,conversationId:vcConvId,history:vcHistoryPayload,mode:'voice',dailyContext:vcDailyCtx});
 
