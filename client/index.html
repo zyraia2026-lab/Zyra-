@@ -7999,9 +7999,23 @@ function newChat() {
     evening: [["🌅","Quiero reflexionar sobre mi día"],["😔","Fue un día difícil"],["🙏","Quiero practicar gratitud"],["💙","Me siento solo/a"],["🌙","Quiero preparar mi descanso"],["💬","Necesito hablar"]],
     night: [["🌙","No puedo dormir"],["😰","Tengo pensamientos intrusivos"],["💙","Me siento solo/a en la noche"],["🧘","Ayúdame a relajarme"],["😔","Estoy triste"],["💬","Solo quiero hablar"]]
   };
-  const chipSet = hour >= 6 && hour < 12 ? CHIP_SETS.morning :
+  const EMO_CHIPS = {
+    ansioso:     [["💜","Cuéntame qué me tiene ansioso/a"],["🌬️","Quiero hacer una respiración guiada"]],
+    triste:      [["💙","Necesito hablar de cómo me siento"],["🎵","Dame música para este momento"]],
+    enojado:     [["🔥","Necesito procesar lo que me enoja"],["✍️","Quiero escribir lo que siento"]],
+    agotado:     [["😮‍💨","Estoy muy cansado/a hoy"],["💧","¿Qué me puede ayudar a recuperar energía?"]],
+    confundido:  [["🤔","Necesito ordenar mis pensamientos"],["💬","Ayúdame a entender qué me pasa"]],
+    feliz:       [["🙏","Quiero guardar este momento de gratitud"],["✨","Cuéntame qué fue lo mejor de hoy"]],
+    motivado:    [["🎯","Quiero enfocarme en una meta hoy"],["💪","Ayúdame a aprovechar esta energía"]],
+    esperanzado: [["🌟","Quiero compartir lo que me da esperanza"],["📝","Ayúdame a planificar lo que sueño"]],
+    tranquilo:   [["😌","Solo quiero conversar tranquilo/a"],["🌿","¿Qué puedo hacer hoy con esta calma?"]],
+    nostalgico:  [["🌅","Quiero hablar de algo que recuerdo"],["📖","Ayúdame a escribir sobre este recuerdo"]],
+  };
+  const baseSet = hour >= 6 && hour < 12 ? CHIP_SETS.morning :
                   hour >= 12 && hour < 17 ? CHIP_SETS.afternoon :
                   hour >= 17 && hour < 21 ? CHIP_SETS.evening : CHIP_SETS.night;
+  const emoExtraChips = _todayEmo && EMO_CHIPS[_todayEmo] ? EMO_CHIPS[_todayEmo] : [];
+  const chipSet = [...emoExtraChips, ...baseSet.slice(0, 6 - emoExtraChips.length)];
   const chips = document.createElement("div");
   chips.id = "prompt-chips";
   chips.className = "prompt-chips";
