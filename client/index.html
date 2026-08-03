@@ -6109,12 +6109,24 @@ function renderDashGoals(goals) {
   const el = document.getElementById("dash-goals");
   const pending = goals.filter(g => !g.completed).slice(0,4);
   if(!pending.length) { el.innerHTML = '<div class="empty"><span class="empty-icon">🎯</span>Sin metas pendientes</div>'; return; }
-  el.innerHTML = pending.map(g => `
-    <div class="goal-item">
-      <div class="goal-check ${g.completed?"checked":""}" onclick="toggleGoalDash('${g._id}')">✓</div>
-      <div style="flex:1"><div class="goal-text">${safeHtml(g.title)}</div></div>
-      <span class="goal-cat">${safeHtml(CAT[g.category]||g.category)}</span>
-    </div>`).join("");
+  const _nowMs = Date.now();
+  el.innerHTML = pending.map(g => {
+    const prog = g.progress || 0;
+    const progColor = prog >= 75 ? "#10b981" : prog >= 40 ? "#6366f1" : "#94a3b8";
+    const overdue = !g.completed && g.dueDate && new Date(g.dueDate).getTime() < _nowMs;
+    const soon    = !overdue && g.dueDate && (new Date(g.dueDate).getTime() - _nowMs) < 3 * 86400000;
+    const dateHint = overdue ? `<span style="font-size:10px;color:var(--danger);font-weight:700">⚠️ Vencida</span>`
+                  : soon    ? `<span style="font-size:10px;color:#f59e0b;font-weight:700">⏳ Pronto</span>` : "";
+    return `<div class="goal-item" style="flex-direction:column;align-items:stretch;gap:6px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="goal-check ${g.completed?"checked":""}" onclick="toggleGoalDash('${g._id}')">✓</div>
+        <div style="flex:1;min-width:0"><div class="goal-text" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${safeHtml(g.title)}</div></div>
+        ${dateHint}
+        <span class="goal-cat">${safeHtml(CAT[g.category]||g.category)}</span>
+      </div>
+      ${prog > 0 ? `<div style="height:4px;background:var(--border);border-radius:99px;overflow:hidden;margin-left:28px"><div style="height:100%;width:${prog}%;background:${progColor};border-radius:99px;transition:width .4s"></div></div>` : ""}
+    </div>`;
+  }).join("");
 }
 async function toggleGoalDash(id) {
   const idx = (_goalsAllItems||[]).findIndex(g=>g._id===id);
