@@ -6458,6 +6458,10 @@ function toggleFavFilter() {
   if (btn) { btn.textContent = _journalFavFilter ? "⭐ Favoritas" : "☆ Favoritas"; btn.style.color = _journalFavFilter ? "#f59e0b" : "var(--text2)"; btn.style.borderColor = _journalFavFilter ? "#f59e0b" : "var(--border)"; }
   filterJournal();
 }
+function filterJournalByTag(tag) {
+  const inp = document.getElementById("journal-search-input");
+  if (inp) { inp.value = tag; filterJournal(); inp.focus(); }
+}
 function filterJournal() {
   const q = (document.getElementById("journal-search-input")?.value || "").toLowerCase();
   const emo = document.getElementById("journal-filter-emotion")?.value || "";
@@ -6763,7 +6767,7 @@ function renderJournal(entries, updateCache = true) {
         <span class="journal-date" title="${new Date(e.createdAt).toLocaleDateString("es",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}">${timeAgo(e.createdAt)}</span>
         ${em?`<span class="badge purple">${em.emoji} ${em.label}</span>`:""}
         <span style="color:var(--text3);font-size:11px">${(e.content||"").trim().split(/\s+/).filter(Boolean).length} palabras</span>
-        ${((e.content||"").match(/#\w+/g)||[]).slice(0,3).map(tag=>`<span style="font-size:10px;color:var(--accent);background:rgba(99,102,241,.1);border-radius:20px;padding:2px 7px;font-weight:700">${safeHtml(tag)}</span>`).join("")}
+        ${((e.content||"").match(/#\w+/g)||[]).slice(0,3).map(tag=>`<span onclick="filterJournalByTag(${JSON.stringify(tag)})" style="font-size:10px;color:var(--accent);background:rgba(99,102,241,.1);border-radius:20px;padding:2px 7px;font-weight:700;cursor:pointer" title="Filtrar por ${safeHtml(tag)}">${safeHtml(tag)}</span>`).join("")}
         <button onclick="talkZyraAboutEntry(${JSON.stringify(e.title||'')},${JSON.stringify((e.content||'').substring(0,400))})" style="background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);color:var(--accent);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;cursor:pointer;transition:all .15s" title="Hablar con Zyra sobre esta entrada">💬 Hablar con Zyra</button>
       </div>
     </div>`;
@@ -10626,7 +10630,17 @@ function endVoiceCall() {
   vcSetBodyClass(false);
   if(vcConvId) currentConvId = vcConvId;
   if(vcHistory.length) chatHistory = vcHistory.slice(-20);
+  if (vcSeconds >= 10) {
+    const _m = Math.floor(vcSeconds / 60);
+    const _s = vcSeconds % 60;
+    const _dur = _m > 0 ? `${_m}:${String(_s).padStart(2,'0')} min` : `${_s} seg`;
+    zyraToast(`📞 Llamada de ${_dur} con Zyra`, "success", 4000);
+  }
   showPage('assistant');
+  const _vcToday = new Date().toDateString();
+  if (!localStorage.getItem("zyra_checkin_emotion_" + _vcToday) && vcHistory.length >= 2) {
+    setTimeout(() => { if (typeof openQuickEmotion === 'function') openQuickEmotion(); }, 2200);
+  }
 }
 
 function vcToggleListen() {
