@@ -38,7 +38,7 @@ REGLAS DE FORMATO:
 - Máximo 2 memorias por turno, mínimo 0
 - Tipos: personal, emotional, preference, relationship, goal, event, situation
 - Importancia 1-5: 5=dato clave (trabajo, familia, situación crítica), 3=útil (gustos), 1=menor
-- Si menciona un evento futuro con fecha (examen el viernes, presentación mañana, cita el lunes, reunión esta semana), añade "followUpDate" con la fecha ISO estimada basándote en que hoy es ${new Date().toISOString().slice(0,10)}
+- Si menciona un evento futuro con fecha (examen el viernes, presentación mañana, cita el lunes, reunión esta semana), añade "followUpDate" con la fecha ISO estimada basándote en que hoy es ${new Date(new Date().getTime() - 5 * 60 * 60 * 1000).toISOString().slice(0,10)} (hora Colombia)
 - Si no hay nada nuevo concreto, devuelve []
 - Responde SOLO con JSON array, cero texto extra:
 [{"content":"...","type":"...","importance":N,"tags":["..."],"followUpDate":"YYYY-MM-DD o null"}]`;

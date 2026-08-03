@@ -2792,6 +2792,10 @@ async function b2bSubmitContact() {
   <div class="card" style="margin-bottom:20px">
     <div class="card-header"><span class="card-title">✏️ Editar información</span></div>
     <div class="form-group"><label>Nombre completo</label><input type="text" id="prof-name-input" placeholder="Tu nombre"/></div>
+    <div class="form-group">
+      <label style="display:flex;justify-content:space-between;align-items:center"><span>Cuéntame de ti <span style="font-size:11px;color:var(--text3);font-weight:400">— Zyra lo usará para conocerte mejor</span></span><span id="prof-bio-count" style="font-size:11px;color:var(--text3)">0/300</span></label>
+      <textarea id="prof-bio-input" placeholder="¿De dónde eres? ¿A qué te dedicas? ¿Qué te importa? (opcional)" style="height:72px;resize:none" maxlength="300" oninput="document.getElementById('prof-bio-count').textContent=this.value.length+'/300'"></textarea>
+    </div>
     <div class="form-group"><label>Correo electrónico</label><input type="email" id="prof-email-input" placeholder="tu@email.com" disabled style="opacity:.6;cursor:not-allowed"/></div>
     <button class="btn-primary" style="padding:12px;font-size:13px" onclick="saveProfileInfo()">Guardar cambios</button>
   </div>
@@ -5100,6 +5104,9 @@ async function loadProfile() {
     if(pe) pe.textContent = ud.user?.email || user?.email || "";
     if(ni) ni.value = ud.user?.name || user?.name || "";
     if(ei) ei.value = ud.user?.email || user?.email || "";
+    const bi = document.getElementById("prof-bio-input");
+    const bc = document.getElementById("prof-bio-count");
+    if(bi) { bi.value = p.bio || ""; if(bc) bc.textContent = (p.bio||"").length + "/300"; }
 
     const ps  = document.getElementById("prof-sessions");
     const pg  = document.getElementById("prof-goals");
@@ -5163,6 +5170,7 @@ async function loadProfile() {
     // Profile completeness bar
     const checks = [
       { done: !!(p.photoUrl || p.avatarEmoji), label: "Personaliza tu avatar o foto" },
+      { done: !!(p.bio && p.bio.length > 10), label: "Cuéntale algo de ti a Zyra (perfil → Editar información)" },
       { done: !!(p.reminderEnabled), label: "Activa los recordatorios diarios" },
       { done: !!(Array.isArray(jd?.entries) ? jd.entries.length > 0 : (Array.isArray(jd) ? jd.length > 0 : false)), label: "Escribe tu primera entrada de diario" },
       { done: !!(Array.isArray(gd?.goals) ? gd.goals.length > 0 : (Array.isArray(gd) ? gd.length > 0 : false)), label: "Crea tu primera meta" },
@@ -5288,8 +5296,12 @@ async function selectDicebearAvatar(url) {
 async function saveProfileInfo() {
   const name = document.getElementById("prof-name-input").value.trim();
   if(!name) return zyraToast("Escribe tu nombre", "error");
+  const bio = (document.getElementById("prof-bio-input")?.value || "").trim().substring(0, 300);
   try {
-    await api("/auth/update-profile","PUT",{name});
+    await Promise.all([
+      api("/auth/update-profile","PUT",{name}),
+      api("/profile","PATCH",{bio}),
+    ]);
     user.name = name;
     localStorage.setItem("zyra_user", JSON.stringify(user));
     updateNav();
