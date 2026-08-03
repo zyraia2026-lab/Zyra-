@@ -389,6 +389,62 @@ exports.sendSundayReflection = async () => {
   }
 };
 
+/* ─── Check-in nocturno: usuarios sin registro emocional hoy (8pm Colombia) ─── */
+exports.sendEveningCheckIn = async () => {
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
+  try {
+    const now    = new Date();
+    const colNow = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+    const hour   = colNow.getUTCHours();
+    if (hour !== 20 || colNow.getUTCMinutes() > 4) return;
+
+    const todayStr = colNow.toISOString().slice(0, 10);
+
+    const subs = await PushSub.find({}).select("user").lean();
+    if (!subs.length) return;
+    const userIds = subs.map(s => s.user);
+
+    const profiles = await Profile.find({ user: { $in: userIds } })
+      .select("user emotionHistory lastEveningCheckInAt").lean();
+
+    const DEDUP_MS = 20 * 60 * 60 * 1000;
+    const EVENING_MSGS = [
+      { title: "¿Cómo estuvo tu día? 🌙", body: "No has registrado cómo te sientes hoy. Un segundo es suficiente 💜" },
+      { title: "El día casi termina 🌙", body: "¿Cómo te vas? Registra tu emoción de hoy antes de dormir 💙" },
+      { title: "Antes de cerrar el día ✨", body: "¿Cómo te sentiste hoy? Tu registro ayuda a Zyra a entenderte mejor." },
+      { title: "Hora de cerrar el día 💜", body: "Un registro rápido de cómo estás — eso es todo. ¿Cómo fue hoy?" },
+      { title: "¿Qué tal el día? 🌿", body: "Aún no registraste tu emoción hoy. Tarda menos de un minuto 💙" },
+    ];
+
+    let sent = 0;
+    for (const p of profiles) {
+      if (p.lastEveningCheckInAt && (now - new Date(p.lastEveningCheckInAt)) < DEDUP_MS) continue;
+      const history = Array.isArray(p.emotionHistory) ? p.emotionHistory : [];
+      const loggedToday = history.some(e => {
+        const d = new Date(e.date);
+        const dc = new Date(d.getTime() - 5 * 60 * 60 * 1000);
+        return dc.toISOString().slice(0, 10) === todayStr;
+      });
+      if (loggedToday) continue;
+
+      const m = EVENING_MSGS[Math.floor(Math.random() * EVENING_MSGS.length)];
+      await sendToUser(p.user, {
+        title: m.title,
+        body:  m.body,
+        icon:  "/Imagenes/1000154669.png",
+        badge: "/Imagenes/1000154669.png",
+        tag:   "zyra-evening",
+        data:  { url: "/?p=tracker" },
+      });
+      await Profile.updateOne({ _id: p._id }, { $set: { lastEveningCheckInAt: now } });
+      sent++;
+    }
+    if (sent) console.log(`[Push] Check-in nocturno enviado: ${sent} usuarios`);
+  } catch(e) {
+    console.error("[Push] sendEveningCheckIn error:", e.message);
+  }
+};
+
 /* ─── Seguimiento de memorias con fechas próximas ─── */
 exports.sendMemoryFollowUps = async () => {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;

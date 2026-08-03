@@ -45,6 +45,7 @@ const S = new mongoose.Schema({
   lastReminderSentAt: { type: Date, default: null },
   lastProactiveAt:    { type: Date, default: null },
   lastSundayReflectionAt: { type: Date, default: null },
+  lastEveningCheckInAt:   { type: Date, default: null },
 
   // ── Personalización ──
   theme: { type: String, enum: ["default","ocean","forest","sunset","midnight"], default: "default" },

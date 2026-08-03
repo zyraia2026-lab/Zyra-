@@ -5885,6 +5885,7 @@ async function quickLogEmotion(key) {
     renderQuickEmoPicker(key);
     if (typeof triggerMission === 'function') triggerMission('log_emotion');
     zyraToast(em.emoji + ' ' + em.label + ' registrado', 'success');
+    setTimeout(() => showZyraEmotionReaction(key), 800);
   } catch(err) {
     zyraToast('Error al guardar. Intenta de nuevo.', 'error');
   }
@@ -6008,13 +6009,49 @@ async function saveEmotion() {
     await api("/profile/emotion", "POST", {emotion: selectedEmotion, note, intensity});
     localStorage.setItem('zyra_last_emotion', selectedEmotion);
     localStorage.setItem('zyra_last_emotion_date', new Date().toDateString());
+    const _savedEmo = selectedEmotion;
     document.getElementById("emotion-note").value = ""; selectedEmotion = "";
     document.getElementById("emotion-form").style.display = "none"; loadDashboard();
     triggerMission('log_emotion');
+    setTimeout(() => showZyraEmotionReaction(_savedEmo), 600);
   } catch(e) {
     zyraToast(e.message, "error");
     if(btn) { btn.disabled = false; btn.textContent = "Guardar Registro"; }
   }
+}
+function showZyraEmotionReaction(emotion) {
+  const streak = _gamifStatus?.streak || 0;
+  const REACTIONS = {
+    feliz:       ["Qué bueno saber que estás bien 😊 Esos días merecen ser anotados.", "Me alegra, de verdad 💙 ¿Qué lo está generando?", "Los días buenos también cuentan. Me alegra saberlo 😊"],
+    tranquilo:   ["La calma también es una forma de estar bien 😌 Disfrútala.", "Estar tranquilo/a es más difícil de lo que parece. Cuídalo 🌿", "Qué rico 😌 La calma es un regalo — úsala bien."],
+    motivado:    ["¡Eso! 💪 Aprovecha mientras la energía está. ¿Qué vas a avanzar hoy?", "Esa motivación que sientes es tuya — haz algo con ella ahora 🚀", "Me encanta cuando estás así 💜 ¿Qué te tiene con ese impulso?"],
+    ansioso:     ["Sé que no es fácil. Respira despacio — ya lo primero está hecho 💙", "Reconocer la ansiedad ya es el primer paso. Aquí estoy si quieres hablar 💜", "Gracias por decirlo. No tienes que lidiar con eso sola/o 💙"],
+    triste:      ["No tienes que estar bien todo el tiempo 💙 Aquí estoy si quieres hablar.", "Que lo hayas anotado ya dice mucho. Cuídate 💜", "Los días difíciles también pasan. Aquí estoy 💙"],
+    enojado:     ["El enojo le avisa que algo importa. ¿Qué está pasando? 💬", "Entiendo. Cuando quieras soltar lo que pasó, aquí estoy 💙", "No tienes que cargarlo solo/a. Cuéntame si quieres 💜"],
+    agotado:     ["El cansancio también merece atención 😮‍💨 ¿Cuándo fue la última vez que descansaste de verdad?", "Gracias por registrarlo. El cuerpo habla — escúchalo 💙", "Oye, ¿tomaste agua hoy? A veces el cansancio es eso 💧"],
+    confundido:  ["No siempre hay que tener todo claro. Aquí estamos juntas/os 🤔", "La confusión a veces es la mente procesando algo grande. ¿Qué está dando vueltas? 💜", "Poner las cosas en palabras ayuda. ¿Quieres hablar de lo que sea? 💙"],
+    esperanzado: ["Esa esperanza que sientes es poderosa — cuídala 🌟", "Me alegra que estés así 💜 ¿Qué te la está dando?", "La esperanza mueve cosas. ¿Qué viene que te tiene así? ✨"],
+    nostalgico:  ["Los recuerdos también tienen su lugar. ¿Qué te vino hoy? 🌅", "A veces el pasado visita de buenas. ¿Qué estás recordando? 💜", "La nostalgia es una forma de cariño hacia lo que fue. Cuéntame si quieres 💙"],
+  };
+  const pool = REACTIONS[emotion] || ["Gracias por registrar cómo te sientes 💙 Eso ya es algo."];
+  let msg = pool[Math.floor(Math.random() * pool.length)];
+  if (streak >= 7) msg += ` (¡${streak} días seguidos! 🔥)`;
+
+  const existing = document.getElementById('zyra-emo-reaction');
+  if (existing) existing.remove();
+  const div = document.createElement('div');
+  div.id = 'zyra-emo-reaction';
+  div.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);z-index:8500;max-width:340px;width:calc(100% - 32px);background:var(--bg2,#141624);border:1.5px solid rgba(99,102,241,.25);border-radius:20px;padding:14px 16px 14px 14px;display:flex;gap:12px;align-items:flex-start;box-shadow:0 8px 32px rgba(0,0,0,.35);opacity:0;transition:opacity .3s,transform .3s';
+  div.innerHTML = `<img src="${LOGO}" alt="Zyra" style="width:36px;height:36px;border-radius:50%;flex-shrink:0;margin-top:2px">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:11px;font-weight:800;color:var(--accent);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Zyra dice</div>
+      <p style="font-size:13px;color:var(--text);line-height:1.5;margin:0 0 8px">${safeHtml(msg)}</p>
+      <button onclick="newChat();showPage('assistant');document.getElementById('zyra-emo-reaction')?.remove()" style="background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);color:var(--accent);font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;cursor:pointer">💬 Hablar con Zyra</button>
+    </div>
+    <button onclick="this.closest('#zyra-emo-reaction').remove()" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--text3);line-height:1;flex-shrink:0;padding:0">✕</button>`;
+  document.body.appendChild(div);
+  requestAnimationFrame(() => { div.style.opacity = '1'; div.style.transform = 'translateX(-50%) translateY(0)'; });
+  setTimeout(() => { if (div.parentNode) { div.style.opacity = '0'; div.style.transform = 'translateX(-50%) translateY(10px)'; setTimeout(() => div.remove(), 300); } }, 6000);
 }
 const _MOOD_VAL = { feliz:5, motivado:5, esperanzado:4, tranquilo:4, confundido:3, ansioso:3, nostalgico:3, agotado:2, triste:2, enojado:2 };
 function renderChart(history) {
