@@ -174,6 +174,23 @@ exports.recordVisit = async (req, res) => {
 
     await Profile.findOneAndUpdate({ user: req.user._id }, update);
 
+    // Push notification para hitos de racha (fire-and-forget)
+    const STREAK_PUSH = {
+      streak_7:  { title: "🔥 ¡Una semana seguida!", body: "7 días con Zyra — eso ya muestra carácter. Sigue así." },
+      streak_14: { title: "🌙 ¡Dos semanas!", body: "14 días de racha. Eso no es coincidencia — es constancia real." },
+      streak_30: { title: "👑 ¡Un mes entero!", body: "30 días seguidos. Esto ya es un estilo de vida. Muy bien." },
+    };
+    const streakHit = fresh.find(id => STREAK_PUSH[id]);
+    if (streakHit) {
+      const { sendToUser } = require("./pushController");
+      const msg = STREAK_PUSH[streakHit];
+      sendToUser(req.user._id, {
+        title: msg.title, body: msg.body,
+        icon: "/Imagenes/1000154669.png", badge: "/Imagenes/1000154669.png",
+        tag: "zyra-streak-milestone", data: { url: "/?p=gamification" },
+      }).catch(() => {});
+    }
+
     res.json({
       success: true,
       streak,
