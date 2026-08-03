@@ -5808,18 +5808,36 @@ function renderMoodMiniTrend(history) {
   if (!wrap || !bars || history.length < 3) { if(wrap) wrap.style.display="none"; return; }
   wrap.style.display = "";
   const last7 = history.slice(-7);
-  const COLORS = {feliz:"#22c55e",tranquilo:"#0ea5e9",motivado:"#8b5cf6",esperanzado:"#f59e0b",ansioso:"#f97316",confundido:"#fb923c",triste:"#60a5fa",enojado:"#ef4444",agotado:"#94a3b8",nostalgico:"#e879f9"};
-  bars.innerHTML = last7.map(h => {
-    const em = EMOTIONS.find(e=>e.key===h.emotion)||EMOTIONS[1];
-    const clr = COLORS[h.emotion]||"#6366f1";
+  const W = 360, H = 80, PL = 4, PR = 4, PT = 8, PB = 28;
+  const cW = W - PL - PR, cH = H - PT - PB;
+  const pts = last7.map((h, i) => {
+    const v = (_MOOD_VAL[h.emotion] || 3) - 1;
+    const x = PL + (last7.length === 1 ? cW/2 : i / (last7.length - 1) * cW);
+    const y = PT + cH - (v / 4) * cH;
+    const em = EMOTIONS.find(e => e.key === h.emotion) || EMOTIONS[1];
     const d = new Date(h.date);
-    const label = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"][d.getDay()];
-    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px" title="${em.label} — ${d.toLocaleDateString('es')}">
-      <div style="width:100%;height:36px;background:${clr};border-radius:8px;opacity:.82;transition:opacity .2s;flex-shrink:0" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.82"></div>
-      <span style="font-size:16px;line-height:1;flex-shrink:0">${em.emoji}</span>
-      <span style="font-size:9px;color:var(--text3);flex-shrink:0">${label}</span>
-    </div>`;
-  }).join("");
+    return { x, y, em, day: ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"][d.getDay()] };
+  });
+  let path = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 1; i < pts.length; i++) {
+    const cp = (pts[i].x - pts[i-1].x) * 0.45;
+    path += ` C ${pts[i-1].x+cp} ${pts[i-1].y}, ${pts[i].x-cp} ${pts[i].y}, ${pts[i].x} ${pts[i].y}`;
+  }
+  const fill = path + ` L ${pts[pts.length-1].x} ${H-PB} L ${pts[0].x} ${H-PB} Z`;
+  const dots = pts.map(p => `<circle cx="${p.x}" cy="${p.y}" r="3.5" fill="${p.em.color}" stroke="var(--bg2)" stroke-width="1.5"><title>${p.em.label} — ${p.day}</title></circle>`).join("");
+  const emojis = pts.map(p => `<text x="${p.x}" y="${p.y-7}" text-anchor="middle" style="font-size:10px">${p.em.emoji}</text>`).join("");
+  const labels = pts.map(p => `<text x="${p.x}" y="${H-PB+12}" text-anchor="middle" style="font-size:9px;fill:var(--text3)">${p.day}</text>`).join("");
+  bars.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:${H}px;display:block;overflow:visible">
+    <defs>
+      <linearGradient id="mtg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#6366f1" stop-opacity="0.25"/>
+        <stop offset="100%" stop-color="#6366f1" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <path d="${fill}" fill="url(#mtg)"/>
+    <path d="${path}" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    ${dots}${emojis}${labels}
+  </svg>`;
 }
 function renderEmotions(current) {
   document.getElementById("emotions-grid").innerHTML = EMOTIONS.map(em => `
