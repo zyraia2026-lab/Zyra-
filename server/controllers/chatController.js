@@ -864,7 +864,7 @@ async function getReasoningContext(message) {
 ════════════════════════════════════════ */
 async function buildSystemPrompt(userId, userName, message = "") {
   const [profile, goals, journals] = await Promise.all([
-    Profile.findOne({ user: userId }).select("currentEmotion emotionHistory negativeStreakCount sessionsCount streakDays achievements onboardingReason bio").lean().catch(() => null),
+    Profile.findOne({ user: userId }).select("currentEmotion emotionHistory negativeStreakCount sessionsCount streakDays achievements onboardingReason bio lastActiveDate").lean().catch(() => null),
     Goal.find({ user: userId }).sort({ createdAt:-1 }).limit(10).select("title completed priority progress dueDate category").lean().catch(() => []),
     Journal.find({ user: userId }).sort({ createdAt:-1 }).limit(3).select("title content _id").lean().catch(() => []),
   ]);
@@ -1012,6 +1012,14 @@ async function buildSystemPrompt(userId, userName, message = "") {
   }
   if (profile?.streakDays > 1) {
     memoryBlock += `\n- Racha actual: ${profile.streakDays} días seguidos usando la app. Puedes mencionarlo si fluye natural.`;
+  }
+
+  // Contexto de regreso: cuántos días lleva sin entrar
+  if (profile?.lastActiveDate) {
+    const daysSince = Math.floor((Date.now() - new Date(profile.lastActiveDate)) / 86400000);
+    if (daysSince >= 3 && daysSince <= 30) {
+      memoryBlock += `\n- Lleva ${daysSince} días sin entrar a Zyra. Si la conversación lo permite, reconoce con naturalidad que volvió — sin dramatizar ni preguntar por qué se fue.`;
+    }
   }
   const ACH_LABELS = { streak_3:"racha de 3 días", streak_7:"racha de una semana", streak_14:"racha de 2 semanas", streak_30:"un mes completo de racha", journal_10:"10 entradas en el diario", all_missions:"día perfecto (todas las misiones)", coins_50:"50 monedas ganadas", coins_200:"200 monedas ganadas", first_login:"primer inicio de sesión" };
   const earnedAch = (profile?.achievements||[]).map(a => ACH_LABELS[a] || a).filter(Boolean);
