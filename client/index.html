@@ -2797,6 +2797,7 @@ async function b2bSubmitContact() {
         <p id="profile-email-big" style="font-size:13px;color:var(--text3);margin:4px 0 12px">tu@email.com</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <span id="prof-plan-badge" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:#a78bfa;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700">✦ Plan Gratis</span>
+          <span id="prof-wellness-level" style="background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);color:#10b981;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;display:none"></span>
           <span id="prof-streak-badge" style="background:rgba(251,146,60,.15);border:1px solid rgba(251,146,60,.3);color:#fb923c;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700">🔥 0 días</span>
           <span id="prof-coins-badge" style="background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);color:#fbbf24;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700">🪙 0 monedas</span>
         </div>
@@ -5578,6 +5579,25 @@ async function loadProfile() {
     if(ps) ps.textContent = p.sessionsCount || 0;
     if(pg) pg.textContent = Array.isArray(gd?.goals) ? gd.goals.length : (Array.isArray(gd) ? gd.length : 0);
     if(pj) pj.textContent = Array.isArray(jd?.entries) ? jd.entries.length : (Array.isArray(jd) ? jd.length : 0);
+    // Wellness Level badge
+    const _levelEl = document.getElementById("prof-wellness-level");
+    if (_levelEl) {
+      const sessions = p.sessionsCount || 0;
+      const journals = Array.isArray(jd?.entries) ? jd.entries.length : (Array.isArray(jd) ? jd.length : 0);
+      const goals = Array.isArray(gd?.goals) ? gd.goals.length : (Array.isArray(gd) ? gd.length : 0);
+      const emoHistory = p.emotionHistory?.length || 0;
+      const activity = sessions + journals + goals + emoHistory;
+      const LEVELS = [
+        { min:0,   label:"Nivel 1 · Inicio",         icon:"🌱" },
+        { min:20,  label:"Nivel 2 · Constante",       icon:"🌿" },
+        { min:60,  label:"Nivel 3 · Comprometido/a",  icon:"🌸" },
+        { min:120, label:"Nivel 4 · Resiliente",      icon:"🌟" },
+        { min:250, label:"Nivel 5 · Maestro/a",       icon:"💎" },
+      ];
+      const level = [...LEVELS].reverse().find(l => activity >= l.min) || LEVELS[0];
+      _levelEl.textContent = `${level.icon} ${level.label}`;
+      _levelEl.style.display = "";
+    }
 
     // Gamification badges in hero
     if(gs) {
