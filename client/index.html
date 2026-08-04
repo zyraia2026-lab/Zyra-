@@ -2488,6 +2488,7 @@ async function b2bSubmitContact() {
           <span id="journal-char-count" style="font-size:11px;color:var(--text3)">0 / 2000</span>
           <div style="display:flex;align-items:center;gap:8px">
             <button onclick="insertJournalPrompt()" style="background:none;border:none;font-size:11px;color:var(--accent);cursor:pointer;font-weight:600;padding:0" title="Sugerencia de escritura">💡 Sugerencia</button>
+            <button onclick="toggleJournalZen()" id="journal-zen-btn" style="background:none;border:none;font-size:11px;color:var(--text3);cursor:pointer;font-weight:600;padding:0" title="Modo escritura sin distracciones">⛶ Zen</button>
             <span id="journal-draft-indicator" style="font-size:11px;color:var(--text3);display:none">💾 Guardado</span>
           </div>
         </div>
@@ -10787,8 +10788,14 @@ async function adminShowPayments(userId, name) {
 
 /* ── VOZ MEJORADA ── */
 let voiceMode = false;
+function _updateTabTitle() {
+  const EMO_EMOJI = { feliz:"😊",tranquilo:"😌",motivado:"💪",ansioso:"😰",triste:"😢",enojado:"😤",agotado:"😮‍💨",esperanzado:"🌟",confundido:"🤔",nostalgico:"🌅" };
+  const emo = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString());
+  document.title = emo && EMO_EMOJI[emo] ? `Zyra ${EMO_EMOJI[emo]}` : "Zyra";
+}
 window.addEventListener("load", () => {
   try { _initApp(); } catch(e) { console.error("Init error:", e); }
+  _updateTabTitle();
 });
 function _initApp() {
   // Manejar redirect de Stripe después de pago
@@ -11799,6 +11806,7 @@ async function quickEmotionSelect(emotion) {
     await api('/profile/emotion','POST',{emotion,note:'',intensity:5});
     localStorage.setItem('zyra_last_emotion_date', new Date().toDateString());
     localStorage.setItem('zyra_checkin_emotion_' + new Date().toDateString(), emotion);
+    _updateTabTitle();
     const he=document.getElementById('hero-emoji');
     const stEm=document.getElementById('st-emotion'); const stEi=document.getElementById('st-em-icon');
     if(he) he.textContent=emojiMap[emotion]||'🌊';
@@ -15931,6 +15939,10 @@ function renderWellbeingScore() {
   barEl.style.background = `linear-gradient(90deg, ${scoreColor}, ${score >= 70 ? "#22c55e" : "#6366f1"})`;
   itemsEl.innerHTML = checks.map(c => `<span onclick="${c.nav}" style="font-size:10px;padding:3px 8px;border-radius:20px;cursor:pointer;transition:opacity .15s;background:${c.done?"rgba(16,185,129,.12)":c.partial?"rgba(245,158,11,.1)":"var(--surface)"};color:${c.done?"#10b981":c.partial?"#f59e0b":"var(--text3)"};font-weight:600;border:1px solid ${c.done?"rgba(16,185,129,.25)":c.partial?"rgba(245,158,11,.2)":"var(--border)"}" onmouseover="this.style.opacity='.75'" onmouseout="this.style.opacity='1'">${c.label} ${c.done?"✓":c.partial?"~":"○"}</span>`).join("");
   wrap.style.display = "";
+  if (score >= 100 && !sessionStorage.getItem("zyra_perfect_score_shown")) {
+    sessionStorage.setItem("zyra_perfect_score_shown", "1");
+    setTimeout(() => { for (let i = 0; i < 60; i++) setTimeout(launchConfetti, i * 45); zyraToast("🌟 ¡Día perfecto! Lograste el 100% de bienestar", "success", 5000); }, 500);
+  }
 }
 
 /* ══════════════════════════════════════════
@@ -16596,6 +16608,34 @@ function mobSDClose() {
   if (sd) sd.classList.remove("sd-open");
 }
 
+/* ══ ZEN JOURNAL MODE ══ */
+function toggleJournalZen() {
+  const ta = document.getElementById("journal-content");
+  const zen = document.getElementById("zen-journal-overlay");
+  const zenTa = document.getElementById("zen-journal-ta");
+  if (!zen || !zenTa) return;
+  if (zen.style.display !== "none") { closeJournalZen(); return; }
+  zenTa.value = ta?.value || "";
+  _zenCount(zenTa);
+  zen.style.display = "flex";
+  setTimeout(() => zenTa.focus(), 80);
+  document.addEventListener("keydown", _zenEscHandler);
+}
+function closeJournalZen() {
+  const ta = document.getElementById("journal-content");
+  const zenTa = document.getElementById("zen-journal-ta");
+  const zen = document.getElementById("zen-journal-overlay");
+  if (ta && zenTa) { ta.value = zenTa.value; updateJournalCharCount(ta); savejournalDraft(); }
+  if (zen) zen.style.display = "none";
+  document.removeEventListener("keydown", _zenEscHandler);
+}
+function _zenEscHandler(e) { if (e.key === "Escape") closeJournalZen(); }
+function _zenCount(ta) {
+  const w = (ta.value.trim().match(/\S+/g) || []).length;
+  const el = document.getElementById("zen-word-count");
+  if (el) el.textContent = w + " palabra" + (w !== 1 ? "s" : "");
+}
+
 /* ══ NIGHT NUDGE ══ */
 function _initNightNudge() {
   const hour = new Date().getHours();
@@ -16751,6 +16791,16 @@ document.addEventListener("keydown", e => {
     </div>
     <div id="zyra-notif-list"></div>
   </div>
+</div>
+
+<!-- ══ ZEN JOURNAL MODE ══ -->
+<div id="zen-journal-overlay" style="display:none;position:fixed;inset:0;z-index:10500;background:var(--bg);flex-direction:column;align-items:center;justify-content:center">
+  <div style="position:absolute;top:16px;right:16px;display:flex;gap:8px">
+    <span id="zen-word-count" style="font-size:12px;color:var(--text3);padding:6px 12px;background:var(--surface);border-radius:8px;border:1px solid var(--border)">0 palabras</span>
+    <button onclick="closeJournalZen()" style="background:var(--surface);border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer">✓ Listo</button>
+  </div>
+  <div style="position:absolute;top:16px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--text3);opacity:.5">ESC para salir</div>
+  <textarea id="zen-journal-ta" placeholder="Escribe sin filtros…" maxlength="2000" style="width:100%;max-width:680px;height:70vh;background:transparent;border:none;outline:none;resize:none;font-size:18px;line-height:1.9;color:var(--text);font-family:inherit;padding:0 24px" oninput="_zenCount(this)"></textarea>
 </div>
 
 <!-- ══ NIGHT NUDGE ══ -->
