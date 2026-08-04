@@ -2059,6 +2059,9 @@ async function b2bSubmitContact() {
   <!-- ══ LUNES DIGEST ══ -->
   <div id="lunes-digest-wrap" style="display:none;margin-bottom:20px"></div>
 
+  <!-- ══ DOMINGO RECAP ══ -->
+  <div id="domingo-recap-wrap" style="display:none;margin-bottom:20px"></div>
+
   <!-- ══ PARA TI HOY ══ -->
   <div id="para-ti-hoy-section" style="margin-bottom:20px;display:none">
     <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">✨ Para ti hoy</div>
@@ -2333,6 +2336,7 @@ async function b2bSubmitContact() {
     <button class="game-tab"       id="gtab-zen"      onclick="openGame('zen')">🪨 Jardín</button>
     <button class="game-tab"       id="gtab-doodle"   onclick="openGame('doodle')">🎨 Doodle</button>
     <button class="game-tab"       id="gtab-release"  onclick="openGame('release')">💨 Liberar</button>
+    <button class="game-tab"       id="gtab-emocion"  onclick="openGame('emocion')">🎭 Emociones</button>
   </div>
 
   <div id="game-container"></div>
@@ -4455,21 +4459,77 @@ async function loadMemories() {
   try {
     const d = await api("/memory");
     if(!d.memories?.length) {
-      el.innerHTML = `<div class="empty" style="padding:20px 0;color:var(--text3);font-size:13px;text-align:center">Zyra aún no tiene memorias tuyas.<br>Chatea con ella para que empiece a conocerte mejor. 💙</div>`;
+      el.innerHTML = `<div style="text-align:center;padding:28px 0 16px">
+        <div style="font-size:36px;margin-bottom:12px">🧠</div>
+        <div style="font-size:14px;color:var(--text2);font-weight:600;margin-bottom:6px">Zyra aún no te conoce</div>
+        <div style="font-size:13px;color:var(--text3);line-height:1.6">Chatea con ella y automáticamente<br>empezará a recordar lo que importa. 💙</div>
+      </div>`;
       return;
     }
-    el.innerHTML = d.memories.map(m => `
-      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)" data-mem-id="${m._id}">
-        <div style="flex:1">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-            <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:${TYPE_COLORS[m.type]||'#6366f1'}22;color:${TYPE_COLORS[m.type]||'#6366f1'}">${TYPE_LABELS[m.type]||m.type}</span>
-            <span style="font-size:11px;color:var(--text3)">${'★'.repeat(m.importance)}${'☆'.repeat(5-m.importance)}</span>
-          </div>
-          <p style="font-size:13px;color:var(--text);margin:0;line-height:1.5">${safeHtml(m.content)}</p>
-          <p style="font-size:11px;color:var(--text3);margin:4px 0 0">${new Date(m.createdAt).toLocaleDateString("es-CO")}</p>
+    const mems = d.memories;
+    const TYPE_ORDER = ["personal","relationship","goal","emotional","preference","event","situation"];
+    const TYPE_ICON = { personal:"👤", emotional:"💙", preference:"⭐", relationship:"💛", goal:"🎯", event:"📅", situation:"🌀" };
+    const TYPE_NAME = { personal:"Personal", emotional:"Emocional", preference:"Preferencias", relationship:"Relaciones", goal:"Metas", event:"Eventos", situation:"Situaciones" };
+
+    // Summary bar
+    const topImportance = mems.filter(m => m.importance >= 4);
+    const grouped = {};
+    mems.forEach(m => { const t = m.type || "personal"; (grouped[t] = grouped[t]||[]).push(m); });
+
+    let html = `<div style="background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.05));border:1.5px solid rgba(99,102,241,.18);border-radius:14px;padding:14px 16px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <img src="${LOGO}" style="width:32px;height:32px;border-radius:50%" onerror="this.style.display='none'">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text)">Zyra recuerda <strong>${mems.length}</strong> cosa${mems.length!==1?"s":""} sobre ti</div>
+          <div style="font-size:11px;color:var(--text3)">${topImportance.length} dato${topImportance.length!==1?"s":""} clave · ${Object.keys(grouped).length} categoría${Object.keys(grouped).length!==1?"s":""}</div>
         </div>
-        <button onclick="deleteMemory('${m._id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:4px;flex-shrink:0;line-height:1" title="Olvidar esta memoria">🗑</button>
-      </div>`).join("");
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${Object.entries(grouped).sort((a,b)=>b[1].length-a[1].length).map(([t,ms])=>`
+          <div style="background:${TYPE_COLORS[t]||'#6366f1'}18;border:1px solid ${TYPE_COLORS[t]||'#6366f1'}33;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;color:${TYPE_COLORS[t]||'#6366f1'}">${TYPE_ICON[t]||"•"} ${ms.length}</div>`).join("")}
+      </div>
+    </div>`;
+
+    // Grouped sections
+    TYPE_ORDER.forEach(type => {
+      const items = grouped[type];
+      if (!items?.length) return;
+      const color = TYPE_COLORS[type] || "#6366f1";
+      html += `<div style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+          <div style="width:3px;height:14px;background:${color};border-radius:2px"></div>
+          <span style="font-size:11px;font-weight:800;color:${color};text-transform:uppercase;letter-spacing:.5px">${TYPE_ICON[type]||"•"} ${TYPE_NAME[type]||type}</span>
+          <span style="font-size:11px;color:var(--text3)">(${items.length})</span>
+        </div>
+        ${items.sort((a,b)=>(b.importance||0)-(a.importance||0)).map(m=>`
+          <div data-mem-id="${m._id}" style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:6px;transition:background .2s">
+            <div style="flex:1;min-width:0">
+              <p style="font-size:13px;color:var(--text);margin:0 0 4px;line-height:1.5">${safeHtml(m.content)}</p>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:10px;color:${color}">★</span>
+                <span style="font-size:10px;color:var(--text3)">${new Date(m.createdAt).toLocaleDateString("es-CO",{day:"numeric",month:"short",year:"numeric"})}</span>
+                ${m.followUpDate ? `<span style="font-size:10px;color:#f59e0b;font-weight:600">📌 seguimiento ${new Date(m.followUpDate).toLocaleDateString("es-CO",{day:"numeric",month:"short"})}</span>` : ""}
+              </div>
+            </div>
+            <button onclick="deleteMemory('${m._id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;padding:2px 4px;flex-shrink:0;line-height:1;opacity:.5;transition:opacity .2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.5" title="Olvidar">🗑</button>
+          </div>`).join("")}
+      </div>`;
+    });
+
+    // Remaining types not in TYPE_ORDER
+    Object.keys(grouped).filter(t => !TYPE_ORDER.includes(t)).forEach(type => {
+      const items = grouped[type];
+      const color = "#6366f1";
+      html += `<div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:800;color:${color};margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">• ${type}</div>
+        ${items.map(m=>`<div data-mem-id="${m._id}" style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:6px">
+          <p style="flex:1;font-size:13px;color:var(--text);margin:0;line-height:1.5">${safeHtml(m.content)}</p>
+          <button onclick="deleteMemory('${m._id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;padding:2px 4px;flex-shrink:0;line-height:1" title="Olvidar">🗑</button>
+        </div>`).join("")}
+      </div>`;
+    });
+
+    el.innerHTML = html;
   } catch(e) { el.innerHTML = `<div class="empty" style="color:var(--danger);padding:16px 0">${safeHtml(e.message)}</div>`; }
 }
 async function deleteMemory(id) {
@@ -6031,6 +6091,7 @@ async function loadDashboard() {
     renderActiveProgramBanner();
     renderWeeklyMission();
     renderLunesDigest(hd.history || [], entries);
+    renderDomingoRecap(hd.history || [], entries);
     // Cache negative streak for notification bell
     const negSC = p.negativeStreakCount || 0;
     if (negSC >= 3) { localStorage.setItem('zyra_neg_streak_count', String(negSC)); showNegativeStreakBanner(negSC); }
@@ -6257,6 +6318,138 @@ async function loadLunesDigestAI() {
     btn.style.display = "none";
   } catch {
     btn.textContent = "✨ Zyra analiza tu semana"; btn.style.opacity = "1"; btn.disabled = false;
+    zyraToast("No pude conectar ahora. Intenta en un momento.", "error");
+  }
+}
+
+/* ══════════════════════════════════════════
+   DOMINGO RECAP — Sunday closing-ritual card
+══════════════════════════════════════════ */
+let _domingoRecapData = null;
+
+function renderDomingoRecap(history, entries) {
+  const wrap = document.getElementById("domingo-recap-wrap");
+  if (!wrap) return;
+  const today = new Date();
+  if (today.getDay() !== 0) { wrap.style.display = "none"; return; }
+
+  // Current week: Mon–Sun (today is Sunday = end of week)
+  const weekMon = new Date(today); weekMon.setDate(today.getDate() - 6); weekMon.setHours(0,0,0,0);
+  const weekSun = new Date(today); weekSun.setHours(23,59,59,999);
+
+  const weekHistory = (history || []).filter(h => {
+    const d = new Date(h.date); return d >= weekMon && d <= weekSun;
+  });
+
+  // Stats from localStorage for this week
+  const habits = getHabits();
+  let habitDays = 0, habitTotal = 0, habitDone = 0;
+  let waterDays = 0, breathSessions = 0, gratitudeDays = 0, challengeDays = 0, sleepDays = 0;
+  for (let i = 0; i <= 6; i++) {
+    const d = new Date(weekMon); d.setDate(weekMon.getDate() + i);
+    const ds = d.toDateString();
+    if (parseInt(localStorage.getItem("zyra_water_" + ds) || "0") >= 8) waterDays++;
+    if (localStorage.getItem("zyra_challenge_done_" + ds)) challengeDays++;
+    breathSessions += parseInt(localStorage.getItem("zyra_breath_" + ds) || "0");
+    const g = localStorage.getItem("zyra_gratitude_" + ds);
+    if (g) { try { if (JSON.parse(g).length > 0) gratitudeDays++; } catch(_) {} }
+    if (localStorage.getItem("zyra_sleep_" + ds)) sleepDays++;
+    if (habits.length) {
+      let allDone = habits.every(h => !!localStorage.getItem("zyra_habit_" + h.id + "_" + ds));
+      if (allDone) habitDays++;
+      habits.forEach(h => { habitTotal++; if (localStorage.getItem("zyra_habit_" + h.id + "_" + ds)) habitDone++; });
+    }
+  }
+  const habitPct = habitTotal > 0 ? Math.round((habitDone / habitTotal) * 100) : null;
+
+  const weekJournals = (entries || []).filter(e => {
+    const d = new Date(e.createdAt || e.date); return d >= weekMon && d <= weekSun;
+  }).length;
+
+  const totalScore = weekHistory.length + weekJournals + waterDays + challengeDays + breathSessions + gratitudeDays;
+  if (totalScore === 0 && weekHistory.length === 0) { wrap.style.display = "none"; return; }
+
+  const EMO_EMOJI = {feliz:"😊",tranquilo:"😌",ansioso:"😰",triste:"😢",enojado:"😤",confundido:"🤔",esperanzado:"🌟",agotado:"😮‍💨",motivado:"💪",nostalgico:"🌅"};
+  const DAYS = ["L","M","M","J","V","S","D"];
+
+  const emoCounts = {};
+  weekHistory.forEach(h => { emoCounts[h.emotion] = (emoCounts[h.emotion] || 0) + 1; });
+  const topEmoEntry = Object.entries(emoCounts).sort((a,b) => b[1]-a[1])[0];
+
+  // Mood arc dots: Mon→Sun
+  const dayDotsHtml = Array.from({length:7}, (_, i) => {
+    const d = new Date(weekMon); d.setDate(weekMon.getDate() + i);
+    const m = weekHistory.find(h => new Date(h.date).toDateString() === d.toDateString());
+    const isToday = d.toDateString() === today.toDateString();
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+      <div style="font-size:${m?18:11}px;min-height:22px;display:flex;align-items:center;color:${m?"inherit":"var(--text3)"};${isToday?"filter:drop-shadow(0 0 6px rgba(139,92,246,.6))":""}">${m ? (EMO_EMOJI[m.emotion]||"•") : "·"}</div>
+      <span style="font-size:9px;color:${isToday?"var(--accent)":"var(--text3)"};font-weight:${isToday?800:700}">${DAYS[i]}</span>
+    </div>`;
+  }).join("");
+
+  // Star rating: out of 5
+  const maxScore = 7 + 7 + 7 + 7 + 14 + 7;
+  const pct = Math.min(1, totalScore / (maxScore * 0.6));
+  const stars = Math.round(pct * 5);
+  const starsHtml = Array.from({length:5}, (_,i) => `<span style="color:${i<stars?"#f59e0b":"var(--border)"}">★</span>`).join("");
+
+  const CLOSINGS = [
+    "Terminaste la semana. Eso ya cuenta.",
+    "Llegaste al domingo. Bien hecho.",
+    "Una semana más contigo — y con todo lo que trajiste.",
+    "El domingo es para cerrar con conciencia lo que viviste.",
+    "Ya llegaste al final. Respira.",
+  ];
+  const closing = CLOSINGS[today.getDate() % CLOSINGS.length];
+
+  const statChips = [
+    weekHistory.length > 0 ? `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 12px;font-size:12px;color:var(--text2)">😊 ${weekHistory.length}/7 emociones</div>` : "",
+    weekJournals > 0 ? `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 12px;font-size:12px;color:var(--text2)">📔 ${weekJournals} en diario</div>` : "",
+    habitPct !== null ? `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 12px;font-size:12px;color:var(--text2)">✅ ${habitPct}% hábitos</div>` : "",
+    breathSessions > 0 ? `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 12px;font-size:12px;color:var(--text2)">🌬️ ${breathSessions} resp.</div>` : "",
+    gratitudeDays > 0 ? `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 12px;font-size:12px;color:var(--text2)">🙏 ${gratitudeDays} agradecimientos</div>` : "",
+    waterDays > 0 ? `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 12px;font-size:12px;color:var(--text2)">💧 ${waterDays} días hidratado/a</div>` : "",
+  ].filter(Boolean).join("");
+
+  _domingoRecapData = { weekHistory, topEmoEntry, weekJournals, habitPct, breathSessions, waterDays, gratitudeDays, weekMon, weekSun };
+
+  wrap.innerHTML = `
+    <div style="background:linear-gradient(135deg,rgba(245,158,11,.07),rgba(139,92,246,.05));border:1.5px solid rgba(245,158,11,.28);border-radius:18px;padding:16px 18px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div>
+          <div style="font-size:11px;font-weight:800;color:#f59e0b;text-transform:uppercase;letter-spacing:.6px">🌅 Tu semana en números</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">${weekMon.toLocaleDateString("es-CO",{day:"numeric",month:"short"})} → hoy</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="font-size:16px;line-height:1">${starsHtml}</div>
+          <button onclick="document.getElementById('domingo-recap-wrap').style.display='none'" style="background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:4px 6px;line-height:1;border-radius:8px">×</button>
+        </div>
+      </div>
+      <p style="font-size:12px;color:var(--text3);margin:0 0 12px;font-style:italic">${closing}</p>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:12px;padding:8px;background:var(--surface);border-radius:12px">${dayDotsHtml}</div>
+      ${statChips ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:13px">${statChips}</div>` : ""}
+      <button id="domingo-recap-ai-btn" onclick="loadDomingoRecapAI()" style="width:100%;background:linear-gradient(135deg,#f59e0b,#f97316);border:none;color:#fff;border-radius:12px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .2s">✨ Zyra cierra tu semana</button>
+      <div id="domingo-recap-ai-text" style="display:none;margin-top:11px;font-size:13px;color:var(--text2);line-height:1.7;background:var(--surface);border-radius:12px;padding:12px 14px;border:1px solid var(--border)"></div>
+    </div>`;
+  wrap.style.display = "block";
+}
+
+async function loadDomingoRecapAI() {
+  const btn = document.getElementById("domingo-recap-ai-btn");
+  const textEl = document.getElementById("domingo-recap-ai-text");
+  if (!btn || !textEl || !_domingoRecapData) return;
+  btn.disabled = true; btn.textContent = "Cerrando la semana..."; btn.style.opacity = ".6";
+  const { weekHistory, topEmoEntry, weekJournals, habitPct, breathSessions, waterDays, gratitudeDays } = _domingoRecapData;
+  const emoSummary = weekHistory.map(h => `${new Date(h.date).toLocaleDateString("es-CO",{weekday:"short"})}: ${h.emotion}`).join(", ") || "(sin registros esta semana)";
+  const prompt = `Hoy es domingo, el cierre de mi semana. Te comparto cómo me fue: ${emoSummary}. ${topEmoEntry ? `La emoción más frecuente fue ${topEmoEntry[0]}.` : ""} ${weekJournals ? `Escribí ${weekJournals} vez/veces en el diario.` : "No escribí en el diario."} ${habitPct !== null ? `Cumplí el ${habitPct}% de mis hábitos.` : ""} ${breathSessions ? `Hice ${breathSessions} sesión/es de respiración.` : ""} ${gratitudeDays ? `Practiqué gratitud ${gratitudeDays} días.` : ""} ${waterDays ? `Me hidraté bien ${waterDays} días.` : ""} Dame un cierre de semana real: 2 oraciones reconociendo algo concreto de esta semana (sin ser condescendiente), y 1 intención específica y práctica para la semana que viene. Sé directa, no genérica.`;
+  try {
+    const d = await api("/chat", "POST", { message: prompt, history: [], mode: "sunday_recap", noSave: true });
+    const reply = (d.response || "").trim();
+    textEl.innerHTML = `<div style="display:flex;gap:8px;align-items:flex-start"><img src="/Imagenes/zyra-avatar.png" style="width:26px;height:26px;border-radius:50%;flex-shrink:0;margin-top:2px" onerror="this.style.display='none'"><div>${safeHtml(reply).replace(/\n/g,"<br>")}</div></div>`;
+    textEl.style.display = "block";
+    btn.style.display = "none";
+  } catch {
+    btn.textContent = "✨ Zyra cierra tu semana"; btn.style.opacity = "1"; btn.disabled = false;
     zyraToast("No pude conectar ahora. Intenta en un momento.", "error");
   }
 }
@@ -15824,7 +16017,7 @@ function _playWin()   { [523,659,784,1047].forEach((f,i) => setTimeout(() => _ga
 function _playFlip()  { _gameAudio(440, 'triangle', 0.08, 0.08); }
 
 function openGame(name) {
-  ['breath','bubbles','memory','zen','doodle','release'].forEach(t => {
+  ['breath','bubbles','memory','zen','doodle','release','emocion'].forEach(t => {
     const btn = document.getElementById('gtab-' + t);
     if (btn) btn.classList.toggle('active', t === name);
   });
@@ -15839,6 +16032,7 @@ function openGame(name) {
   if (name === 'zen')     renderZenGarden(container);
   if (name === 'doodle')  renderDoodleGame(container);
   if (name === 'release') renderReleaseGame(container);
+  if (name === 'emocion') renderEmocionGame(container);
 }
 
 /* ── JUEGO 1: Respiración guiada ── */
@@ -16587,6 +16781,122 @@ function renderReleaseGame(el) {
   spawnInt = setInterval(spawnWord, 1200);
   for (let i = 0; i < 5; i++) setTimeout(spawnWord, i * 300);
   window._gameCleanup = () => { clearInterval(spawnInt); };
+}
+
+/* ── JUEGO 7: Emoción Express ── */
+function renderEmocionGame(el) {
+  const SCENARIOS = [
+    { text: "Presentaste un proyecto importante y recibiste muy buenos comentarios. Tu jefe te felicitó frente a todos.", answer: "orgullo", options: ["orgullo","alivio","ansiedad","sorpresa"], insight: "El orgullo saludable viene de reconocer tu propio esfuerzo. Es diferente a la arrogancia — es saber que te lo ganaste." },
+    { text: "Llevas días esperando noticias de algo muy importante y no llegan. Revisas tu teléfono sin parar.", answer: "ansiedad", options: ["enojo","ansiedad","tristeza","aburrimiento"], insight: "La ansiedad de espera es una de las más agotadoras. El cuerpo prepara una respuesta para algo que no llega todavía." },
+    { text: "Un amigo cercano te canceló planes por última vez sin explicación. Ya es la tercera vez este mes.", answer: "enojo", options: ["tristeza","enojo","confusión","miedo"], insight: "El enojo a veces aparece para proteger algo que valoras — en este caso, tu tiempo y la amistad. Es información, no un defecto." },
+    { text: "Ves una foto de un lugar donde fuiste de niño y recuerdas vívidamente ese momento. Ya no puedes volver ahí.", answer: "nostalgia", options: ["tristeza","felicidad","nostalgia","melancolía"], insight: "La nostalgia mezcla alegría y pérdida al mismo tiempo. Es una de las emociones más complejas y universales." },
+    { text: "Acabas de terminar algo difícil que llevas meses trabajando. No hay emoción grande — solo quietud.", answer: "satisfacción", options: ["indiferencia","satisfacción","alivio","felicidad"], insight: "La satisfacción es silenciosa comparada con la euforia. Es una señal de que hiciste algo que importaba de verdad." },
+    { text: "Alguien que no conoces bien te da un cumplido inesperado muy específico sobre algo que hiciste.", answer: "sorpresa", options: ["sorpresa","vergüenza","alegría","gratitud"], insight: "La sorpresa agradable abre el corazón. Recibir un reconocimiento genuino de alguien inesperado es un regalo pequeño pero poderoso." },
+    { text: "Ves que un colega hace exactamente lo mismo que tú pero recibe más reconocimiento.", answer: "envidia", options: ["envidia","enojo","tristeza","motivación"], insight: "La envidia señala algo que deseas para ti. En lugar de atacar al otro, pregúntate: ¿qué quiero que todavía no tengo?" },
+    { text: "Terminaste de ayudar a alguien que realmente lo necesitaba. No te pidieron nada a cambio.", answer: "plenitud", options: ["orgullo","plenitud","alivio","felicidad"], insight: "La plenitud que viene de dar sin esperar nada es una de las fuentes más estables de bienestar. La neurociencia lo confirma." },
+    { text: "Estás en una reunión y de repente te das cuenta que olvidaste algo muy importante que debías hacer.", answer: "vergüenza", options: ["vergüenza","miedo","ansiedad","pánico"], insight: "La vergüenza se activa cuando creemos que otros juzgan nuestra competencia. Es útil en dosis pequeñas para aprender, no para machacarte." },
+    { text: "Te despiertas sin saber qué día es, sin alarma, sin agenda pendiente. El día es solo tuyo.", answer: "calma", options: ["calma","aburrimiento","tranquilidad","alegría"], insight: "La calma real es una de las experiencias más buscadas y menos practicadas. El cerebro la necesita tanto como el movimiento." },
+  ];
+
+  let questions, qIdx, score, answered;
+
+  function shuffle(arr) { for (let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];} return arr; }
+
+  function startGame() {
+    questions = shuffle([...SCENARIOS]).slice(0, 5);
+    qIdx = 0; score = 0; answered = false;
+    renderQuestion();
+  }
+
+  function renderQuestion() {
+    const q = questions[qIdx];
+    if (!q) { renderResult(); return; }
+    answered = false;
+    const shuffledOpts = shuffle([...q.options]);
+    el.innerHTML = `
+      <div style="padding:4px 0">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div style="font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.6px">🎭 Emoción Express</div>
+          <div style="display:flex;gap:12px;align-items:center">
+            <span style="font-size:12px;color:var(--text3)">${qIdx+1}/5</span>
+            <span style="font-size:13px;font-weight:800;color:#f59e0b">✦ ${score}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:18px">
+          ${Array.from({length:5},(_,i)=>`<div style="flex:1;height:4px;border-radius:2px;background:${i<qIdx?"var(--accent)":i===qIdx?"rgba(99,102,241,.4)":"var(--border)"};transition:background .3s"></div>`).join("")}
+        </div>
+        <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:18px;padding:22px 20px;margin-bottom:20px;font-size:14px;color:var(--text);line-height:1.65">
+          ${safeHtml(q.text)}
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px">¿Qué emoción describe mejor esto?</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="emo-opts">
+          ${shuffledOpts.map(opt=>`
+            <button onclick="emocionPick(this,'${opt}','${q.answer}')"
+              style="background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:14px 12px;font-size:14px;font-weight:700;cursor:pointer;color:var(--text);transition:all .18s;text-align:center;text-transform:capitalize">
+              ${safeHtml(opt)}
+            </button>`).join("")}
+        </div>
+        <div id="emo-insight" style="display:none;margin-top:16px;background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.04));border:1px solid rgba(99,102,241,.2);border-radius:14px;padding:14px 16px;font-size:13px;color:var(--text2);line-height:1.65"></div>
+        <button id="emo-next-btn" style="display:none;width:100%;margin-top:14px;background:var(--accent);border:none;color:#fff;border-radius:14px;padding:13px;font-size:14px;font-weight:700;cursor:pointer" onclick="emocionNext()">
+          ${qIdx+1<5?"Siguiente →":"Ver resultado"}
+        </button>
+      </div>`;
+  }
+
+  window.emocionPick = function(btn, chosen, answer) {
+    if (answered) return;
+    answered = true;
+    const correct = chosen === answer;
+    if (correct) { score += 10; _playWin(); }
+    else _playPop();
+    const opts = document.getElementById('emo-opts');
+    if (opts) opts.querySelectorAll('button').forEach(b => {
+      const bVal = b.textContent.trim().toLowerCase();
+      b.disabled = true;
+      if (bVal === answer) { b.style.background = 'rgba(16,185,129,.15)'; b.style.borderColor = '#10b981'; b.style.color = '#10b981'; }
+      else if (bVal === chosen && !correct) { b.style.background = 'rgba(239,68,68,.1)'; b.style.borderColor = '#ef4444'; b.style.color = '#ef4444'; }
+    });
+    const q = questions[qIdx];
+    const insightEl = document.getElementById('emo-insight');
+    if (insightEl) {
+      insightEl.innerHTML = `<div style="display:flex;gap:10px;align-items:flex-start"><span style="font-size:18px;flex-shrink:0">${correct?"✅":"💡"}</span><div><strong>${correct?"Correcto":"La emoción es: "+answer}</strong><br>${safeHtml(q.insight)}</div></div>`;
+      insightEl.style.display = 'block';
+    }
+    const nextBtn = document.getElementById('emo-next-btn');
+    if (nextBtn) nextBtn.style.display = 'block';
+  };
+
+  window.emocionNext = function() { qIdx++; renderQuestion(); };
+
+  function renderResult() {
+    const perfect = score >= 50;
+    const coinsEarned = Math.round(score * 0.6);
+    if (coinsEarned > 0 && typeof addCoins === 'function') addCoins(coinsEarned);
+    el.innerHTML = `
+      <div style="text-align:center;padding:24px 0">
+        <div style="font-size:56px;margin-bottom:14px">${perfect?"🏆":score>=30?"🌟":"💙"}</div>
+        <div style="font-size:22px;font-weight:900;color:var(--text);margin-bottom:6px">${perfect?"¡Perfecto!":score>=30?"¡Muy bien!":"Buen intento"}</div>
+        <div style="font-size:14px;color:var(--text3);margin-bottom:20px">${score} de 50 puntos</div>
+        <div style="display:flex;justify-content:center;gap:16px;margin-bottom:24px">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 20px;text-align:center">
+            <div style="font-size:28px;font-weight:900;color:var(--accent)">${score/10}</div>
+            <div style="font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Correctas</div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 20px;text-align:center">
+            <div style="font-size:28px;font-weight:900;color:#f59e0b">🪙 +${coinsEarned}</div>
+            <div style="font-size:11px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Monedas</div>
+          </div>
+        </div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.65;max-width:300px;margin:0 auto 24px">Reconocer emociones en otros nos ayuda a entender las propias. ${perfect?"Tu inteligencia emocional es notable.":"Cada práctica te hace más consciente."}</p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+          <button onclick="renderEmocionGame(document.getElementById('game-container'))" style="background:var(--accent);border:none;color:#fff;border-radius:12px;padding:12px 24px;font-size:14px;font-weight:700;cursor:pointer">Jugar de nuevo</button>
+          <button onclick="showPage('assistant')" style="background:var(--surface);border:1.5px solid var(--border);color:var(--text2);border-radius:12px;padding:12px 20px;font-size:14px;font-weight:600;cursor:pointer">Hablar con Zyra</button>
+        </div>
+      </div>`;
+    if (perfect) setTimeout(() => { for (let i = 0; i < 20; i++) setTimeout(launchConfetti, i * 80); }, 300);
+  }
+
+  startGame();
 }
 
 /* No showPage override needed — hooks added inline below */
@@ -17768,6 +18078,18 @@ function toggleHabitDone(id) {
     const streak = getHabitStreak(id);
     const MILESTONES = { 7:"🔥 ¡7 días! Eso es disciplina de verdad.", 14:"🌟 ¡2 semanas! Ya lo tienes en la sangre.", 21:"💎 ¡21 días! Esto ya es parte de ti.", 30:"🏆 ¡30 días seguidos! Eso no lo hace cualquiera." };
     if (MILESTONES[streak] && habit) zyraToast(`${habit.emoji} ${habit.name}: ${MILESTONES[streak]}`, "success", 5000);
+    // All habits done for today?
+    const _allH = getHabits();
+    if (_allH.length >= 2 && _allH.every(h => !!localStorage.getItem(getHabitKey(h.id)))) {
+      const _allDoneKey = "zyra_allhabits_celebrated_" + new Date().toDateString();
+      if (!localStorage.getItem(_allDoneKey)) {
+        localStorage.setItem(_allDoneKey, "1");
+        setTimeout(() => {
+          for (let i = 0; i < 30; i++) setTimeout(launchConfetti, i * 70);
+          zyraToast("🎉 ¡Todos los hábitos de hoy completados! Eso sí es consistencia.", "success", 5500);
+        }, 350);
+      }
+    }
   }
   renderHabitsTracker(document.getElementById("wellness-content"));
   renderTodayOverview();
