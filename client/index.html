@@ -2065,6 +2065,9 @@ async function b2bSubmitContact() {
   <!-- ══ RECAP MENSUAL ══ -->
   <div id="monthly-recap-wrap" style="display:none;margin-bottom:20px"></div>
 
+  <!-- ══ CARTA SEMANAL DE ZYRA ══ -->
+  <div id="carta-zyra-wrap" style="display:none;margin-bottom:20px"></div>
+
   <!-- ══ PARA TI HOY ══ -->
   <div id="para-ti-hoy-section" style="margin-bottom:20px;display:none">
     <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">✨ Para ti hoy</div>
@@ -4895,6 +4898,9 @@ function renderAnalytics(d, el) {
   <!-- Palancas de bienestar -->
   <div id="analytics-levers-card" style="margin-bottom:20px"></div>
 
+  <!-- Detonantes emocionales -->
+  <div id="analytics-triggers-card" style="margin-bottom:20px"></div>
+
   <!-- Reporte semanal -->
   <div class="card" style="margin-bottom:20px;background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.05));border-color:rgba(99,102,241,.2)">
     <div class="card-header"><span class="card-title">📋 Tu semana con Zyra</span></div>
@@ -4917,7 +4923,7 @@ function renderAnalytics(d, el) {
 
 </div>`;
   // Render local cards after HTML is set
-  setTimeout(() => { renderCheckinHistory(); renderHabitAnalytics(); renderEmotionHeatmap(d); renderSleepEmotionCorrelation(d); renderStreakMap(activityDates || []); renderWellnessLevers(d); }, 0);
+  setTimeout(() => { renderCheckinHistory(); renderHabitAnalytics(); renderEmotionHeatmap(d); renderSleepEmotionCorrelation(d); renderStreakMap(activityDates || []); renderWellnessLevers(d); renderTriggerInsights(); }, 0);
 }
 
 function renderCheckinHistory() {
@@ -5202,6 +5208,65 @@ function renderWellnessLevers(analyticsData) {
     </div>
     <p style="font-size:12px;color:var(--text3);margin:0 0 2px;line-height:1.6">${subtitle}</p>
     ${rows}
+  </div>`;
+}
+
+/* ── Trigger Insights (detonantes emocionales) ── */
+function renderTriggerInsights() {
+  const card = document.getElementById("analytics-triggers-card");
+  if (!card) return;
+  const all = getAllTriggers();
+  if (all.length < 3) { card.innerHTML = ""; return; }
+
+  const TRIGGER_LABELS = { trabajo:"Trabajo",familia:"Familia",pareja:"Pareja/amor",salud:"Salud",dinero:"Dinero",soledad:"Soledad",estres:"Estrés",sueno:"Falta de sueño",ninguno:"Sin razón clara" };
+  const TRIGGER_EMOJI  = { trabajo:"💼",familia:"👨‍👩‍👧",pareja:"❤️",salud:"🏥",dinero:"💰",soledad:"💔",estres:"🌀",sueno:"😴",ninguno:"☁️" };
+  const EMO_LABEL = { ansioso:"Ansiedad",triste:"Tristeza",enojado:"Enojo",agotado:"Agotamiento",confundido:"Confusión" };
+  const EMO_COLOR = { ansioso:"#f97316",triste:"#60a5fa",enojado:"#ef4444",agotado:"#94a3b8",confundido:"#f59e0b" };
+
+  // Count by trigger
+  const tFreq = {};
+  const tEmo  = {};
+  all.forEach(t => {
+    tFreq[t.trigger] = (tFreq[t.trigger] || 0) + 1;
+    if (!tEmo[t.trigger]) tEmo[t.trigger] = {};
+    tEmo[t.trigger][t.emotion] = (tEmo[t.trigger][t.emotion] || 0) + 1;
+  });
+
+  const sorted = Object.entries(tFreq).sort((a,b) => b[1]-a[1]);
+  const total  = all.length;
+  const topTrigger = sorted[0]?.[0];
+
+  const rows = sorted.slice(0, 6).map(([key, count]) => {
+    const pct = Math.round((count / total) * 100);
+    const topEmo = Object.entries(tEmo[key] || {}).sort((a,b)=>b[1]-a[1])[0]?.[0];
+    const eCol = topEmo ? (EMO_COLOR[topEmo] || "#6366f1") : "#6366f1";
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:5px">
+        <span style="font-size:18px;flex-shrink:0">${TRIGGER_EMOJI[key] || "•"}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${TRIGGER_LABELS[key] || key}</div>
+          ${topEmo ? `<div style="font-size:11px;color:${eCol};margin-top:1px">→ generalmente ${EMO_LABEL[topEmo] || topEmo}</div>` : ""}
+        </div>
+        <div style="font-size:14px;font-weight:800;color:var(--text3);flex-shrink:0">${count}×</div>
+      </div>
+      <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${eCol};border-radius:2px;opacity:.7"></div>
+      </div>
+    </div>`;
+  }).join("");
+
+  const insight = topTrigger && topTrigger !== "ninguno"
+    ? `${TRIGGER_EMOJI[topTrigger] || "•"} <strong>${TRIGGER_LABELS[topTrigger] || topTrigger}</strong> aparece como detonante con más frecuencia en tus registros. Vale la pena explorar eso.`
+    : `Has registrado ${total} detonante${total !== 1 ? "s" : ""} en los últimos 90 días. Ese autoconocimiento cuenta.`;
+
+  card.innerHTML = `<div class="card">
+    <div class="card-header">
+      <span class="card-title">🎯 Mis detonantes</span>
+      <span style="font-size:11px;color:var(--text3)">${all.length} registros</span>
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin:0 0 10px;line-height:1.6">${insight}</p>
+    ${rows}
+    <p style="font-size:11px;color:var(--text3);margin:12px 0 0;text-align:center">Cuando sientes algo difícil, Zyra te pregunta qué lo desencadenó.</p>
   </div>`;
 }
 
@@ -6147,6 +6212,7 @@ async function loadDashboard() {
     renderLunesDigest(hd.history || [], entries);
     renderDomingoRecap(hd.history || [], entries);
     renderMonthlyRecap(hd.history || [], entries);
+    renderCartaZyra(hd.history || [], entries);
     // Cache negative streak for notification bell
     const negSC = p.negativeStreakCount || 0;
     if (negSC >= 3) { localStorage.setItem('zyra_neg_streak_count', String(negSC)); showNegativeStreakBanner(negSC); }
@@ -6649,6 +6715,130 @@ function _getMissionProgress(mission) {
     }
   }
   return Math.min(count, mission.target);
+}
+
+/* ══════════════════════════════════════════
+   CARTA SEMANAL DE ZYRA
+══════════════════════════════════════════ */
+let _cartaZyraData = null;
+
+function _getCartaCacheKey() {
+  const d = new Date();
+  const week = Math.floor((d - new Date(d.getFullYear(), 0, 1)) / 604800000);
+  return "zyra_carta_" + d.getFullYear() + "_w" + week;
+}
+
+function renderCartaZyra(history, entries) {
+  const wrap = document.getElementById("carta-zyra-wrap");
+  if (!wrap) return;
+  // Show every day (accessible always) but only autoload on Sundays/Mondays
+  const today = new Date();
+  const dow = today.getDay(); // 0=Sun, 1=Mon
+  if (dow !== 0 && dow !== 1) {
+    // Not Sunday or Monday — only show if user explicitly dismissed or has cached letter
+    const cached = localStorage.getItem(_getCartaCacheKey());
+    if (!cached) return;
+  }
+
+  const cutoff = Date.now() - 7 * 86400000;
+  const weekHistory = (history || []).filter(h => new Date(h.date).getTime() > cutoff);
+  const weekEntries = (entries || []).filter(e => new Date(e.createdAt).getTime() > cutoff);
+
+  if (weekHistory.length < 2 && weekEntries.length < 1) return;
+
+  const EMO_SCORE = { feliz:1, motivado:1, esperanzado:.8, tranquilo:.6, confundido:0, nostalgico:0, agotado:-.5, ansioso:-.7, enojado:-.8, triste:-.9 };
+  const avgScore = weekHistory.length
+    ? weekHistory.reduce((s,h) => s + (EMO_SCORE[h.emotion] || 0), 0) / weekHistory.length
+    : 0;
+  const topEmo = weekHistory.reduce((acc, h) => { acc[h.emotion] = (acc[h.emotion]||0)+1; return acc; }, {});
+  const topEmoKey = Object.entries(topEmo).sort((a,b)=>b[1]-a[1])[0]?.[0] || null;
+
+  _cartaZyraData = { weekHistory, weekEntries, avgScore, topEmoKey };
+
+  const cached = localStorage.getItem(_getCartaCacheKey());
+  const letterHTML = cached
+    ? `<div id="carta-zyra-text" style="font-size:13px;color:var(--text2);line-height:1.85;white-space:pre-wrap;font-style:italic">${safeHtml(cached)}</div>`
+    : `<div id="carta-zyra-text" style="font-size:13px;color:var(--text3);line-height:1.7">
+        <em>Cada semana, Zyra te escribe una carta personal sobre tu semana — cómo estuvo, qué notó, y lo que te lleva al lunes.</em>
+      </div>`;
+
+  wrap.style.display = "";
+  wrap.innerHTML = `<div class="card" style="background:linear-gradient(135deg,rgba(139,92,246,.06),rgba(99,102,241,.04));border-color:rgba(139,92,246,.22)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <img src="${LOGO}" alt="Zyra" style="width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(139,92,246,.4)">
+        <div>
+          <div style="font-size:14px;font-weight:800;color:var(--text)">Carta de Zyra</div>
+          <div style="font-size:11px;color:var(--text3)">Tu semana · ${new Date().toLocaleDateString("es-CO",{day:"numeric",month:"long"})}</div>
+        </div>
+      </div>
+      <button onclick="document.getElementById('carta-zyra-wrap').style.display='none'" style="background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:4px 6px;line-height:1">×</button>
+    </div>
+    <div style="background:var(--surface);border-radius:14px;padding:14px 16px;margin-bottom:14px;min-height:80px">${letterHTML}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      ${!cached ? `<button id="carta-ai-btn" onclick="loadCartaZyraAI()" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;padding:11px 20px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;flex:1">✉️ Leer la carta de esta semana</button>` : ""}
+      ${cached ? `<button onclick="loadCartaZyraAI(true)" style="background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.3);color:#a78bfa;padding:9px 16px;border-radius:12px;font-size:12px;font-weight:700;cursor:pointer">↺ Nueva carta</button>` : ""}
+      <button onclick="navigator.share?navigator.share({title:'Carta de Zyra',text:document.getElementById('carta-zyra-text')?.textContent||''}):navigator.clipboard?.writeText(document.getElementById('carta-zyra-text')?.textContent||'')" style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);color:var(--accent);padding:9px 14px;border-radius:12px;font-size:12px;font-weight:700;cursor:pointer">📤</button>
+    </div>
+  </div>`;
+}
+
+async function loadCartaZyraAI(force = false) {
+  const btn = document.getElementById("carta-ai-btn");
+  const textEl = document.getElementById("carta-zyra-text");
+  if (!btn && !force) return;
+  if (!_cartaZyraData) return;
+  if (btn) { btn.disabled = true; btn.textContent = "Zyra está escribiendo…"; btn.style.opacity = ".6"; }
+
+  const { weekHistory, weekEntries, avgScore, topEmoKey } = _cartaZyraData;
+  const EMO_LABEL = { feliz:"feliz",tranquilo:"tranquilo/a",ansioso:"ansioso/a",triste:"triste",enojado:"molesto/a",agotado:"agotado/a",motivado:"motivado/a",esperanzado:"esperanzado/a",confundido:"confundido/a",nostalgico:"nostálgico/a" };
+  const weekSummary = [
+    `Check-ins esta semana: ${weekHistory.length}`,
+    topEmoKey ? `Emoción más frecuente: ${EMO_LABEL[topEmoKey] || topEmoKey}` : null,
+    weekEntries.length ? `Entradas de diario: ${weekEntries.length}` : null,
+    avgScore > 0.3 ? "Semana emocionalmente positiva en general" : avgScore < -0.3 ? "Semana con más momentos difíciles" : "Semana mixta, con altos y bajos",
+  ].filter(Boolean).join(". ");
+
+  const prompt = `Eres Zyra, la IA de bienestar emocional de este usuario. Escríbele una carta personal para el cierre de la semana.
+
+Datos de su semana: ${weekSummary}.
+${weekEntries.length ? `Escribió en su diario ${weekEntries.length} veces.` : ""}
+
+La carta debe:
+- Empezar con "Querida/o [nombre]," — usa simplemente "Querida/o," si no sabes el nombre
+- Ser íntima, cálida, honesta — como una carta de una amiga que te conoce bien
+- Mencionar 1-2 cosas específicas de cómo estuvo la semana (basada en los datos)
+- Notar algo positivo, o algo que merece atención con compasión
+- Hacer UNA sola pregunta de reflexión hacia el final
+- Cerrar con calidez, firmada "Con cariño, Zyra 💙"
+- Longitud: 4-6 párrafos cortos, tono personal y humano, NO genérico
+- Escribe en español, tono suave pero directo`;
+
+  try {
+    const d = await api("/chat", "POST", { message: prompt, history: [], noSave: true, mode: "carta_semanal" });
+    const letter = d?.reply || "Esta semana estuvo aquí. Y eso es suficiente. 💙";
+    if (textEl) {
+      textEl.style.fontStyle = "italic";
+      textEl.style.whiteSpace = "pre-wrap";
+      textEl.style.color = "var(--text2)";
+      textEl.textContent = letter;
+    }
+    localStorage.setItem(_getCartaCacheKey(), letter);
+    if (btn) btn.remove();
+    // Add "Nueva carta" button if not there
+    const wrap = document.getElementById("carta-zyra-wrap");
+    const footer = wrap?.querySelector('[style*="display:flex;gap:8px"]');
+    if (footer && !footer.querySelector('[onclick*="Nueva carta"]')) {
+      const newBtn = document.createElement("button");
+      newBtn.textContent = "↺ Nueva carta";
+      newBtn.style.cssText = "background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.3);color:#a78bfa;padding:9px 16px;border-radius:12px;font-size:12px;font-weight:700;cursor:pointer";
+      newBtn.onclick = () => loadCartaZyraAI(true);
+      footer.insertBefore(newBtn, footer.firstChild);
+    }
+  } catch(e) {
+    if (textEl) textEl.textContent = "Algo falló al escribir la carta. Intenta de nuevo más tarde.";
+    if (btn) { btn.disabled = false; btn.textContent = "✉️ Intentar de nuevo"; btn.style.opacity = "1"; }
+  }
 }
 
 function renderWeeklyMission() {
@@ -7247,6 +7437,41 @@ async function saveEmotion() {
     if(btn) { btn.disabled = false; btn.textContent = "Guardar Registro"; }
   }
 }
+const _NEGATIVE_EMOS = new Set(["ansioso","triste","enojado","agotado","confundido"]);
+const _TRIGGERS = [
+  { key:"trabajo",  emoji:"💼", label:"Trabajo" },
+  { key:"familia",  emoji:"👨‍👩‍👧", label:"Familia" },
+  { key:"pareja",   emoji:"❤️",  label:"Pareja" },
+  { key:"salud",    emoji:"🏥",  label:"Salud" },
+  { key:"dinero",   emoji:"💰",  label:"Dinero" },
+  { key:"soledad",  emoji:"💔",  label:"Soledad" },
+  { key:"estres",   emoji:"🌀",  label:"Estrés" },
+  { key:"sueno",    emoji:"😴",  label:"Sueño" },
+  { key:"ninguno",  emoji:"☁️",  label:"Sin razón" },
+];
+
+function getTriggerKey() { return "zyra_trigger_" + new Date().toDateString(); }
+function getAllTriggers() {
+  const result = [];
+  for (let i = 0; i < 90; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const raw = localStorage.getItem("zyra_trigger_" + d.toDateString());
+    if (raw) { try { const t = JSON.parse(raw); result.push({ ...t, ds: d.toDateString() }); } catch(e) {} }
+  }
+  return result;
+}
+
+function saveTrigger(triggerKey, emotion) {
+  localStorage.setItem(getTriggerKey(), JSON.stringify({ trigger: triggerKey, emotion, ts: Date.now() }));
+  const div = document.getElementById('zyra-emo-reaction');
+  if (!div) return;
+  const inner = div.querySelector('[data-trigger-wrap]');
+  if (inner) {
+    inner.innerHTML = `<span style="font-size:12px;color:#10b981;font-weight:700">✓ Anotado. Eso ayuda a entender los patrones 💙</span>`;
+    setTimeout(() => { div.style.opacity='0'; div.style.transform='translateX(-50%) translateY(10px)'; setTimeout(()=>div.remove(),300); }, 1800);
+  }
+}
+
 function showZyraEmotionReaction(emotion) {
   const streak = _gamifStatus?.streak || 0;
   const REACTIONS = {
@@ -7265,21 +7490,38 @@ function showZyraEmotionReaction(emotion) {
   let msg = pool[Math.floor(Math.random() * pool.length)];
   if (streak >= 7) msg += ` (¡${streak} días seguidos! 🔥)`;
 
+  const isNeg = _NEGATIVE_EMOS.has(emotion);
+  const alreadyHasTrigger = !!localStorage.getItem(getTriggerKey());
+
   const existing = document.getElementById('zyra-emo-reaction');
   if (existing) existing.remove();
   const div = document.createElement('div');
   div.id = 'zyra-emo-reaction';
-  div.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);z-index:8500;max-width:340px;width:calc(100% - 32px);background:var(--bg2,#141624);border:1.5px solid rgba(99,102,241,.25);border-radius:20px;padding:14px 16px 14px 14px;display:flex;gap:12px;align-items:flex-start;box-shadow:0 8px 32px rgba(0,0,0,.35);opacity:0;transition:opacity .3s,transform .3s';
-  div.innerHTML = `<img src="${LOGO}" alt="Zyra" style="width:36px;height:36px;border-radius:50%;flex-shrink:0;margin-top:2px">
+  div.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);z-index:8500;max-width:360px;width:calc(100% - 32px);background:var(--bg2,#141624);border:1.5px solid rgba(99,102,241,.25);border-radius:20px;padding:14px 16px 14px 14px;box-shadow:0 8px 32px rgba(0,0,0,.35);opacity:0;transition:opacity .3s,transform .3s';
+
+  const triggerHTML = (isNeg && !alreadyHasTrigger)
+    ? `<div data-trigger-wrap style="margin-top:10px;border-top:1px solid rgba(255,255,255,.07);padding-top:10px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:7px">¿Qué lo desencadenó?</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px">${_TRIGGERS.map(t =>
+          `<button onclick="saveTrigger('${t.key}','${emotion}')" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:4px 10px;font-size:11px;color:var(--text2);cursor:pointer;white-space:nowrap;transition:all .15s" onmouseover="this.style.background='rgba(99,102,241,.2)'" onmouseout="this.style.background='rgba(255,255,255,.05)'">${t.emoji} ${t.label}</button>`
+        ).join("")}</div>
+      </div>`
+    : "";
+
+  div.innerHTML = `<div style="display:flex;gap:12px;align-items:flex-start">
+    <img src="${LOGO}" alt="Zyra" style="width:36px;height:36px;border-radius:50%;flex-shrink:0;margin-top:2px">
     <div style="flex:1;min-width:0">
       <div style="font-size:11px;font-weight:800;color:var(--accent);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Zyra dice</div>
       <p style="font-size:13px;color:var(--text);line-height:1.5;margin:0 0 8px">${safeHtml(msg)}</p>
       <button onclick="newChat();showPage('assistant');document.getElementById('zyra-emo-reaction')?.remove()" style="background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);color:var(--accent);font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;cursor:pointer">💬 Hablar con Zyra</button>
     </div>
-    <button onclick="this.closest('#zyra-emo-reaction').remove()" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--text3);line-height:1;flex-shrink:0;padding:0">✕</button>`;
+    <button onclick="this.closest('#zyra-emo-reaction').remove()" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--text3);line-height:1;flex-shrink:0;padding:0">✕</button>
+  </div>${triggerHTML}`;
+
   document.body.appendChild(div);
   requestAnimationFrame(() => { div.style.opacity = '1'; div.style.transform = 'translateX(-50%) translateY(0)'; });
-  setTimeout(() => { if (div.parentNode) { div.style.opacity = '0'; div.style.transform = 'translateX(-50%) translateY(10px)'; setTimeout(() => div.remove(), 300); } }, 6000);
+  const autoHide = isNeg && !alreadyHasTrigger ? 12000 : 6000;
+  setTimeout(() => { if (div.parentNode) { div.style.opacity = '0'; div.style.transform = 'translateX(-50%) translateY(10px)'; setTimeout(() => div.remove(), 300); } }, autoHide);
 }
 const _MOOD_VAL = { feliz:5, motivado:5, esperanzado:4, tranquilo:4, confundido:3, ansioso:3, nostalgico:3, agotado:2, triste:2, enojado:2 };
 function renderChart(history) {
@@ -12032,6 +12274,8 @@ async function sendMsg() {
   if (_grat.length > 0) _dcParts.push(`Gratitud de hoy: "${_grat[0]}"${_grat.length > 1 ? ` y ${_grat.length - 1} más` : ""}`);
   const _intention = localStorage.getItem("zyra_intention_" + _today);
   if (_intention) _dcParts.push(`Su intención de hoy: "${_intention}"`);
+  const _todayTrigger = localStorage.getItem(getTriggerKey?.() || ("zyra_trigger_" + _today));
+  if (_todayTrigger) { try { const _tObj = JSON.parse(_todayTrigger); if (_tObj?.trigger && _tObj.trigger !== "ninguno") { const _TLAB = {trabajo:"trabajo",familia:"su familia",pareja:"su pareja/amor",salud:"su salud",dinero:"dinero/finanzas",soledad:"soledad",estres:"estrés general",sueno:"falta de sueño"}; _dcParts.push(`El detonante de su emoción de hoy fue: ${_TLAB[_tObj.trigger] || _tObj.trigger}`); } } catch(e) {} }
   const dailyContext = _dcParts.join(". ");
 
   try {
