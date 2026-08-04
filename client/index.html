@@ -1992,6 +1992,11 @@ async function b2bSubmitContact() {
     <div id="para-ti-hoy-card"></div>
   </div>
 
+  <!-- ══ ZYRA INSIGHT ══ -->
+  <div id="zyra-insight-section" style="margin-bottom:20px;display:none">
+    <div id="zyra-insight-card"></div>
+  </div>
+
   <!-- ══ RETO DEL DÍA ══ -->
   <div id="daily-challenge-wrap" style="margin-bottom:28px;display:none">
     <div class="daily-challenge-card">
@@ -4387,6 +4392,50 @@ async function loadAnalytics() {
   } catch(e) { el.innerHTML = `<div class="empty" style="padding:40px;color:var(--danger)">${safeHtml(e.message)}</div>`; }
 }
 
+function _buildWeekGrid() {
+  const today = new Date();
+  const DAY_SHORT = ["D","L","M","M","J","V","S"];
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    const ds = d.toDateString();
+    days.push({
+      label:  DAY_SHORT[d.getDay()],
+      isToday: i === 0,
+      emo:    !!localStorage.getItem("zyra_checkin_emotion_" + ds),
+      water:  parseInt(localStorage.getItem("zyra_water_" + ds) || "0") >= 4,
+      sleep:  !!localStorage.getItem("zyra_sleep_" + ds),
+      jour:   !!localStorage.getItem("zyra_journal_saved_" + ds),
+      chall:  !!localStorage.getItem("zyra_challenge_done_" + ds),
+    });
+  }
+  const ROWS = [
+    { label:"😊 Emoción", key:"emo",   color:"#6366f1" },
+    { label:"💧 Agua",    key:"water",  color:"#0ea5e9" },
+    { label:"😴 Sueño",   key:"sleep",  color:"#8b5cf6" },
+    { label:"📔 Diario",  key:"jour",   color:"#10b981" },
+    { label:"⚡ Reto",    key:"chall",  color:"#f59e0b" },
+  ];
+  const cols = days.map(d => `<div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+    <span style="font-size:10px;font-weight:${d.isToday?700:400};color:${d.isToday?"var(--accent)":"var(--text3)"}">${d.label}</span>
+    ${ROWS.map(r => `<div style="width:18px;height:18px;border-radius:50%;background:${d[r.key]?r.color:"var(--border)"};box-shadow:${d[r.key]?"0 0 6px "+r.color+"55":"none"};transition:background .3s"></div>`).join("")}
+  </div>`).join("");
+  const rowLabels = ROWS.map(r => `<div style="font-size:11px;color:var(--text3);height:18px;display:flex;align-items:center">${r.label}</div>`).join("");
+  const totalFilled = days.reduce((s,d) => s + ROWS.filter(r => d[r.key]).length, 0);
+  const maxPossible = days.length * ROWS.length;
+  const pct = Math.round(totalFilled / maxPossible * 100);
+  const pctColor = pct >= 70 ? "#10b981" : pct >= 40 ? "#f59e0b" : "#6366f1";
+  return `<div class="card" style="margin-bottom:20px">
+    <div class="card-header" style="margin-bottom:16px">
+      <span class="card-title">📆 Tu semana en números</span>
+      <span style="font-size:13px;font-weight:800;color:${pctColor}">${pct}% completado</span>
+    </div>
+    <div style="display:flex;gap:12px">
+      <div style="display:flex;flex-direction:column;gap:8px;padding-top:22px;min-width:80px">${rowLabels}</div>
+      <div style="display:flex;gap:6px;flex:1;justify-content:space-between">${cols}</div>
+    </div>
+  </div>`;
+}
 function renderAnalytics(d, el) {
   const { stats, emotionFrequency, dayOfWeekPattern, weeklyTrend, bestDay, worstDay, insight, insights, topWords, activityDates } = d;
   const EMOTION_EMOJI = { feliz:"😊", tranquilo:"😌", ansioso:"😰", triste:"😢", enojado:"😤", confundido:"🤔", esperanzado:"🌟", agotado:"😮‍💨", motivado:"💪", nostalgico:"🌅" };
@@ -4459,6 +4508,9 @@ function renderAnalytics(d, el) {
       <div style="font-size:11px;color:var(--text3);margin-top:4px">Intensidad prom.</div>
     </div>
   </div>
+
+  <!-- Tu semana en números -->
+  ${_buildWeekGrid()}
 
   <!-- Mejores/Peores días -->
   ${bestDay || worstDay ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
@@ -5652,6 +5704,7 @@ async function loadDashboard() {
     animateCount("st-journal", entries.length);
     renderEmotions(p.currentEmotion);
     renderParaTiHoy(p.currentEmotion, hd.history || [], p.streakDays || 0);
+    renderZyraInsight(computeZyraInsight(hd.history || []));
     // Cache negative streak for notification bell
     const negSC = p.negativeStreakCount || 0;
     if (negSC >= 3) { localStorage.setItem('zyra_neg_streak_count', String(negSC)); showNegativeStreakBanner(negSC); }
@@ -5771,6 +5824,87 @@ function renderParaTiHoy(emotion, history, streak) {
       ${streakBonus}
     </div>
     <button onclick="${rec.action}" style="flex-shrink:0;background:var(--accent);border:none;color:#fff;border-radius:12px;padding:10px 16px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">${rec.btn}</button>
+  </div>`;
+  section.style.display = "block";
+}
+
+function computeZyraInsight(history) {
+  if (!history || history.length < 6) return null;
+  const POSITIVE = new Set(["feliz","tranquilo","esperanzado","motivado"]);
+  const NEGATIVE  = new Set(["ansioso","triste","enojado","agotado","confundido"]);
+  const DAYS = ["domingos","lunes","martes","miércoles","jueves","viernes","sábados"];
+  const cutoff = Date.now() - 30 * 86400000;
+  const recent = history.filter(h => new Date(h.date).getTime() > cutoff);
+  if (recent.length < 5) return null;
+
+  const dayBuckets = Array.from({length:7}, () => ({n:0, neg:0, pos:0}));
+  recent.forEach(h => {
+    const d = new Date(h.date).getDay();
+    dayBuckets[d].n++;
+    if (POSITIVE.has(h.emotion)) dayBuckets[d].pos++;
+    if (NEGATIVE.has(h.emotion))  dayBuckets[d].neg++;
+  });
+
+  const candidates = [];
+
+  // Best vs worst day
+  const active = dayBuckets.map((b,i) => ({...b,i})).filter(b => b.n >= 2);
+  if (active.length >= 2) {
+    const best  = active.reduce((a,b) => b.pos/b.n > a.pos/a.n ? b : a);
+    const worst = active.reduce((a,b) => b.neg/b.n > a.neg/a.n ? b : a);
+    if (best.i !== worst.i && best.pos/best.n > 0.55 && worst.neg/worst.n > 0.45) {
+      candidates.push({ icon:"🔍", color:"rgba(99,102,241,.09)", border:"rgba(99,102,241,.25)", text:`Noto algo en tu semana: los <strong>${DAYS[best.i]}</strong> sueles estar mejor, y los <strong>${DAYS[worst.i]}</strong> son más difíciles. ¿Qué hace esa diferencia?`, action:"showPage('analytics')", btn:"Ver mi patrón" });
+    }
+  }
+
+  // Consistent hard day
+  const hardDay = dayBuckets.map((b,i) => ({...b,i})).find(b => b.n >= 3 && b.neg/b.n >= 0.65);
+  if (hardDay) {
+    candidates.push({ icon:"💙", color:"rgba(139,92,246,.08)", border:"rgba(139,92,246,.25)", text:`Los <strong>${DAYS[hardDay.i]}</strong> suelen ser los más difíciles para ti. ¿Hay algo de ese día que te pese? Vale la pena explorarlo.`, action:"showPage('assistant')", btn:"Hablar con Zyra" });
+  }
+
+  // Recovery pattern (neg day followed by pos next day)
+  let recoveries = 0;
+  for (let i = 1; i < recent.length; i++) {
+    const prev = recent[i-1], curr = recent[i];
+    const gap = Math.round((new Date(curr.date) - new Date(prev.date)) / 86400000);
+    if (gap === 1 && NEGATIVE.has(prev.emotion) && POSITIVE.has(curr.emotion)) recoveries++;
+  }
+  if (recoveries >= 3) {
+    candidates.push({ icon:"💪", color:"rgba(16,185,129,.07)", border:"rgba(16,185,129,.22)", text:`Algo que veo en ti: cuando un día está difícil, al siguiente sueles estar mejor. Te recuperas rápido. Eso habla bien de ti.`, action:null, btn:null });
+  }
+
+  // This week consistency
+  const weekCutoff = new Date(); weekCutoff.setDate(weekCutoff.getDate() - 6); weekCutoff.setHours(0,0,0,0);
+  const thisWeekLogs = recent.filter(h => new Date(h.date) >= weekCutoff).length;
+  if (thisWeekLogs >= 5) {
+    candidates.push({ icon:"🌱", color:"rgba(16,185,129,.07)", border:"rgba(16,185,129,.2)", text:`Esta semana registraste tu emoción ${thisWeekLogs} días. Esa consistencia no es poca — significa que estás prestando atención.`, action:null, btn:null });
+  }
+
+  // Positive momentum last 5 logs
+  const last5 = recent.slice(-5);
+  const posCount = last5.filter(h => POSITIVE.has(h.emotion)).length;
+  if (posCount >= 4) {
+    candidates.push({ icon:"✨", color:"rgba(251,146,60,.07)", border:"rgba(251,146,60,.22)", text:`Llevas ${posCount} de tus últimas 5 emociones en modo positivo. No es casualidad — algo estás haciendo bien.`, action:"showPage('analytics')", btn:"Ver mi progreso" });
+  }
+
+  if (!candidates.length) return null;
+  return candidates[new Date().getDate() % candidates.length];
+}
+
+function renderZyraInsight(insight) {
+  const section = document.getElementById("zyra-insight-section");
+  const card    = document.getElementById("zyra-insight-card");
+  if (!section || !card || !insight) return;
+  card.innerHTML = `<div style="background:${insight.color};border:1.5px solid ${insight.border};border-radius:20px;padding:16px 18px">
+    <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;opacity:.7">Zyra notó algo</div>
+    <div style="display:flex;align-items:flex-start;gap:12px">
+      <div style="width:34px;height:34px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid rgba(99,102,241,.25)"><img src="${LOGO}" alt="Zyra" style="width:100%;height:100%;object-fit:cover"/></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;color:var(--text);line-height:1.65">${insight.text}</div>
+        ${insight.btn ? `<button onclick="${insight.action}" style="margin-top:10px;background:rgba(99,102,241,.14);border:1px solid rgba(99,102,241,.28);color:var(--accent);border-radius:10px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer">${insight.btn} →</button>` : ""}
+      </div>
+    </div>
   </div>`;
   section.style.display = "block";
 }
@@ -8891,6 +9025,43 @@ function addBotMsg(text, ts, cards) {
       </div>
     </div>`;
   msgs.insertBefore(div, typing); msgs.scrollTop = msgs.scrollHeight;
+  // After 5 bot messages with no emotion logged today, nudge the user
+  const _botMsgs = msgs.querySelectorAll(".msg.bot").length;
+  if (_botMsgs === 5) {
+    const _nudgeToday = new Date().toDateString();
+    if (!localStorage.getItem("zyra_checkin_emotion_" + _nudgeToday) && !sessionStorage.getItem("zyra_chat_nudge_shown")) {
+      sessionStorage.setItem("zyra_chat_nudge_shown", "1");
+      setTimeout(() => _showChatEmotionNudge(), 1200);
+    }
+  }
+}
+function _showChatEmotionNudge() {
+  const msgs = document.getElementById("messages");
+  const typing = document.getElementById("typing-indicator");
+  if (!msgs || document.getElementById("chat-emo-nudge")) return;
+  const nudge = document.createElement("div");
+  nudge.id = "chat-emo-nudge";
+  nudge.style.cssText = "display:flex;justify-content:center;margin:8px 0;animation:fadeIn .3s ease";
+  nudge.innerHTML = `<div style="background:rgba(99,102,241,.09);border:1.5px solid rgba(99,102,241,.22);border-radius:16px;padding:12px 16px;max-width:340px;text-align:center">
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.5">Llevamos un rato hablando — ¿cómo estás <strong>ahora mismo</strong>?</div>
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+      ${[["😊","feliz"],["😌","tranquilo"],["😰","ansioso"],["😢","triste"],["💪","motivado"],["😮‍💨","agotado"]].map(([emoji,key]) =>
+        `<button onclick="_nudgeLogEmotion('${key}')" style="background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:6px 10px;cursor:pointer;font-size:16px;transition:transform .15s" title="${key}">${emoji}</button>`
+      ).join("")}
+    </div>
+    <button onclick="document.getElementById('chat-emo-nudge')?.remove()" style="background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;margin-top:8px">Más tarde</button>
+  </div>`;
+  msgs.insertBefore(nudge, typing);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+function _nudgeLogEmotion(key) {
+  const nudge = document.getElementById("chat-emo-nudge");
+  if (nudge) nudge.remove();
+  localStorage.setItem("zyra_checkin_emotion_" + new Date().toDateString(), key);
+  const EMOJI = {feliz:"😊",tranquilo:"😌",ansioso:"😰",triste:"😢",motivado:"💪",agotado:"😮‍💨"};
+  zyraToast(`${EMOJI[key]||""} Emoción registrada`, "success");
+  renderParaTiHoy(key, [], _gamifStatus?.streak || 0);
+  if (typeof triggerMission === 'function') triggerMission('log_emotion');
 }
 async function shareZyraCard(text) {
   try {
