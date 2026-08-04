@@ -4443,6 +4443,54 @@ function _buildWeekGrid() {
     </div>
   </div>`;
 }
+function _buildEmotionCalendar(history) {
+  const EMO_COL = { feliz:"#22c55e",tranquilo:"#0ea5e9",motivado:"#6366f1",esperanzado:"#8b5cf6",ansioso:"#f59e0b",triste:"#a78bfa",enojado:"#ef4444",agotado:"#64748b",confundido:"#6b7280",nostalgico:"#ec4899" };
+  const POSITIVE = new Set(["feliz","tranquilo","esperanzado","motivado"]);
+  const histMap = {};
+  (history || []).forEach(h => { const ds = new Date(h.date).toDateString(); histMap[ds] = h.emotion; });
+  const today = new Date(); today.setHours(0,0,0,0);
+  const WEEKS = 18;
+  const startDay = new Date(today);
+  startDay.setDate(startDay.getDate() - WEEKS * 7 + 1);
+  const MONTHS = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+  const DAY_L = ["D","L","M","M","J","V","S"];
+  let cells = ""; let monthLabels = []; let prevMonth = -1;
+  for (let w = 0; w < WEEKS; w++) {
+    let col = "";
+    for (let d = 0; d < 7; d++) {
+      const cur = new Date(startDay); cur.setDate(startDay.getDate() + w*7 + d);
+      if (cur > today) { col += `<div style="width:11px;height:11px;border-radius:3px;background:transparent"></div>`; continue; }
+      const ds = cur.toDateString();
+      const emo = histMap[ds];
+      const col2 = emo ? (EMO_COL[emo] || "#6366f1") : "rgba(255,255,255,.06)";
+      const isToday = ds === today.toDateString();
+      const title = emo ? `${cur.toLocaleDateString("es-CO",{day:"numeric",month:"short"})}: ${emo}` : cur.toLocaleDateString("es-CO",{day:"numeric",month:"short"});
+      col += `<div title="${title}" style="width:11px;height:11px;border-radius:3px;background:${col2};${isToday?"outline:1.5px solid rgba(255,255,255,.5);outline-offset:1px":""}${emo&&POSITIVE.has(emo)?";box-shadow:0 0 4px "+col2+"66":""}"></div>`;
+      if (cur.getMonth() !== prevMonth && d === 0) { monthLabels.push({ w, label: MONTHS[cur.getMonth()] }); prevMonth = cur.getMonth(); }
+    }
+    cells += `<div style="display:flex;flex-direction:column;gap:2px">${col}</div>`;
+  }
+  const monthHeader = Array.from({length:WEEKS}, (_,w) => {
+    const m = monthLabels.find(ml => ml.w === w);
+    return `<div style="width:11px;font-size:8px;color:var(--text3);text-align:center;white-space:nowrap">${m ? m.label : ""}</div>`;
+  }).join("");
+  return `<div class="card" style="margin-bottom:20px;overflow:visible">
+    <div class="card-header" style="margin-bottom:10px"><span class="card-title">🗓 Historial emocional</span></div>
+    <div style="overflow-x:auto">
+      <div style="display:inline-flex;flex-direction:column;gap:2px;min-width:max-content">
+        <div style="display:flex;gap:2px;margin-left:16px">${monthHeader}</div>
+        <div style="display:flex;gap:2px">
+          <div style="display:flex;flex-direction:column;gap:2px;margin-right:2px">${DAY_L.map(l=>`<div style="width:10px;font-size:7px;color:var(--text3);height:11px;display:flex;align-items:center">${l}</div>`).join("")}</div>
+          ${cells}
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;margin-top:10px;flex-wrap:wrap">
+      <span style="font-size:10px;color:var(--text3)">Emoción:</span>
+      ${Object.entries(EMO_COL).map(([e,c])=>`<div style="display:flex;align-items:center;gap:3px"><div style="width:8px;height:8px;border-radius:2px;background:${c}"></div><span style="font-size:9px;color:var(--text3)">${e}</span></div>`).join("")}
+    </div>
+  </div>`;
+}
 function _buildEmotionSparkline(history) {
   if (!history || history.length < 3) return "";
   const POSITIVE = new Set(["feliz","tranquilo","esperanzado","motivado"]);
@@ -4556,6 +4604,9 @@ function renderAnalytics(d, el) {
       <div style="font-size:11px;color:var(--text3);margin-top:4px">Intensidad prom.</div>
     </div>
   </div>
+
+  <!-- Calendario emocional -->
+  ${_buildEmotionCalendar(d.profile?.emotionHistory || [])}
 
   <!-- Curva emocional sparkline -->
   ${_buildEmotionSparkline(d.profile?.emotionHistory || [])}
@@ -6986,11 +7037,13 @@ function renderJournal(entries, updateCache = true) {
       : `<div class="empty"><span class="empty-icon">📔</span>Nada escrito todavía.<br><button class="btn-sm accent" style="margin-top:10px" onclick="toggleJournalForm()">Empezar a escribir</button></div>`;
     return;
   }
+  const _EMO_BORDER = { feliz:"#22c55e",tranquilo:"#0ea5e9",motivado:"#6366f1",esperanzado:"#8b5cf6",ansioso:"#f59e0b",triste:"#a78bfa",enojado:"#ef4444",agotado:"#64748b",confundido:"#6b7280",nostalgico:"#ec4899" };
   const _favEntries = new Set((() => { try { return JSON.parse(localStorage.getItem("zyra_fav_entries") || "[]"); } catch(e) { return []; } })());
   el.innerHTML = entries.map(e => {
     const em = EMOTIONS.find(x => x.key === e.emotion);
     const isFav = _favEntries.has(e._id);
-    return `<div class="journal-item" id="jitem-${e._id}">
+    const _bc = e.emotion && _EMO_BORDER[e.emotion] ? `border-left:3px solid ${_EMO_BORDER[e.emotion]};padding-left:12px;` : "";
+    return `<div class="journal-item" id="jitem-${e._id}" style="${_bc}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div class="journal-title">${em?em.emoji+" ":""}${safeHtml(e.title||"Entrada sin título")}</div>
         <div style="display:flex;gap:6px">
@@ -16543,6 +16596,36 @@ function mobSDClose() {
   if (sd) sd.classList.remove("sd-open");
 }
 
+/* ══ NIGHT NUDGE ══ */
+function _initNightNudge() {
+  const hour = new Date().getHours();
+  if (hour < 21 || hour > 23) return;
+  const today = new Date().toDateString();
+  if (sessionStorage.getItem("zyra_night_nudge_shown")) return;
+  if (localStorage.getItem("zyra_journal_saved_" + today)) return;
+  sessionStorage.setItem("zyra_night_nudge_shown", "1");
+  const TEXTS = [
+    "¿Cómo fue tu día? Puedo guardarlo en tu diario.",
+    "Ya es noche. ¿Quieres dejar algo escrito antes de dormir?",
+    "¿Pasó algo hoy que valga la pena recordar?"
+  ];
+  const el = document.getElementById("zyra-night-nudge-text");
+  if (el) el.textContent = TEXTS[Math.floor(Math.random()*TEXTS.length)];
+  const nudge = document.getElementById("zyra-night-nudge");
+  if (nudge) { nudge.style.display = "block"; setTimeout(() => { if(nudge) nudge.style.opacity="1"; }, 50); }
+}
+function _nightNudgeDismiss() { const n=document.getElementById("zyra-night-nudge"); if(n) n.style.display="none"; }
+function _nightNudgeJournal() { _nightNudgeDismiss(); showPage("journal"); setTimeout(toggleJournalForm, 300); }
+function _nightNudgeChat() {
+  _nightNudgeDismiss();
+  showPage("assistant");
+  setTimeout(() => {
+    const inp = document.getElementById("chat-input");
+    if (inp) { inp.value = "Quiero contarte cómo fue mi día"; inp.focus(); }
+  }, 300);
+}
+setTimeout(_initNightNudge, 8000);
+
 /* ══ COMMAND PALETTE ══ */
 const _CMD_ITEMS = [
   { group:"Navegar", icon:"🏠", bg:"rgba(99,102,241,.15)", label:"Inicio", sub:"Dashboard y resumen del día", action:()=>showPage("dashboard"), kbd:null },
@@ -16667,6 +16750,21 @@ document.addEventListener("keydown", e => {
       <button onclick="closeNotifPanel()" style="background:rgba(255,255,255,.08);border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:5px 9px;border-radius:50%;line-height:1">✕</button>
     </div>
     <div id="zyra-notif-list"></div>
+  </div>
+</div>
+
+<!-- ══ NIGHT NUDGE ══ -->
+<div id="zyra-night-nudge" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:8000;width:calc(100% - 32px);max-width:400px;animation:slideUp .35s cubic-bezier(.16,1,.3,1)">
+  <div style="background:linear-gradient(135deg,rgba(17,17,34,.96),rgba(30,20,60,.97));border:1px solid rgba(139,92,246,.3);border-radius:20px;padding:16px 18px;box-shadow:0 16px 50px rgba(0,0,0,.5);display:flex;gap:12px;align-items:center">
+    <div style="width:36px;height:36px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid rgba(139,92,246,.4)"><img src="/Imagenes/zyra-avatar.png" alt="Zyra" style="width:100%;height:100%;object-fit:cover"/></div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:12px;color:rgba(200,180,255,.9);line-height:1.5" id="zyra-night-nudge-text">¿Cómo fue tu día? Puedo guardarlo en tu diario.</div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <button onclick="_nightNudgeJournal()" style="background:rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.4);color:#a78bfa;border-radius:9px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer">📔 Escribir</button>
+        <button onclick="_nightNudgeChat()" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:#818cf8;border-radius:9px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer">💬 Contarle a Zyra</button>
+        <button onclick="_nightNudgeDismiss()" style="background:transparent;border:none;color:rgba(255,255,255,.3);font-size:11px;cursor:pointer;padding:5px">No gracias</button>
+      </div>
+    </div>
   </div>
 </div>
 
