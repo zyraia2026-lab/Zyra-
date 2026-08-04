@@ -8958,6 +8958,7 @@ function renderAffirmations(el) {
       <div class="affirmation-text" id="aff-text">"${affs[idx]}"</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:18px">
         <button class="btn-cta" style="background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);color:white;backdrop-filter:blur(10px)" onclick="nextAffirmation()">Nueva ✨</button>
+        <button onclick="generatePersonalAffirmation()" id="aff-ai-btn" style="background:rgba(99,102,241,.35);border:2px solid rgba(99,102,241,.6);color:white;border-radius:12px;padding:11px 20px;font-size:13px;font-weight:700;cursor:pointer;backdrop-filter:blur(10px)">🤖 Para mí</button>
         <button onclick="toggleFavoriteAff()" id="aff-fav-btn" style="background:rgba(239,68,68,.2);border:2px solid rgba(239,68,68,.4);color:white;border-radius:12px;padding:11px 20px;font-size:13px;font-weight:700;cursor:pointer;backdrop-filter:blur(10px)">♡ Guardar</button>
         <button onclick="copyAffirmation()" style="background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.2);color:white;border-radius:12px;padding:11px 20px;font-size:13px;font-weight:700;cursor:pointer;backdrop-filter:blur(10px)" id="aff-copy-btn">📋 Copiar</button>
         <button onclick="shareAffirmation()" style="background:rgba(37,211,102,.25);border:2px solid rgba(37,211,102,.4);color:white;border-radius:12px;padding:11px 20px;font-size:13px;font-weight:700;cursor:pointer;backdrop-filter:blur(10px)">📤 Compartir</button>
@@ -9018,6 +9019,35 @@ function shareAffirmation() {
   } else {
     navigator.clipboard?.writeText(full).then(() => zyraToast("Afirmación copiada para compartir 📋", "success")).catch(() => {});
   }
+}
+async function generatePersonalAffirmation() {
+  const btn = document.getElementById("aff-ai-btn");
+  const txt = document.getElementById("aff-text");
+  if (!txt || !btn) return;
+  const cacheKey = "zyra_aff_personal_" + new Date().toDateString();
+  const cached = localStorage.getItem(cacheKey);
+  if (cached) { setAffirmation(cached); return; }
+  const origBtnText = btn.textContent;
+  btn.textContent = "✨ Generando...";
+  btn.disabled = true;
+  const emo = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString()) || "";
+  const goals = (_goalsAllItems || []).filter(g => !g.completed).slice(0, 2).map(g => g.title);
+  try {
+    const d = await api("/chat", "POST", {
+      message: `Escribe UNA sola afirmación personal para alguien${emo ? ` que hoy se siente ${emo}` : ""}${goals.length ? ` y trabaja en: ${goals.join(", ")}` : ""}. La afirmación debe ser personal, poderosa, en primera persona, máximo 20 palabras. Solo la frase, sin comillas, sin explicación.`,
+      history: [],
+      noSave: true,
+      mode: "affirmation",
+    });
+    const aff = (d.response || "").trim().replace(/^["']|["']$/g, "");
+    if (aff && aff.length > 10) {
+      localStorage.setItem(cacheKey, aff);
+      setAffirmation(aff);
+      zyraToast("✨ Afirmación personalizada para ti hoy", "success", 2500);
+    }
+  } catch(e) {}
+  btn.textContent = origBtnText;
+  btn.disabled = false;
 }
 function getFavoriteAffs() { try { return JSON.parse(localStorage.getItem("zyra_aff_favs") || "[]"); } catch(e) { return []; } }
 function updateFavBtn(text) {
@@ -16630,13 +16660,22 @@ const MH_TIPS = [
   "El movimiento corporal procesa el estrés — si estás ansioso/a, mueve el cuerpo.",
   "La aceptación — no la resignación — es el primer paso hacia el cambio real.",
 ];
+const MH_TIPS_BY_EMO = {
+  ansioso:  ["Cuando la ansiedad llega, la mente le da poder al futuro que no existe todavía. Vuelve al ahora.", "El peor escenario que imaginas rara vez sucede. El mejor tampoco — pero tú decides cuál practicar.", "La ansiedad no necesita razón para aparecer. Necesita atención para irse."],
+  triste:   ["Sentir tristeza no es estar roto/a — es estar vivo/a. Deja que pase sin juzgarla.", "La tristeza no te define. Solo te visita.", "No tienes que estar bien todo el tiempo. Está bien estar en proceso."],
+  enojado:  ["El enojo es una señal, no una orden. Escúchalo antes de actuar.", "Debajo del enojo casi siempre hay un dolor que todavía no se ha dicho.", "Procesar el enojo por escrito le quita poder. Pruébalo."],
+  agotado:  ["Descansar es productivo. El cerebro consolida y repara mientras no haces nada.", "El agotamiento no es debilidad — es la señal de que diste demasiado sin recargar.", "Hoy no tienes que ser extraordinario/a. Solo tienes que ser."],
+  motivado: ["La motivación empieza la tarea. El hábito la termina. Empieza mientras tienes impulso.", "Usa este impulso en algo concreto — la motivación es perecedera pero los resultados no.", "El mejor momento para avanzar en una meta es cuando ya quieres hacerlo."],
+  feliz:    ["Los días buenos merecen ser anotados. La memoria tiende a recordar mejor lo difícil.", "La alegría compartida se multiplica. ¿A quién le puedes contar algo bueno hoy?", "Reconocer lo que va bien no es ingenuidad — es entrenamiento cerebral para el bienestar."],
+};
 function loadMentalHealthTip() {
   const wrap = document.getElementById("mh-tip-wrap");
   const el   = document.getElementById("mh-tip-text");
-  if (el) {
-    el.textContent = MH_TIPS[new Date().getDate() % MH_TIPS.length];
-    if (wrap) wrap.style.display = "";
-  }
+  if (!el) return;
+  const todayEmo = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString());
+  const pool = (todayEmo && MH_TIPS_BY_EMO[todayEmo]) ? MH_TIPS_BY_EMO[todayEmo] : MH_TIPS;
+  el.textContent = pool[new Date().getDate() % pool.length];
+  if (wrap) wrap.style.display = "";
 }
 
 /* ══════════════════════════════════════════
