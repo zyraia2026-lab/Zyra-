@@ -2415,6 +2415,7 @@ async function b2bSubmitContact() {
     <button class="wellness-tab" id="wtab-habits" onclick="openWellness('habits')">✅ Hábitos</button>
     <button class="wellness-tab" id="wtab-cbt" onclick="openWellness('cbt')">🧠 Reestructurar</button>
     <button class="wellness-tab" id="wtab-programs" onclick="openWellness('programs')">📚 Programas</button>
+    <button class="wellness-tab" id="wtab-trends" onclick="openWellness('trends')">📈 Tendencias</button>
   </div>
   <div id="wellness-content"></div>
 </div>
@@ -8266,9 +8267,201 @@ function loadWellness() {
   if (!_habitsSynced) { _habitsSynced = true; syncHabitsFromServer().then(() => openWellness(currentWTab)); }
   else openWellness(currentWTab);
 }
+async function renderTrends(el) {
+  if (!el) return;
+  const EMO_SCORE = { feliz:1, motivado:1, esperanzado:.8, tranquilo:.6, confundido:0, nostalgico:0, agotado:-.5, ansioso:-.7, enojado:-.8, triste:-.9 };
+  const EMO_COLOR = { feliz:"#22c55e", motivado:"#6366f1", esperanzado:"#a78bfa", tranquilo:"#0ea5e9", confundido:"#f59e0b", nostalgico:"#e879f9", agotado:"#94a3b8", ansioso:"#f97316", enojado:"#ef4444", triste:"#60a5fa" };
+  const EMO_EMOJI = { feliz:"😊", tranquilo:"😌", ansioso:"😰", triste:"😢", enojado:"😤", confundido:"🤔", esperanzado:"🌟", agotado:"😮‍💨", motivado:"💪", nostalgico:"🌅" };
+  const DAY_LABEL = ["D","L","M","X","J","V","S"];
+  const DAYS = 21;
+
+  el.innerHTML = `<div style="text-align:center;color:var(--text3);font-size:13px;padding:32px 0">Cargando tendencias...</div>`;
+
+  let emotionHist = [];
+  try {
+    const d = await api("/analytics");
+    emotionHist = d?.profile?.emotionHistory || [];
+  } catch(e) {}
+
+  // Build per-day map for last DAYS days
+  const today = new Date();
+  const days = [];
+  for (let i = DAYS - 1; i >= 0; i--) {
+    const dt = new Date(today); dt.setDate(today.getDate() - i);
+    days.push({ dt, key: dt.toDateString(), iso: dt.toISOString().slice(0,10) });
+  }
+
+  // Server emotion (most recent per day)
+  const emoByDay = {};
+  emotionHist.forEach(e => {
+    if (!e?.emotion || !e?.date) return;
+    const k = new Date(e.date).toDateString();
+    if (EMO_SCORE[e.emotion] !== undefined) emoByDay[k] = e.emotion;
+  });
+
+  // LocalStorage signals per day
+  const dayData = days.map(({ dt, key, iso }) => {
+    const emo = emoByDay[key] || localStorage.getItem("zyra_checkin_emotion_" + key) || null;
+    const score = emo ? (EMO_SCORE[emo] ?? null) : null;
+    const water = parseInt(localStorage.getItem("zyra_water_" + key) || "0");
+    const sleep = (() => { try { return JSON.parse(localStorage.getItem("zyra_sleep_" + key) || "null"); } catch(e) { return null; } })();
+    const jour = !!localStorage.getItem("zyra_journal_saved_" + key);
+    const breath = !!localStorage.getItem("zyra_breath_" + key);
+    return { dt, key, emo, score, water, sleep, jour, breath };
+  });
+
+  // Compute trend insight
+  const scoredDays = dayData.filter(d => d.score !== null);
+  const recentDays = scoredDays.slice(-7);
+  const prevDays   = scoredDays.slice(-14, -7);
+  const recentAvg  = recentDays.length ? recentDays.reduce((s,d)=>s+d.score,0)/recentDays.length : null;
+  const prevAvg    = prevDays.length   ? prevDays.reduce((s,d)=>s+d.score,0)/prevDays.length     : null;
+  const trendDelta = (recentAvg !== null && prevAvg !== null) ? recentAvg - prevAvg : null;
+  const bestEmo    = (() => { const freq={}; scoredDays.forEach(d=>{ freq[d.emo]=(freq[d.emo]||0)+1; }); return Object.entries(freq).sort((a,b)=>b[1]-a[1])[0]?.[0] || null; })();
+  const habitDot   = (v, color="#22c55e") => `<div style="width:10px;height:10px;border-radius:50%;background:${v?color:"rgba(99,102,241,.15)"}"></div>`;
+
+  // Canvas chart
+  const cId = "trends-canvas-" + Date.now();
+  el.innerHTML = `
+  <div class="card" style="padding:20px 16px 16px;margin-bottom:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="font-size:13px;font-weight:700;color:var(--text)">Ánimo · últimas 3 semanas</div>
+      <div style="font-size:11px;color:var(--text3)">${scoredDays.length} días registrados</div>
+    </div>
+    <canvas id="${cId}" width="640" height="130" style="width:100%;height:auto;display:block;margin:0 auto"></canvas>
+    <div style="display:flex;justify-content:space-between;margin-top:4px;padding:0 2px">
+      ${days.map((d,i)=>`<div style="font-size:9px;color:${i===days.length-1?"var(--accent)":"var(--text3)"};text-align:center;width:${100/DAYS}%">${i===0||i===7||i===14||i===days.length-1?DAY_LABEL[d.dt.getDay()]:""}</div>`).join("")}
+    </div>
+  </div>
+
+  <div class="card" style="padding:16px;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Hábitos diarios · 3 semanas</div>
+    <div style="display:flex;gap:0;width:100%">
+      <div style="display:flex;flex-direction:column;gap:6px;padding-right:10px;min-width:72px">
+        <div style="font-size:11px;color:var(--text3);height:10px;display:flex;align-items:center">💧 Agua</div>
+        <div style="font-size:11px;color:var(--text3);height:10px;display:flex;align-items:center">📔 Diario</div>
+        <div style="font-size:11px;color:var(--text3);height:10px;display:flex;align-items:center">🌬️ Respirar</div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px;overflow:hidden">
+        ${["water","jour","breath"].map(field => `
+          <div style="display:flex;gap:3px;align-items:center;height:10px">
+            ${dayData.map(d => {
+              let v = false, color = "#22c55e";
+              if (field === "water") { v = d.water >= 6; color = "#0ea5e9"; }
+              else if (field === "jour") { v = d.jour; color = "#8b5cf6"; }
+              else { v = d.breath; color = "#10b981"; }
+              return `<div title="${d.dt.toLocaleDateString("es",{month:"short",day:"numeric"})}" style="flex:1;min-width:0;height:10px;border-radius:2px;background:${v?color:"rgba(99,102,241,.12)"}"></div>`;
+            }).join("")}
+          </div>`).join("")}
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+    <div class="card" style="padding:14px;text-align:center">
+      <div style="font-size:26px;margin-bottom:4px">${bestEmo ? EMO_EMOJI[bestEmo] : "—"}</div>
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px">${bestEmo ? (bestEmo.charAt(0).toUpperCase()+bestEmo.slice(1)) : "Sin datos"}</div>
+      <div style="font-size:11px;color:var(--text3)">Emoción más frecuente</div>
+    </div>
+    <div class="card" style="padding:14px;text-align:center">
+      <div style="font-size:22px;font-weight:800;color:${trendDelta===null?"var(--text3)":trendDelta>0.1?"#22c55e":trendDelta<-0.1?"#ef4444":"#f59e0b"};margin-bottom:4px">
+        ${trendDelta===null?"—":trendDelta>0.1?"↑ Mejor":trendDelta<-0.1?"↓ Difícil":"→ Estable"}
+      </div>
+      <div style="font-size:11px;color:var(--text3)">vs. semana anterior</div>
+    </div>
+  </div>
+
+  ${scoredDays.length < 5 ? `<div class="card" style="padding:16px;text-align:center;opacity:.7">
+    <div style="font-size:28px;margin-bottom:8px">📊</div>
+    <div style="font-size:13px;color:var(--text2)">Registra tu emoción al menos 5 días para ver patrones.</div>
+  </div>` : ""}
+  `;
+
+  // Draw canvas chart
+  requestAnimationFrame(() => {
+    const canvas = document.getElementById(cId);
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width, H = canvas.height;
+    const PAD = { top:14, right:12, bottom:8, left:12 };
+    const cW = W - PAD.left - PAD.right;
+    const cH = H - PAD.top - PAD.bottom;
+    const isDark = document.documentElement.getAttribute("data-theme") === "dark" || (window.matchMedia && window.matchMedia("(prefers-color-scheme:dark)").matches);
+    const gridC = isDark ? "rgba(255,255,255,.06)" : "rgba(0,0,0,.06)";
+    const textC = isDark ? "rgba(255,255,255,.3)" : "rgba(0,0,0,.3)";
+
+    ctx.clearRect(0,0,W,H);
+
+    // Grid lines at y 0 and ±0.5
+    [-1, -0.5, 0, 0.5, 1].forEach(v => {
+      const y = PAD.top + cH * (1 - (v + 1) / 2);
+      ctx.strokeStyle = v === 0 ? (isDark ? "rgba(255,255,255,.12)" : "rgba(0,0,0,.12)") : gridC;
+      ctx.lineWidth = 1;
+      ctx.setLineDash(v === 0 ? [] : [3,4]);
+      ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(W - PAD.right, y); ctx.stroke();
+      ctx.setLineDash([]);
+    });
+
+    // Build points array (only scored days)
+    const pts = dayData.map((d, i) => ({
+      x: PAD.left + (i / (DAYS - 1)) * cW,
+      y: d.score !== null ? PAD.top + cH * (1 - (d.score + 1) / 2) : null,
+      emo: d.emo, score: d.score
+    }));
+
+    // Area fill under line
+    const scoredPts = pts.filter(p => p.y !== null);
+    if (scoredPts.length >= 2) {
+      ctx.save();
+      ctx.beginPath();
+      scoredPts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.lineTo(scoredPts[scoredPts.length-1].x, PAD.top + cH * 0.5);
+      ctx.lineTo(scoredPts[0].x, PAD.top + cH * 0.5);
+      ctx.closePath();
+      const grad = ctx.createLinearGradient(0, PAD.top, 0, PAD.top + cH);
+      grad.addColorStop(0, "rgba(99,102,241,.25)");
+      grad.addColorStop(1, "rgba(99,102,241,.01)");
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.restore();
+
+      // Line
+      ctx.beginPath();
+      ctx.strokeStyle = "#6366f1";
+      ctx.lineWidth = 2.5;
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      scoredPts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.stroke();
+    }
+
+    // Dots with emotion color
+    pts.forEach(p => {
+      if (p.y === null) return;
+      const col = EMO_COLOR[p.emo] || "#6366f1";
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = "#fff";
+      ctx.fill();
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+    });
+
+    // Today marker
+    const lastPt = pts[pts.length - 1];
+    if (lastPt.y !== null) {
+      ctx.beginPath();
+      ctx.arc(lastPt.x, lastPt.y, 6.5, 0, Math.PI * 2);
+      ctx.fillStyle = EMO_COLOR[lastPt.emo] || "#6366f1";
+      ctx.fill();
+    }
+  });
+}
+
 function openWellness(tab) {
   currentWTab = tab;
-  ["breath","meditation","music","affirmations","gratitude","water","sleep","focus","habits","cbt","programs"].forEach(t => {
+  ["breath","meditation","music","affirmations","gratitude","water","sleep","focus","habits","cbt","programs","trends"].forEach(t => {
     const btn = document.getElementById("wtab-"+t);
     if(btn) btn.className = t===tab ? "wellness-tab active" : "wellness-tab";
   });
@@ -8285,6 +8478,7 @@ function openWellness(tab) {
   else if(tab==="habits")       renderHabitsTracker(el);
   else if(tab==="cbt")          renderCBTTool(el);
   else if(tab==="programs")     renderPrograms(el);
+  else if(tab==="trends")       renderTrends(el);
 }
 const BREATH_TECHS = {
   '478':  { name:'4-7-8', desc:'Inhala <strong>4s</strong> · mantén <strong>7s</strong> · exhala <strong>8s</strong>. La más poderosa para calmar la ansiedad rápido.', phases:[{t:"Inhala",d:4,cls:"inhale"},{t:"Mantén",d:7,cls:""},{t:"Exhala",d:8,cls:"exhale"}] },
@@ -9029,7 +9223,27 @@ function newChat() {
   chips.innerHTML = _chipHTML(chipSet);
   msgs.insertBefore(chips, document.getElementById("typing-indicator"));
   loadHistory();
+  _maybeShowMorningFollowup();
 }
+
+async function _maybeShowMorningFollowup() {
+  const dayKey = "zyra_morning_followup_" + new Date().toDateString();
+  if (localStorage.getItem(dayKey)) return;
+  if (!_allConversations || _allConversations.length < 3) return;
+  localStorage.setItem(dayKey, "sent");
+  await new Promise(r => setTimeout(r, 1800));
+  try {
+    const d = await api("/chat", "POST", {
+      message: "Di algo breve y muy personal que recuerdes de esta persona — algo concreto de sus metas, emociones recientes o algo que mencionó. Máximo 2 oraciones. Sé cálida y directa, sin presentarte ni decir 'recuerdo que'.",
+      history: [],
+      mode: "morning_greeting",
+      noSave: true,
+    });
+    const reply = (d.response || "").trim();
+    if (reply && reply.length > 10) addBotMsg(reply);
+  } catch(e) {}
+}
+
 function fillPrompt(text) {
   const inp = document.getElementById("chat-input");
   if (!inp) return;
