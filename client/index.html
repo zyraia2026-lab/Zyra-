@@ -9692,6 +9692,7 @@ const _CMD_AUTOCOMPLETE = [
   { cmd:"/nuevo",        icon:"💬", desc:"Nueva conversación" },
   { cmd:"/inicio",       icon:"🏠", desc:"Dashboard principal" },
   { cmd:"/perfil",       icon:"👤", desc:"Mi perfil" },
+  { cmd:"/comovoy",      icon:"📈", desc:"Ver mi resumen emocional rápido" },
   { cmd:"/ayuda",        icon:"❓", desc:"Ver todos los comandos" },
 ];
 let _cmdAutoIdx = 0;
@@ -10447,8 +10448,31 @@ async function sendMsg() {
     if (cmd === "nota" || cmd === "quicknote") { openQuickNote(); return; }
     if (cmd === "plan") { showPage("dashboard"); setTimeout(() => document.getElementById("today-plan-input")?.focus(), 300); return; }
     if (cmd === "habitos" || cmd === "hábitos") { showPage("wellness"); setTimeout(() => openWellness("habits"), 100); return; }
+    if (cmd === "comovoy" || cmd === "cómo voy" || cmd === "como voy" || cmd === "estadisticas" || cmd === "estadísticas") {
+      const _sdiv = addBotMsgStream();
+      try {
+        const _sd = await api("/analytics");
+        const { stats, emotionFrequency, weeklyTrend, bestDay, worstDay } = _sd;
+        const _sname = user ? user.name.split(" ")[0] : "";
+        const _topEmo = emotionFrequency?.[0]?.emotion;
+        const _EMO_L = { feliz:"feliz", tranquilo:"tranquilo/a", ansioso:"ansioso/a", triste:"triste", enojado:"enojado/a", agotado:"agotado/a", confundido:"confundido/a", esperanzado:"esperanzado/a", motivado:"motivado/a", nostalgico:"nostálgico/a" };
+        const _topLabel = _topEmo ? (_EMO_L[_topEmo] || _topEmo) : null;
+        const _lw = weeklyTrend?.[weeklyTrend.length-1];
+        const _trend = _lw?.score != null ? (_lw.score > 0.2 ? "⬆️ esta semana subió tu ánimo" : _lw.score < -0.2 ? "⬇️ esta semana bajó" : "→ ánimo estable esta semana") : null;
+        let _msg = `${_sname}, aquí va tu resumen:\n\n`;
+        _msg += `📊 **${stats.totalEntries} registros emocionales** — racha actual de **${stats.streakDays} días**.\n\n`;
+        if (_topLabel) _msg += `💙 Tu emoción más frecuente: **${_topLabel}** (${stats.positivityRate}% positividad).\n\n`;
+        if (_trend) _msg += `${_trend}.\n\n`;
+        if (bestDay && worstDay && bestDay.day !== worstDay.day) _msg += `📅 Mejor día: **${bestDay.day}** · Más pesado: **${worstDay.day}**.\n\n`;
+        if (stats.journalEntries) _msg += `📔 **${stats.journalEntries} entradas de diario** — racha de escritura: ${stats.journalStreak} días.\n\n`;
+        if (stats.completedGoals) _msg += `🎯 **${stats.completedGoals} metas logradas** de ${stats.totalGoals} en total.\n\n`;
+        _msg += `¿Hay algo de esto que quieras profundizar?`;
+        _sdiv.remove(); addBotMsg(_msg);
+      } catch(_e) { _sdiv.remove(); addBotMsg("No pude cargar tus estadísticas ahora. Intenta en un momento."); }
+      return;
+    }
     if (cmd === "ayuda" || cmd === "help" || cmd === "?") {
-      addBotMsg(`Estos son los comandos que puedes usar:\n\n🧭 NAVEGAR\n/inicio · /diario · /metas · /analitica · /perfil · /juegos\n\n🌿 BIENESTAR\n/respirar · /enfoque · /sueno · /habitos · /agua · /gratitud · /musica\n\n💬 CHAT\n/afirmacion · /inspiracion · /reflexion · /grounding · /nota · /plan · /nuevo\n\nEscribe cualquiera y lo activo.`);
+      addBotMsg(`Estos son los comandos que puedes usar:\n\n🧭 NAVEGAR\n/inicio · /diario · /metas · /analitica · /perfil · /juegos\n\n🌿 BIENESTAR\n/respirar · /enfoque · /sueno · /habitos · /agua · /gratitud · /musica\n\n💬 CHAT\n/afirmacion · /inspiracion · /reflexion · /grounding · /nota · /plan · /nuevo · /comovoy\n\nEscribe cualquiera y lo activo.`);
       return;
     }
     // Unknown command — show hint
