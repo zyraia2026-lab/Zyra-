@@ -7135,16 +7135,48 @@ function renderJournal(entries, updateCache = true) {
           <button class="btn-xs" onclick="deleteJournal('${e._id}')" aria-label="Eliminar entrada: ${safeHtml(e.title||'Entrada sin título')}">×</button>
         </div>
       </div>
-      <div class="journal-preview">${safeHtml(e.content)}</div>
+      <div class="journal-preview" id="jprev-${e._id}">${safeHtml(e.content)}</div>
+      ${(e.content||"").length > 130 ? `<button class="jitem-expand-btn" id="jexp-${e._id}" onclick="event.stopPropagation();toggleJournalPreview('${e._id}')">▼ Leer más</button>` : ""}
+      <div id="jinsight-${e._id}"></div>
       <div class="journal-meta">
         <span class="journal-date" title="${new Date(e.createdAt).toLocaleDateString("es",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}">${timeAgo(e.createdAt)}</span>
         ${em?`<span class="badge purple">${em.emoji} ${em.label}</span>`:""}
         <span style="color:var(--text3);font-size:11px">${(e.content||"").trim().split(/\s+/).filter(Boolean).length} palabras</span>
         ${((e.content||"").match(/#\w+/g)||[]).slice(0,3).map(tag=>`<span onclick="filterJournalByTag(${JSON.stringify(tag)})" style="font-size:10px;color:var(--accent);background:rgba(99,102,241,.1);border-radius:20px;padding:2px 7px;font-weight:700;cursor:pointer" title="Filtrar por ${safeHtml(tag)}">${safeHtml(tag)}</span>`).join("")}
-        <button onclick="talkZyraAboutEntry(${JSON.stringify(e.title||'')},${JSON.stringify((e.content||'').substring(0,400))})" style="background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);color:var(--accent);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;cursor:pointer;transition:all .15s" title="Hablar con Zyra sobre esta entrada">💬 Hablar con Zyra</button>
+        <button onclick="event.stopPropagation();zyraInsightEntry('${e._id}',${JSON.stringify(e.emotion||'')},${JSON.stringify((e.content||'').substring(0,500))})" style="background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.22);color:#a78bfa;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;cursor:pointer;transition:all .15s" title="Zyra analiza esta entrada">✦ Zyra ve</button>
+        <button onclick="talkZyraAboutEntry(${JSON.stringify(e.title||'')},${JSON.stringify((e.content||'').substring(0,400))})" style="background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);color:var(--accent);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;cursor:pointer;transition:all .15s" title="Hablar con Zyra sobre esta entrada">💬 Hablar</button>
       </div>
     </div>`;
   }).join("");
+}
+function toggleJournalPreview(id) {
+  const prev = document.getElementById("jprev-" + id);
+  const btn  = document.getElementById("jexp-" + id);
+  if (!prev) return;
+  const expanded = prev.classList.toggle("expanded");
+  if (btn) btn.textContent = expanded ? "▲ Leer menos" : "▼ Leer más";
+}
+const _zyraInsightCache = {};
+async function zyraInsightEntry(id, emotion, content) {
+  const wrap = document.getElementById("jinsight-" + id);
+  if (!wrap) return;
+  if (_zyraInsightCache[id]) {
+    const showing = wrap.style.display !== "none" && wrap.innerHTML;
+    if (showing) { wrap.innerHTML = ""; wrap.style.display = "none"; return; }
+    wrap.innerHTML = _zyraInsightCache[id]; wrap.style.display = ""; return;
+  }
+  wrap.innerHTML = `<div class="jitem-zyra-insight"><img src="${LOGO}" alt="Zyra"/><span style="color:var(--text3);font-style:italic">Zyra está leyendo…</span></div>`;
+  wrap.style.display = "";
+  try {
+    const d = await api("/chat/journal-prompt", "POST", { emotion, recentTitles: [], insightMode: true, content: content.substring(0,400) });
+    const txt = d.insight || d.prompt || "Tómate un momento para releer esto — algo en estas palabras merece atención.";
+    const html = `<div class="jitem-zyra-insight"><img src="${LOGO}" alt="Zyra"/><span>${safeHtml(txt)}</span></div>`;
+    _zyraInsightCache[id] = html;
+    wrap.innerHTML = html;
+  } catch(e) {
+    wrap.innerHTML = "";
+    wrap.style.display = "none";
+  }
 }
 function talkZyraAboutEntry(title, content) {
   const snippet = content.length > 200 ? content.substring(0, 197) + "..." : content;

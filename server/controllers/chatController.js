@@ -1976,12 +1976,23 @@ exports.streamMessage = async (req, res) => {
 const EMO_CTX = { feliz:"estás feliz y con energía positiva", tranquilo:"te sientes tranquilo/a y en calma", ansioso:"estás ansioso/a o con nerviosismo", triste:"estás triste o con tristeza", enojado:"estás enojado/a o frustrado/a", agotado:"estás agotado/a y sin energía", confundido:"estás confundido/a o perdido/a", esperanzado:"te sientes esperanzado/a", motivado:"estás muy motivado/a hoy", nostalgico:"estás nostálgico/a" };
 
 exports.journalPrompt = async (req, res) => {
-  const { emotion, recentTitles = [] } = req.body || {};
-  if (!groq) return res.json({ prompt: null });
-  const ctx = emotion ? (EMO_CTX[emotion] || "tienes un estado de ánimo particular") : "tienes un estado de ánimo particular";
-  const recent = recentTitles.slice(0, 3).filter(Boolean).join(", ");
-  const userPrompt = `Genera una sola pregunta o frase de apertura para un diario personal. El usuario ${ctx}.${recent ? ` Sus últimas entradas fueron sobre: ${recent}.` : ""} La pregunta debe ser concreta, personal y que invite a reflexión auténtica. Máximo 28 palabras. Sin comillas, sin explicación extra — solo la pregunta o frase.`;
+  const { emotion, recentTitles = [], insightMode, content } = req.body || {};
+  if (!groq) return res.json({ prompt: null, insight: null });
   try {
+    if (insightMode && content) {
+      const ctx = emotion ? (EMO_CTX[emotion] || "un estado de ánimo particular") : "un estado de ánimo";
+      const insightPrompt = `Eres Zyra, la mejor amiga de quien escribe. Leíste esta entrada de diario:\n\n"${content.substring(0,450)}"\n\nDa una sola observación concisa y empática — algo que la persona quizás no se dijo a sí misma pero que es verdad. Sin consejo genérico. Máximo 30 palabras. Solo la observación, sin introducción ni comillas.`;
+      const r = await groq.chat.completions.create({
+        model: "llama-3.1-8b-instant",
+        messages: [{ role: "user", content: insightPrompt }],
+        temperature: 0.8, max_tokens: 70,
+      });
+      const insight = r.choices[0]?.message?.content?.trim().replace(/^["']|["']$/g, "") || null;
+      return res.json({ insight });
+    }
+    const ctx = emotion ? (EMO_CTX[emotion] || "tienes un estado de ánimo particular") : "tienes un estado de ánimo particular";
+    const recent = recentTitles.slice(0, 3).filter(Boolean).join(", ");
+    const userPrompt = `Genera una sola pregunta o frase de apertura para un diario personal. El usuario ${ctx}.${recent ? ` Sus últimas entradas fueron sobre: ${recent}.` : ""} La pregunta debe ser concreta, personal y que invite a reflexión auténtica. Máximo 28 palabras. Sin comillas, sin explicación extra — solo la pregunta o frase.`;
     const r = await groq.chat.completions.create({
       model: "llama-3.1-8b-instant",
       messages: [{ role: "user", content: userPrompt }],
@@ -1990,6 +2001,6 @@ exports.journalPrompt = async (req, res) => {
     const prompt = r.choices[0]?.message?.content?.trim().replace(/^["']|["']$/g, "") || null;
     res.json({ prompt });
   } catch(e) {
-    res.json({ prompt: null });
+    res.json({ prompt: null, insight: null });
   }
 };
