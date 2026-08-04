@@ -2644,7 +2644,8 @@ async function b2bSubmitContact() {
     </div>
     <div class="messages" id="messages" onscroll="onMsgsScroll(this)"></div>
     <button id="btn-scroll-bottom" class="btn-scroll-bottom" onclick="scrollChatBottom()" title="Ir al final" style="display:none">↓</button>
-    <div class="chat-input">
+    <div class="chat-input" style="position:relative">
+      <div id="cmd-autocomplete" style="display:none;position:absolute;bottom:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.3);max-height:240px;overflow-y:auto;z-index:200"></div>
       <div class="input-row">
         <button class="btn-voice" id="btn-voice" onclick="toggleVoice()" title="Mantén para hablar">🎤</button>
         <textarea class="chat-ta" id="chat-input" placeholder="Cuéntame lo que sea... · /ayuda para comandos" oninput="onInput()" onkeydown="onKey(event)"></textarea>
@@ -9620,6 +9621,52 @@ function _updateChatSearchNav() {
   _chatSearchMatches[_chatSearchIdx]?.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
+const _CMD_AUTOCOMPLETE = [
+  { cmd:"/respirar",     icon:"🫁", desc:"Ejercicio de respiración guiado" },
+  { cmd:"/reflexion",    icon:"🌙", desc:"Sesión de reflexión en 4 preguntas" },
+  { cmd:"/grounding",    icon:"🌿", desc:"Técnica 5-4-3-2-1 para el presente" },
+  { cmd:"/afirmacion",   icon:"💫", desc:"Afirmación positiva al azar" },
+  { cmd:"/inspiracion",  icon:"✨", desc:"Cita + afirmación + mini-reto" },
+  { cmd:"/diario",       icon:"📔", desc:"Abrir el diario" },
+  { cmd:"/metas",        icon:"🎯", desc:"Ver mis metas" },
+  { cmd:"/analitica",    icon:"📊", desc:"Ver mi analítica emocional" },
+  { cmd:"/bienestar",    icon:"🌿", desc:"Módulo de bienestar" },
+  { cmd:"/enfoque",      icon:"⏱",  desc:"Modo pomodoro / enfoque" },
+  { cmd:"/sueno",        icon:"😴", desc:"Registrar mi sueño" },
+  { cmd:"/agua",         icon:"💧", desc:"Registrar agua" },
+  { cmd:"/gratitud",     icon:"🙏", desc:"Escribir gratitud de hoy" },
+  { cmd:"/nota",         icon:"✍️", desc:"Nota rápida" },
+  { cmd:"/nuevo",        icon:"💬", desc:"Nueva conversación" },
+  { cmd:"/inicio",       icon:"🏠", desc:"Dashboard principal" },
+  { cmd:"/perfil",       icon:"👤", desc:"Mi perfil" },
+  { cmd:"/ayuda",        icon:"❓", desc:"Ver todos los comandos" },
+];
+let _cmdAutoIdx = 0;
+function _showCmdAutocomplete(query) {
+  const box = document.getElementById("cmd-autocomplete");
+  if (!box) return;
+  const q = query.toLowerCase();
+  const filtered = _CMD_AUTOCOMPLETE.filter(c => c.cmd.includes(q) || c.desc.toLowerCase().includes(q));
+  if (!filtered.length) { box.style.display = "none"; return; }
+  _cmdAutoIdx = 0;
+  box.__items = filtered;
+  box.innerHTML = filtered.map((c,i) => `<div class="cmd-auto-item${i===0?" active":""}" data-idx="${i}" onclick="_selectCmdAuto(${i})" style="display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;transition:background .1s;${i===0?"background:rgba(99,102,241,.12)":""}">
+    <span style="font-size:16px;flex-shrink:0">${c.icon}</span>
+    <span style="font-size:13px;font-weight:600;color:var(--text);flex-shrink:0">${c.cmd}</span>
+    <span style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.desc}</span>
+  </div>`).join("");
+  box.style.display = "block";
+}
+function _selectCmdAuto(idx) {
+  const box = document.getElementById("cmd-autocomplete");
+  const it = box?.__items?.[idx];
+  if (!it) return;
+  const ta = document.getElementById("chat-input");
+  if (ta) { ta.value = it.cmd; onInput(); ta.focus(); }
+  box.style.display = "none";
+  setTimeout(sendMsg, 60);
+}
+function _hideCmdAutocomplete() { const b = document.getElementById("cmd-autocomplete"); if (b) b.style.display = "none"; }
 function onInput() {
   const ta = document.getElementById("chat-input");
   const v = ta.value.trim();
@@ -9635,6 +9682,13 @@ function onInput() {
   }
   if (ta.value.length > 0) localStorage.setItem("zyra_chat_draft", ta.value);
   else localStorage.removeItem("zyra_chat_draft");
+  // Command autocomplete
+  const raw = ta.value;
+  if (raw.startsWith("/") && raw.length > 0 && !raw.includes(" ")) {
+    _showCmdAutocomplete(raw);
+  } else {
+    _hideCmdAutocomplete();
+  }
 }
 function restoreChatDraft() {
   const draft = localStorage.getItem("zyra_chat_draft");
@@ -9642,7 +9696,17 @@ function restoreChatDraft() {
   const ta = document.getElementById("chat-input");
   if (ta && !ta.value) { ta.value = draft; onInput(); }
 }
-function onKey(e) { if(e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); } }
+function onKey(e) {
+  const box = document.getElementById("cmd-autocomplete");
+  const isOpen = box && box.style.display !== "none";
+  if (isOpen) {
+    if (e.key === "ArrowDown") { e.preventDefault(); const rows = box.querySelectorAll(".cmd-auto-item"); _cmdAutoIdx = Math.min(_cmdAutoIdx+1, rows.length-1); rows.forEach((r,i)=>{ r.classList.toggle("active",i===_cmdAutoIdx); r.style.background=i===_cmdAutoIdx?"rgba(99,102,241,.12)":""; }); rows[_cmdAutoIdx]?.scrollIntoView({block:"nearest"}); return; }
+    if (e.key === "ArrowUp")   { e.preventDefault(); const rows = box.querySelectorAll(".cmd-auto-item"); _cmdAutoIdx = Math.max(_cmdAutoIdx-1, 0); rows.forEach((r,i)=>{ r.classList.toggle("active",i===_cmdAutoIdx); r.style.background=i===_cmdAutoIdx?"rgba(99,102,241,.12)":""; }); rows[_cmdAutoIdx]?.scrollIntoView({block:"nearest"}); return; }
+    if (e.key === "Tab" || e.key === "Enter") { e.preventDefault(); _selectCmdAuto(_cmdAutoIdx); return; }
+    if (e.key === "Escape") { _hideCmdAutocomplete(); return; }
+  }
+  if(e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+}
 
 /* ════ PERFIL — CONTACTO DE EMERGENCIA, PIN, TEMA Y DATOS ════ */
 
