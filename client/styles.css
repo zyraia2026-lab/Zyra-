@@ -4000,3 +4000,9 @@ body {
 
 .cbt-step-indicator { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
 .cbt-step-indicator.active { background: var(--accent); }
+
+/* -- Evening Ritual -- */
+.er-emo-btn { display:flex;flex-direction:column;align-items:center;gap:5px;padding:14px 8px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:14px;color:#fff;font-size:22px;cursor:pointer;transition:all .18s;font-family:inherit;line-height:1 }
+.er-emo-btn span { font-size:10px;color:rgba(255,255,255,.55);font-weight:600;line-height:1 }
+.er-emo-btn:hover,.er-emo-btn.selected { background:rgba(139,92,246,.25);border-color:rgba(139,92,246,.6);transform:scale(1.06) }
+.er-emo-btn.selected span { color:rgba(255,255,255,.85) }

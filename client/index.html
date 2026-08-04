@@ -1960,6 +1960,12 @@ async function b2bSubmitContact() {
       <div class="quick-card-desc">Escríbete algo — Zyra te lo entrega cuando elijas</div>
       <div class="quick-card-badge"><span class="badge purple">Cápsula</span></div>
     </div>
+    <div class="quick-card" onclick="openEveningRitual()" id="qc-evening-ritual">
+      <span class="quick-card-icon">🌙</span>
+      <div class="quick-card-title">Ritual de cierre</div>
+      <div class="quick-card-desc">Emoción del día, una cosa buena, intención de mañana</div>
+      <div class="quick-card-badge"><span class="badge" id="qc-ritual-badge">Cerrar el día</span></div>
+    </div>
   </div>
 
   <!-- ══ WIDGET REFERRAL ══ -->
@@ -4731,6 +4737,9 @@ function renderAnalytics(d, el) {
   <!-- Mapa de racha (contribución) -->
   <div class="card" style="margin-bottom:20px" id="analytics-streak-map"></div>
 
+  <!-- Palancas de bienestar -->
+  <div id="analytics-levers-card" style="margin-bottom:20px"></div>
+
   <!-- Reporte semanal -->
   <div class="card" style="margin-bottom:20px;background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.05));border-color:rgba(99,102,241,.2)">
     <div class="card-header"><span class="card-title">📋 Tu semana con Zyra</span></div>
@@ -4753,7 +4762,7 @@ function renderAnalytics(d, el) {
 
 </div>`;
   // Render local cards after HTML is set
-  setTimeout(() => { renderCheckinHistory(); renderHabitAnalytics(); renderEmotionHeatmap(d); renderSleepEmotionCorrelation(d); renderStreakMap(activityDates || []); }, 0);
+  setTimeout(() => { renderCheckinHistory(); renderHabitAnalytics(); renderEmotionHeatmap(d); renderSleepEmotionCorrelation(d); renderStreakMap(activityDates || []); renderWellnessLevers(d); }, 0);
 }
 
 function renderCheckinHistory() {
@@ -4960,6 +4969,85 @@ function renderStreakMap(activityDates) {
       <div style="width:13px;height:13px;border-radius:3px;background:rgba(99,102,241,.85);margin-left:8px"></div>
       <span style="font-size:10px;color:var(--text3)">Día activo</span>
     </div>`;
+}
+
+/* ── Wellness Levers ── */
+function renderWellnessLevers(analyticsData) {
+  const card = document.getElementById("analytics-levers-card");
+  if (!card) return;
+  const EMO_SCORE = { feliz:1, motivado:1, esperanzado:.8, tranquilo:.7, confundido:0, nostalgico:0, agotado:-.5, ansioso:-.7, enojado:-.8, triste:-.9 };
+  const emotionHist = analyticsData?.profile?.emotionHistory || [];
+  if (emotionHist.length < 10) { card.innerHTML = ""; return; }
+  const emoByDate = {};
+  emotionHist.forEach(h => {
+    if (!h?.emotion || !h?.date || !(h.emotion in EMO_SCORE)) return;
+    const key = new Date(h.date).toDateString();
+    if (!(key in emoByDate)) emoByDate[key] = EMO_SCORE[h.emotion];
+  });
+  const behaviors = [
+    { label:'Escribir en el diario', emoji:'📔', color:'#10b981',
+      check: ds => !!localStorage.getItem('zyra_journal_saved_' + ds) },
+    { label:'Beber 4+ vasos de agua', emoji:'💧', color:'#0ea5e9',
+      check: ds => parseInt(localStorage.getItem('zyra_water_' + ds) || '0') >= 4 },
+    { label:'Dormir 7+ horas', emoji:'😴', color:'#8b5cf6',
+      check: ds => { try { const s = JSON.parse(localStorage.getItem('zyra_sleep_' + ds) || 'null'); return (s?.hours || 0) >= 7; } catch(e) { return false; } } },
+    { label:'Reto diario completado', emoji:'⚡', color:'#f59e0b',
+      check: ds => !!localStorage.getItem('zyra_challenge_done_' + ds) },
+    { label:'Gratitud anotada', emoji:'🙏', color:'#ec4899',
+      check: ds => !!localStorage.getItem('zyra_gratitude_' + ds) },
+  ];
+  const results = behaviors.map(b => {
+    const doneScores = [], notDoneScores = [];
+    for (let i = 61; i >= 1; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i); d.setHours(0,0,0,0);
+      const ds = d.toDateString();
+      const next = new Date(d); next.setDate(d.getDate() + 1);
+      const nds = next.toDateString();
+      if (!(nds in emoByDate)) continue;
+      if (b.check(ds)) doneScores.push(emoByDate[nds]);
+      else notDoneScores.push(emoByDate[nds]);
+    }
+    if (doneScores.length < 3 || notDoneScores.length < 3) return null;
+    const avgDone    = doneScores.reduce((s, v) => s + v, 0) / doneScores.length;
+    const avgNotDone = notDoneScores.reduce((s, v) => s + v, 0) / notDoneScores.length;
+    const delta = avgDone - avgNotDone;
+    const impact = Math.round(Math.abs(delta) * 50);
+    return { ...b, delta, impact, doneN: doneScores.length, notDoneN: notDoneScores.length };
+  }).filter(Boolean);
+  if (results.length < 2) { card.innerHTML = ""; return; }
+  results.sort((a, b) => b.delta - a.delta);
+  const rows = results.map(r => {
+    const pos = r.delta >= 0.05, neg = r.delta <= -0.05;
+    const impactLabel = r.impact < 5
+      ? 'sin efecto claro'
+      : (pos ? `+${r.impact}% mejor ánimo al día siguiente` : `−${r.impact}% en el ánimo siguiente`);
+    const barColor = pos ? r.color : '#94a3b8';
+    const numColor = pos ? r.color : neg ? '#ef4444' : 'var(--text3)';
+    const sign = pos ? '+' : neg ? '−' : '≈';
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:${r.impact>=5?'6':'0'}px">
+        <span style="font-size:18px;flex-shrink:0">${r.emoji}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${r.label}</div>
+          <div style="font-size:11px;color:${pos&&r.impact>=5?r.color:'var(--text3)'};margin-top:1px">${impactLabel}</div>
+        </div>
+        <div style="font-size:14px;font-weight:800;color:${numColor};flex-shrink:0">${sign}${r.impact}%</div>
+      </div>
+      ${r.impact >= 5 ? `<div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div style="height:100%;width:${Math.min(100,r.impact*1.5)}%;background:${barColor};border-radius:2px"></div></div>` : ''}
+    </div>`;
+  }).join('');
+  const top = results.find(r => r.delta > 0.1);
+  const subtitle = top
+    ? `${top.emoji} <strong>${top.label.toLowerCase()}</strong> tiene el mayor impacto en tu ánimo`
+    : 'Basado en los últimos 60 días — días de comportamiento vs ánimo al día siguiente';
+  card.innerHTML = `<div class="card">
+    <div class="card-header">
+      <span class="card-title">🎯 Qué te hace bien</span>
+      <span style="font-size:11px;color:var(--text3)">60 días · impacto real</span>
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin:0 0 2px;line-height:1.6">${subtitle}</p>
+    ${rows}
+  </div>`;
 }
 
 /* ── PDF Download (Premium) ── */
@@ -5960,6 +6048,13 @@ async function loadDashboard() {
   if (token && user) checkDeliveredFutureNotes();
   // Show daily mood check-in if not done today
   setTimeout(() => { if(window._zyraCurrentPage==='dashboard') showDailyCheckin(); }, 1500);
+  // Evening ritual nudge (7 PM+)
+  setTimeout(() => maybeShowEveningRitual(), 5000);
+  // Update evening ritual badge if already done
+  const erDoneBadge = document.getElementById("qc-ritual-badge");
+  if (erDoneBadge && sessionStorage.getItem("zyra_er_done_" + new Date().toDateString())) {
+    erDoneBadge.textContent = "✓ Hecho"; erDoneBadge.className = "badge green";
+  }
   renderTodayOverview();
   renderWellbeingScore();
   _renderMorningNote();
@@ -16370,18 +16465,20 @@ function renderHabitAnalytics() {
   const totalPossible = habits.length * 30;
   const totalDone = last30.reduce((sum, d) => sum + habits.filter(h => isHabitDone(h.id, d.toDateString())).length, 0);
   const overallRate = totalPossible > 0 ? Math.round((totalDone / totalPossible) * 100) : 0;
+  const last14 = Array.from({length:14}, (_,i) => { const d = new Date(today); d.setDate(d.getDate()-(13-i)); return d; });
   const habitRows = streaks.slice(0,5).map(h => {
     const rate7 = last30.slice(-7).filter(d => isHabitDone(h.id, d.toDateString())).length;
+    const dots = last14.map(d => {
+      const done = isHabitDone(h.id, d.toDateString());
+      const isToday = d.toDateString() === today.toDateString();
+      return `<div style="width:10px;height:10px;border-radius:3px;background:${done ? h.color : 'var(--border)'};opacity:${done ? 1 : 0.35};${isToday ? 'outline:1.5px solid '+h.color+';outline-offset:1px;' : ''}flex-shrink:0" title="${d.toLocaleDateString('es-CO',{day:'numeric',month:'short'})}${done?' · hecho':''}"></div>`;
+    }).join('');
     return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
-      <span style="font-size:18px">${h.emoji}</span>
+      <span style="font-size:18px;flex-shrink:0">${h.emoji}</span>
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${safeHtml(h.name)}</div>
-        <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
-          <div style="height:5px;flex:1;background:var(--border);border-radius:3px;overflow:hidden">
-            <div style="height:100%;width:${Math.round(rate7/7*100)}%;background:${h.color};border-radius:3px"></div>
-          </div>
-          <span style="font-size:10px;color:var(--text3);flex-shrink:0">${rate7}/7 días</span>
-        </div>
+        <div style="display:flex;align-items:center;gap:2px;margin-top:4px;flex-wrap:nowrap;overflow:hidden">${dots}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">${rate7}/7 esta semana</div>
       </div>
       <div style="text-align:right;flex-shrink:0">
         ${h.streak > 0 ? `<div style="font-size:12px;font-weight:700;color:${h.color}">🔥${h.streak}</div>` : `<div style="font-size:12px;color:var(--text3)">—</div>`}
@@ -16422,6 +16519,113 @@ const CHECKIN_RESPONSES = {
   confundido: "No siempre hay respuesta inmediata — y está bien. Un paso a la vez 🤔",
   nostalgico: "Los recuerdos también son tuyos para siempre. Bonito eso 🌅",
 };
+
+/* ══════════════════════════════════════════
+   EVENING RITUAL
+══════════════════════════════════════════ */
+let _erEmotion = null;
+function openEveningRitual() {
+  const todayKey = new Date().toDateString();
+  // Don't show if already done today
+  if (sessionStorage.getItem("zyra_er_done_" + todayKey)) return false;
+  _erEmotion = null;
+  // Reset state
+  ["er-step1","er-step2","er-step3","er-done"].forEach((id,i) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = i === 0 ? "block" : "none";
+  });
+  document.querySelectorAll(".er-emo-btn").forEach(b => b.classList.remove("selected"));
+  const ta2 = document.getElementById("er-good-text");
+  const ta3 = document.getElementById("er-intention-text");
+  if (ta2) ta2.value = "";
+  if (ta3) ta3.value = "";
+  _erUpdateDots(1);
+  const modal = document.getElementById("evening-ritual-modal");
+  if (modal) modal.style.display = "flex";
+  return true;
+}
+function _erUpdateDots(step) {
+  for (let i = 1; i <= 3; i++) {
+    const dot = document.getElementById("er-dot-" + i);
+    if (!dot) continue;
+    dot.style.background = i < step ? "rgba(139,92,246,.5)" : i === step ? "rgba(139,92,246,.95)" : "rgba(255,255,255,.15)";
+    dot.style.width = i === step ? "40px" : "28px";
+  }
+}
+function _erPickEmo(emo, emoji, btn) {
+  _erEmotion = emo;
+  document.querySelectorAll(".er-emo-btn").forEach(b => b.classList.remove("selected"));
+  if (btn) btn.classList.add("selected");
+  const step2Emoji = document.getElementById("er-step2-emoji");
+  if (step2Emoji) step2Emoji.textContent = emoji;
+  setTimeout(() => _erStep(2), 280);
+}
+function _erStep(n) {
+  ["er-step1","er-step2","er-step3","er-done"].forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = (i + 1 === n || (n === 4 && i === 3)) ? "block" : "none";
+  });
+  if (n <= 3) _erUpdateDots(n);
+}
+function _erFinish() {
+  const todayKey = new Date().toDateString();
+  // Save emotion if not already set
+  if (_erEmotion && !localStorage.getItem("zyra_checkin_emotion_" + todayKey)) {
+    localStorage.setItem("zyra_checkin_emotion_" + todayKey, _erEmotion);
+    localStorage.setItem("zyra_last_emotion_date", todayKey);
+    renderParaTiHoy(_erEmotion, [], _gamifStatus?.streak || 0);
+  }
+  // Save good thing
+  const goodText = (document.getElementById("er-good-text")?.value || "").trim();
+  if (goodText) localStorage.setItem("zyra_evening_good_" + todayKey, goodText);
+  // Save intention (same key as daily intention)
+  const intentionText = (document.getElementById("er-intention-text")?.value || "").trim();
+  if (intentionText) localStorage.setItem("zyra_intention_" + todayKey, intentionText);
+
+  // Generate Zyra's closing message
+  const name = (user?.name || "").split(" ")[0] || "";
+  const EMO_NIGHT = {
+    feliz:       `Qué bueno que el día terminó bien, ${name}. Descansá con eso. 😊`,
+    tranquilo:   `La calma al final del día es un regalo. Descansá bien, ${name}. 😌`,
+    motivado:    `Terminás el día con energía — eso se nota mañana. Buenas noches, ${name}. 💪`,
+    ansioso:     `Sé que el día estuvo pesado. Ya terminó. Mañana es nuevo, ${name}. Cerrá los ojos 💙`,
+    triste:      `Los días difíciles también pasan. Ya estás aquí, ${name}, y eso importa 💙`,
+    agotado:     `Tu cuerpo necesita esto. Ya diste suficiente hoy. A descansar, ${name}. 😮‍💨`,
+  };
+  const doneMsg = document.getElementById("er-done-msg");
+  const doneTitle = document.getElementById("er-done-title");
+  if (doneMsg) {
+    let msg = (EMO_NIGHT[_erEmotion] || `Gracias por tomarte este momento, ${name}. Descansá bien 💙`);
+    if (goodText) msg += ` Y lo que escribiste — "${goodText.substring(0,50)}${goodText.length>50?"...":""}" — no lo olvides.`;
+    if (intentionText) msg += ` Mañana arrancás con "${intentionText.substring(0,60)}${intentionText.length>60?"...":""}".`;
+    doneMsg.textContent = msg;
+  }
+  if (doneTitle) doneTitle.textContent = "Buenas noches" + (name ? `, ${name}` : "") + " 🌙";
+  _erStep(4);
+  sessionStorage.setItem("zyra_er_done_" + todayKey, "1");
+  // Update quick card badge
+  const ritualBadge = document.getElementById("qc-ritual-badge");
+  if (ritualBadge) { ritualBadge.textContent = "✓ Hecho"; ritualBadge.className = "badge green"; }
+  // Trigger coins for doing the ritual
+  if (typeof awardCoins === "function") awardCoins(5, "Ritual de cierre");
+}
+function _erClose() {
+  const modal = document.getElementById("evening-ritual-modal");
+  if (modal) modal.style.display = "none";
+}
+function maybeShowEveningRitual() {
+  const h = new Date().getHours();
+  if (h < 19 || h >= 24) return; // only 7 PM - midnight
+  const todayKey = new Date().toDateString();
+  if (sessionStorage.getItem("zyra_er_done_" + todayKey)) return;
+  if (sessionStorage.getItem("zyra_er_nudged_" + todayKey)) return;
+  sessionStorage.setItem("zyra_er_nudged_" + todayKey, "1");
+  setTimeout(() => {
+    if (window._zyraCurrentPage === "dashboard") {
+      zyraToast("🌙 ¿Cómo cerrás el día? · <strong onclick=\"openEveningRitual()\" style=\"cursor:pointer;text-decoration:underline\">Ritual de cierre</strong>", "info", 8000);
+    }
+  }, 4000);
+}
 
 function showDailyCheckin() {
   const key = "zyra_daily_checkin_" + new Date().toDateString();
@@ -17207,6 +17411,74 @@ document.addEventListener("keydown", e => {
 });
 
 </script>
+
+<!-- ══ EVENING RITUAL MODAL ══ -->
+<div id="evening-ritual-modal" role="dialog" aria-modal="true" aria-label="Ritual de cierre" style="display:none;position:fixed;inset:0;z-index:9700;background:linear-gradient(160deg,rgba(10,9,20,.97),rgba(20,18,40,.97));backdrop-filter:blur(18px);align-items:center;justify-content:center;padding:20px">
+  <div style="max-width:400px;width:100%;animation:_letterRise .45s cubic-bezier(.34,1.56,.64,1) both">
+
+    <!-- Progress bar -->
+    <div style="display:flex;align-items:center;gap:6px;justify-content:center;margin-bottom:28px">
+      <div id="er-dot-1" style="width:28px;height:4px;border-radius:2px;background:rgba(139,92,246,.9);transition:all .3s"></div>
+      <div id="er-dot-2" style="width:28px;height:4px;border-radius:2px;background:rgba(255,255,255,.15);transition:all .3s"></div>
+      <div id="er-dot-3" style="width:28px;height:4px;border-radius:2px;background:rgba(255,255,255,.15);transition:all .3s"></div>
+    </div>
+
+    <!-- Step 1: Emotion -->
+    <div id="er-step1">
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="font-size:36px;margin-bottom:10px">🌙</div>
+        <div style="font-size:20px;font-weight:800;color:#fff;margin-bottom:6px">Cierre del día</div>
+        <div style="font-size:14px;color:rgba(255,255,255,.55);line-height:1.5">¿Cómo terminás el día hoy?</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px" id="er-emo-grid">
+        <button onclick="_erPickEmo('feliz','😊',this)" class="er-emo-btn">😊<span>Bien</span></button>
+        <button onclick="_erPickEmo('tranquilo','😌',this)" class="er-emo-btn">😌<span>Tranquilo/a</span></button>
+        <button onclick="_erPickEmo('motivado','💪',this)" class="er-emo-btn">💪<span>Motivado/a</span></button>
+        <button onclick="_erPickEmo('ansioso','😰',this)" class="er-emo-btn">😰<span>Ansioso/a</span></button>
+        <button onclick="_erPickEmo('triste','😢',this)" class="er-emo-btn">😢<span>Difícil</span></button>
+        <button onclick="_erPickEmo('agotado','😮‍💨',this)" class="er-emo-btn">😮‍💨<span>Agotado/a</span></button>
+      </div>
+      <button onclick="_erClose()" style="background:none;border:none;color:rgba(255,255,255,.3);font-size:12px;cursor:pointer;width:100%;text-align:center;padding:6px">Cerrar</button>
+    </div>
+
+    <!-- Step 2: One good thing -->
+    <div id="er-step2" style="display:none">
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="font-size:32px;margin-bottom:10px" id="er-step2-emoji">✨</div>
+        <div style="font-size:19px;font-weight:800;color:#fff;margin-bottom:6px">Una cosa que salió bien</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.5">Aunque sea algo pequeño — siempre hay algo.</div>
+      </div>
+      <textarea id="er-good-text" placeholder="Una conversación, un logro, un momento que valió la pena..." style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.12);border-radius:16px;color:#fff;font-size:14px;padding:14px 16px;resize:none;height:90px;outline:none;font-family:inherit;line-height:1.55;transition:border-color .2s" onfocus="this.style.borderColor='rgba(139,92,246,.6)'" onblur="this.style.borderColor='rgba(255,255,255,.12)'"></textarea>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button onclick="_erStep(3)" style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);border-radius:14px;padding:13px;font-size:13px;cursor:pointer">Saltar</button>
+        <button onclick="_erStep(3)" style="flex:2;background:linear-gradient(135deg,#7c3aed,#6366f1);border:none;color:#fff;border-radius:14px;padding:13px;font-size:14px;font-weight:700;cursor:pointer">Continuar →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Tomorrow's intention -->
+    <div id="er-step3" style="display:none">
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="font-size:32px;margin-bottom:10px">🌅</div>
+        <div style="font-size:19px;font-weight:800;color:#fff;margin-bottom:6px">Intención para mañana</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.5);line-height:1.5">¿Con qué actitud querés llegar al día siguiente?</div>
+      </div>
+      <textarea id="er-intention-text" placeholder="Ej: Quiero empezar sin prisa. Voy a enfocarme en lo importante..." style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.12);border-radius:16px;color:#fff;font-size:14px;padding:14px 16px;resize:none;height:90px;outline:none;font-family:inherit;line-height:1.55;transition:border-color .2s" onfocus="this.style.borderColor='rgba(99,102,241,.6)'" onblur="this.style.borderColor='rgba(255,255,255,.12)'"></textarea>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button onclick="_erFinish()" style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);border-radius:14px;padding:13px;font-size:13px;cursor:pointer">Saltar</button>
+        <button onclick="_erFinish()" style="flex:2;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;border-radius:14px;padding:13px;font-size:14px;font-weight:700;cursor:pointer">Cerrar el día ✓</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Zyra's goodnight -->
+    <div id="er-done" style="display:none;text-align:center">
+      <img src="/Imagenes/zyra-avatar.png" alt="Zyra" style="width:72px;height:72px;border-radius:50%;border:2px solid rgba(139,92,246,.4);margin-bottom:16px;object-fit:contain;background:rgba(139,92,246,.1)">
+      <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:10px" id="er-done-title">Buenas noches 🌙</div>
+      <div style="font-size:14px;color:rgba(255,255,255,.65);line-height:1.65;margin-bottom:24px" id="er-done-msg"></div>
+      <button onclick="_erClose()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);border-radius:14px;padding:13px 32px;font-size:14px;cursor:pointer;font-weight:600">Descansá bien 💙</button>
+    </div>
+
+  </div>
+</div>
 
 <!-- ══ DAILY MOOD CHECK-IN ══ -->
 <div id="daily-checkin-modal" style="display:none;position:fixed;inset:0;z-index:9800;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);align-items:flex-end;justify-content:center;padding:0" role="dialog" aria-modal="true" aria-label="Check-in diario">
