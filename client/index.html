@@ -1954,6 +1954,12 @@ async function b2bSubmitContact() {
       <div class="quick-card-desc">Agua, sueño, ejercicio y más</div>
       <div class="quick-card-badge"><span class="badge green" id="qc-habits-badge">Registrar</span></div>
     </div>
+    <div class="quick-card" onclick="showPage('journal');setTimeout(()=>{document.getElementById('future-notes-card')?.scrollIntoView({behavior:'smooth',block:'start'});setTimeout(toggleFutureNoteForm,300)},450)">
+      <span class="quick-card-icon">📬</span>
+      <div class="quick-card-title">Carta a mi futuro yo</div>
+      <div class="quick-card-desc">Escríbete algo — Zyra te lo entrega cuando elijas</div>
+      <div class="quick-card-badge"><span class="badge purple">Cápsula</span></div>
+    </div>
   </div>
 
   <!-- ══ WIDGET REFERRAL ══ -->
@@ -3055,6 +3061,29 @@ async function b2bSubmitContact() {
     <div id="wr-history-panel" style="display:none;padding:0 28px 24px;border-top:1px solid rgba(255,255,255,.05)">
       <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;padding:16px 0 10px">Reportes anteriores</div>
       <div id="wr-history-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ FUTURE NOTE DELIVERY MODAL ══ -->
+<div id="fn-delivery-modal" role="dialog" aria-modal="true" aria-label="Carta de tu yo pasado" style="display:none;position:fixed;inset:0;z-index:9600;background:rgba(0,0,0,.93);backdrop-filter:blur(24px);align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeFnDelivery()">
+  <div style="max-width:460px;width:100%;animation:_letterRise .55s cubic-bezier(.34,1.56,.64,1) both">
+    <div style="text-align:center;margin-bottom:22px">
+      <div style="position:relative;display:inline-block;margin-bottom:14px">
+        <img src="/Imagenes/zyra-avatar.png" alt="Zyra" style="width:56px;height:56px;border-radius:50%;border:2.5px solid rgba(139,92,246,.5);box-shadow:0 0 0 0 rgba(139,92,246,.5);animation:_avatarPulse 1.6s ease-in-out infinite">
+        <div style="position:absolute;top:-6px;right:-6px;font-size:22px;animation:_starFloat 3s ease-in-out infinite">📬</div>
+      </div>
+      <div style="font-size:11px;font-weight:800;color:#a78bfa;text-transform:uppercase;letter-spacing:.9px;margin-bottom:6px">Zyra guardó esto para ti</div>
+      <h2 style="font-size:22px;font-weight:900;color:#e8eaf6;margin:0 0 6px;line-height:1.2">Una carta de tu <em style="font-style:normal;background:linear-gradient(135deg,#818cf8,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">yo pasado</em></h2>
+      <div id="fn-delivery-from" style="font-size:13px;color:#7880a0"></div>
+    </div>
+    <div style="background:linear-gradient(145deg,rgba(139,92,246,.1),rgba(99,102,241,.06));border:1.5px solid rgba(139,92,246,.28);border-radius:22px;padding:26px 28px;margin-bottom:18px;position:relative;overflow:hidden">
+      <div style="position:absolute;top:-30px;right:-24px;font-size:100px;opacity:.035;pointer-events:none;transform:rotate(12deg)">✉</div>
+      <div id="fn-delivery-msg" style="font-size:15px;color:#e8eaf6;line-height:1.85;white-space:pre-wrap;word-break:break-word;font-family:inherit"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button onclick="fnDeliveryReply()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:14px;color:#fff;padding:14px;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s" onmouseenter="this.style.opacity='.88'" onmouseleave="this.style.opacity='1'">📔 Responderme en el diario</button>
+      <button onclick="closeFnDelivery()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:14px;color:#9ca3af;padding:12px;font-size:13px;cursor:pointer">Gracias por guardar esto, Zyra</button>
     </div>
   </div>
 </div>
@@ -6215,26 +6244,40 @@ async function checkDeliveredFutureNotes() {
   if (sessionStorage.getItem(key)) return;
   try {
     const { notes } = await api("/future-notes");
+    const now = new Date();
     const recentDelivered = notes.filter(n => {
-      if (!n.delivered) return false;
       const d = new Date(n.deliveredAt || n.deliverAt);
-      return (Date.now() - d.getTime()) < 3 * 86400000;
+      return (n.delivered || d <= now) && (Date.now() - d.getTime()) < 7 * 86400000;
     });
     if (!recentDelivered.length) return;
     sessionStorage.setItem(key, "1");
-    const note = recentDelivered[0];
-    // Show a toast nudge + inject card above zyra-rec-card
-    const card = document.createElement("div");
-    card.style.cssText = "background:linear-gradient(135deg,rgba(139,92,246,.12),rgba(99,102,241,.07));border:1.5px solid rgba(139,92,246,.35);border-radius:20px;padding:22px 24px;margin-bottom:24px;position:relative";
-    card.innerHTML = `
-      <button onclick="this.parentNode.remove()" style="position:absolute;top:12px;right:14px;background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;line-height:1">✕</button>
-      <div style="font-size:11px;font-weight:800;color:#a78bfa;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">📬 Una nota de tu pasado llegó</div>
-      <p style="font-size:14px;color:var(--text);line-height:1.65;margin:0 0 14px">${safeHtml(note.message)}</p>
-      <button onclick="showPage('journal')" style="font-size:12px;padding:7px 16px;background:rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.35);border-radius:20px;color:#c4b5fd;cursor:pointer;font-weight:700">Ver en el diario →</button>
-    `;
-    const rec = document.getElementById("zyra-rec-card");
-    if (rec && rec.parentNode) rec.parentNode.insertBefore(card, rec);
+    setTimeout(() => _openFnDelivery(recentDelivered[0]), 2200);
   } catch(e) {}
+}
+function _openFnDelivery(note) {
+  const m = document.getElementById("fn-delivery-modal");
+  if (!m) return;
+  const written = new Date(note.createdAt || note.deliverAt);
+  document.getElementById("fn-delivery-from").textContent = "Escrita el " + written.toLocaleDateString("es-CO", { day:"numeric", month:"long", year:"numeric" });
+  document.getElementById("fn-delivery-msg").textContent = note.message;
+  m._noteId = note._id;
+  m.style.display = "flex";
+  // Small firework burst after modal opens
+  setTimeout(() => { if (typeof launchConfetti === "function") launchConfetti(); }, 700);
+}
+function closeFnDelivery() {
+  const m = document.getElementById("fn-delivery-modal");
+  if (m) m.style.display = "none";
+}
+function fnDeliveryReply() {
+  closeFnDelivery();
+  showPage("journal");
+  setTimeout(() => {
+    const form = document.getElementById("add-journal-form");
+    if (form && !form.classList.contains("show")) { form.classList.add("show"); injectJournalMoodPrompts && injectJournalMoodPrompts(); }
+    const ta = document.getElementById("journal-content");
+    if (ta) { ta.value = "En respuesta a mi nota del pasado...\n\n"; ta.focus(); if (typeof updateJournalCharCount === "function") updateJournalCharCount(ta); }
+  }, 450);
 }
 
 function renderJournalMemory(entries) {
@@ -7225,18 +7268,23 @@ async function loadFutureNotes() {
       const d = new Date(n.deliverAt);
       const daysLeft = Math.max(0, Math.ceil((d - now) / 86400000));
       const isDelivered = n.delivered || d <= now;
-      return `<div style="background:${isDelivered?"rgba(16,185,129,.06)":"var(--surface)"};border:1px solid ${isDelivered?"rgba(16,185,129,.2)":"var(--border)"};border-radius:12px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px">
-        <div style="font-size:20px;flex-shrink:0">${isDelivered?"📬":"📭"}</div>
+      const writtenFmt = new Date(n.createdAt || n.deliverAt).toLocaleDateString("es-CO", {day:"numeric",month:"short",year:"numeric"});
+      return `<div style="background:${isDelivered?"rgba(139,92,246,.06)":"var(--surface)"};border:1px solid ${isDelivered?"rgba(139,92,246,.25)":"var(--border)"};border-radius:14px;padding:14px 16px;display:flex;align-items:flex-start;gap:10px;transition:border-color .2s">
+        <div style="font-size:22px;flex-shrink:0;margin-top:2px">${isDelivered?"📬":"📭"}</div>
         <div style="flex:1;min-width:0">
-          <div style="font-size:12px;color:${isDelivered?"#34d399":"var(--accent)"};font-weight:700;margin-bottom:4px">
-            ${isDelivered ? "✓ Entregada" : "Se entrega en " + (daysLeft===0?"hoy":daysLeft+" días") + " · " + d.toLocaleDateString("es-CO",{day:"numeric",month:"short",year:"numeric"})}
+          <div style="font-size:11px;color:${isDelivered?"#a78bfa":"var(--accent)"};font-weight:700;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px">
+            ${isDelivered
+              ? `✓ Carta entregada · escrita el ${writtenFmt}`
+              : `📅 Se abre ${daysLeft===0?"hoy mismo":daysLeft===1?"mañana":"en "+daysLeft+" días"} · ${d.toLocaleDateString("es-CO",{day:"numeric",month:"short",year:"numeric"})}`
+            }
           </div>
           ${isDelivered
-            ? `<div style="font-size:13px;color:var(--text);line-height:1.5">${safeHtml(n.message)}</div>`
-            : `<div style="font-size:13px;color:var(--text2);font-style:italic;opacity:.7">Mensaje sellado — se abrirá el ${d.toLocaleDateString("es-CO",{day:"numeric",month:"long"})}</div>`
+            ? `<div style="font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:10px;-webkit-line-clamp:3;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden">${safeHtml(n.message)}</div>
+               <button onclick="_openFnDelivery(${JSON.stringify(n)})" style="font-size:11px;padding:5px 12px;background:rgba(139,92,246,.18);border:1px solid rgba(139,92,246,.3);border-radius:20px;color:#c4b5fd;cursor:pointer;font-weight:700">✉ Leer carta completa</button>`
+            : `<div style="font-size:13px;color:var(--text3);font-style:italic;line-height:1.5">Sellada 🔒 — la abrirá Zyra el ${d.toLocaleDateString("es-CO",{day:"numeric",month:"long",year:"numeric"})}</div>`
           }
         </div>
-        ${!isDelivered ? `<button onclick="deleteFutureNote('${n._id}')" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:0;flex-shrink:0" title="Eliminar">✕</button>` : ""}
+        ${!isDelivered ? `<button onclick="deleteFutureNote('${n._id}')" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:0;flex-shrink:0;margin-top:2px" title="Eliminar">✕</button>` : ""}
       </div>`;
     }).join("");
   } catch(e) {
@@ -17253,6 +17301,8 @@ document.addEventListener("keydown", e => {
 @keyframes _emoGlow { 0%,100%{filter:drop-shadow(0 0 6px var(--emo-glow-c,#6366f1))} 50%{filter:drop-shadow(0 0 22px var(--emo-glow-c,#6366f1))} }
 @keyframes _avatarPulse { 0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,.5)} 50%{box-shadow:0 0 0 6px rgba(99,102,241,.0)} }
 .msg.streaming .msg-av.bot img { animation:_avatarPulse 1.2s ease-in-out infinite; border-radius:50%; }
+@keyframes _letterRise { from{transform:translateY(40px) scale(.96);opacity:0} to{transform:translateY(0) scale(1);opacity:1} }
+@keyframes _starFloat { 0%,100%{transform:translateY(0) rotate(0deg);opacity:.6} 50%{transform:translateY(-8px) rotate(15deg);opacity:1} }
 @keyframes confettiFall {
   0%   { transform: translateY(0) rotate(0deg); opacity:1; }
   100% { transform: translateY(100vh) rotate(720deg); opacity:0; }
