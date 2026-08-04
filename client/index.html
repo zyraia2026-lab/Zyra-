@@ -2070,6 +2070,9 @@ async function b2bSubmitContact() {
     <div id="zyra-insight-card"></div>
   </div>
 
+  <!-- ══ ZYRA MEMORY FOLLOW-UP ══ -->
+  <div id="zyra-memory-followup" style="display:none;margin-bottom:20px"></div>
+
   <!-- ══ RETO DEL DÍA ══ -->
   <div id="daily-challenge-wrap" style="margin-bottom:28px;display:none">
     <div class="daily-challenge-card">
@@ -6024,6 +6027,7 @@ async function loadDashboard() {
     renderParaTiHoy(p.currentEmotion, hd.history || [], p.streakDays || 0);
     renderMoodPrediction(hd.history || []);
     renderZyraInsight(computeZyraInsight(hd.history || []));
+    renderMemoryFollowUp();
     renderActiveProgramBanner();
     renderWeeklyMission();
     renderLunesDigest(hd.history || [], entries);
@@ -6499,6 +6503,55 @@ function renderZyraInsight(insight) {
     </div>
   </div>`;
   section.style.display = "block";
+}
+
+async function renderMemoryFollowUp() {
+  const el = document.getElementById("zyra-memory-followup");
+  if (!el) return;
+  const seenKey = "zyra_mem_followup_" + new Date().toDateString();
+  if (localStorage.getItem(seenKey)) return;
+  try {
+    const d = await api("/memory");
+    const mems = d?.memories || [];
+    const now = Date.now();
+    // Find memories with a followUpDate that passed within the last 5 days
+    const followUps = mems.filter(m => {
+      if (!m.followUpDate) return false;
+      const dt = new Date(m.followUpDate).getTime();
+      return dt <= now && dt >= now - 5 * 86400000;
+    }).sort((a, b) => new Date(b.followUpDate) - new Date(a.followUpDate));
+    if (!followUps.length) return;
+    const mem = followUps[0];
+    const daysDiff = Math.round((now - new Date(mem.followUpDate).getTime()) / 86400000);
+    const timeHint = daysDiff === 0 ? "hoy" : daysDiff === 1 ? "ayer" : `hace ${daysDiff} días`;
+    const snippet = mem.content.length > 80 ? mem.content.slice(0, 77) + "..." : mem.content;
+    const followUpPrompt = "¿Cómo me fue con: " + snippet.split(".")[0].slice(0, 60) + "?";
+    el.innerHTML = `<div style="background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(99,102,241,.06));border:1.5px solid rgba(139,92,246,.25);border-radius:20px;padding:16px 18px;position:relative">
+      <button id="mem-followup-dismiss" style="position:absolute;top:10px;right:12px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;line-height:1">×</button>
+      <div style="font-size:9px;font-weight:800;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Zyra recuerda</div>
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <img src="${LOGO}" alt="Zyra" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(139,92,246,.3)"/>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:10px">
+            ${timeHint === "hoy" ? "Hoy era" : timeHint === "ayer" ? "Ayer era" : `${timeHint.charAt(0).toUpperCase()+timeHint.slice(1)} fue`} el momento de algo que mencionaste: <em style="color:var(--accent)">&ldquo;${safeHtml(snippet)}&rdquo;</em>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button id="mem-followup-tell" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;border-radius:10px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">Cuéntarle a Zyra</button>
+            <button id="mem-followup-later" style="background:transparent;border:1px solid rgba(139,92,246,.3);color:var(--text3);border-radius:10px;padding:7px 14px;font-size:12px;cursor:pointer">Después</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+    const hideCard = () => { el.style.display = "none"; };
+    document.getElementById("mem-followup-dismiss")?.addEventListener("click", hideCard);
+    document.getElementById("mem-followup-later")?.addEventListener("click", hideCard);
+    document.getElementById("mem-followup-tell")?.addEventListener("click", () => {
+      hideCard();
+      showPage("assistant");
+      setTimeout(() => fillPrompt(followUpPrompt), 400);
+    });
+    el.style.display = "block";
+  } catch(e) {}
 }
 
 function showNegativeStreakBanner(days) {
@@ -11228,7 +11281,49 @@ async function sendMsg() {
     inp.value = ""; onInput();
     if (cmd === "respirar" || cmd === "respiracion" || cmd === "respiración") { _breathChatStart(); return; }
     if (cmd === "diario") { showPage("journal"); return; }
-    if (cmd === "meta" || cmd === "metas") { showPage("goals"); return; }
+    if (cmd === "meta" || cmd === "metas") {
+      const _ms = addBotMsgStream();
+      try {
+        const gd = await api("/goals");
+        const goals = (gd?.goals || gd || []).filter(g => !g.completed).slice(0, 6);
+        const CAT_EMOJI = { bienestar:"🧘", habitos:"⚡", relaciones:"💛", trabajo:"💼", mindfulness:"🌊", personal:"⭐" };
+        const PRIO_COLOR = { alta:"#ef4444", media:"#f59e0b", baja:"#22c55e" };
+        _ms.remove();
+        if (!goals.length) {
+          addBotMsg("🎯 No tienes metas activas todavía.\n\nPuedo ayudarte a definir una si quieres. ¿En qué área quieres crecer?");
+        } else {
+          const cards = goals.map(g => {
+            const emoji = CAT_EMOJI[g.category] || "🎯";
+            const prio = g.priority || "media";
+            const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${PRIO_COLOR[prio]};margin-right:5px;flex-shrink:0"></span>`;
+            const hasDate = g.dueDate;
+            const daysLeft = hasDate ? Math.ceil((new Date(g.dueDate) - Date.now()) / 86400000) : null;
+            const dateHint = daysLeft !== null ? (daysLeft < 0 ? ` · <span style="color:#ef4444">vencida</span>` : daysLeft === 0 ? ` · <span style="color:#f59e0b">hoy!</span>` : ` · <span style="color:var(--text3)">${daysLeft}d</span>`) : "";
+            return `<div style="padding:10px 12px;border:1px solid var(--border);border-radius:12px;margin-bottom:6px;background:var(--surface)">
+              <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--text)">${dot}${emoji} ${g.title}${dateHint}</div>
+              ${g.reminder ? `<div style="font-size:11px;color:var(--text3);margin-top:3px;padding-left:14px">⏰ ${g.reminder}</div>` : ""}
+            </div>`;
+          }).join("");
+          const div = document.createElement("div");
+          div.className = "msg-wrap bot";
+          div.style.cssText = "animation:msgFade .3s ease";
+          div.innerHTML = `<div class="msg-av bot"><img src="${LOGO}" alt="Zyra"/></div>
+            <div class="msg-bubble" style="max-width:380px">
+              <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:10px">🎯 Tus metas activas (${goals.length})</div>
+              ${cards}
+              <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+                <button onclick="showPage('goals')" style="background:var(--grad);border:none;color:#fff;border-radius:10px;padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer">Ver todas →</button>
+                <button onclick="fillPrompt('¿En cuál de mis metas debería enfocarme más?')" style="background:var(--surface);border:1.5px solid var(--border);color:var(--text2);border-radius:10px;padding:7px 14px;font-size:11px;cursor:pointer">¿En cuál me enfoco?</button>
+              </div>
+            </div>`;
+          const msgs = document.getElementById("messages");
+          const typing = document.getElementById("typing-indicator");
+          msgs.insertBefore(div, typing);
+          msgs.scrollTop = msgs.scrollHeight;
+        }
+      } catch(e) { _ms.remove(); showPage("goals"); }
+      return;
+    }
     if (cmd === "inicio" || cmd === "dashboard") { showPage("dashboard"); return; }
     if (cmd === "analitica" || cmd === "analytics" || cmd === "analisis") { showPage("analytics"); return; }
     if (cmd === "bienestar" || cmd === "wellness") { showPage("wellness"); return; }
@@ -16544,6 +16639,53 @@ function loadDailyIntention() {
   const inp = document.getElementById("daily-intention-input");
   const badge = document.getElementById("intention-saved-badge");
   if (inp && saved) { inp.value = saved; if (badge) badge.style.display = "block"; }
+  _maybeLoadAIIntentionChips();
+}
+
+async function _maybeLoadAIIntentionChips() {
+  const emo = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString());
+  if (!emo) return;
+  const cacheKey = "zyra_ai_intentions_" + new Date().toDateString();
+  const cached = localStorage.getItem(cacheKey);
+  const wrap = document.getElementById("intention-chips");
+  if (!wrap) return;
+  if (cached) { _renderAIIntentionChips(JSON.parse(cached), wrap); return; }
+  try {
+    const d = await api("/chat", "POST", {
+      message: `Sugiere 4 intenciones personales para alguien que hoy se siente ${emo}. Cada intención: 6-9 palabras, en primera persona, sin emojis, sin números, solo la frase. Sepáralas con | y nada más.`,
+      history: [],
+      noSave: true,
+      mode: "intention_chips",
+    });
+    const raw = (d.response || "").trim();
+    const chips = raw.split("|").map(s => s.trim()).filter(s => s.length > 5 && s.length < 80).slice(0, 4);
+    if (chips.length >= 3) {
+      localStorage.setItem(cacheKey, JSON.stringify(chips));
+      _renderAIIntentionChips(chips, wrap);
+    }
+  } catch(e) {}
+}
+
+function _renderAIIntentionChips(chips, wrap) {
+  if (!wrap || !chips?.length) return;
+  const label = wrap.querySelector("div");
+  const existingBtns = wrap.querySelectorAll("button");
+  existingBtns.forEach(b => b.remove());
+  chips.forEach(chip => {
+    const btn = document.createElement("button");
+    btn.className = "intention-chip";
+    btn.textContent = chip;
+    btn.onclick = () => selectIntention(btn);
+    wrap.appendChild(btn);
+  });
+  const badge = wrap.querySelector(".ai-chip-badge");
+  if (!badge) {
+    const b = document.createElement("span");
+    b.className = "ai-chip-badge";
+    b.style.cssText = "font-size:9px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.4px;opacity:.7;width:100%;margin-top:2px;display:block";
+    b.textContent = "✨ personalizadas para ti hoy";
+    wrap.appendChild(b);
+  }
 }
 function saveDailyIntention() {
   const inp = document.getElementById("daily-intention-input");
