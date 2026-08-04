@@ -1976,9 +1976,26 @@ exports.streamMessage = async (req, res) => {
 const EMO_CTX = { feliz:"estás feliz y con energía positiva", tranquilo:"te sientes tranquilo/a y en calma", ansioso:"estás ansioso/a o con nerviosismo", triste:"estás triste o con tristeza", enojado:"estás enojado/a o frustrado/a", agotado:"estás agotado/a y sin energía", confundido:"estás confundido/a o perdido/a", esperanzado:"te sientes esperanzado/a", motivado:"estás muy motivado/a hoy", nostalgico:"estás nostálgico/a" };
 
 exports.journalPrompt = async (req, res) => {
-  const { emotion, recentTitles = [], insightMode, content } = req.body || {};
-  if (!groq) return res.json({ prompt: null, insight: null });
+  const { emotion, recentTitles = [], insightMode, content, morningMode, userName, streak, yesterdayEmo } = req.body || {};
+  if (!groq) return res.json({ prompt: null, insight: null, letter: null });
   try {
+    if (morningMode) {
+      const name = (userName || "").split(" ")[0] || "";
+      const dayNames = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+      const dayName = dayNames[new Date().getDay()];
+      const yCtx = yesterdayEmo ? (EMO_CTX[yesterdayEmo] || "") : "";
+      const streakCtx = streak >= 5 ? ` Lleva ${streak} días seguidos usando la app.` : "";
+      const letterPrompt = `Eres Zyra — la mejor amiga de ${name}. Son las ${new Date().getHours()}:00 del ${dayName}.${yCtx ? ` Ayer ${name} ${yCtx}.` : ""}${streakCtx}
+
+Escríbele a ${name} una nota de buenos días de 2-3 oraciones. Directa, sin rodeos, como alguien que la/lo conoce bien. Sin saludos genéricos, sin frases de autoayuda. Habla en segunda persona a ${name}. Solo el texto, sin comillas.`;
+      const r = await groq.chat.completions.create({
+        model: "llama-3.1-8b-instant",
+        messages: [{ role: "user", content: letterPrompt }],
+        temperature: 0.85, max_tokens: 100,
+      });
+      const letter = r.choices[0]?.message?.content?.trim().replace(/^["']|["']$/g, "") || null;
+      return res.json({ letter });
+    }
     if (insightMode && content) {
       const ctx = emotion ? (EMO_CTX[emotion] || "un estado de ánimo particular") : "un estado de ánimo";
       const insightPrompt = `Eres Zyra, la mejor amiga de quien escribe. Leíste esta entrada de diario:\n\n"${content.substring(0,450)}"\n\nDa una sola observación concisa y empática — algo que la persona quizás no se dijo a sí misma pero que es verdad. Sin consejo genérico. Máximo 30 palabras. Solo la observación, sin introducción ni comillas.`;

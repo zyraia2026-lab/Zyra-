@@ -11174,7 +11174,7 @@ function _zyraEmoReactChat() {
     if (inp) { inp.value = label; inp.focus(); }
   }, 400);
 }
-function _renderMorningNote() {
+async function _renderMorningNote() {
   const el = document.getElementById("zyra-morning-note");
   const txt = document.getElementById("zyra-morning-note-text");
   if (!el || !txt || !user) return;
@@ -11189,24 +11189,57 @@ function _renderMorningNote() {
   const yesterday = new Date(Date.now() - 86400000);
   const yEmo = localStorage.getItem("zyra_checkin_emotion_" + yesterday.toDateString());
   const todayEmo = localStorage.getItem("zyra_checkin_emotion_" + todayKey);
+
+  // Determine if we should show the morning note at all
+  const shouldShow = (h < 12) || (!todayEmo && h >= 17) || (streak >= 7 && !todayEmo);
+  if (!shouldShow) return;
+
   const EMO_PAST = { feliz:"feliz", tranquilo:"tranquilo/a", ansioso:"ansioso/a", triste:"triste", enojado:"enojado/a", agotado:"agotado/a", confundido:"confundido/a", esperanzado:"esperanzado/a", motivado:"motivado/a", nostalgico:"nostálgico/a" };
-  let msg = null;
+
+  // Static fallback message
+  let fallback;
   if (h < 12) {
-    if (yEmo === "agotado" || yEmo === "triste" || yEmo === "ansioso") msg = `Ayer te fuiste ${EMO_PAST[yEmo]}. Hoy empieza en blanco, ${name}.`;
-    else if (yEmo === "feliz" || yEmo === "motivado" || yEmo === "esperanzado") msg = `Ayer fue bueno. ${h < 9 ? "Buenos días" : "Hola"}, ${name} — hoy también puede serlo.`;
-    else if (streak >= 10) msg = `${streak} días seguidos, ${name}. Este hábito ya es parte de ti.`;
-    else if (streak >= 5) msg = `Llevas ${streak} días registrando cómo te sientes. No es poco.`;
-    else if (["lunes","miércoles","viernes"].includes(dayName)) msg = `Es ${dayName}, ${name}. Aquí estoy si me necesitas.`;
-    else msg = `Buenos días, ${name}. ¿Cómo entras al día de hoy?`;
+    if (yEmo === "agotado" || yEmo === "triste" || yEmo === "ansioso") fallback = `Ayer te fuiste ${EMO_PAST[yEmo]}. Hoy empieza en blanco, ${name}.`;
+    else if (yEmo === "feliz" || yEmo === "motivado" || yEmo === "esperanzado") fallback = `Ayer fue bueno. ${h < 9 ? "Buenos días" : "Hola"}, ${name} — hoy también puede serlo.`;
+    else if (streak >= 10) fallback = `${streak} días seguidos, ${name}. Este hábito ya es parte de ti.`;
+    else if (streak >= 5) fallback = `Llevas ${streak} días registrando cómo te sientes. No es poco.`;
+    else fallback = `Buenos días, ${name}. ¿Cómo entrás al día de hoy?`;
   } else if (!todayEmo && h >= 17) {
-    msg = `Son las ${h}:00 y todavía no registraste cómo estás. ¿Cómo va el día?`;
-  } else if (streak >= 7 && !todayEmo) {
-    msg = `Llevas ${streak} días seguidos, ${name}. Hoy te falta el check-in.`;
-  } else { return; }
-  if (!msg) return;
-  txt.textContent = msg;
+    fallback = `Son las ${h}:00 y todavía no registraste cómo estás. ¿Cómo va el día?`;
+  } else {
+    fallback = `Llevas ${streak} días seguidos, ${name}. Hoy te falta el check-in.`;
+  }
+
+  // Show immediately with fallback, then upgrade with AI if available and morning
+  txt.textContent = fallback;
   el.style.display = "block";
   sessionStorage.setItem(seenKey, "1");
+
+  // AI morning letter: only mornings, only if token available, cached per day
+  if (h < 12 && token) {
+    const aiKey = "zyra_morning_ai_" + todayKey;
+    const cached = localStorage.getItem(aiKey);
+    if (cached) {
+      _typewriterNote(txt, cached);
+      return;
+    }
+    try {
+      const r = await api("/chat/journal-prompt", "POST", { morningMode: true, userName: user.name, streak, yesterdayEmo: yEmo });
+      if (r?.letter) {
+        localStorage.setItem(aiKey, r.letter);
+        _typewriterNote(txt, r.letter);
+      }
+    } catch(e) { /* keep fallback */ }
+  }
+}
+
+function _typewriterNote(el, text) {
+  el.textContent = "";
+  let i = 0;
+  const interval = setInterval(() => {
+    el.textContent += text[i++];
+    if (i >= text.length) clearInterval(interval);
+  }, 22);
 }
 function _emoParticleBurst(emo) {
   const COLS = { feliz:["#fbbf24","#f59e0b","#22c55e","#4ade80"], tranquilo:["#0ea5e9","#38bdf8","#bae6fd","#e0f2fe"], motivado:["#6366f1","#818cf8","#a5b4fc","#c7d2fe"], esperanzado:["#8b5cf6","#a78bfa","#c4b5fd","#ede9fe"], ansioso:["#f59e0b","#fbbf24","#fcd34d","#6366f1"], triste:["#a78bfa","#8b5cf6","#6366f1","#c4b5fd"], enojado:["#ef4444","#f87171","#fca5a5","#f59e0b"], agotado:["#6b7280","#9ca3af","#d1d5db","#6366f1"], confundido:["#ec4899","#f472b6","#f9a8d4","#8b5cf6"], nostalgico:["#8b5cf6","#ec4899","#f59e0b","#0ea5e9"] };
@@ -16360,6 +16393,9 @@ function renderWellbeingScore() {
   if (journalDraft) checks.push({ label: "📔 Diario", done: true, nav: "showPage('journal')" });
   else checks.push({ label: "📔 Diario", done: false, nav: "showPage('journal');setTimeout(toggleJournalForm,200)" });
 
+  const erDone = !!sessionStorage.getItem("zyra_er_done_" + today);
+  checks.push({ label: "🌙 Ritual", done: erDone, nav: "openEveningRitual()" });
+
   if (checks.length === 0) { wrap.style.display = "none"; return; }
 
   let score = 0;
@@ -16622,7 +16658,7 @@ function maybeShowEveningRitual() {
   sessionStorage.setItem("zyra_er_nudged_" + todayKey, "1");
   setTimeout(() => {
     if (window._zyraCurrentPage === "dashboard") {
-      zyraToast("🌙 ¿Cómo cerrás el día? · <strong onclick=\"openEveningRitual()\" style=\"cursor:pointer;text-decoration:underline\">Ritual de cierre</strong>", "info", 8000);
+      zyraToast("🌙 ¿Cómo cerrás el día? · <strong onclick=\"openEveningRitual()\" style=\"cursor:pointer;text-decoration:underline\">Ritual de cierre</strong>", "info", 8000, true);
     }
   }, 4000);
 }
