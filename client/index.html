@@ -2066,6 +2066,7 @@ async function b2bSubmitContact() {
           <span id="coins-big-display">🪙 0</span>
         </div>
         <div id="next-achievement-strip" style="margin-top:10px;min-height:20px"></div>
+        <div id="streak-week-strip" style="margin:10px 0 6px;display:flex;gap:5px;justify-content:space-between"></div>
         <div class="streak-milestones">
           <div class="streak-mile" id="sm-3">🔥 3</div>
           <div class="streak-mile" id="sm-7">⚡ 7</div>
@@ -5016,6 +5017,25 @@ function applyStreakBadge(streakDays) {
       el.style.outlineOffset = '';
     }
   });
+  // 7-day activity strip
+  const strip = document.getElementById("streak-week-strip");
+  if (strip) {
+    const EMO_COLOR = { feliz:"#10b981",tranquilo:"#0ea5e9",motivado:"#6366f1",esperanzado:"#8b5cf6",ansioso:"#f59e0b",triste:"#a78bfa",enojado:"#ef4444",agotado:"#94a3b8",confundido:"#6b7280",nostalgico:"#ec4899" };
+    const DAY = ["D","L","M","M","J","V","S"];
+    const today = new Date();
+    strip.innerHTML = Array.from({length:7},(_,i) => {
+      const d = new Date(today); d.setDate(today.getDate()-(6-i));
+      const ds = d.toDateString();
+      const emo = localStorage.getItem("zyra_checkin_emotion_"+ds);
+      const active = !!emo;
+      const isToday = i === 6;
+      const col = active ? (EMO_COLOR[emo]||"#6366f1") : "rgba(255,255,255,.08)";
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+        <div style="width:26px;height:26px;border-radius:50%;background:${col};transition:all .4s;box-shadow:${active?"0 0 8px "+col+"66":"none"};${isToday&&!active?"border:1.5px dashed rgba(255,255,255,.25)":""}"></div>
+        <span style="font-size:9px;color:${isToday?"var(--accent)":"rgba(255,255,255,.35)"};font-weight:${isToday?700:400}">${DAY[d.getDay()]}</span>
+      </div>`;
+    }).join("");
+  }
 }
 
 function updateNav() {
@@ -9971,11 +9991,65 @@ function finalizeBotMsgStream(div, text, cards, convId, msgsLeft) {
 }
 
 let _chatSending = false;
+
+/* ── Reflexión guiada ── */
+let _reflMode = false, _reflStep = 0, _reflAnswers = [];
+const _REFL_Q = [
+  "¿Qué fue lo más significativo que te pasó hoy?",
+  "¿Qué emoción sentiste más seguido — y la expresaste o la guardaste?",
+  "¿Hay algo que no hiciste y que se te quedó dando vueltas?",
+  "¿Qué necesitas para mañana?"
+];
+function _reflStart() {
+  _reflMode = true; _reflStep = 0; _reflAnswers = [];
+  const inp = document.getElementById("chat-input");
+  if (inp) inp.placeholder = "Escribe tu respuesta… (/salir para pausar)";
+  addBotMsg(`🌙 **Sesión de reflexión**\n\nTe voy a hacer 4 preguntas. Sin filtros, sin prisa. Al terminar guardo todo en tu diario automáticamente.\n\n——\n\n${_REFL_Q[0]}`);
+}
+function _reflHandleAnswer(answer) {
+  addUserMsg(answer);
+  if (answer.toLowerCase().replace(/^\//,"").trim() === "salir") {
+    _reflMode = false;
+    const inp = document.getElementById("chat-input");
+    if (inp) inp.placeholder = "Cuéntame lo que sea... · /ayuda para comandos";
+    addBotMsg("Reflexión pausada. La retomamos cuando quieras con /reflexion 💙");
+    return;
+  }
+  _reflAnswers.push(answer);
+  _reflStep++;
+  if (_reflStep < _REFL_Q.length) {
+    setTimeout(() => addBotMsg(_REFL_Q[_reflStep]), 700);
+  } else {
+    _reflMode = false;
+    const inp = document.getElementById("chat-input");
+    if (inp) inp.placeholder = "Cuéntame lo que sea... · /ayuda para comandos";
+    _reflSave([..._reflAnswers]);
+  }
+}
+async function _reflSave(answers) {
+  setTimeout(() => addBotMsg("🌿 Guardando tu reflexión en el diario…"), 600);
+  const date = new Date().toLocaleDateString("es-CO",{weekday:"long",day:"numeric",month:"long"});
+  const title = `Reflexión — ${date}`;
+  const content = answers.map((a,i) => `**${_REFL_Q[i]}**\n${a}`).join("\n\n");
+  const emotion = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString()) || "tranquilo";
+  try {
+    await api("/journal","POST",{ title, content, emotion, mood:5 });
+    localStorage.setItem("zyra_journal_saved_" + new Date().toDateString(), "1");
+    setTimeout(() => {
+      addBotMsg(`✅ **Reflexión guardada en tu diario.**\n\nHay cosas ahí que valían la pena decir. Leerte importa.\n\n¿Quieres hablar de algo de lo que escribiste?`);
+      zyraToast("📔 Reflexión guardada", "success");
+    }, 1800);
+  } catch(e) {
+    setTimeout(() => addBotMsg("No pude guardar ahora. ¿Quieres intentarlo de nuevo?"), 800);
+  }
+}
+
 async function sendMsg() {
   if (_chatSending) return;
   if (zyraCrisisLocked) { zyraTriggerCrisis(); return; }
   const inp = document.getElementById("chat-input");
   const msg = inp.value.trim(); if (!msg) return;
+  if (_reflMode) { inp.value = ""; onInput(); _reflHandleAnswer(msg); return; }
   // Slash commands — instant local actions
   if (msg.startsWith("/")) {
     const cmd = msg.toLowerCase().replace(/^\//, "").trim();
@@ -10004,20 +10078,7 @@ async function sendMsg() {
       addBotMsg(`🌿 Grounding 5-4-3-2-1 — te ancla al momento presente:\n\n• 5 cosas que puedes VER ahora mismo\n• 4 cosas que puedes TOCAR a tu alrededor\n• 3 sonidos que puedes OÍR\n• 2 olores que percibes\n• 1 sabor en tu boca\n\nHazlo despacio. Sin afán. ¿Cómo te fue?`);
       return;
     }
-    if (cmd === "reflexion" || cmd === "reflexión") {
-      const REFL_SETS = [
-        ["¿Qué fue lo más significativo de hoy?", "¿Qué fue difícil y por qué?", "¿Qué quiero hacer diferente mañana?"],
-        ["¿En qué momento me sentí más yo mismo/a hoy?", "¿Qué aprendí sobre mí mismo/a?", "¿Qué agradezco de este día?"],
-        ["¿Qué emociones predominaron hoy?", "¿Las expresé o las guardé?", "¿Qué necesito para mañana?"],
-        ["¿Qué hice hoy que me enorgullece?", "¿En qué puse más energía: trabajo, relaciones o yo mismo/a?", "¿Qué me gustaría recordar de hoy?"],
-        ["¿Fui amable conmigo mismo/a hoy?", "¿Hubo un momento de paz o alegría?", "¿Qué suelto de hoy para poder descansar?"],
-        ["¿Qué conversación de hoy me marcó?", "¿Qué decisión tomé y cómo me siento con ella?", "¿Qué haría diferente si pudiera revivir hoy?"],
-        ["¿Cuál fue mi mayor reto de hoy?", "¿Cómo lo manejé?", "¿Qué fortaleza descubrí o usé?"],
-      ];
-      const set = REFL_SETS[new Date().getDay()];
-      addBotMsg(`🌙 Tres preguntas para cerrar el día:\n\n1️⃣ ${set[0]}\n\n2️⃣ ${set[1]}\n\n3️⃣ ${set[2]}\n\nNo hay respuestas correctas. Solo las tuyas. 🌿`);
-      return;
-    }
+    if (cmd === "reflexion" || cmd === "reflexión") { _reflStart(); return; }
     if (cmd === "inspiracion" || cmd === "inspiración") {
       const allAffs = [].concat(...Object.values(AFF_CATS).filter(a=>Array.isArray(a)));
       const aff = allAffs[Math.floor(Math.random()*allAffs.length)];
