@@ -2062,6 +2062,9 @@ async function b2bSubmitContact() {
   <!-- ══ DOMINGO RECAP ══ -->
   <div id="domingo-recap-wrap" style="display:none;margin-bottom:20px"></div>
 
+  <!-- ══ RECAP MENSUAL ══ -->
+  <div id="monthly-recap-wrap" style="display:none;margin-bottom:20px"></div>
+
   <!-- ══ PARA TI HOY ══ -->
   <div id="para-ti-hoy-section" style="margin-bottom:20px;display:none">
     <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">✨ Para ti hoy</div>
@@ -6092,6 +6095,7 @@ async function loadDashboard() {
     renderWeeklyMission();
     renderLunesDigest(hd.history || [], entries);
     renderDomingoRecap(hd.history || [], entries);
+    renderMonthlyRecap(hd.history || [], entries);
     // Cache negative streak for notification bell
     const negSC = p.negativeStreakCount || 0;
     if (negSC >= 3) { localStorage.setItem('zyra_neg_streak_count', String(negSC)); showNegativeStreakBanner(negSC); }
@@ -6461,6 +6465,98 @@ async function loadDomingoRecapAI() {
     btn.style.display = "none";
   } catch {
     btn.textContent = "✨ Zyra cierra tu semana"; btn.style.opacity = "1"; btn.disabled = false;
+    zyraToast("No pude conectar ahora. Intenta en un momento.", "error");
+  }
+}
+
+/* ══════════════════════════════════════════
+   RECAP MENSUAL — 1st of month summary card
+══════════════════════════════════════════ */
+let _monthlyRecapData = null;
+
+function renderMonthlyRecap(history, entries) {
+  const wrap = document.getElementById("monthly-recap-wrap");
+  if (!wrap) return;
+  const today = new Date();
+  if (today.getDate() !== 1) { wrap.style.display = "none"; return; }
+
+  const MONTH_NAMES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  // Last month
+  const lastMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const lastMonthEnd  = new Date(today.getFullYear(), today.getMonth(), 0, 23, 59, 59);
+  const monthName = MONTH_NAMES[lastMonthDate.getMonth()];
+
+  const monthHistory = (history || []).filter(h => {
+    const d = new Date(h.date); return d >= lastMonthDate && d <= lastMonthEnd;
+  });
+  if (monthHistory.length < 3) { wrap.style.display = "none"; return; }
+
+  const monthJournals = (entries || []).filter(e => {
+    const d = new Date(e.createdAt || e.date); return d >= lastMonthDate && d <= lastMonthEnd;
+  }).length;
+
+  const emoCounts = {};
+  monthHistory.forEach(h => { emoCounts[h.emotion] = (emoCounts[h.emotion]||0)+1; });
+  const topEmoEntry = Object.entries(emoCounts).sort((a,b)=>b[1]-a[1])[0];
+  const POSITIVE = new Set(["feliz","tranquilo","esperanzado","motivado"]);
+  const positiveCount = monthHistory.filter(h => POSITIVE.has(h.emotion)).length;
+  const positivityPct = Math.round((positiveCount / monthHistory.length) * 100);
+
+  // Habit stats for last month
+  const habits = getHabits();
+  let habitDone = 0, habitTotal = 0;
+  const daysInMonth = lastMonthEnd.getDate();
+  for (let i = 1; i <= daysInMonth; i++) {
+    const d = new Date(lastMonthDate.getFullYear(), lastMonthDate.getMonth(), i).toDateString();
+    habits.forEach(h => { habitTotal++; if (localStorage.getItem("zyra_habit_"+h.id+"_"+d)) habitDone++; });
+  }
+  const habitPct = habitTotal > 0 ? Math.round((habitDone/habitTotal)*100) : null;
+
+  const EMO_EMOJI = {feliz:"😊",tranquilo:"😌",ansioso:"😰",triste:"😢",enojado:"😤",confundido:"🤔",esperanzado:"🌟",agotado:"😮‍💨",motivado:"💪",nostalgico:"🌅"};
+
+  _monthlyRecapData = { monthHistory, topEmoEntry, monthJournals, positivityPct, habitPct, monthName };
+
+  const chips = [
+    `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 12px;font-size:12px;color:var(--text2)">😊 ${monthHistory.length} check-ins</div>`,
+    positivityPct > 0 ? `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 12px;font-size:12px;color:var(--text2)">✨ ${positivityPct}% positivo</div>` : "",
+    monthJournals > 0 ? `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 12px;font-size:12px;color:var(--text2)">📔 ${monthJournals} en diario</div>` : "",
+    habitPct !== null ? `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 12px;font-size:12px;color:var(--text2)">✅ ${habitPct}% hábitos</div>` : "",
+    topEmoEntry ? `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 12px;font-size:12px;color:var(--text2)">${EMO_EMOJI[topEmoEntry[0]]||""} ${topEmoEntry[0]}</div>` : "",
+  ].filter(Boolean).join("");
+
+  wrap.innerHTML = `
+    <div style="background:linear-gradient(135deg,rgba(236,72,153,.07),rgba(99,102,241,.06));border:1.5px solid rgba(236,72,153,.25);border-radius:18px;padding:16px 18px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div>
+          <div style="font-size:11px;font-weight:800;color:#ec4899;text-transform:uppercase;letter-spacing:.6px">📆 Tu mes de ${monthName}</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">En números — un mes completo contigo</div>
+        </div>
+        <button onclick="document.getElementById('monthly-recap-wrap').style.display='none'" style="background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:4px 6px;line-height:1;border-radius:8px">×</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:13px">${chips}</div>
+      <button id="monthly-recap-ai-btn" onclick="loadMonthlyRecapAI()" style="width:100%;background:linear-gradient(135deg,#ec4899,#8b5cf6);border:none;color:#fff;border-radius:12px;padding:11px;font-size:13px;font-weight:700;cursor:pointer">✨ Zyra revisa tu mes</button>
+      <div id="monthly-recap-ai-text" style="display:none;margin-top:11px;font-size:13px;color:var(--text2);line-height:1.7;background:var(--surface);border-radius:12px;padding:12px 14px;border:1px solid var(--border)"></div>
+    </div>`;
+  wrap.style.display = "block";
+}
+
+async function loadMonthlyRecapAI() {
+  const btn = document.getElementById("monthly-recap-ai-btn");
+  const textEl = document.getElementById("monthly-recap-ai-text");
+  if (!btn || !textEl || !_monthlyRecapData) return;
+  btn.disabled = true; btn.textContent = "Analizando el mes..."; btn.style.opacity = ".6";
+  const { monthHistory, topEmoEntry, monthJournals, positivityPct, habitPct, monthName } = _monthlyRecapData;
+  const POSITIVE = new Set(["feliz","tranquilo","esperanzado","motivado"]);
+  const neg = monthHistory.filter(h => !POSITIVE.has(h.emotion)).length;
+  const prompt = `Analiza brevemente el mes de ${monthName} de esta persona: ${monthHistory.length} check-ins emocionales, ${positivityPct}% positivos, emoción más frecuente: ${topEmoEntry?.[0]||"sin datos"}, ${monthJournals} entradas de diario${habitPct!==null?`, ${habitPct}% de hábitos cumplidos`:""}. Sé honesta y directa (no solo positivo): 2 oraciones sobre el mes, y 1 intención concreta para este nuevo mes. Sin frases genéricas.`;
+  try {
+    const d = await api("/chat","POST",{message:prompt,history:[],mode:"monthly_recap",noSave:true});
+    const reply = (d.response||"").trim();
+    textEl.innerHTML = `<div style="display:flex;gap:8px;align-items:flex-start"><img src="/Imagenes/zyra-avatar.png" style="width:26px;height:26px;border-radius:50%;flex-shrink:0;margin-top:2px" onerror="this.style.display='none'"><div>${safeHtml(reply).replace(/\n/g,"<br>")}</div></div>`;
+    textEl.style.display = "block";
+    btn.style.display = "none";
+  } catch {
+    btn.textContent = "✨ Zyra revisa tu mes"; btn.style.opacity = "1"; btn.disabled = false;
     zyraToast("No pude conectar ahora. Intenta en un momento.", "error");
   }
 }
@@ -6853,8 +6949,8 @@ function _maybeShowEveningNudge() {
     <div style="flex:1;min-width:0">
       <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">${msg}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        <button onclick="localStorage.setItem('${dismissKey}','1');document.getElementById('zyra-evening-nudge').style.opacity='0';setTimeout(()=>{const e=document.getElementById('zyra-evening-nudge');if(e)e.remove();showPage('assistant');setTimeout(()=>{newChat();setTimeout(_cierreStart,800)},200)},300)" style="background:rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.4);color:#a78bfa;border-radius:10px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">🌙 Cierre del día</button>
         ${!hasJournal ? `<button onclick="localStorage.setItem('${dismissKey}','1');document.getElementById('zyra-evening-nudge').style.opacity='0';setTimeout(()=>{const e=document.getElementById('zyra-evening-nudge');if(e)e.remove();showPage('journal');setTimeout(toggleJournalForm,200)},300)" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:var(--accent);border-radius:10px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">📔 Diario del día</button>` : ""}
-        ${!hasEvening ? `<button onclick="localStorage.setItem('${dismissKey}','1');document.getElementById('zyra-evening-nudge').style.opacity='0';setTimeout(()=>{const e=document.getElementById('zyra-evening-nudge');if(e)e.remove();showPage('assistant');setTimeout(newChat,200)},300)" style="background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);color:#a78bfa;border-radius:10px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">💜 Hablar con Zyra</button>` : ""}
         <button onclick="localStorage.setItem('${dismissKey}','1');this.closest('#zyra-evening-nudge').remove()" style="background:transparent;border:1px solid rgba(255,255,255,.1);color:var(--text3);border-radius:10px;padding:7px 12px;font-size:12px;cursor:pointer">Después</button>
       </div>
     </div>
@@ -11519,6 +11615,63 @@ async function _reflSave(answers) {
   }
 }
 
+/* ── Ritual de cierre del día ── */
+let _cierreMode = false, _cierreStep = 0, _cierreAnswers = [];
+const _CIERRE_Q = [
+  "¿Qué fue lo mejor que te pasó hoy? (puede ser pequeño)",
+  "¿Qué fue lo más difícil — y cómo lo manejaste?",
+  "¿Qué te llevas al mañana? ¿Algo pendiente, algo aprendido?",
+];
+function _cierreStart() {
+  _cierreMode = true; _cierreStep = 0; _cierreAnswers = [];
+  const inp = document.getElementById("chat-input");
+  if (inp) inp.placeholder = "Responde aquí... (/salir para pausar)";
+  addBotMsg(`🌙 **Cierre del día**\n\nTres preguntas rápidas — sin filtros, sin presión. Al terminar lo guardo en tu diario.\n\n——\n\n*${_CIERRE_Q[0]}*`);
+}
+function _cierreHandleAnswer(answer) {
+  addUserMsg(answer);
+  if (answer.toLowerCase().replace(/^\//,"").trim() === "salir") {
+    _cierreMode = false;
+    const inp = document.getElementById("chat-input");
+    if (inp) inp.placeholder = "Cuéntame lo que sea... · /ayuda para comandos";
+    addBotMsg("Pausamos el cierre. Cuando quieras continuar, escribe /cierre 🌙");
+    return;
+  }
+  _cierreAnswers.push(answer);
+  _cierreStep++;
+  if (_cierreStep < _CIERRE_Q.length) {
+    setTimeout(() => addBotMsg(`*${_CIERRE_Q[_cierreStep]}*`), 700);
+  } else {
+    _cierreMode = false;
+    const inp = document.getElementById("chat-input");
+    if (inp) inp.placeholder = "Cuéntame lo que sea... · /ayuda para comandos";
+    _cierreSave([..._cierreAnswers]);
+  }
+}
+async function _cierreSave(answers) {
+  setTimeout(() => addBotMsg("🌙 Guardando tu cierre del día…"), 500);
+  const date = new Date().toLocaleDateString("es-CO",{weekday:"long",day:"numeric",month:"long"});
+  const title = `Cierre del día — ${date}`;
+  const content = answers.map((a,i) => `**${_CIERRE_Q[i]}**\n${a}`).join("\n\n");
+  const emotion = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString()) || "tranquilo";
+  try {
+    await api("/journal","POST",{ title, content, emotion });
+    localStorage.setItem("zyra_journal_saved_" + new Date().toDateString(), "1");
+    localStorage.setItem("zyra_er_done_" + new Date().toDateString(), "1");
+    triggerMission && triggerMission("write_journal");
+    // AI closing message
+    const prompt = `El usuario hizo su cierre del día: "${answers.join(" | ")}". Da una despedida cálida, breve y personal (máximo 2 oraciones). Reconoce algo específico de lo que respondió. Sin emojis exagerados.`;
+    const d = await api("/chat","POST",{message:prompt,history:[],noSave:true,mode:"daily_close"});
+    const reply = (d.response||"").trim();
+    setTimeout(() => {
+      addBotMsg(`✅ **Guardado en tu diario.**\n\n${reply || "Que descanses. Mañana es otro día."}`);
+      zyraToast("🌙 Cierre del día guardado", "success");
+    }, 1400);
+  } catch(e) {
+    setTimeout(() => addBotMsg("No pude guardar ahora. ¿Intentamos de nuevo?"), 800);
+  }
+}
+
 /* ── In-chat breathing exercise ── */
 let _breathTimer = null;
 function _breathChatStart() {
@@ -11621,6 +11774,7 @@ async function sendMsg() {
   const inp = document.getElementById("chat-input");
   const msg = inp.value.trim(); if (!msg) return;
   if (_reflMode) { inp.value = ""; onInput(); _reflHandleAnswer(msg); return; }
+  if (_cierreMode) { inp.value = ""; onInput(); _cierreHandleAnswer(msg); return; }
   // Slash commands — instant local actions
   if (msg.startsWith("/")) {
     const cmd = msg.toLowerCase().replace(/^\//, "").trim();
@@ -11785,8 +11939,9 @@ async function sendMsg() {
       }
       return;
     }
+    if (cmd === "cierre" || cmd === "cerrar" || cmd === "noche") { _cierreStart(); inp.value = ""; localStorage.removeItem("zyra_chat_draft"); onInput(); return; }
     if (cmd === "ayuda" || cmd === "help" || cmd === "?") {
-      addBotMsg(`Estos son los comandos que puedes usar:\n\n🧭 NAVEGAR\n/inicio · /diario · /metas · /analitica · /perfil · /juegos\n\n🌿 BIENESTAR\n/respirar · /enfoque · /sueno · /habitos · /agua · /gratitud · /musica\n\n💬 CHAT\n/afirmacion · /inspiracion · /reflexion · /grounding · /nota · /plan · /nuevo · /comovoy · /resumen\n\n✦ RÁPIDO\n/emocion [nombre] — registra cómo te sientes (ej: /emocion feliz)\n\nEscribe cualquiera y lo activo.`);
+      addBotMsg(`Estos son los comandos que puedes usar:\n\n🧭 NAVEGAR\n/inicio · /diario · /metas · /analitica · /perfil · /juegos\n\n🌿 BIENESTAR\n/respirar · /enfoque · /sueno · /habitos · /agua · /gratitud · /musica\n\n💬 CHAT\n/afirmacion · /inspiracion · /reflexion · /grounding · /nota · /plan · /nuevo · /comovoy · /resumen\n\n🌙 RITUAL\n/cierre — ritual de cierre del día (3 preguntas + Zyra lo guarda)\n\n✦ RÁPIDO\n/emocion [nombre] — registra cómo te sientes (ej: /emocion feliz)\n\nEscribe cualquiera y lo activo.`);
       return;
     }
     // Unknown command — show hint
