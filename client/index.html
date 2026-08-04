@@ -5785,7 +5785,11 @@ const DAILY_QUOTES = [
 async function loadDashboard() {
   if(!user) return;
   document.getElementById("hero-greeting").textContent = greeting();
-  document.getElementById("hero-name").textContent = user.name;
+  const _hn = document.getElementById("hero-name");
+  if (_hn && _hn.textContent !== user.name) {
+    _hn.textContent = ""; const _nc = [...user.name];
+    _nc.forEach((c,i) => setTimeout(() => { _hn.textContent += c; }, i*52+200));
+  }
   const qEl = document.getElementById("daily-quote");
   if (qEl) {
     const _qEmo = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString());
@@ -6630,6 +6634,10 @@ async function toggleGoal(id) {
   const idx = _goalsAllItems.findIndex(g => g._id === id);
   if (idx < 0) return;
   const prev = _goalsAllItems[idx];
+  if (!prev.completed) {
+    const chk = document.querySelector("#goal-item-"+id+" .goal-check");
+    if (chk) { chk.style.position="relative;overflow:hidden"; const rpl=document.createElement("span"); rpl.style.cssText="position:absolute;inset:0;background:var(--accent);border-radius:50%;transform:scale(0);animation:_goalRipple .55s ease-out forwards;pointer-events:none;opacity:.45"; chk.appendChild(rpl); setTimeout(()=>rpl.remove(),560); }
+  }
   // Optimistic update — instant visual feedback
   _goalsAllItems[idx] = { ...prev, completed: !prev.completed };
   renderGoalsStats(_goalsAllItems);
@@ -6981,15 +6989,26 @@ function toggleJournalMic() {
   if (btn) { btn.textContent = "⏹"; btn.style.background = "rgba(239,68,68,.2)"; }
 }
 
-function insertJournalPrompt() {
-  const ta = document.getElementById("journal-content");
+async function insertJournalPrompt() {
+  const ta  = document.getElementById("journal-content");
+  const btn = document.querySelector('[onclick="insertJournalPrompt()"]');
   if (!ta) return;
-  const prompt = JOURNAL_WRITING_PROMPTS[_promptIdx % JOURNAL_WRITING_PROMPTS.length];
-  _promptIdx++;
-  if (ta.value.trim()) {
-    ta.value += "\n\n" + prompt + "\n";
-  } else {
-    ta.value = prompt + "\n";
+  const emotion = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString()) || document.getElementById("journal-emotion")?.value || "";
+  const recentTitles = (_journalAllEntries || []).slice(0,4).map(e => e.title).filter(Boolean);
+  const origLabel = btn ? btn.textContent : "";
+  if (btn) { btn.textContent = "✨ Generando…"; btn.style.pointerEvents = "none"; }
+  try {
+    const d = await api("/chat/journal-prompt", "POST", { emotion, recentTitles });
+    const prompt = d.prompt || JOURNAL_WRITING_PROMPTS[_promptIdx % JOURNAL_WRITING_PROMPTS.length];
+    _promptIdx++;
+    const infix = ta.value.trim() ? "\n\n" : "";
+    ta.value += infix + prompt + "\n";
+  } catch {
+    const prompt = JOURNAL_WRITING_PROMPTS[_promptIdx % JOURNAL_WRITING_PROMPTS.length];
+    _promptIdx++;
+    ta.value += (ta.value.trim() ? "\n\n" : "") + prompt + "\n";
+  } finally {
+    if (btn) { btn.textContent = origLabel; btn.style.pointerEvents = ""; }
   }
   ta.focus();
   ta.setSelectionRange(ta.value.length, ta.value.length);
@@ -10893,11 +10912,33 @@ function _applyEmotionAccent(emo) {
   const root = document.documentElement;
   root.style.setProperty("--accent", colors.accent);
   root.style.setProperty("--accent2", colors.accent2);
+  root.style.setProperty("--emo-glow-c", colors.accent);
   root.style.transition = "all .8s ease";
+  const he = document.getElementById("hero-emoji");
+  if (he) { he.style.animation=""; void he.offsetWidth; he.style.animation="_emoGlow 2.6s ease-in-out infinite"; }
 }
 function _initEmotionAccent() {
   const emo = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString());
   if (emo) _applyEmotionAccent(emo);
+}
+function _emoParticleBurst(emo) {
+  const COLS = { feliz:["#fbbf24","#f59e0b","#22c55e","#4ade80"], tranquilo:["#0ea5e9","#38bdf8","#bae6fd","#e0f2fe"], motivado:["#6366f1","#818cf8","#a5b4fc","#c7d2fe"], esperanzado:["#8b5cf6","#a78bfa","#c4b5fd","#ede9fe"], ansioso:["#f59e0b","#fbbf24","#fcd34d","#6366f1"], triste:["#a78bfa","#8b5cf6","#6366f1","#c4b5fd"], enojado:["#ef4444","#f87171","#fca5a5","#f59e0b"], agotado:["#6b7280","#9ca3af","#d1d5db","#6366f1"], confundido:["#ec4899","#f472b6","#f9a8d4","#8b5cf6"], nostalgico:["#8b5cf6","#ec4899","#f59e0b","#0ea5e9"] };
+  const cols = COLS[emo] || ["#6366f1","#22c55e","#f59e0b"];
+  const cv = document.createElement("canvas");
+  cv.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:99999";
+  cv.width = innerWidth; cv.height = innerHeight;
+  document.body.appendChild(cv);
+  const ctx = cv.getContext("2d"), cx = innerWidth/2, cy = innerHeight*.45;
+  const pts = Array.from({length:60}, () => {
+    const a = Math.random()*Math.PI*2, s = 4 + Math.random()*10;
+    return { x:cx, y:cy, vx:Math.cos(a)*s, vy:Math.sin(a)*s-5, r:3+Math.random()*5, col:cols[Math.floor(Math.random()*cols.length)], alpha:1, g:.17, shape:Math.random()>.5?"c":"r", rot:Math.random()*Math.PI*2, spin:(Math.random()-.5)*.18 };
+  });
+  let f=0;
+  (function draw() {
+    ctx.clearRect(0,0,cv.width,cv.height); let live=false;
+    pts.forEach(p => { p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.alpha-=.017; p.rot+=p.spin; if(p.alpha>0) live=true; ctx.save(); ctx.globalAlpha=Math.max(0,p.alpha); ctx.fillStyle=p.col; ctx.translate(p.x,p.y); ctx.rotate(p.rot); if(p.shape==="c"){ctx.beginPath();ctx.arc(0,0,p.r,0,Math.PI*2);ctx.fill();}else{ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r);} ctx.restore(); });
+    if(live&&f++<110) requestAnimationFrame(draw); else cv.remove();
+  })();
 }
 function _updateTabTitle() {
   const EMO_EMOJI = { feliz:"😊",tranquilo:"😌",motivado:"💪",ansioso:"😰",triste:"😢",enojado:"😤",agotado:"😮‍💨",esperanzado:"🌟",confundido:"🤔",nostalgico:"🌅" };
@@ -11909,6 +11950,7 @@ function showQuickEmotion() {
 }
 async function quickEmotionSelect(emotion) {
   closeQuickEmotion();
+  _emoParticleBurst(emotion);
   const _qeToday = new Date().toDateString();
   localStorage.setItem('zyra_daily_checkin_' + _qeToday, 'quick');
   localStorage.setItem('zyra_qe_last', Date.now().toString());
@@ -17081,6 +17123,8 @@ document.addEventListener("keydown", e => {
 </div>
 
 <style>
+@keyframes _goalRipple { to { transform:scale(2.8); opacity:0; } }
+@keyframes _emoGlow { 0%,100%{filter:drop-shadow(0 0 6px var(--emo-glow-c,#6366f1))} 50%{filter:drop-shadow(0 0 22px var(--emo-glow-c,#6366f1))} }
 @keyframes confettiFall {
   0%   { transform: translateY(0) rotate(0deg); opacity:1; }
   100% { transform: translateY(100vh) rotate(720deg); opacity:0; }
