@@ -6114,6 +6114,16 @@ async function loadDashboard() {
     if (overdueGoals.length) {
       setTimeout(() => zyraToast(`⚠️ ${overdueGoals.length} meta${overdueGoals.length!==1?"s":""} vencida${overdueGoals.length!==1?"s":""} — ¿las reprogramamos?`, "error", 5000), 5000);
     }
+    // Stale goal nudge: goal with 0-99% progress not updated in 7+ days
+    const _staleCheckKey = "zyra_stale_goal_nudge_" + new Date().toDateString();
+    if (!localStorage.getItem(_staleCheckKey)) {
+      const staleGoal = goals.find(g => !g.completed && (g.progress || 0) > 0 && (g.progress || 0) < 100 && g.updatedAt && (now - new Date(g.updatedAt).getTime()) > 7 * 86400000);
+      if (staleGoal) {
+        localStorage.setItem(_staleCheckKey, "1");
+        const daysStale = Math.floor((now - new Date(staleGoal.updatedAt).getTime()) / 86400000);
+        setTimeout(() => zyraToast(`🎯 "${staleGoal.title.substring(0,30)}..." lleva ${daysStale} días sin avanzar. ¿Le damos un empujón hoy?`, "info", 7000), 7000);
+      }
+    }
   } catch(e) {
     console.error(e);
     ["st-sessions","st-emotion","st-goals","st-journal"].forEach(id => {
@@ -6122,6 +6132,7 @@ async function loadDashboard() {
     });
   }
   if (!token || !user) return;
+  _maybeShowReturnCard();
   loadDailyChallenge();
   loadDailyIntention();
   loadMentalHealthTip();
@@ -6774,6 +6785,47 @@ function showNegativeStreakBanner(days) {
     </div>
   </div>`;
   para.parentElement.insertBefore(banner, para);
+}
+
+function _maybeShowReturnCard() {
+  const LAST_KEY = "zyra_last_visit";
+  const SHOWN_KEY = "zyra_return_card_" + new Date().toDateString();
+  const now = Date.now();
+  const last = parseInt(localStorage.getItem(LAST_KEY) || "0");
+  localStorage.setItem(LAST_KEY, String(now));
+  if (localStorage.getItem(SHOWN_KEY)) return;
+  if (!last || now - last < 2 * 86400000) return;
+  const daysAway = Math.floor((now - last) / 86400000);
+  localStorage.setItem(SHOWN_KEY, "1");
+  const msgs = [
+    `Llevabas ${daysAway} días sin aparecer. Me alegra que hayas vuelto.`,
+    `${daysAway} días es mucho tiempo — bienvenido/a de nuevo.`,
+    `Después de ${daysAway} días, aquí estás. Eso importa.`,
+  ];
+  const text = daysAway >= 7
+    ? `Una semana sin verte. Esto no es un regaño — es que me alegra que estés aquí.`
+    : msgs[Math.floor(Math.random() * msgs.length)];
+  const existing = document.getElementById("zyra-return-card");
+  if (existing) return;
+  const wrap = document.getElementById("zyra-insight-section")?.parentElement;
+  if (!wrap) return;
+  const card = document.createElement("div");
+  card.id = "zyra-return-card";
+  card.style.cssText = "margin-bottom:16px";
+  card.innerHTML = `<div style="background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(6,182,212,.05));border:1.5px solid rgba(16,185,129,.25);border-radius:18px;padding:14px 18px;display:flex;align-items:center;gap:14px;animation:pageFade .5s ease">
+    <img src="${LOGO}" style="width:36px;height:36px;border-radius:50%;flex-shrink:0" onerror="this.style.display='none'">
+    <div style="flex:1;min-width:0">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px">${text}</div>
+      <div style="font-size:12px;color:var(--text3)">¿Quieres contarme cómo fue este tiempo?</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-shrink:0;align-items:center">
+      <button onclick="showPage('assistant');setTimeout(()=>fillPrompt&&fillPrompt('Hola Zyra, estuve ${daysAway} días sin abrir la app. Te cuento cómo me fue...'),400)" style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:#10b981;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">Contar →</button>
+      <button onclick="this.closest('#zyra-return-card').remove()" style="background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;line-height:1;padding:4px">×</button>
+    </div>
+  </div>`;
+  const firstChild = wrap.firstElementChild;
+  if (firstChild) wrap.insertBefore(card, firstChild);
+  else wrap.appendChild(card);
 }
 
 function _maybeShowEveningNudge() {
@@ -11574,6 +11626,45 @@ async function sendMsg() {
     const cmd = msg.toLowerCase().replace(/^\//, "").trim();
     inp.value = ""; onInput();
     if (cmd === "respirar" || cmd === "respiracion" || cmd === "respiración") { _breathChatStart(); return; }
+    // /emocion [nombre] — registra la emoción del día desde el chat
+    if (cmd.startsWith("emocion") || cmd.startsWith("emoción")) {
+      const _emoWords = cmd.replace(/^emoci[oó]n\s*/i,"").toLowerCase().trim();
+      const VALID_EMOS = ["feliz","tranquilo","ansioso","triste","enojado","agotado","motivado","esperanzado","confundido","nostalgico"];
+      const matched = VALID_EMOS.find(e => _emoWords.includes(e)) || null;
+      inp.value = ""; localStorage.removeItem("zyra_chat_draft"); onInput();
+      if (!matched && !_emoWords) {
+        const _msgs = document.getElementById("messages");
+        const _typing = document.getElementById("typing-indicator");
+        const _eDiv = document.createElement("div"); _eDiv.className = "msg bot";
+        _eDiv.innerHTML = `<div class="msg-av bot"><img src="${LOGO}" alt="Zyra"/></div><div class="msg-bubble" id="_emo-picker-bubble"><div style="font-size:13px;color:var(--text2);margin-bottom:10px">¿Cómo te sientes ahora mismo?</div><div style="display:flex;flex-wrap:wrap;gap:8px" id="_emo-picker-btns"></div></div>`;
+        _msgs.insertBefore(_eDiv, _typing);
+        const _btnWrap = document.getElementById("_emo-picker-btns");
+        if (_btnWrap) VALID_EMOS.forEach(e => {
+          const _b = document.createElement("button");
+          _b.style.cssText = "background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text);transition:all .18s";
+          _b.textContent = e;
+          _b.addEventListener("click", () => {
+            const _k = "zyra_checkin_emotion_" + new Date().toDateString();
+            localStorage.setItem(_k, e);
+            _eDiv.remove();
+            addBotMsg(`Anotado — te sientes **${e}** hoy 💙`);
+            if (typeof renderQuickEmoPicker === "function") renderQuickEmoPicker(e);
+            if (typeof renderParaTiHoy === "function") renderParaTiHoy(e, [], 0);
+          });
+          _btnWrap.appendChild(_b);
+        });
+        _msgs.scrollTop = _msgs.scrollHeight;
+      } else if (matched) {
+        const _k = "zyra_checkin_emotion_" + new Date().toDateString();
+        localStorage.setItem(_k, matched);
+        addBotMsg(`Anotado — te sientes **${matched}** hoy. ¿Quieres contarme algo sobre cómo va el día?`);
+        if (typeof renderQuickEmoPicker === "function") renderQuickEmoPicker(matched);
+        if (typeof renderParaTiHoy === "function") renderParaTiHoy(matched, [], 0);
+      } else {
+        addBotMsg(`No reconozco esa emoción. Prueba con: ${VALID_EMOS.join(", ")}.`);
+      }
+      return;
+    }
     if (cmd === "diario") { showPage("journal"); return; }
     if (cmd === "meta" || cmd === "metas") {
       const _ms = addBotMsgStream();
@@ -11695,7 +11786,7 @@ async function sendMsg() {
       return;
     }
     if (cmd === "ayuda" || cmd === "help" || cmd === "?") {
-      addBotMsg(`Estos son los comandos que puedes usar:\n\n🧭 NAVEGAR\n/inicio · /diario · /metas · /analitica · /perfil · /juegos\n\n🌿 BIENESTAR\n/respirar · /enfoque · /sueno · /habitos · /agua · /gratitud · /musica\n\n💬 CHAT\n/afirmacion · /inspiracion · /reflexion · /grounding · /nota · /plan · /nuevo · /comovoy · /resumen\n\nEscribe cualquiera y lo activo.`);
+      addBotMsg(`Estos son los comandos que puedes usar:\n\n🧭 NAVEGAR\n/inicio · /diario · /metas · /analitica · /perfil · /juegos\n\n🌿 BIENESTAR\n/respirar · /enfoque · /sueno · /habitos · /agua · /gratitud · /musica\n\n💬 CHAT\n/afirmacion · /inspiracion · /reflexion · /grounding · /nota · /plan · /nuevo · /comovoy · /resumen\n\n✦ RÁPIDO\n/emocion [nombre] — registra cómo te sientes (ej: /emocion feliz)\n\nEscribe cualquiera y lo activo.`);
       return;
     }
     // Unknown command — show hint
@@ -16871,7 +16962,7 @@ function renderEmocionGame(el) {
   function renderResult() {
     const perfect = score >= 50;
     const coinsEarned = Math.round(score * 0.6);
-    if (coinsEarned > 0 && typeof addCoins === 'function') addCoins(coinsEarned);
+    if (coinsEarned > 0 && typeof triggerMission === 'function') triggerMission('do_exercise');
     el.innerHTML = `
       <div style="text-align:center;padding:24px 0">
         <div style="font-size:56px;margin-bottom:14px">${perfect?"🏆":score>=30?"🌟":"💙"}</div>
