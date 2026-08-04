@@ -3023,8 +3023,9 @@ async function b2bSubmitContact() {
   <div class="card" style="margin-bottom:20px">
     <div class="card-header"><span class="card-title">📦 Mis datos (GDPR)</span></div>
     <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.6">Tienes derecho a acceder, exportar y eliminar tus datos en cualquier momento.</p>
-    <div style="display:flex;gap:10px">
-      <button class="btn-primary" style="padding:12px;font-size:13px;flex:1;background:linear-gradient(135deg,#0ea5e9,#06b6d4)" onclick="exportMyData(event)">⬇️ Exportar mis datos</button>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn-primary" style="padding:12px;font-size:13px;flex:1;min-width:120px;background:linear-gradient(135deg,#0ea5e9,#06b6d4)" onclick="exportMyData(event)">⬇️ Exportar JSON</button>
+      <button class="btn-primary" style="padding:12px;font-size:13px;flex:1;min-width:120px;background:linear-gradient(135deg,#8b5cf6,#6366f1)" onclick="exportWellnessPDF()">📄 Reporte PDF</button>
       <button class="btn-sm" style="padding:12px;font-size:13px;color:var(--red);border-color:#fecaca" onclick="deleteMyData()">🗑️ Borrar todo</button>
     </div>
   </div>
@@ -4661,6 +4662,10 @@ function renderAnalytics(d, el) {
 
   el.innerHTML = `
 <div class="container" style="padding-bottom:80px">
+
+  <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+    <button onclick="exportWellnessPDF()" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;padding:8px 16px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px">📄 Reporte PDF</button>
+  </div>
 
   ${(() => { const ins_list = insights && insights.length ? insights : (insight ? [insight] : []); return ins_list.length ? `<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">${ins_list.map((ins,idx)=>`<div style="background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.07));border:1px solid rgba(99,102,241,.2);border-radius:16px;padding:14px 18px;display:flex;gap:12px;align-items:flex-start"><span style="font-size:18px;flex-shrink:0">${idx===0?"💡":idx===1?"🔍":"✦"}</span><p style="font-size:13px;color:var(--text);margin:0;line-height:1.6">${safeHtml(ins)}</p></div>`).join("")}</div>` : ""; })()}
 
@@ -10138,6 +10143,104 @@ async function exportMyData(event) {
     zyraToast("Error al exportar: " + e.message, "error");
     event.target.textContent = "⬇️ Exportar mis datos";
     event.target.disabled = false;
+  }
+}
+
+async function exportWellnessPDF() {
+  if (!checkPlanAccess('export')) { showUpgradePrompt('export', 'basic'); return; }
+  zyraToast("Generando tu reporte...", "info", 3000);
+  try {
+    const [ana, jd, gd] = await Promise.all([
+      api("/analytics").catch(() => null),
+      api("/journal").catch(() => null),
+      api("/goals").catch(() => null),
+    ]);
+    const s = ana?.stats || {};
+    const emo = ana?.emotionFrequency || [];
+    const entries = (jd?.entries || []).slice(0, 6);
+    const goals = (gd?.goals || gd || []);
+    const doneGoals = goals.filter(g => g.completed).length;
+    const streak = s.streakDays || 0;
+    const name = user?.name || "Usuario";
+    const now = new Date().toLocaleDateString("es-CO", { day:"numeric", month:"long", year:"numeric" });
+    const EMO_EMOJI = { feliz:"😊", tranquilo:"😌", ansioso:"😰", triste:"😢", enojado:"😤", confundido:"🤔", esperanzado:"🌟", agotado:"😮‍💨", motivado:"💪", nostalgico:"🌅" };
+    const emoRows = emo.slice(0, 5).map(e => `<tr><td>${EMO_EMOJI[e.emotion] || "•"} ${e.emotion}</td><td style="text-align:right;font-weight:700;color:#6366f1">${e.count}</td></tr>`).join("");
+    const journalRows = entries.map(e => `
+      <div style="background:#f8f9fe;border-left:4px solid #6366f1;border-radius:0 10px 10px 0;padding:12px 16px;margin-bottom:12px;page-break-inside:avoid">
+        <div style="font-weight:700;color:#1e1b4b;margin-bottom:4px">${e.title || "Sin título"}</div>
+        <div style="font-size:12px;color:#4b5563;line-height:1.6">${(e.content || "").substring(0, 200)}${(e.content||"").length > 200 ? "..." : ""}</div>
+        <div style="font-size:11px;color:#9ca3af;margin-top:6px">${new Date(e.createdAt).toLocaleDateString("es-CO")} ${e.emotion ? "· " + (EMO_EMOJI[e.emotion] || "") + " " + e.emotion : ""}</div>
+      </div>`).join("");
+    const activeGoals = goals.filter(g => !g.completed).slice(0, 5);
+    const goalRows = activeGoals.map(g => `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #e5e7eb">
+        <div style="flex:1;font-size:13px;color:#374151">${g.title || "Meta"}</div>
+        <div style="width:60px;height:6px;background:#e5e7eb;border-radius:99px;overflow:hidden">
+          <div style="height:100%;width:${g.progress||0}%;background:linear-gradient(90deg,#6366f1,#8b5cf6)"></div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:#6366f1;min-width:28px">${g.progress||0}%</div>
+      </div>`).join("");
+    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte de Bienestar — ${name}</title>
+<style>
+  body{font-family:'Segoe UI',system-ui,sans-serif;margin:0;padding:0;color:#1e1b4b;background:#fff}
+  @page{margin:20mm 15mm}
+  .page{padding:32px;max-width:720px;margin:0 auto}
+  .header{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:32px;border-radius:16px;margin-bottom:28px;display:flex;justify-content:space-between;align-items:flex-start}
+  .header h1{margin:0;font-size:26px;font-weight:900}
+  .header p{margin:4px 0 0;opacity:.75;font-size:13px}
+  .logo-area{text-align:right}
+  .logo-emoji{font-size:40px;display:block}
+  .section{margin-bottom:28px}
+  .section-title{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#6366f1;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .stat-box{background:#f5f3ff;border-radius:12px;padding:14px;text-align:center}
+  .stat-val{font-size:26px;font-weight:900;color:#6366f1}
+  .stat-label{font-size:10px;color:#6b7280;font-weight:600;margin-top:3px}
+  table{width:100%;border-collapse:collapse}
+  td{padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13px;color:#374151}
+  .footer{text-align:center;font-size:10px;color:#9ca3af;margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb}
+  @media print{.no-print{display:none!important}}
+</style></head><body>
+<div class="page">
+  <div class="header">
+    <div><h1>Reporte de Bienestar</h1><p>${name} · ${now}</p></div>
+    <div class="logo-area"><span class="logo-emoji">✨</span><div style="font-size:14px;font-weight:700;margin-top:4px">Zyra</div></div>
+  </div>
+  <div class="section">
+    <div class="section-title">📊 Estadísticas generales</div>
+    <div class="stats-grid">
+      <div class="stat-box"><div class="stat-val">${s.positivityRate || 0}%</div><div class="stat-label">Positividad</div></div>
+      <div class="stat-box"><div class="stat-val">${s.totalEntries || 0}</div><div class="stat-label">Registros emocionales</div></div>
+      <div class="stat-box"><div class="stat-val">🔥${streak}</div><div class="stat-label">Días de racha</div></div>
+      <div class="stat-box"><div class="stat-val">${doneGoals}/${goals.length}</div><div class="stat-label">Metas logradas</div></div>
+    </div>
+  </div>
+  ${emoRows ? `<div class="section">
+    <div class="section-title">💭 Emociones más frecuentes</div>
+    <table><tbody>${emoRows}</tbody></table>
+  </div>` : ""}
+  ${goalRows ? `<div class="section">
+    <div class="section-title">🎯 Metas activas</div>
+    ${goalRows}
+  </div>` : ""}
+  ${journalRows ? `<div class="section">
+    <div class="section-title">📔 Últimas entradas del diario</div>
+    ${journalRows}
+  </div>` : ""}
+  <div class="footer">Generado por Zyra · zyra.app · ${now} · Solo para uso personal — no reemplaza atención profesional.</div>
+  <div class="no-print" style="text-align:center;margin-top:20px"><button onclick="window.print()" style="background:#6366f1;color:#fff;border:none;padding:12px 32px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">🖨️ Imprimir / Guardar como PDF</button></div>
+</div>
+</body></html>`;
+    const win = window.open("", "_blank");
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+      setTimeout(() => win.print(), 800);
+    } else {
+      zyraToast("Activa las ventanas emergentes para generar el PDF", "info");
+    }
+  } catch(e) {
+    zyraToast("Error al generar reporte: " + e.message, "error");
   }
 }
 
