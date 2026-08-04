@@ -962,7 +962,8 @@ function closeSplash(){
     <div class="morning-step" id="morning-step-0">
       <div class="morning-emoji">🌅</div>
       <h2 class="morning-title" id="morning-greeting-text">Buenos días</h2>
-      <p class="morning-sub">2 minutos para arrancar el día bien</p>
+      <p class="morning-sub" id="morning-sub-text">2 minutos para arrancar el día bien</p>
+      <p id="morning-yesterday-note" style="display:none;font-size:13px;color:rgba(255,255,255,.65);margin:0 0 16px;line-height:1.6;font-style:italic"></p>
       <button class="morning-btn" onclick="morningNext(1)">Empezar →</button>
       <button class="morning-skip" onclick="closeMorning()">Ahora no</button>
     </div>
@@ -1984,6 +1985,11 @@ async function b2bSubmitContact() {
       <div id="wellbeing-score-bar" style="height:100%;border-radius:3px;transition:width .6s ease;width:0%"></div>
     </div>
     <div id="wellbeing-score-items" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+  </div>
+
+  <!-- ══ PREDICCIÓN DE ÁNIMO ══ -->
+  <div id="zyra-predict-section" style="margin-bottom:16px;display:none">
+    <div id="zyra-predict-card"></div>
   </div>
 
   <!-- ══ PARA TI HOY ══ -->
@@ -4437,6 +4443,47 @@ function _buildWeekGrid() {
     </div>
   </div>`;
 }
+function _buildEmotionSparkline(history) {
+  if (!history || history.length < 3) return "";
+  const POSITIVE = new Set(["feliz","tranquilo","esperanzado","motivado"]);
+  const NEGATIVE  = new Set(["ansioso","triste","enojado","agotado","confundido"]);
+  const score = e => POSITIVE.has(e) ? 1 : NEGATIVE.has(e) ? -1 : 0;
+  const cutoff = Date.now() - 30 * 86400000;
+  const pts = history
+    .filter(h => new Date(h.date).getTime() > cutoff)
+    .sort((a,b) => new Date(a.date)-new Date(b.date))
+    .map(h => ({ d: new Date(h.date), s: score(h.emotion), e: h.emotion }));
+  if (pts.length < 2) return "";
+  const W = 320, H = 60, PAD = 8;
+  const minT = pts[0].d.getTime(), maxT = pts[pts.length-1].d.getTime();
+  const xRange = maxT - minT || 1;
+  const x = t => PAD + ((t - minT) / xRange) * (W - PAD*2);
+  const y = s => PAD + (1 - (s + 1) / 2) * (H - PAD*2);
+  const EMO_COL = { feliz:"#22c55e",tranquilo:"#0ea5e9",motivado:"#6366f1",esperanzado:"#8b5cf6",ansioso:"#f59e0b",triste:"#a78bfa",enojado:"#ef4444",agotado:"#94a3b8",confundido:"#6b7280" };
+  const pathD = pts.map((p,i) => `${i===0?"M":"L"}${x(p.d.getTime()).toFixed(1)},${y(p.s).toFixed(1)}`).join(" ");
+  const dots = pts.map(p => `<circle cx="${x(p.d.getTime()).toFixed(1)}" cy="${y(p.s).toFixed(1)}" r="3" fill="${EMO_COL[p.e]||"#6366f1"}" opacity=".9"/>`).join("");
+  const lastPt = pts[pts.length-1];
+  const trend = pts.slice(-7).reduce((s,p) => s + p.s, 0) / Math.min(7, pts.length);
+  const trendColor = trend > 0.1 ? "#22c55e" : trend < -0.1 ? "#ef4444" : "#f59e0b";
+  const trendLabel = trend > 0.1 ? "↑ Positiva" : trend < -0.1 ? "↓ Difícil" : "→ Estable";
+  return `<div class="card" style="margin-bottom:20px;overflow:visible">
+    <div class="card-header" style="margin-bottom:8px">
+      <span class="card-title">📈 Curva emocional (30 días)</span>
+      <span style="font-size:11px;font-weight:700;color:${trendColor}">${trendLabel}</span>
+    </div>
+    <div style="overflow-x:auto">
+      <svg viewBox="0 0 ${W} ${H}" style="width:100%;min-width:260px;height:60px;display:block">
+        <line x1="${PAD}" y1="${y(0)}" x2="${W-PAD}" y2="${y(0)}" stroke="rgba(255,255,255,.06)" stroke-width="1"/>
+        <path d="${pathD}" fill="none" stroke="rgba(99,102,241,.5)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+        ${dots}
+        <circle cx="${x(lastPt.d.getTime()).toFixed(1)}" cy="${y(lastPt.s).toFixed(1)}" r="5" fill="${EMO_COL[lastPt.e]||"#6366f1"}" stroke="var(--surface)" stroke-width="2"/>
+      </svg>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:4px;padding:0 ${PAD}px">
+      <span>Hace 30 días</span><span style="color:${EMO_COL[lastPt.e]||"#6366f1"};font-weight:700">${lastPt.e}</span><span>Hoy</span>
+    </div>
+  </div>`;
+}
 function renderAnalytics(d, el) {
   const { stats, emotionFrequency, dayOfWeekPattern, weeklyTrend, bestDay, worstDay, insight, insights, topWords, activityDates } = d;
   const EMOTION_EMOJI = { feliz:"😊", tranquilo:"😌", ansioso:"😰", triste:"😢", enojado:"😤", confundido:"🤔", esperanzado:"🌟", agotado:"😮‍💨", motivado:"💪", nostalgico:"🌅" };
@@ -4509,6 +4556,9 @@ function renderAnalytics(d, el) {
       <div style="font-size:11px;color:var(--text3);margin-top:4px">Intensidad prom.</div>
     </div>
   </div>
+
+  <!-- Curva emocional sparkline -->
+  ${_buildEmotionSparkline(d.profile?.emotionHistory || [])}
 
   <!-- Tu semana en números -->
   ${_buildWeekGrid()}
@@ -5724,6 +5774,7 @@ async function loadDashboard() {
     animateCount("st-journal", entries.length);
     renderEmotions(p.currentEmotion);
     renderParaTiHoy(p.currentEmotion, hd.history || [], p.streakDays || 0);
+    renderMoodPrediction(hd.history || []);
     renderZyraInsight(computeZyraInsight(hd.history || []));
     // Cache negative streak for notification bell
     const negSC = p.negativeStreakCount || 0;
@@ -5848,6 +5899,39 @@ function renderParaTiHoy(emotion, history, streak) {
   section.style.display = "block";
 }
 
+function renderMoodPrediction(history) {
+  const section = document.getElementById("zyra-predict-section");
+  const card    = document.getElementById("zyra-predict-card");
+  if (!section || !card) return;
+  // Don't show if user already checked in today
+  if (localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString())) return;
+  if (!history || history.length < 8) return;
+  const NEGATIVE = new Set(["ansioso","triste","enojado","agotado","confundido"]);
+  const todayDay = new Date().getDay();
+  const cutoff = Date.now() - 56 * 86400000;
+  const sameDayPast = history.filter(h => {
+    const d = new Date(h.date);
+    return d.getDay() === todayDay && (Date.now()-d.getTime()) > 3*86400000 && d.getTime() > cutoff;
+  });
+  if (sameDayPast.length < 2) return;
+  const freq = {};
+  sameDayPast.forEach(h => { freq[h.emotion] = (freq[h.emotion]||0) + 1; });
+  const [predEmo, predCount] = Object.entries(freq).sort((a,b)=>b[1]-a[1])[0] || [];
+  if (!predEmo || predCount/sameDayPast.length < 0.5) return;
+  const DAYS = ["domingos","lunes","martes","miércoles","jueves","viernes","sábados"];
+  const EL = { feliz:"feliz",tranquilo:"tranquilo/a",ansioso:"ansioso/a",triste:"con tristeza",enojado:"molesto/a",confundido:"confundido/a",esperanzado:"esperanzado/a",agotado:"agotado/a",motivado:"motivado/a",nostalgico:"nostálgico/a" };
+  const isNeg = NEGATIVE.has(predEmo);
+  const txt = isNeg
+    ? `Los ${DAYS[todayDay]} sueles sentirte ${EL[predEmo]||predEmo}. Si hoy también, aquí estoy.`
+    : `Los ${DAYS[todayDay]} sueles estar ${EL[predEmo]||predEmo}. ¿Cómo vas hoy?`;
+  const col = isNeg ? "#8b5cf6" : "#10b981";
+  card.innerHTML = `<div style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.18);border-radius:16px;padding:12px 16px;display:flex;align-items:center;gap:12px">
+    <span style="font-size:22px;flex-shrink:0">🔮</span>
+    <div style="flex:1;font-size:12px;color:var(--text2);line-height:1.55">${txt}</div>
+    <button onclick="openQuickEmotion()" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:var(--accent);border-radius:10px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">¿Y hoy?</button>
+  </div>`;
+  section.style.display = "block";
+}
 function computeZyraInsight(history) {
   if (!history || history.length < 6) return null;
   const POSITIVE = new Set(["feliz","tranquilo","esperanzado","motivado"]);
@@ -10044,6 +10128,102 @@ async function _reflSave(answers) {
   }
 }
 
+/* ── In-chat breathing exercise ── */
+let _breathTimer = null;
+function _breathChatStart() {
+  const msgs = document.getElementById("chat-msgs");
+  if (!msgs) { showPage("wellness"); setTimeout(() => openWellness("breath"), 100); return; }
+  addBotMsg("🫁 Respiración 4-4-6 — te ancla al presente en ~40 segundos. Inhala, mantén, exhala al ritmo del círculo.");
+  const wrap = document.createElement("div");
+  wrap.className = "msg bot";
+  wrap.id = "_breath-card";
+  wrap.style.cssText = "padding:0;background:transparent;box-shadow:none";
+  wrap.innerHTML = `<div style="background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(139,92,246,.08));border:1px solid rgba(99,102,241,.2);border-radius:20px;padding:24px 20px;text-align:center;position:relative">
+    <canvas id="_breath-canvas" width="140" height="140" style="display:block;margin:0 auto 12px"></canvas>
+    <div id="_breath-label" style="font-size:14px;font-weight:700;color:var(--accent);letter-spacing:.5px;margin-bottom:4px">INHALA</div>
+    <div id="_breath-counter" style="font-size:36px;font-weight:800;color:var(--text);line-height:1">4</div>
+    <div id="_breath-cycle" style="font-size:11px;color:var(--text3);margin-top:8px">Ciclo 1 de 3</div>
+    <button onclick="_breathStop()" style="margin-top:16px;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text2);border-radius:10px;padding:7px 20px;font-size:12px;cursor:pointer">Terminar</button>
+  </div>`;
+  msgs.appendChild(wrap);
+  msgs.scrollTop = msgs.scrollHeight;
+  _breathRun(wrap);
+}
+function _breathRun(card) {
+  const canvas = document.getElementById("_breath-canvas");
+  const lbl    = document.getElementById("_breath-label");
+  const ctr    = document.getElementById("_breath-counter");
+  const cycleEl= document.getElementById("_breath-cycle");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const cx = 70, cy = 70;
+  const PHASES = [
+    { label:"INHALA",  color:"#6366f1", secs:4, from:30, to:55 },
+    { label:"MANTÉN",  color:"#8b5cf6", secs:4, from:55, to:55 },
+    { label:"EXHALA",  color:"#10b981", secs:6, from:55, to:30 },
+  ];
+  const CYCLES = 3;
+  let cycle = 0, phase = 0, elapsed = 0, startTs = null;
+  const totalPhaseMs = () => PHASES[phase].secs * 1000;
+
+  function draw(progress) {
+    const p = PHASES[phase];
+    const r = p.from + (p.to - p.from) * progress;
+    ctx.clearRect(0, 0, 140, 140);
+    // outer glow ring
+    const g = ctx.createRadialGradient(cx,cy,r-8,cx,cy,r+14);
+    g.addColorStop(0, p.color + "44");
+    g.addColorStop(1, "transparent");
+    ctx.beginPath(); ctx.arc(cx,cy,r+14,0,Math.PI*2);
+    ctx.fillStyle = g; ctx.fill();
+    // main circle
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.fillStyle = p.color + "22"; ctx.fill();
+    ctx.strokeStyle = p.color; ctx.lineWidth = 2.5; ctx.stroke();
+    // progress arc
+    ctx.beginPath(); ctx.arc(cx,cy,r+8,-Math.PI/2,-Math.PI/2+Math.PI*2*progress);
+    ctx.strokeStyle = p.color; ctx.lineWidth = 2.5;
+    ctx.lineCap = "round"; ctx.stroke();
+  }
+
+  function step(ts) {
+    if (!startTs) startTs = ts;
+    if (card.id !== "_breath-card") return; // card removed
+    elapsed = ts - startTs;
+    const progress = Math.min(elapsed / totalPhaseMs(), 1);
+    const secsLeft = Math.ceil((totalPhaseMs() - elapsed) / 1000);
+    draw(progress);
+    if (lbl) lbl.textContent = PHASES[phase].label;
+    if (ctr) ctr.textContent = Math.max(1, secsLeft);
+    if (progress < 1) { _breathTimer = requestAnimationFrame(step); return; }
+    phase++;
+    if (phase >= PHASES.length) { phase = 0; cycle++; }
+    if (cycle >= CYCLES) { _breathDone(card); return; }
+    if (cycleEl) cycleEl.textContent = `Ciclo ${cycle + 1} de ${CYCLES}`;
+    startTs = null; elapsed = 0;
+    _breathTimer = requestAnimationFrame(step);
+  }
+  _breathTimer = requestAnimationFrame(step);
+}
+function _breathDone(card) {
+  if (card) { card.id = "_breath-card-done"; card.innerHTML = ""; }
+  const today = new Date().toDateString();
+  const prev = parseInt(localStorage.getItem("zyra_breath_" + today) || "0");
+  localStorage.setItem("zyra_breath_" + today, prev + 1);
+  setTimeout(() => {
+    addBotMsg("✅ **3 ciclos completos.** Tu sistema nervioso lo agradeció.\n\n¿Cómo te sientes ahora?");
+    if (!localStorage.getItem("zyra_checkin_emotion_" + today)) {
+      setTimeout(() => openQuickEmotion(), 1800);
+    }
+  }, 400);
+}
+function _breathStop() {
+  if (_breathTimer) { cancelAnimationFrame(_breathTimer); _breathTimer = null; }
+  const card = document.getElementById("_breath-card");
+  if (card) { card.id = "_breath-card-done"; card.innerHTML = ""; }
+  addBotMsg("Pausamos aquí. Cuando quieras continuar, escribe /respirar.");
+}
+
 async function sendMsg() {
   if (_chatSending) return;
   if (zyraCrisisLocked) { zyraTriggerCrisis(); return; }
@@ -10054,7 +10234,7 @@ async function sendMsg() {
   if (msg.startsWith("/")) {
     const cmd = msg.toLowerCase().replace(/^\//, "").trim();
     inp.value = ""; onInput();
-    if (cmd === "respirar" || cmd === "respiracion") { showPage("wellness"); setTimeout(() => openWellness("breath"), 100); return; }
+    if (cmd === "respirar" || cmd === "respiracion" || cmd === "respiración") { _breathChatStart(); return; }
     if (cmd === "diario") { showPage("journal"); return; }
     if (cmd === "meta" || cmd === "metas") { showPage("goals"); return; }
     if (cmd === "inicio" || cmd === "dashboard") { showPage("dashboard"); return; }
@@ -11875,6 +12055,14 @@ function openMorning() {
   const greet=hour<12?'¡Buenos días':hour<18?'¡Buenas tardes':'¡Buenas noches';
   const gt=document.getElementById('morning-greeting-text');
   if(gt) gt.textContent=`${greet}, ${name}! 👋`;
+  // Yesterday's emotion reference
+  const _yesterday = new Date(); _yesterday.setDate(_yesterday.getDate()-1);
+  const _yEmo = localStorage.getItem("zyra_checkin_emotion_"+_yesterday.toDateString());
+  const _yNote = document.getElementById('morning-yesterday-note');
+  if (_yNote && _yEmo) {
+    const _YF = { feliz:"Ayer estuviste bien 😊 — ¿cómo amaneciste hoy?", tranquilo:"Ayer estuviste tranquilo/a. ¿Cómo empieza este día?", ansioso:"Ayer fue un poco difícil. ¿Cómo te sientes esta mañana?", triste:"Ayer fue pesado. Hoy es un día nuevo.", enojado:"Ayer algo te molestó. ¿Ya pasó?", agotado:"Ayer estabas agotado/a. ¿Pudiste descansar?", motivado:"Ayer tenías esa energía 💪 ¿Cómo empieza hoy?", esperanzado:"Ayer estabas esperanzado/a 🌟 ¿Y hoy?", confundido:"Ayer tenías la mente revuelta. ¿Algo aclaró?", nostalgico:"Ayer andabas nostálgico/a. ¿Cómo arranca hoy?" };
+    if (_YF[_yEmo]) { _yNote.textContent = _YF[_yEmo]; _yNote.style.display = "block"; }
+  } else if (_yNote) { _yNote.style.display = "none"; }
   o.style.display='flex';
   // Cargar afirmación en background
   getPersonalizedAffirmation().then(aff=>{
@@ -16355,6 +16543,90 @@ function mobSDClose() {
   if (sd) sd.classList.remove("sd-open");
 }
 
+/* ══ COMMAND PALETTE ══ */
+const _CMD_ITEMS = [
+  { group:"Navegar", icon:"🏠", bg:"rgba(99,102,241,.15)", label:"Inicio", sub:"Dashboard y resumen del día", action:()=>showPage("dashboard"), kbd:null },
+  { group:"Navegar", icon:"💬", bg:"rgba(99,102,241,.15)", label:"Asistente", sub:"Chat con Zyra", action:()=>showPage("assistant") },
+  { group:"Navegar", icon:"📔", bg:"rgba(16,185,129,.15)", label:"Diario", sub:"Escribir o revisar entradas", action:()=>showPage("journal") },
+  { group:"Navegar", icon:"🎯", bg:"rgba(245,158,11,.15)", label:"Metas", sub:"Gestionar objetivos personales", action:()=>showPage("goals") },
+  { group:"Navegar", icon:"📊", bg:"rgba(59,130,246,.15)", label:"Analítica", sub:"Tu historial emocional y racha", action:()=>showPage("analytics") },
+  { group:"Navegar", icon:"🌿", bg:"rgba(16,185,129,.15)", label:"Bienestar", sub:"Hábitos, agua, sueño, meditación", action:()=>showPage("wellness") },
+  { group:"Navegar", icon:"🎮", bg:"rgba(139,92,246,.15)", label:"Juegos", sub:"Actividades y retos", action:()=>showPage("games") },
+  { group:"Navegar", icon:"👤", bg:"rgba(236,72,153,.15)", label:"Perfil", sub:"Configuración y logros", action:()=>showPage("profile") },
+  { group:"Acción", icon:"😊", bg:"rgba(99,102,241,.15)", label:"Registrar emoción", sub:"¿Cómo te sientes ahora?", action:()=>openQuickEmotion() },
+  { group:"Acción", icon:"🫁", bg:"rgba(99,102,241,.15)", label:"Respiración guiada", sub:"Ejercicio 4-4-6 en el chat", action:()=>{ showPage("assistant"); setTimeout(_breathChatStart, 300); } },
+  { group:"Acción", icon:"✍️", bg:"rgba(16,185,129,.15)", label:"Nota rápida", sub:"Escribir sin guardar aún", action:()=>openQuickNote() },
+  { group:"Acción", icon:"🌙", bg:"rgba(139,92,246,.15)", label:"Reflexión guiada", sub:"4 preguntas de introspección", action:()=>{ showPage("assistant"); setTimeout(_reflStart, 300); } },
+  { group:"Acción", icon:"🔥", bg:"rgba(245,158,11,.15)", label:"Mi racha", sub:"Ver progreso gamificado", action:()=>{ showPage("games"); setTimeout(()=>document.getElementById("tab-games")?.click(), 200); } },
+  { group:"Acción", icon:"📊", bg:"rgba(59,130,246,.15)", label:"Reporte semanal", sub:"Resumen con IA de tu semana", action:()=>showPage("weekly-report") },
+  { group:"Bienestar", icon:"💧", bg:"rgba(14,165,233,.15)", label:"Registrar agua", sub:"Seguimiento de hidratación", action:()=>{ showPage("wellness"); setTimeout(()=>openWellness("water"),200); } },
+  { group:"Bienestar", icon:"😴", bg:"rgba(139,92,246,.15)", label:"Registrar sueño", sub:"¿Cómo dormiste?", action:()=>{ showPage("wellness"); setTimeout(()=>openWellness("sleep"),200); } },
+  { group:"Bienestar", icon:"🙏", bg:"rgba(16,185,129,.15)", label:"Gratitud", sub:"Escribir algo por lo que agradeces", action:()=>{ showPage("wellness"); setTimeout(()=>openWellness("gratitude"),200); } },
+];
+let _cmdActive = 0;
+function openCmdPalette() {
+  const overlay = document.getElementById("cmd-palette-overlay");
+  const card    = document.getElementById("cmd-palette-card");
+  const inp     = document.getElementById("cmd-palette-input");
+  if (!overlay) return;
+  overlay.style.display = "flex";
+  _cmdActive = 0;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    card.style.transform = "translateY(0) scale(1)"; card.style.opacity = "1";
+  }));
+  _cmdRender(_CMD_ITEMS);
+  setTimeout(() => { inp?.focus(); inp && (inp.value = ""); }, 80);
+}
+function closeCmdPalette() {
+  const overlay = document.getElementById("cmd-palette-overlay");
+  const card    = document.getElementById("cmd-palette-card");
+  if (!overlay || overlay.style.display === "none") return;
+  card.style.transform = "translateY(-12px) scale(.97)"; card.style.opacity = "0";
+  setTimeout(() => { overlay.style.display = "none"; }, 220);
+}
+function _cmdFilter() {
+  const q = (document.getElementById("cmd-palette-input")?.value || "").toLowerCase().trim();
+  const filtered = q ? _CMD_ITEMS.filter(c => c.label.toLowerCase().includes(q) || (c.sub||"").toLowerCase().includes(q) || c.group.toLowerCase().includes(q)) : _CMD_ITEMS;
+  _cmdActive = 0;
+  _cmdRender(filtered);
+}
+function _cmdRender(items) {
+  const list = document.getElementById("cmd-palette-list");
+  if (!list) return;
+  if (!items.length) { list.innerHTML = `<div style="padding:24px;text-align:center;font-size:13px;color:var(--text3)">Sin resultados</div>`; return; }
+  let html = ""; let lastGroup = null;
+  list.__items = items;
+  items.forEach((item, i) => {
+    if (item.group !== lastGroup) { html += `<div class="cmd-group-label">${item.group}</div>`; lastGroup = item.group; }
+    html += `<div class="cmd-item${i===_cmdActive?" active":""}" data-idx="${i}" onclick="_cmdExecIdx(${i})">
+      <div class="cmd-item-icon" style="background:${item.bg}">${item.icon}</div>
+      <div class="cmd-item-text"><div class="cmd-item-label">${item.label}</div><div class="cmd-item-sub">${item.sub||""}</div></div>
+    </div>`;
+  });
+  list.innerHTML = html;
+}
+function _cmdExecIdx(idx) {
+  const list = document.getElementById("cmd-palette-list");
+  const items = list?.__items || _CMD_ITEMS;
+  const it = items[idx];
+  if (!it) return;
+  closeCmdPalette();
+  setTimeout(() => it.action(), 240);
+}
+function _cmdKey(e) {
+  const list = document.getElementById("cmd-palette-list");
+  const items = list?.__items || _CMD_ITEMS;
+  const rows = list?.querySelectorAll(".cmd-item") || [];
+  if (e.key === "Escape") { closeCmdPalette(); return; }
+  if (e.key === "ArrowDown") { e.preventDefault(); _cmdActive = Math.min(_cmdActive+1, rows.length-1); rows.forEach((r,i) => r.classList.toggle("active", i===_cmdActive)); rows[_cmdActive]?.scrollIntoView({block:"nearest"}); }
+  if (e.key === "ArrowUp")   { e.preventDefault(); _cmdActive = Math.max(_cmdActive-1, 0); rows.forEach((r,i) => r.classList.toggle("active", i===_cmdActive)); rows[_cmdActive]?.scrollIntoView({block:"nearest"}); }
+  if (e.key === "Enter")     { _cmdExecIdx(_cmdActive); }
+}
+document.addEventListener("keydown", e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "k") { e.preventDefault(); const o=document.getElementById("cmd-palette-overlay"); if(o&&o.style.display!=="none") closeCmdPalette(); else openCmdPalette(); }
+  if (e.key === "Escape") closeCmdPalette();
+});
+
 </script>
 
 <!-- ══ DAILY MOOD CHECK-IN ══ -->
@@ -16478,6 +16750,28 @@ function mobSDClose() {
 }
 .checkin-btn span { font-size:10px;color:var(--text3);font-weight:600; }
 .checkin-btn:hover, .checkin-btn:active { transform:scale(1.08);border-color:var(--accent);background:rgba(99,102,241,.1); }
+</style>
+
+<!-- ══ COMMAND PALETTE ══ -->
+<div id="cmd-palette-overlay" style="display:none;position:fixed;inset:0;z-index:11000;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);align-items:flex-start;justify-content:center;padding-top:80px" onclick="if(event.target===this)closeCmdPalette()">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;width:100%;max-width:520px;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.5);transform:translateY(-12px) scale(.97);opacity:0;transition:all .22s cubic-bezier(.175,.885,.32,1.1)" id="cmd-palette-card">
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border)">
+      <span style="font-size:16px;color:var(--text3)">⌘</span>
+      <input id="cmd-palette-input" type="text" placeholder="Busca una página, acción o comando…" autocomplete="off" style="flex:1;background:transparent;border:none;outline:none;font-size:15px;color:var(--text);font-family:inherit" oninput="_cmdFilter()" onkeydown="_cmdKey(event)">
+      <kbd style="font-size:10px;color:var(--text3);background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:2px 6px">ESC</kbd>
+    </div>
+    <div id="cmd-palette-list" style="max-height:340px;overflow-y:auto;padding:6px 0"></div>
+  </div>
+</div>
+<style>
+.cmd-item { display:flex;align-items:center;gap:12px;padding:10px 18px;cursor:pointer;transition:background .12s;border-radius:0 }
+.cmd-item:hover,.cmd-item.active { background:rgba(99,102,241,.12) }
+.cmd-item-icon { width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0 }
+.cmd-item-text { flex:1 }
+.cmd-item-label { font-size:13px;font-weight:600;color:var(--text) }
+.cmd-item-sub { font-size:11px;color:var(--text3);margin-top:1px }
+.cmd-item-kbd { font-size:10px;color:var(--text3);background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:2px 6px;flex-shrink:0 }
+.cmd-group-label { font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;padding:8px 18px 4px }
 </style>
 
 </body>
