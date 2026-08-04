@@ -6065,6 +6065,7 @@ async function loadDashboard() {
   loadDailyIntention();
   loadMentalHealthTip();
   loadTodayPlan();
+  _maybeShowEveningNudge();
   // Update quick card badges with live today data
   (() => {
     const today = new Date().toDateString();
@@ -6582,6 +6583,43 @@ function showNegativeStreakBanner(days) {
   para.parentElement.insertBefore(banner, para);
 }
 
+function _maybeShowEveningNudge() {
+  const hour = new Date().getHours();
+  if (hour < 20 || hour >= 24) return;
+  const today = new Date().toDateString();
+  const dismissKey = "zyra_eve_nudge_" + today;
+  if (localStorage.getItem(dismissKey)) return;
+  const hasJournal  = !!localStorage.getItem("zyra_journal_saved_" + today);
+  const hasEvening  = !!localStorage.getItem("zyra_er_done_" + today);
+  if (hasJournal && hasEvening) return;
+  const existing = document.getElementById("zyra-evening-nudge");
+  if (existing) return;
+  const MESSAGES = [
+    "Quedan pocas horas del día. ¿Lo cerramos bien juntas/os?",
+    "Ya es noche 🌙 ¿Tomaste un momento para ti hoy?",
+    "El día casi termina — un buen cierre marca la diferencia.",
+  ];
+  const msg = MESSAGES[new Date().getDate() % MESSAGES.length];
+  const nudge = document.createElement("div");
+  nudge.id = "zyra-evening-nudge";
+  nudge.style.cssText = "margin-bottom:20px;animation:pageFade .4s ease";
+  nudge.innerHTML = `<div style="background:linear-gradient(135deg,rgba(30,41,59,.8),rgba(15,23,42,.6));border:1.5px solid rgba(139,92,246,.3);border-radius:18px;padding:16px 18px;display:flex;align-items:flex-start;gap:14px">
+    <div style="font-size:28px;flex-shrink:0">🌙</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">${msg}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        ${!hasJournal ? `<button onclick="localStorage.setItem('${dismissKey}','1');document.getElementById('zyra-evening-nudge').style.opacity='0';setTimeout(()=>{const e=document.getElementById('zyra-evening-nudge');if(e)e.remove();showPage('journal');setTimeout(toggleJournalForm,200)},300)" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:var(--accent);border-radius:10px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">📔 Diario del día</button>` : ""}
+        ${!hasEvening ? `<button onclick="localStorage.setItem('${dismissKey}','1');document.getElementById('zyra-evening-nudge').style.opacity='0';setTimeout(()=>{const e=document.getElementById('zyra-evening-nudge');if(e)e.remove();showPage('assistant');setTimeout(newChat,200)},300)" style="background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);color:#a78bfa;border-radius:10px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">💜 Hablar con Zyra</button>` : ""}
+        <button onclick="localStorage.setItem('${dismissKey}','1');this.closest('#zyra-evening-nudge').remove()" style="background:transparent;border:1px solid rgba(255,255,255,.1);color:var(--text3);border-radius:10px;padding:7px 12px;font-size:12px;cursor:pointer">Después</button>
+      </div>
+    </div>
+  </div>`;
+  const insightSection = document.getElementById("zyra-insight-section");
+  if (insightSection?.parentElement) {
+    insightSection.parentElement.insertBefore(nudge, insightSection);
+  }
+}
+
 function renderMoodCalendar(history) {
   const titleEl = document.getElementById("mood-cal-title");
   const grid = document.getElementById("mood-calendar-grid");
@@ -7047,7 +7085,9 @@ function renderGoals(goals) {
             <button onclick="toggleGoalNotes('${g._id}')" style="background:none;border:1px solid var(--border);border-radius:8px;color:${notesOpen?"var(--accent)":"var(--text3)"};font-size:11px;padding:3px 8px;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .15s">
               📝 ${notes.length ? notes.length+" nota"+(notes.length!==1?"s":"") : "Notas"}${notesOpen?" ▲":" ▼"}
             </button>
+            ${!g.completed ? `<button onclick="toggleGoalAIPlan('${g._id}',${JSON.stringify(g.title).replace(/"/g,'&quot;')})" id="goal-ai-btn-${g._id}" style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:8px;color:var(--accent);font-size:11px;padding:3px 8px;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .15s">✨ Plan IA</button>` : ""}
           </div>
+          <div id="goal-ai-plan-${g._id}" style="display:none;margin-top:10px;padding:10px 12px;background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.04));border:1px solid rgba(99,102,241,.2);border-radius:12px;font-size:12px;color:var(--text2);line-height:1.7"></div>
           ${notesHtml}
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;margin-left:8px">
@@ -7062,6 +7102,37 @@ function toggleGoalNotes(id) {
   _goalNotesOpen = _goalNotesOpen === id ? null : id;
   filterGoalsCat(_goalsCurrentFilter);
   setTimeout(() => { const item = document.getElementById("goal-item-"+id); if(item) item.scrollIntoView({behavior:"smooth",block:"nearest"}); }, 50);
+}
+
+async function toggleGoalAIPlan(id, title) {
+  const panel = document.getElementById("goal-ai-plan-" + id);
+  const btn   = document.getElementById("goal-ai-btn-" + id);
+  if (!panel) return;
+  if (panel.style.display !== "none") { panel.style.display = "none"; return; }
+  const cacheKey = "zyra_goal_plan_" + id;
+  const cached = sessionStorage.getItem(cacheKey);
+  if (cached) { panel.innerHTML = cached; panel.style.display = "block"; return; }
+  if (btn) { btn.textContent = "✨ Generando..."; btn.disabled = true; }
+  panel.innerHTML = '<span style="opacity:.5;font-style:italic">Zyra está pensando un plan para ti...</span>';
+  panel.style.display = "block";
+  try {
+    const d = await api("/chat", "POST", {
+      message: `Dame 3 pasos concretos y realizables para avanzar en esta meta: "${title}". Cada paso debe ser específico, accionable esta semana, y máximo 15 palabras. Formato: "1. [paso]\n2. [paso]\n3. [paso]" — nada más.`,
+      history: [],
+      noSave: true,
+      mode: "goal_plan",
+    });
+    const plan = (d.response || "").trim();
+    if (plan) {
+      const html = `<div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">✨ Plan de acción</div>` +
+        plan.replace(/\n/g, "<br>").replace(/(\d+\.\s)/g, '<strong style="color:var(--text)">$1</strong>');
+      panel.innerHTML = html;
+      sessionStorage.setItem(cacheKey, html);
+    } else {
+      panel.style.display = "none";
+    }
+  } catch(e) { panel.style.display = "none"; }
+  if (btn) { btn.textContent = "✨ Plan IA"; btn.disabled = false; }
 }
 
 async function quickGoalProgress(id, pct) {
