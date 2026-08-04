@@ -1904,6 +1904,17 @@ async function b2bSubmitContact() {
     </div>
   </div>
 
+  <!-- ══ NOTA DE ZYRA ══ -->
+  <div id="zyra-morning-note" style="display:none;background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.06));border:1px solid rgba(99,102,241,.18);border-radius:16px;padding:14px 16px;margin-bottom:16px;animation:pageFade .4s ease">
+    <div style="display:flex;align-items:center;gap:10px">
+      <img src="/Imagenes/zyra-avatar.png" alt="Zyra" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Zyra te dice</div>
+        <div id="zyra-morning-note-text" style="font-size:13px;color:var(--text);line-height:1.5;font-weight:500"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ ACCIONES RÁPIDAS ══ -->
   <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">Acciones rápidas</div>
   <div class="quick-actions">
@@ -1977,15 +1988,20 @@ async function b2bSubmitContact() {
 
   <!-- ══ BIENESTAR DE HOY ══ -->
   <div id="wellbeing-score-wrap" style="display:none;background:var(--surface,#fff);border:1px solid var(--border,rgba(99,102,241,.12));border-radius:18px;padding:16px 20px;margin-bottom:20px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.6px">Bienestar de hoy</div>
-      <div id="wellbeing-score-val" style="font-size:18px;font-weight:900;color:var(--accent)"></div>
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:10px">
+      <div style="flex-shrink:0;position:relative;width:72px;height:72px">
+        <svg width="72" height="72" viewBox="0 0 72 72" style="display:block">
+          <circle cx="36" cy="36" r="30" fill="none" stroke="var(--border,rgba(99,102,241,.12))" stroke-width="6"/>
+          <circle id="ws-ring" cx="36" cy="36" r="30" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" stroke-dasharray="188.5" stroke-dashoffset="188.5" style="transform:rotate(-90deg);transform-origin:36px 36px;transition:stroke-dashoffset .9s cubic-bezier(.34,1.56,.64,1),stroke .5s"/>
+        </svg>
+        <div id="wellbeing-score-val" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;color:var(--accent)"></div>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Bienestar de hoy</div>
+        <div id="wellbeing-score-items" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+      </div>
     </div>
-    <div style="height:6px;background:var(--border,rgba(99,102,241,.1));border-radius:3px;margin-bottom:12px;overflow:hidden">
-      <div id="wellbeing-score-bar" style="height:100%;border-radius:3px;transition:width .6s ease;width:0%"></div>
-    </div>
-    <div id="wellbeing-score-items" style="display:flex;flex-wrap:wrap;gap:6px"></div>
-    <button onclick="shareDayCard()" style="margin-top:12px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);color:var(--accent);border-radius:10px;padding:7px 16px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s" onmouseover="this.style.background='rgba(99,102,241,.18)'" onmouseout="this.style.background='rgba(99,102,241,.1)'">📤 Compartir mi día</button>
+    <button onclick="shareDayCard()" style="margin-top:4px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);color:var(--accent);border-radius:10px;padding:7px 16px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s" onmouseover="this.style.background='rgba(99,102,241,.18)'" onmouseout="this.style.background='rgba(99,102,241,.1)'">📤 Compartir mi día</button>
   </div>
 
   <!-- ══ PREDICCIÓN DE ÁNIMO ══ -->
@@ -5917,6 +5933,7 @@ async function loadDashboard() {
   setTimeout(() => { if(window._zyraCurrentPage==='dashboard') showDailyCheckin(); }, 1500);
   renderTodayOverview();
   renderWellbeingScore();
+  _renderMorningNote();
 }
 
 function renderParaTiHoy(emotion, history, streak) {
@@ -10920,6 +10937,40 @@ function _applyEmotionAccent(emo) {
 function _initEmotionAccent() {
   const emo = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString());
   if (emo) _applyEmotionAccent(emo);
+}
+function _renderMorningNote() {
+  const el = document.getElementById("zyra-morning-note");
+  const txt = document.getElementById("zyra-morning-note-text");
+  if (!el || !txt || !user) return;
+  const todayKey = new Date().toDateString();
+  const seenKey = "zyra_mnote_" + todayKey;
+  if (sessionStorage.getItem(seenKey)) return;
+  const h = new Date().getHours();
+  const dayNames = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+  const dayName = dayNames[new Date().getDay()];
+  const name = (user.name || "").split(" ")[0] || "hola";
+  const streak = _gamifStatus?.streak || 0;
+  const yesterday = new Date(Date.now() - 86400000);
+  const yEmo = localStorage.getItem("zyra_checkin_emotion_" + yesterday.toDateString());
+  const todayEmo = localStorage.getItem("zyra_checkin_emotion_" + todayKey);
+  const EMO_PAST = { feliz:"feliz", tranquilo:"tranquilo/a", ansioso:"ansioso/a", triste:"triste", enojado:"enojado/a", agotado:"agotado/a", confundido:"confundido/a", esperanzado:"esperanzado/a", motivado:"motivado/a", nostalgico:"nostálgico/a" };
+  let msg = null;
+  if (h < 12) {
+    if (yEmo === "agotado" || yEmo === "triste" || yEmo === "ansioso") msg = `Ayer te fuiste ${EMO_PAST[yEmo]}. Hoy empieza en blanco, ${name}.`;
+    else if (yEmo === "feliz" || yEmo === "motivado" || yEmo === "esperanzado") msg = `Ayer fue bueno. ${h < 9 ? "Buenos días" : "Hola"}, ${name} — hoy también puede serlo.`;
+    else if (streak >= 10) msg = `${streak} días seguidos, ${name}. Este hábito ya es parte de ti.`;
+    else if (streak >= 5) msg = `Llevas ${streak} días registrando cómo te sientes. No es poco.`;
+    else if (["lunes","miércoles","viernes"].includes(dayName)) msg = `Es ${dayName}, ${name}. Aquí estoy si me necesitas.`;
+    else msg = `Buenos días, ${name}. ¿Cómo entras al día de hoy?`;
+  } else if (!todayEmo && h >= 17) {
+    msg = `Son las ${h}:00 y todavía no registraste cómo estás. ¿Cómo va el día?`;
+  } else if (streak >= 7 && !todayEmo) {
+    msg = `Llevas ${streak} días seguidos, ${name}. Hoy te falta el check-in.`;
+  } else { return; }
+  if (!msg) return;
+  txt.textContent = msg;
+  el.style.display = "block";
+  sessionStorage.setItem(seenKey, "1");
 }
 function _emoParticleBurst(emo) {
   const COLS = { feliz:["#fbbf24","#f59e0b","#22c55e","#4ade80"], tranquilo:["#0ea5e9","#38bdf8","#bae6fd","#e0f2fe"], motivado:["#6366f1","#818cf8","#a5b4fc","#c7d2fe"], esperanzado:["#8b5cf6","#a78bfa","#c4b5fd","#ede9fe"], ansioso:["#f59e0b","#fbbf24","#fcd34d","#6366f1"], triste:["#a78bfa","#8b5cf6","#6366f1","#c4b5fd"], enojado:["#ef4444","#f87171","#fca5a5","#f59e0b"], agotado:["#6b7280","#9ca3af","#d1d5db","#6366f1"], confundido:["#ec4899","#f472b6","#f9a8d4","#8b5cf6"], nostalgico:["#8b5cf6","#ec4899","#f59e0b","#0ea5e9"] };
@@ -16033,9 +16084,8 @@ function resetPomodoro() {
 function renderWellbeingScore() {
   const wrap = document.getElementById("wellbeing-score-wrap");
   const valEl = document.getElementById("wellbeing-score-val");
-  const barEl = document.getElementById("wellbeing-score-bar");
   const itemsEl = document.getElementById("wellbeing-score-items");
-  if (!wrap || !valEl || !barEl || !itemsEl) return;
+  if (!wrap || !valEl || !itemsEl) return;
 
   const today = new Date().toDateString();
   const checks = [];
@@ -16083,18 +16133,32 @@ function renderWellbeingScore() {
   score = Math.min(100, score);
 
   const scoreColor = score >= 70 ? "#10b981" : score >= 40 ? "#f59e0b" : "#6366f1";
-  const scoreEmoji = score >= 80 ? "🌟" : score >= 60 ? "💪" : score >= 40 ? "🌱" : "💙";
-  const scoreLabel = score >= 85 ? "Día excelente" : score >= 70 ? "Vas muy bien" : score >= 55 ? "En progreso" : score >= 35 ? "Empieza fuerte" : "Comenzando";
+  const scoreLabel = score >= 85 ? "Excelente" : score >= 70 ? "Muy bien" : score >= 55 ? "Progreso" : score >= 35 ? "Inicio" : "Comenzando";
 
-  valEl.innerHTML = `<span style="font-size:18px;font-weight:900">${scoreEmoji} ${score}</span><span style="font-size:10px;font-weight:600;color:${scoreColor};margin-left:6px;opacity:.8">${scoreLabel}</span>`;
-  valEl.style.color = scoreColor;
-  barEl.style.width = score + "%";
-  barEl.style.background = `linear-gradient(90deg, ${scoreColor}, ${score >= 70 ? "#22c55e" : "#6366f1"})`;
+  // SVG ring animation
+  const ringEl = document.getElementById("ws-ring");
+  if (ringEl) {
+    const circ = 2 * Math.PI * 30;
+    requestAnimationFrame(() => {
+      ringEl.style.strokeDashoffset = circ * (1 - score/100);
+      ringEl.style.stroke = scoreColor;
+    });
+  }
+  valEl.innerHTML = `<span style="font-size:16px;font-weight:900;color:${scoreColor}">${score}</span><span style="font-size:9px;font-weight:700;color:var(--text3)">%</span>`;
   itemsEl.innerHTML = checks.map(c => `<span onclick="${c.nav}" style="font-size:10px;padding:3px 8px;border-radius:20px;cursor:pointer;transition:opacity .15s;background:${c.done?"rgba(16,185,129,.12)":c.partial?"rgba(245,158,11,.1)":"var(--surface)"};color:${c.done?"#10b981":c.partial?"#f59e0b":"var(--text3)"};font-weight:600;border:1px solid ${c.done?"rgba(16,185,129,.25)":c.partial?"rgba(245,158,11,.2)":"var(--border)"}" onmouseover="this.style.opacity='.75'" onmouseout="this.style.opacity='1'">${c.label} ${c.done?"✓":c.partial?"~":"○"}</span>`).join("");
   wrap.style.display = "";
-  if (score >= 100 && !sessionStorage.getItem("zyra_perfect_score_shown")) {
-    sessionStorage.setItem("zyra_perfect_score_shown", "1");
+  // Milestone toasts (once per session per threshold)
+  const _msKey = "zyra_ws_milestone_" + new Date().toDateString();
+  const _msDone = parseInt(sessionStorage.getItem(_msKey) || "0");
+  if (score >= 100 && _msDone < 100) {
+    sessionStorage.setItem(_msKey, "100");
     setTimeout(() => { for (let i = 0; i < 60; i++) setTimeout(launchConfetti, i * 45); zyraToast("🌟 ¡Día perfecto! Lograste el 100% de bienestar", "success", 5000); }, 500);
+  } else if (score >= 75 && _msDone < 75) {
+    sessionStorage.setItem(_msKey, "75");
+    setTimeout(() => zyraToast("💪 75% del día cumplido — vas muy bien.", "success", 3500), 500);
+  } else if (score >= 50 && _msDone < 50) {
+    sessionStorage.setItem(_msKey, "50");
+    setTimeout(() => zyraToast("🌱 Mitad del camino. Sigue así.", "success", 3000), 500);
   }
 }
 
@@ -17125,6 +17189,8 @@ document.addEventListener("keydown", e => {
 <style>
 @keyframes _goalRipple { to { transform:scale(2.8); opacity:0; } }
 @keyframes _emoGlow { 0%,100%{filter:drop-shadow(0 0 6px var(--emo-glow-c,#6366f1))} 50%{filter:drop-shadow(0 0 22px var(--emo-glow-c,#6366f1))} }
+@keyframes _avatarPulse { 0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,.5)} 50%{box-shadow:0 0 0 6px rgba(99,102,241,.0)} }
+.msg.streaming .msg-av.bot img { animation:_avatarPulse 1.2s ease-in-out infinite; border-radius:50%; }
 @keyframes confettiFall {
   0%   { transform: translateY(0) rotate(0deg); opacity:1; }
   100% { transform: translateY(100vh) rotate(720deg); opacity:0; }
