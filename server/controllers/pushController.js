@@ -434,7 +434,7 @@ exports.sendEveningCheckIn = async () => {
         icon:  "/Imagenes/1000154669.png",
         badge: "/Imagenes/1000154669.png",
         tag:   "zyra-evening",
-        data:  { url: "/?p=tracker" },
+        data:  { url: "/?p=dashboard" },
       });
       await Profile.updateOne({ _id: p._id }, { $set: { lastEveningCheckInAt: now } });
       sent++;

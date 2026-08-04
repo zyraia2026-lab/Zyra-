@@ -593,7 +593,35 @@ function closeSplash(){
         <button class="ob-theme" onclick="obSelectTheme(this,'sunset')"   style="background:linear-gradient(135deg,#f97316,#ec4899)">Sunset</button>
         <button class="ob-theme" onclick="obSelectTheme(this,'midnight')" style="background:linear-gradient(135deg,#1e1b4b,#4338ca)">Midnight</button>
       </div>
-      <button onclick="obFinish()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:14px;padding:14px 40px;font-size:16px;font-weight:700;cursor:pointer;width:100%">Listo, entremos 💜</button>
+      <button onclick="obNext(4)" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:14px;padding:14px 40px;font-size:16px;font-weight:700;cursor:pointer;width:100%">Siguiente →</button>
+    </div>
+
+    <!-- Paso 4 — Notificaciones -->
+    <div id="ob-step-4" style="display:none">
+      <div style="font-size:64px;margin-bottom:16px">🔔</div>
+      <h2 style="color:#fff;font-size:20px;font-weight:700;margin:0 0 8px">¿Te recuerdo cada noche?</h2>
+      <p style="color:#9ca3af;font-size:13px;line-height:1.6;margin:0 0 20px">Un empujoncito a la hora que elijas para hacer tu check-in, reflexionar o simplemente hablar</p>
+      <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:16px;margin-bottom:20px;text-align:left">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <span style="font-size:20px">🌙</span>
+          <span style="color:#d1d5db;font-size:14px">Check-in nocturno — ¿cómo fue el día?</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <span style="font-size:20px">💪</span>
+          <span style="color:#d1d5db;font-size:14px">Recordatorio de hábitos y metas</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:20px">💬</span>
+          <span style="color:#d1d5db;font-size:14px">Mensajes de Zyra cuando lo necesites</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+        <label style="color:#9ca3af;font-size:13px;white-space:nowrap">Hora del recordatorio:</label>
+        <input id="ob-notif-time" type="time" value="21:00"
+          style="flex:1;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:10px 12px;color:#fff;font-size:15px;outline:none;cursor:pointer" />
+      </div>
+      <button onclick="obEnableNotifications()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:14px;padding:14px 40px;font-size:16px;font-weight:700;cursor:pointer;width:100%;margin-bottom:10px">Sí, recuérdame 🔔</button>
+      <button onclick="obFinish()" style="background:transparent;color:#6b7280;border:none;font-size:14px;cursor:pointer;padding:6px;width:100%">Ahora no →</button>
     </div>
 
     <!-- Indicador de pasos -->
@@ -602,6 +630,7 @@ function closeSplash(){
       <div class="ob-dot" id="ob-dot-1"></div>
       <div class="ob-dot" id="ob-dot-2"></div>
       <div class="ob-dot" id="ob-dot-3"></div>
+      <div class="ob-dot" id="ob-dot-4"></div>
     </div>
   </div>
 </div>
@@ -2021,6 +2050,9 @@ async function b2bSubmitContact() {
     <div id="zyra-predict-card"></div>
   </div>
 
+  <!-- ══ PROGRAMA ACTIVO ══ -->
+  <div id="active-program-banner" style="display:none;margin-bottom:16px"></div>
+
   <!-- ══ PARA TI HOY ══ -->
   <div id="para-ti-hoy-section" style="margin-bottom:20px;display:none">
     <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">✨ Para ti hoy</div>
@@ -2376,6 +2408,7 @@ async function b2bSubmitContact() {
     <button class="wellness-tab" id="wtab-focus" onclick="openWellness('focus')">⏱ Enfoque</button>
     <button class="wellness-tab" id="wtab-habits" onclick="openWellness('habits')">✅ Hábitos</button>
     <button class="wellness-tab" id="wtab-cbt" onclick="openWellness('cbt')">🧠 Reestructurar</button>
+    <button class="wellness-tab" id="wtab-programs" onclick="openWellness('programs')">📚 Programas</button>
   </div>
   <div id="wellness-content"></div>
 </div>
@@ -2489,6 +2522,17 @@ async function b2bSubmitContact() {
 
   <!-- Vista: lista de entradas -->
   <div id="journal-view-list">
+    <!-- Reacción de Zyra post-guardado -->
+    <div id="journal-zyra-reaction" style="display:none;margin-bottom:14px;background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(139,92,246,.07));border:1.5px solid rgba(99,102,241,.22);border-radius:18px;padding:14px 16px;animation:pageFade .4s ease">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <img src="/Imagenes/zyra-avatar.png" alt="Zyra" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Zyra leyó tu entrada</div>
+          <div id="journal-zyra-reaction-text" style="font-size:13px;color:var(--text);line-height:1.6"></div>
+        </div>
+        <button onclick="document.getElementById('journal-zyra-reaction').style.display='none'" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:0;flex-shrink:0;line-height:1">×</button>
+      </div>
+    </div>
     <div class="card">
       <div class="card-header"><span class="card-title">Nueva entrada</span><button class="btn-sm accent" onclick="toggleJournalForm()">+ Escribir</button></div>
       <div class="add-form" id="add-journal-form">
@@ -3986,6 +4030,7 @@ function showPage(name) {
   if(name === "planes")       setTimeout(function(){ if(typeof loadPlanesPage==="function") loadPlanesPage(); }, 150);
   if(name === "journal")      { loadJournal(); loadFutureNotes(); }
   if(name === "wellness")     loadWellness();
+  else if (_pomoAmbType && typeof _pomoStopAmbient === "function") { _pomoStopAmbient(); }
   if(name === "profile")      loadProfile();
   if(name === "analytics")    loadAnalytics();
   if(name === "admin")        loadAdminPanel();
@@ -5967,6 +6012,7 @@ async function loadDashboard() {
     renderParaTiHoy(p.currentEmotion, hd.history || [], p.streakDays || 0);
     renderMoodPrediction(hd.history || []);
     renderZyraInsight(computeZyraInsight(hd.history || []));
+    renderActiveProgramBanner();
     // Cache negative streak for notification bell
     const negSC = p.negativeStreakCount || 0;
     if (negSC >= 3) { localStorage.setItem('zyra_neg_streak_count', String(negSC)); showNegativeStreakBanner(negSC); }
@@ -6058,6 +6104,43 @@ async function loadDashboard() {
   renderTodayOverview();
   renderWellbeingScore();
   _renderMorningNote();
+}
+
+function renderActiveProgramBanner() {
+  const banner = document.getElementById("active-program-banner");
+  if (!banner) return;
+
+  const active = WELLNESS_PROGRAMS.find(p => {
+    const s = _getProgramState(p.id);
+    return s && s.completedDays.length > 0 && s.completedDays.length < 7;
+  });
+
+  if (!active) { banner.style.display = "none"; return; }
+
+  const state = _getProgramState(active.id);
+  const done = state.completedDays.length;
+  const nextDay = active.days[done];
+  const pct = Math.round((done / 7) * 100);
+
+  banner.style.display = "block";
+  banner.innerHTML = `
+    <div style="background:var(--surface);border:1.5px solid rgba(99,102,241,.25);border-radius:18px;padding:16px 18px;cursor:pointer" onclick="showPage('wellness');setTimeout(()=>openWellness('programs'),120)">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <span style="font-size:24px;flex-shrink:0">${active.emoji}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Programa activo — Día ${done + 1} de 7</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text)">${active.title}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:17px;font-weight:900;color:var(--accent)">${pct}%</div>
+          <div style="font-size:10px;color:var(--text3)">completado</div>
+        </div>
+      </div>
+      <div style="height:4px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:10px">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--accent),var(--purple));border-radius:99px;transition:width .4s"></div>
+      </div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.5">${nextDay.icon} Hoy: ${nextDay.task}</div>
+    </div>`;
 }
 
 function renderParaTiHoy(emotion, history, streak) {
@@ -7315,6 +7398,8 @@ async function addJournalEntry() {
   const emotion = document.getElementById("journal-emotion").value;
   if(!content) return zyraToast("Escribe algo en el diario", "error");
   _addingJournal = true;
+  const _savedContent = content;
+  const _savedEmotion = emotion;
   try {
     await api("/journal","POST",{title,content,emotion:emotion||undefined});
     document.getElementById("journal-title").value = "";
@@ -7329,6 +7414,8 @@ async function addJournalEntry() {
     triggerMission('write_journal');
     localStorage.setItem("zyra_journal_saved_" + new Date().toDateString(), "1");
     renderWellbeingScore();
+    // Trigger Zyra's brief reaction to what was written
+    if (_savedContent.length >= 30) _triggerJournalZyraReaction(_savedContent, _savedEmotion);
   } catch(e) {
     if (e.status === 403 && e.data?.limitReached) { showUpgradePrompt('journal', 'basic'); }
     else zyraToast(e.message, "error");
@@ -7336,6 +7423,28 @@ async function addJournalEntry() {
     _addingJournal = false;
   }
 }
+
+async function _triggerJournalZyraReaction(content, emotion) {
+  const box  = document.getElementById("journal-zyra-reaction");
+  const text = document.getElementById("journal-zyra-reaction-text");
+  if (!box || !text) return;
+  text.textContent = "Leyendo lo que escribiste...";
+  text.style.fontStyle = "italic";
+  text.style.color = "var(--text3)";
+  box.style.display = "block";
+  box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  try {
+    const d = await api("/chat/journal-prompt", "POST", { emotion, recentTitles: [], insightMode: true, content: content.substring(0, 500) });
+    const insight = d.insight || d.prompt || "";
+    if (!insight) { box.style.display = "none"; return; }
+    text.textContent = insight;
+    text.style.fontStyle = "normal";
+    text.style.color = "var(--text)";
+  } catch(e) {
+    box.style.display = "none";
+  }
+}
+
 async function deleteJournal(id) { deferredDelete("/journal", id, "Entrada del diario", loadJournal); }
 
 /* ════════════════════════════════════════
@@ -7954,7 +8063,7 @@ function loadWellness() {
 }
 function openWellness(tab) {
   currentWTab = tab;
-  ["breath","meditation","music","affirmations","gratitude","water","sleep","focus","habits","cbt"].forEach(t => {
+  ["breath","meditation","music","affirmations","gratitude","water","sleep","focus","habits","cbt","programs"].forEach(t => {
     const btn = document.getElementById("wtab-"+t);
     if(btn) btn.className = t===tab ? "wellness-tab active" : "wellness-tab";
   });
@@ -7970,6 +8079,7 @@ function openWellness(tab) {
   else if(tab==="focus")        renderPomodoro(el);
   else if(tab==="habits")       renderHabitsTracker(el);
   else if(tab==="cbt")          renderCBTTool(el);
+  else if(tab==="programs")     renderPrograms(el);
 }
 const BREATH_TECHS = {
   '478':  { name:'4-7-8', desc:'Inhala <strong>4s</strong> · mantén <strong>7s</strong> · exhala <strong>8s</strong>. La más poderosa para calmar la ansiedad rápido.', phases:[{t:"Inhala",d:4,cls:"inhale"},{t:"Mantén",d:7,cls:""},{t:"Exhala",d:8,cls:"exhale"}] },
@@ -10215,7 +10325,7 @@ function obNext(step) {
   if (curr) curr.style.display = "block";
 
   // Actualizar dots
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 5; i++) {
     const dot = document.getElementById("ob-dot-" + i);
     if (dot) dot.className = "ob-dot" + (i === step ? " active" : "");
   }
@@ -10267,6 +10377,18 @@ async function obFinish() {
     // 4. Zyra envía el primer mensaje (momento mágico)
     setTimeout(() => _obWelcomeMessage(firstName, obReason), 1200);
   }
+}
+
+async function obEnableNotifications() {
+  const timeEl = document.getElementById("ob-notif-time");
+  const [h, m] = (timeEl?.value || "21:00").split(":").map(Number);
+  try {
+    await requestPushPermission();
+    await api("/profile", "PUT", { reminderEnabled: true, reminderHour: h, reminderMinute: m }).catch(() => {});
+  } catch(e) {
+    // Permission denied or not supported — continue anyway
+  }
+  obFinish();
 }
 
 function _obWelcomeMessage(firstName, reason) {
@@ -11573,17 +11695,73 @@ function endVoiceCall() {
   vcListening = false; vcSpeaking = false;
   vcSetBodyClass(false);
   if(vcConvId) currentConvId = vcConvId;
-  if(vcHistory.length) chatHistory = vcHistory.slice(-20);
-  if (vcSeconds >= 10) {
-    const _m = Math.floor(vcSeconds / 60);
-    const _s = vcSeconds % 60;
+  const _endedHistory = (vcHistory || []).slice(-20);
+  if(_endedHistory.length) chatHistory = _endedHistory;
+  const _endedSeconds = vcSeconds;
+  if (_endedSeconds >= 10) {
+    const _m = Math.floor(_endedSeconds / 60);
+    const _s = _endedSeconds % 60;
     const _dur = _m > 0 ? `${_m}:${String(_s).padStart(2,'0')} min` : `${_s} seg`;
     zyraToast(`📞 Llamada de ${_dur} con Zyra`, "success", 4000);
   }
   showPage('assistant');
   const _vcToday = new Date().toDateString();
-  if (!localStorage.getItem("zyra_checkin_emotion_" + _vcToday) && vcHistory.length >= 2) {
+  if (!localStorage.getItem("zyra_checkin_emotion_" + _vcToday) && _endedHistory.length >= 2) {
     setTimeout(() => { if (typeof openQuickEmotion === 'function') openQuickEmotion(); }, 2200);
+  }
+  // Post-call summary: if the call was meaningful, inject a recap card
+  const _userTurns = _endedHistory.filter(m => m.role === 'user').length;
+  if (_endedSeconds >= 45 && _userTurns >= 2) {
+    setTimeout(() => _injectVoiceCallSummary(_endedHistory, _endedSeconds), 1400);
+  }
+}
+
+async function _injectVoiceCallSummary(history, seconds) {
+  const msgs = document.getElementById("messages");
+  if (!msgs) return;
+  const _m = Math.floor(seconds / 60);
+  const _s = seconds % 60;
+  const dur = _m > 0 ? `${_m}:${String(_s).padStart(2,'0')}` : `0:${String(_s).padStart(2,'0')}`;
+
+  // Placeholder card while generating
+  const card = document.createElement("div");
+  card.className = "msg bot";
+  card.id = "_vc-summary-card";
+  card.innerHTML = `<div class="msg-av bot"><img src="${LOGO}" alt="Zyra"/></div>
+    <div class="msg-bubble" style="background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(139,92,246,.06));border:1px solid rgba(99,102,241,.2);border-radius:16px;padding:14px 16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span style="font-size:16px">📞</span>
+        <span style="font-size:12px;font-weight:700;color:var(--accent)">Llamada · ${dur}</span>
+      </div>
+      <p style="font-size:13px;color:var(--text3);margin:0;font-style:italic">Generando resumen...</p>
+    </div>`;
+  if (msgs.lastChild) msgs.appendChild(card);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  try {
+    const summaryPrompt = "Gracias Zyra. En 2-3 oraciones muy breves, ¿de qué hablamos en esta llamada y qué fue lo más importante?";
+    const d = await api('/chat', 'POST', {
+      message: summaryPrompt,
+      conversationId: currentConvId,
+      history: history.slice(-16),
+      mode: 'voice',
+    });
+    const summary = (d.response || "").trim();
+    if (!summary) { card.remove(); return; }
+    const bubble = card.querySelector(".msg-bubble");
+    if (bubble) {
+      bubble.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <span style="font-size:16px">📞</span>
+          <span style="font-size:12px;font-weight:700;color:var(--accent)">Resumen de llamada · ${dur}</span>
+        </div>
+        <p style="font-size:13px;color:var(--text);margin:0 0 12px;line-height:1.6">${safeHtml(summary)}</p>
+        <button onclick="this.closest('.msg').remove()" style="font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;padding:0">Cerrar ×</button>`;
+    }
+    msgs.scrollTop = msgs.scrollHeight;
+  } catch(e) {
+    const existing = document.getElementById("_vc-summary-card");
+    if (existing) existing.remove();
   }
 }
 
@@ -16233,6 +16411,8 @@ let _pomodoroMode = "work";
 let _pomodoroRounds = 0;
 const POMODORO_DURATIONS = { work: 25, short: 5, long: 15 };
 
+let _pomoAmbType = "";
+
 function pomodoroFormatTime(s) {
   const m = Math.floor(s / 60); const sec = s % 60;
   return String(m).padStart(2,"0") + ":" + String(sec).padStart(2,"0");
@@ -16267,8 +16447,11 @@ function renderPomodoro(el) {
   el.innerHTML = `
   <div class="card" style="max-width:480px;margin:0 auto;text-align:center">
     <div style="font-size:13px;color:var(--text3);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:16px">Modo Pomodoro</div>
-    <div style="display:flex;gap:8px;margin-bottom:24px">
+    <div style="display:flex;gap:8px;margin-bottom:14px">
       ${["work","short","long"].map(m=>'<button onclick="setPomodoroMode(\''+m+'\')" style="flex:1;padding:9px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid '+(_pomodoroMode===m?modeColor[m]:'var(--border)')+';background:'+(_pomodoroMode===m?modeBg[m]:'var(--surface)')+';color:'+(_pomodoroMode===m?modeColor[m]:'var(--text3)')+'">'+modeLabel[m]+'</button>').join("")}
+    </div>
+    <div style="display:flex;gap:6px;justify-content:center;margin-bottom:22px">
+      ${[["","🔇","Silencio"],["rain","🌧️","Lluvia"],["ocean","🌊","Océano"],["forest","🌿","Bosque"]].map(([t,e,n])=>`<button class="pomo-amb-btn" data-amb="${t}" onclick="_pomoSetAmbient('${t}')" style="flex:1;max-width:90px;padding:7px 4px;border-radius:10px;font-size:11px;cursor:pointer;border:1.5px solid ${_pomoAmbType===t?'var(--accent)':'var(--border)'};background:${_pomoAmbType===t?'rgba(99,102,241,.18)':'var(--surface)'};color:${_pomoAmbType===t?'var(--accent)':'var(--text3)'};font-weight:${_pomoAmbType===t?'700':'500'};transition:all .18s">${e}<br><span style="font-size:9px">${n}</span></button>`).join("")}
     </div>
     <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;margin-bottom:24px">
       <svg width="180" height="180" viewBox="0 0 180 180" style="transform:rotate(-90deg)">
@@ -16346,6 +16529,36 @@ function resetPomodoro() {
   _pomodoroSecsLeft = POMODORO_DURATIONS[_pomodoroMode] * 60;
   const wc = document.getElementById("wellness-content");
   if (wc) renderPomodoro(wc);
+}
+
+function _pomoStopAmbient() {
+  if (_pomoAmbType && typeof stopAmbient === "function") {
+    try { stopAmbient(_pomoAmbType); } catch(e) {}
+  }
+  _pomoAmbType = "";
+}
+
+function _pomoSetAmbient(type) {
+  // Stop previous selection
+  if (_pomoAmbType && typeof stopAmbient === "function") {
+    try { stopAmbient(_pomoAmbType); } catch(e) {}
+  }
+  _pomoAmbType = type;
+
+  document.querySelectorAll(".pomo-amb-btn").forEach(b => {
+    const active = b.dataset.amb === type;
+    b.style.background    = active ? "rgba(99,102,241,.18)" : "var(--surface)";
+    b.style.borderColor   = active ? "var(--accent)" : "var(--border)";
+    b.style.color         = active ? "var(--accent)" : "var(--text3)";
+    b.style.fontWeight    = active ? "700" : "500";
+  });
+
+  if (type && typeof playAmbient === "function") {
+    try { playAmbient(type); } catch(e) {
+      console.warn("[Pomo] Ambient error:", e.message);
+      _pomoAmbType = "";
+    }
+  }
 }
 
 /* ══════════════════════════════════════════
@@ -16916,6 +17129,208 @@ function renderHabitsTracker(el) {
 
 let _cbtStep = 0;
 const _cbtData = {};
+/* ══════════════════════════════════════════
+   PROGRAMAS DE BIENESTAR (7 días)
+══════════════════════════════════════════ */
+const WELLNESS_PROGRAMS = [
+  {
+    id: "anxiety",
+    emoji: "🧘",
+    title: "Semana libre de ansiedad",
+    desc: "7 técnicas basadas en evidencia para calmar la mente y el cuerpo",
+    color: "#8b5cf6",
+    gradient: "linear-gradient(135deg,#8b5cf6,#6366f1)",
+    days: [
+      { task:"Practica la respiración 4-7-8 por 3 ciclos completos", action:"showPage('wellness');setTimeout(()=>openWellness('breath'),120)", icon:"🌬️" },
+      { task:"Anota tu pensamiento ansioso y busca evidencia en contra", action:"showPage('wellness');setTimeout(()=>openWellness('cbt'),120)", icon:"💭" },
+      { task:"Haz una meditación de 5 minutos para regresar al presente", action:"showPage('wellness');setTimeout(()=>openWellness('meditation'),120)", icon:"🧘" },
+      { task:"Cuéntale a Zyra qué situación te genera más ansiedad", action:"showPage('assistant')", icon:"💬" },
+      { task:"Toma 8 vasos de agua — la hidratación reduce el cortisol naturalmente", action:"showPage('wellness');setTimeout(()=>openWellness('water'),120)", icon:"💧" },
+      { task:"Escribe libremente durante 5 minutos sin corregirte", action:"showPage('journal');setTimeout(toggleJournalForm,200)", icon:"📔" },
+      { task:"Completa 4 ciclos de respiración Box (4-4-4-4) y celebra tu semana", action:"showPage('wellness');setTimeout(()=>openWellness('breath'),120)", icon:"🎉" },
+    ]
+  },
+  {
+    id: "gratitude",
+    emoji: "🙏",
+    title: "7 días de gratitud",
+    desc: "Entrena tu cerebro para ver lo positivo que ya existe en tu vida",
+    color: "#10b981",
+    gradient: "linear-gradient(135deg,#10b981,#059669)",
+    days: [
+      { task:"Anota 3 cosas por las que estás agradecido/a hoy", action:"showPage('wellness');setTimeout(()=>openWellness('gratitude'),120)", icon:"🙏" },
+      { task:"Escribe una carta de agradecimiento a alguien que te haya ayudado", action:"showPage('journal');setTimeout(toggleJournalForm,200)", icon:"✉️" },
+      { task:"Registra un momento pequeño de hoy que te haya hecho sonreír", action:"showPage('journal');setTimeout(toggleJournalForm,200)", icon:"😊" },
+      { task:"Haz tu check-in y enfócate en algo positivo del día", action:"showDailyCheckin()", icon:"✅" },
+      { task:"Anota 3 cualidades tuyas por las que te sientes bien", action:"showPage('wellness');setTimeout(()=>openWellness('gratitude'),120)", icon:"⭐" },
+      { task:"Imagina que perdiste algo que tienes — escribe cómo lo valorarías", action:"showPage('journal');setTimeout(toggleJournalForm,200)", icon:"💡" },
+      { task:"Cuéntale a Zyra los mejores momentos de tu semana de gratitud", action:"showPage('assistant')", icon:"🌟" },
+    ]
+  },
+  {
+    id: "routine",
+    emoji: "🔄",
+    title: "Construye tu rutina",
+    desc: "Una semana para crear hábitos de bienestar que duran toda la vida",
+    color: "#f59e0b",
+    gradient: "linear-gradient(135deg,#f59e0b,#d97706)",
+    days: [
+      { task:"Elige 1 hábito que quieras desarrollar y regístralo en la app", action:"showPage('wellness');setTimeout(()=>openWellness('habits'),120)", icon:"🎯" },
+      { task:"Registra cuántas horas dormiste — el sueño es la base de todo", action:"showPage('wellness');setTimeout(()=>openWellness('sleep'),120)", icon:"😴" },
+      { task:"Completa un Pomodoro de 25 minutos en algo que hayas postergado", action:"showPage('wellness');setTimeout(()=>openWellness('focus'),120)", icon:"⏱" },
+      { task:"Toma 8 vasos de agua hoy y nótalo", action:"showPage('wellness');setTimeout(()=>openWellness('water'),120)", icon:"💧" },
+      { task:"Completa el reto del día sin pensarlo dos veces", action:"completeDailyChallenge()", icon:"💪" },
+      { task:"Haz el ritual de cierre nocturno antes de dormir", action:"openEveningRitual()", icon:"🌙" },
+      { task:"Revisa tus hábitos — ¿cuántos días de la semana los cumpliste?", action:"showPage('wellness');setTimeout(()=>openWellness('habits'),120)", icon:"📊" },
+    ]
+  }
+];
+
+function _getProgramState(programId) {
+  try {
+    return JSON.parse(localStorage.getItem("zyra_program_" + programId) || "null");
+  } catch(e) { return null; }
+}
+function _saveProgramState(programId, state) {
+  localStorage.setItem("zyra_program_" + programId, JSON.stringify(state));
+}
+
+function joinProgram(programId) {
+  const prog = WELLNESS_PROGRAMS.find(p => p.id === programId);
+  if (!prog) return;
+  const existing = _getProgramState(programId);
+  if (existing && existing.completedDays.length > 0) {
+    zyraToast("Ya tienes este programa activo — ¡sigue adelante!", "info");
+  } else {
+    _saveProgramState(programId, { startDate: new Date().toDateString(), completedDays: [] });
+    zyraToast(`📚 Programa iniciado: "${prog.title}"`, "success");
+    if (navigator.vibrate) navigator.vibrate([30, 15, 50]);
+  }
+  renderPrograms(document.getElementById("wellness-content"));
+}
+
+function completeProgramDay(programId, dayIdx) {
+  const prog = WELLNESS_PROGRAMS.find(p => p.id === programId);
+  if (!prog) return;
+  let state = _getProgramState(programId);
+  if (!state) { joinProgram(programId); return; }
+  if (state.completedDays.includes(dayIdx)) {
+    zyraToast("Ya completaste este paso ✓", "info");
+    return;
+  }
+
+  /* Execute the day's action */
+  const day = prog.days[dayIdx];
+  if (day.action) {
+    try { eval(day.action); } catch(e) {}
+  }
+
+  /* Mark complete */
+  state.completedDays.push(dayIdx);
+  _saveProgramState(programId, state);
+
+  const completed = state.completedDays.length;
+  if (completed >= 7) {
+    zyraToast(`🎉 ¡Completaste "${prog.title}"! Increíble racha de 7 días.`, "success", 5000);
+    launchConfetti && launchConfetti();
+    setTimeout(launchConfetti, 600);
+    if (typeof triggerMission === "function") triggerMission("do_exercise");
+  } else {
+    zyraToast(`Día ${completed} completado ✓  — ${7 - completed} ${7 - completed === 1 ? "día" : "días"} por delante`, "success", 3500);
+  }
+  setTimeout(() => renderPrograms(document.getElementById("wellness-content")), 400);
+}
+
+function abandonProgram(programId) {
+  localStorage.removeItem("zyra_program_" + programId);
+  renderPrograms(document.getElementById("wellness-content"));
+  zyraToast("Programa reiniciado", "info");
+}
+
+function renderPrograms(el) {
+  if (!el) return;
+  const today = new Date();
+
+  const cards = WELLNESS_PROGRAMS.map(prog => {
+    const state = _getProgramState(prog.id);
+    const started = !!state;
+    const completed = state ? state.completedDays : [];
+    const allDone = completed.length >= 7;
+
+    /* Days grid */
+    const daysHtml = prog.days.map((day, i) => {
+      const isDone = completed.includes(i);
+      const isNext = started && !allDone && i === completed.length;
+      return `<div style="display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:${i < 6 ? "1px solid var(--border)" : "none"}">
+        <div style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;
+          background:${isDone ? prog.color : isNext ? "rgba(99,102,241,.12)" : "var(--surface)"};
+          color:${isDone ? "#fff" : isNext ? "var(--accent)" : "var(--text3)"};
+          border:1.5px solid ${isDone ? prog.color : isNext ? "var(--accent)" : "var(--border)"};
+          ${isNext ? "box-shadow:0 0 0 3px rgba(99,102,241,.15)" : ""}">
+          ${isDone ? "✓" : i + 1}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;color:${isDone ? "var(--text3)" : isNext ? "var(--text)" : "var(--text3)"};
+            line-height:1.5;${isDone ? "text-decoration:line-through;opacity:.6" : ""}">${day.icon} ${day.task}</div>
+          ${isNext ? `<button onclick="completeProgramDay('${prog.id}',${i})"
+            style="margin-top:6px;background:${prog.gradient};border:none;color:#fff;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;">
+            ✓ Hacer ahora</button>` : ""}
+        </div>
+      </div>`;
+    }).join("");
+
+    const progressPct = Math.round((completed.length / 7) * 100);
+
+    return `<div style="background:var(--surface);border:1.5px solid var(--border);border-radius:20px;overflow:hidden;margin-bottom:18px">
+      <div style="background:${prog.gradient};padding:20px 22px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-size:32px">${prog.emoji}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:3px">${prog.title}</div>
+            <div style="font-size:12px;color:rgba(255,255,255,.8);line-height:1.4">${prog.desc}</div>
+          </div>
+          ${allDone ? '<span style="background:rgba(255,255,255,.25);color:#fff;border-radius:12px;padding:4px 10px;font-size:11px;font-weight:700">✦ Completado</span>' : ""}
+        </div>
+        ${started ? `<div style="margin-top:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+            <span style="font-size:10px;color:rgba(255,255,255,.75);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Progreso</span>
+            <span style="font-size:11px;color:rgba(255,255,255,.9);font-weight:700">${completed.length}/7 días</span>
+          </div>
+          <div style="height:5px;background:rgba(255,255,255,.25);border-radius:99px;overflow:hidden">
+            <div style="height:100%;width:${progressPct}%;background:rgba(255,255,255,.9);border-radius:99px;transition:width .4s"></div>
+          </div>
+        </div>` : ""}
+      </div>
+      <div style="padding:16px 20px">
+        ${started ? daysHtml : `
+          <div style="text-align:center;padding:8px 0 4px">
+            <p style="font-size:13px;color:var(--text3);margin:0 0 14px;line-height:1.6">
+              7 días · 7 micro-actividades · Un hábito para siempre
+            </p>
+            <button onclick="joinProgram('${prog.id}')"
+              style="background:${prog.gradient};border:none;color:#fff;border-radius:12px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer">
+              🚀 Empezar programa
+            </button>
+          </div>`}
+        ${started && !allDone ? `<div style="margin-top:12px;text-align:right">
+          <button onclick="abandonProgram('${prog.id}')" style="background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;padding:4px">
+            ✕ Reiniciar programa
+          </button>
+        </div>` : ""}
+      </div>
+    </div>`;
+  }).join("");
+
+  el.innerHTML = `
+    <div style="max-width:600px;margin:0 auto">
+      <div style="font-size:14px;color:var(--text3);margin-bottom:18px;line-height:1.6">
+        Elige un programa de 7 días para enfocarte en una área de tu bienestar.
+        Cada día tiene una micro-actividad de 2-5 minutos.
+      </div>
+      ${cards}
+    </div>`;
+}
+
 function renderCBTTool(el) {
   _cbtStep = 0;
   Object.keys(_cbtData).forEach(k => delete _cbtData[k]);

@@ -4006,3 +4006,8 @@ body {
 .er-emo-btn span { font-size:10px;color:rgba(255,255,255,.55);font-weight:600;line-height:1 }
 .er-emo-btn:hover,.er-emo-btn.selected { background:rgba(139,92,246,.25);border-color:rgba(139,92,246,.6);transform:scale(1.06) }
 .er-emo-btn.selected span { color:rgba(255,255,255,.85) }
+
+/* ── Pomodoro Ambient Sound Buttons ── */
+.pomo-amb-btn { flex: 1; max-width: 90px; padding: 7px 4px; border-radius: 10px; font-size: 11px; cursor: pointer; transition: all .18s; text-align: center; line-height: 1.5; font-family: inherit; }
+.pomo-amb-btn:hover { border-color: var(--accent) !important; color: var(--accent) !important; background: rgba(99,102,241,.1) !important; }
+[data-theme="dark"] .pomo-amb-btn, :root:not([data-theme="light"]) .pomo-amb-btn { background: var(--surface); border-color: var(--border); }
