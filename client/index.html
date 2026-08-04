@@ -9983,6 +9983,7 @@ const _CMD_AUTOCOMPLETE = [
   { cmd:"/inicio",       icon:"🏠", desc:"Dashboard principal" },
   { cmd:"/perfil",       icon:"👤", desc:"Mi perfil" },
   { cmd:"/comovoy",      icon:"📈", desc:"Ver mi resumen emocional rápido" },
+  { cmd:"/resumen",      icon:"📋", desc:"Resumen de esta conversación" },
   { cmd:"/ayuda",        icon:"❓", desc:"Ver todos los comandos" },
 ];
 let _cmdAutoIdx = 0;
@@ -10871,8 +10872,27 @@ async function sendMsg() {
       } catch(_e) { _sdiv.remove(); addBotMsg("No pude cargar tus estadísticas ahora. Intenta en un momento."); }
       return;
     }
+    if (cmd === "resumen" || cmd === "resumir") {
+      const convMsgs = chatHistory.filter(m => m.role !== "system");
+      if (convMsgs.length < 4) { addBotMsg("No hay suficiente conversación para resumir todavía. Cuéntame más primero."); return; }
+      const _sdiv = addBotMsgStream();
+      try {
+        const d = await api('/chat', 'POST', {
+          message: "Haz un resumen breve de nuestra conversación de hoy en 3-4 puntos clave: qué hablamos, qué sentiste, qué se sugirió. Máximo 120 palabras.",
+          conversationId: currentConvId,
+          history: convMsgs.slice(-20),
+          mode: 'summary',
+        });
+        _sdiv.remove();
+        addBotMsg(`📋 **Resumen de nuestra conversación:**\n\n${d.response || "No pude generar el resumen ahora."}`);
+      } catch(e) {
+        _sdiv.remove();
+        addBotMsg("No pude generar el resumen en este momento. Intenta de nuevo.");
+      }
+      return;
+    }
     if (cmd === "ayuda" || cmd === "help" || cmd === "?") {
-      addBotMsg(`Estos son los comandos que puedes usar:\n\n🧭 NAVEGAR\n/inicio · /diario · /metas · /analitica · /perfil · /juegos\n\n🌿 BIENESTAR\n/respirar · /enfoque · /sueno · /habitos · /agua · /gratitud · /musica\n\n💬 CHAT\n/afirmacion · /inspiracion · /reflexion · /grounding · /nota · /plan · /nuevo · /comovoy\n\nEscribe cualquiera y lo activo.`);
+      addBotMsg(`Estos son los comandos que puedes usar:\n\n🧭 NAVEGAR\n/inicio · /diario · /metas · /analitica · /perfil · /juegos\n\n🌿 BIENESTAR\n/respirar · /enfoque · /sueno · /habitos · /agua · /gratitud · /musica\n\n💬 CHAT\n/afirmacion · /inspiracion · /reflexion · /grounding · /nota · /plan · /nuevo · /comovoy · /resumen\n\nEscribe cualquiera y lo activo.`);
       return;
     }
     // Unknown command — show hint
