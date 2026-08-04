@@ -10938,6 +10938,43 @@ function _initEmotionAccent() {
   const emo = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString());
   if (emo) _applyEmotionAccent(emo);
 }
+function _zyraEmotionReaction(emotion, streak) {
+  const REACTIONS = {
+    feliz:       ["Qué bueno verlo. ¿Qué fue lo que te puso así hoy?", "Ese estado merece ser notado. ¿Qué lo generó?"],
+    tranquilo:   ["La calma es un regalo. Aprovéchala.", "Estar tranquilo/a no siempre es fácil. Disfrútalo."],
+    ansioso:     ["La ansiedad es pesada. ¿Quieres contarme qué está pasando?", "Estoy aquí. ¿Qué te tiene así?"],
+    triste:      ["Aquí estoy. No tienes que sentirte solo/a.", "Está bien estar triste. ¿Quieres hablar?"],
+    enojado:     ["Ese enojo dice algo. ¿Quieres hablarlo?", "El enojo siempre tiene una causa. ¿Qué pasó?"],
+    agotado:     ["Tu cuerpo sabe cuando necesita parar. Escúchalo.", "El cansancio también es información. ¿Cómo terminaste el día?"],
+    confundido:  ["Está bien no saber. A veces la respuesta llega sola.", "La confusión precede a la claridad. ¿Qué te tiene así?"],
+    esperanzado: ["Eso se siente bien. Cuídalo, ese estado.", "La esperanza es energía. ¿Qué la generó?"],
+    motivado:    ["Aprovecha ese impulso — va a durar lo justo.", "Buena energía. ¿En qué la vas a usar?"],
+    nostalgico:  ["La nostalgia trae cosas bonitas. ¿De qué?", "Los recuerdos también son presentes. ¿Qué llegó hoy?"],
+  };
+  const msgs = REACTIONS[emotion] || ["¿Cómo está el día hasta ahora?"];
+  let msg = msgs[Math.floor(Math.random() * msgs.length)];
+  if (streak >= 7) msg += ` (Racha de ${streak} días, por cierto.)`;
+  const old = document.getElementById("_zyra-emo-react"); if (old) old.remove();
+  const card = document.createElement("div");
+  card.id = "_zyra-emo-react";
+  card.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(24px);z-index:9000;max-width:320px;width:calc(100% - 32px);background:var(--surface);border:1.5px solid var(--accent);border-radius:18px;padding:14px 16px;box-shadow:0 8px 32px rgba(0,0,0,.18);opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);display:flex;align-items:flex-start;gap:10px";
+  card.innerHTML = `<img src="/Imagenes/zyra-avatar.png" alt="Zyra" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid var(--accent)" onerror="this.style.display='none'"><div style="flex:1;min-width:0"><div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:4px">Zyra te dice</div><div style="font-size:13px;color:var(--text);line-height:1.5;font-weight:500">${msg}</div><button onclick="_zyraEmoReactChat()" style="margin-top:8px;background:var(--accent);border:none;color:#fff;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer">Cuéntame →</button></div><button onclick="this.closest('#_zyra-emo-react').remove()" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;line-height:1;flex-shrink:0;padding:0 0 0 4px">×</button>`;
+  document.body.appendChild(card);
+  requestAnimationFrame(() => { card.style.opacity = "1"; card.style.transform = "translateX(-50%) translateY(0)"; });
+  const t = setTimeout(() => { card.style.opacity="0"; card.style.transform="translateX(-50%) translateY(20px)"; setTimeout(()=>card.remove(),350); }, 5500);
+  card.addEventListener("mouseenter", () => clearTimeout(t));
+}
+function _zyraEmoReactChat() {
+  const card = document.getElementById("_zyra-emo-react"); if (card) card.remove();
+  const emo = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString());
+  const EMO_LABELS = { feliz:"feliz", tranquilo:"tranquilo/a", ansioso:"ansioso/a", triste:"triste", enojado:"enojado/a", agotado:"agotado/a", confundido:"confundido/a", esperanzado:"esperanzado/a", motivado:"motivado/a", nostalgico:"nostálgico/a" };
+  const label = emo ? `Me siento ${EMO_LABELS[emo]||emo} y quiero contarte.` : "¿Puedo contarte cómo estoy?";
+  showPage("assistant");
+  setTimeout(() => {
+    const inp = document.getElementById("user-input") || document.getElementById("chat-input");
+    if (inp) { inp.value = label; inp.focus(); }
+  }, 400);
+}
 function _renderMorningNote() {
   const el = document.getElementById("zyra-morning-note");
   const txt = document.getElementById("zyra-morning-note-text");
@@ -12019,6 +12056,7 @@ async function quickEmotionSelect(emotion) {
     const dot=document.getElementById('emotion-checkin-dot'); if(dot) dot.style.display='none';
     renderQuickEmoPicker(emotion);
     renderParaTiHoy(emotion, [], _gamifStatus?.streak || 0);
+    setTimeout(() => _zyraEmotionReaction(emotion, _gamifStatus?.streak || 0), 1200);
   } catch(e){}
 }
 function closeQuickEmotion() {
