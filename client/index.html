@@ -8390,7 +8390,10 @@ function newChat() {
   const msgs = document.getElementById("messages");
   msgs.innerHTML = `<div class="typing" id="typing-indicator">
     <div class="msg-av bot"><img src="${LOGO}" alt="Zyra"/></div>
-    <div class="typing-bubble"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <div class="typing-bubble"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      <span id="typing-hint" style="font-size:10px;color:var(--text3);padding-left:2px;opacity:0;transition:opacity .3s"></span>
+    </div>
   </div>`;
   const name = user ? safeHtml(user.name.split(" ")[0]) : "";
   const hour = new Date().getHours();
@@ -8516,7 +8519,10 @@ async function openConv(id) {
     const msgs = document.getElementById("messages");
     msgs.innerHTML = `<div class="typing" id="typing-indicator">
       <div class="msg-av bot"><img src="${LOGO}" alt="Zyra"/></div>
-      <div class="typing-bubble"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      <div style="display:flex;flex-direction:column;gap:3px">
+        <div class="typing-bubble"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+        <span id="typing-hint" style="font-size:10px;color:var(--text3);padding-left:2px;opacity:0;transition:opacity .3s"></span>
+      </div>
     </div>`;
     d.conversation.messages.forEach(m => {
       if(m.role === "user") addUserMsg(m.content, m.timestamp);
@@ -9555,7 +9561,18 @@ function saveUserMsgToJournal(btn, text) {
   zyraToast(`✦ Guardado — <span style="text-decoration:underline;cursor:pointer" onclick="showPage('journal')">Ver diario →</span>`, "success", 4000, true);
 }
 
-function showTyping(show) { const t = document.getElementById("typing-indicator"); if(t) t.className = "typing"+(show?" show":""); }
+let _typingHintTimer = null;
+const _TYPING_HINTS = ["Pensando…","Procesando…","Un momento…","Entendido…","Reflexionando…","Aquí voy…","Leyendo lo que escribiste…","Recordando el contexto…","Preparando respuesta…"];
+function showTyping(show) {
+  const t = document.getElementById("typing-indicator"); if(t) t.className = "typing"+(show?" show":"");
+  if (_typingHintTimer) { clearInterval(_typingHintTimer); _typingHintTimer = null; }
+  if (!show) return;
+  const hint = document.getElementById("typing-hint");
+  if (!hint) return;
+  let hi = 0;
+  hint.textContent = _TYPING_HINTS[0]; hint.style.opacity = "0.7";
+  _typingHintTimer = setInterval(() => { hi = (hi+1)%_TYPING_HINTS.length; hint.textContent = _TYPING_HINTS[hi]; }, 3500);
+}
 function onMsgsScroll(el) {
   const btn = document.getElementById("btn-scroll-bottom");
   if (!btn) return;
@@ -10146,17 +10163,21 @@ function zyraTryUnlock() {
 }
 
 /* ── Streaming bubble helpers ── */
+const _STREAM_HINTS = ["Pensando…","Un momento…","Reflexionando…","Aquí voy…","Procesando…","Leyendo tu contexto…"];
+let _streamHintT = null;
 function addBotMsgStream() {
   const msgs   = document.getElementById("messages");
   const typing = document.getElementById("typing-indicator");
   const div    = document.createElement("div"); div.className = "msg bot streaming";
+  const hint = _STREAM_HINTS[Math.floor(Math.random()*_STREAM_HINTS.length)];
   div.innerHTML = `<div class="msg-av bot"><img src="${LOGO}" alt="Zyra"/></div>
-    <div class="msg-bubble"><span class="stream-text"></span><span class="stream-cursor">▋</span></div>`;
+    <div class="msg-bubble"><span id="_stream-hint" style="font-size:12px;color:var(--text3);font-style:italic">${hint}</span><span class="stream-text"></span><span class="stream-cursor">▋</span></div>`;
   msgs.insertBefore(div, typing); msgs.scrollTop = msgs.scrollHeight;
   return div;
 }
 
 function updateBotMsgStream(div, text) {
+  const hint = div.querySelector("#_stream-hint"); if (hint) hint.remove();
   const span = div.querySelector(".stream-text");
   if (span) span.innerHTML = renderMarkdown(text);
   const msgs = document.getElementById("messages");
