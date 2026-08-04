@@ -13,6 +13,7 @@ const DAILY_MISSIONS = [
   { id: "daily_challenge", label: "Completa el reto diario",         emoji: "⚡", coins: 15 },
   { id: "water",           label: "Toma 8 vasos de agua",            emoji: "💧", coins: 10 },
   { id: "gratitude",       label: "Practica la gratitud",            emoji: "🙏", coins: 10 },
+  { id: "weekly_mission",  label: "Misión semanal completada",       emoji: "🏆", coins: 50 },
 ];
 
 const ACHIEVEMENTS = [

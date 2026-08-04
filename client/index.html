@@ -2053,6 +2053,9 @@ async function b2bSubmitContact() {
   <!-- ══ PROGRAMA ACTIVO ══ -->
   <div id="active-program-banner" style="display:none;margin-bottom:16px"></div>
 
+  <!-- ══ MISIÓN SEMANAL ══ -->
+  <div id="weekly-mission-wrap" style="display:none;margin-bottom:16px"></div>
+
   <!-- ══ LUNES DIGEST ══ -->
   <div id="lunes-digest-wrap" style="display:none;margin-bottom:20px"></div>
 
@@ -6021,6 +6024,7 @@ async function loadDashboard() {
     renderMoodPrediction(hd.history || []);
     renderZyraInsight(computeZyraInsight(hd.history || []));
     renderActiveProgramBanner();
+    renderWeeklyMission();
     renderLunesDigest(hd.history || [], entries);
     // Cache negative streak for notification bell
     const negSC = p.negativeStreakCount || 0;
@@ -6249,6 +6253,99 @@ async function loadLunesDigestAI() {
     btn.textContent = "✨ Zyra analiza tu semana"; btn.style.opacity = "1"; btn.disabled = false;
     zyraToast("No pude conectar ahora. Intenta en un momento.", "error");
   }
+}
+
+/* ══════════════════════════════════════════
+   MISIÓN SEMANAL — personalized weekly goal
+══════════════════════════════════════════ */
+function _getWeekKey() {
+  const d = new Date();
+  const jan1 = new Date(d.getFullYear(), 0, 1);
+  const week = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+  return d.getFullYear() + "-W" + week;
+}
+
+const WEEKLY_MISSIONS = [
+  { id:"emotions", emoji:"😊", title:"Registra tu emoción 5 días", desc:"Check-in diario durante 5 días de esta semana.", target:5, unit:"días", key:"zyra_checkin_emotion_" },
+  { id:"habits", emoji:"✅", title:"Completa todos tus hábitos 4 días", desc:"Cierra el día con todos los hábitos marcados, 4 veces.", target:4, unit:"días", key:"_habits_" },
+  { id:"journal", emoji:"📔", title:"Escribe en tu diario 3 veces", desc:"Abre el diario y escribe algo, 3 días distintos.", target:3, unit:"entradas", key:"zyra_journal_saved_" },
+  { id:"breathing", emoji:"🌬️", title:"Practica respiración 4 días", desc:"Una sesión de respiración por día, 4 veces.", target:4, unit:"días", key:"zyra_breath_" },
+  { id:"water", emoji:"💧", title:"Toma 8 vasos de agua 3 días", desc:"Llega a la meta de agua 3 veces esta semana.", target:3, unit:"días", key:"_water8_" },
+  { id:"evening", emoji:"🌙", title:"Completa el ritual de noche 3 días", desc:"Haz el ritual de cierre del día 3 veces.", target:3, unit:"veces", key:"zyra_er_done_" },
+];
+
+function _getMissionProgress(mission) {
+  const today = new Date();
+  let count = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    // Only count current week (Mon-Sun)
+    if (d.getDay() === 0 && i > 0) break; // stop at previous Sunday
+    const ds = d.toDateString();
+    if (mission.key === "_habits_") {
+      const habits = getHabits();
+      if (habits.length > 0 && habits.every(h => isHabitDone(h.id, ds))) count++;
+    } else if (mission.key === "_water8_") {
+      if (parseInt(localStorage.getItem("zyra_water_" + ds) || "0") >= 8) count++;
+    } else {
+      if (localStorage.getItem(mission.key + ds)) count++;
+    }
+  }
+  return Math.min(count, mission.target);
+}
+
+function renderWeeklyMission() {
+  const wrap = document.getElementById("weekly-mission-wrap");
+  if (!wrap) return;
+  const weekKey = "zyra_weekly_mission_" + _getWeekKey();
+
+  // Get or generate mission for this week
+  let missionData;
+  try { missionData = JSON.parse(localStorage.getItem(weekKey) || "null"); } catch(e) { missionData = null; }
+
+  if (!missionData) {
+    // Pick mission based on day of week (cycle through missions by week number)
+    const weekNum = parseInt(_getWeekKey().split("-W")[1]) || 1;
+    const mission = WEEKLY_MISSIONS[weekNum % WEEKLY_MISSIONS.length];
+    missionData = { id: mission.id, completedNotified: false };
+    localStorage.setItem(weekKey, JSON.stringify(missionData));
+  }
+
+  const mission = WEEKLY_MISSIONS.find(m => m.id === missionData.id) || WEEKLY_MISSIONS[0];
+  const progress = _getMissionProgress(mission);
+  const pct = Math.round((progress / mission.target) * 100);
+  const done = progress >= mission.target;
+
+  // Notify completion once
+  if (done && !missionData.completedNotified) {
+    missionData.completedNotified = true;
+    localStorage.setItem(weekKey, JSON.stringify(missionData));
+    setTimeout(() => {
+      zyraToast(`🏆 ¡Misión semanal completada! +50 monedas`, "success", 5000);
+      if (typeof triggerMission === "function") triggerMission("weekly_mission");
+    }, 1000);
+  }
+
+  const barColor = done ? "#10b981" : pct >= 50 ? "#6366f1" : "#f59e0b";
+
+  wrap.innerHTML = `
+    <div style="background:var(--surface);border:1.5px solid ${done ? "rgba(16,185,129,.35)" : "rgba(99,102,241,.2)"};border-radius:16px;padding:13px 16px;cursor:default;transition:border-color .3s">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-size:22px;flex-shrink:0">${mission.emoji}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+            <div style="font-size:10px;font-weight:800;color:${done?"#10b981":"var(--accent)"};text-transform:uppercase;letter-spacing:.5px">🎯 Misión semanal</div>
+            <div style="font-size:11px;font-weight:700;color:${barColor}">${progress}/${mission.target} ${mission.unit}</div>
+          </div>
+          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mission.title}</div>
+          <div style="height:5px;background:var(--border);border-radius:99px;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:${done?"linear-gradient(90deg,#10b981,#059669)":"linear-gradient(90deg,var(--accent),var(--purple))"};border-radius:99px;transition:width .6s ease"></div>
+          </div>
+        </div>
+        ${done ? `<div style="font-size:20px;flex-shrink:0">🏆</div>` : `<div style="text-align:right;flex-shrink:0"><div style="font-size:11px;font-weight:800;color:#f59e0b">+50</div><div style="font-size:9px;color:var(--text3)">monedas</div></div>`}
+      </div>
+    </div>`;
+  wrap.style.display = "block";
 }
 
 function renderParaTiHoy(emotion, history, streak) {
