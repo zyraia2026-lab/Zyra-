@@ -10874,6 +10874,31 @@ async function adminShowPayments(userId, name) {
 
 /* ── VOZ MEJORADA ── */
 let voiceMode = false;
+/* ══ EMOTION ACCENT THEME ══ */
+const _EMO_ACCENT = {
+  feliz:       { accent:"#10b981", accent2:"#059669" },
+  tranquilo:   { accent:"#0ea5e9", accent2:"#0284c7" },
+  motivado:    { accent:"#6366f1", accent2:"#4f46e5" },
+  esperanzado: { accent:"#8b5cf6", accent2:"#7c3aed" },
+  ansioso:     { accent:"#f59e0b", accent2:"#d97706" },
+  triste:      { accent:"#a78bfa", accent2:"#8b5cf6" },
+  enojado:     { accent:"#ef4444", accent2:"#dc2626" },
+  agotado:     { accent:"#6b7280", accent2:"#4b5563" },
+  confundido:  { accent:"#ec4899", accent2:"#db2777" },
+  nostalgico:  { accent:"#8b5cf6", accent2:"#7c3aed" },
+};
+function _applyEmotionAccent(emo) {
+  const colors = _EMO_ACCENT[emo];
+  if (!colors) return;
+  const root = document.documentElement;
+  root.style.setProperty("--accent", colors.accent);
+  root.style.setProperty("--accent2", colors.accent2);
+  root.style.transition = "all .8s ease";
+}
+function _initEmotionAccent() {
+  const emo = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString());
+  if (emo) _applyEmotionAccent(emo);
+}
 function _updateTabTitle() {
   const EMO_EMOJI = { feliz:"😊",tranquilo:"😌",motivado:"💪",ansioso:"😰",triste:"😢",enojado:"😤",agotado:"😮‍💨",esperanzado:"🌟",confundido:"🤔",nostalgico:"🌅" };
   const emo = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString());
@@ -10881,7 +10906,7 @@ function _updateTabTitle() {
 }
 window.addEventListener("load", () => {
   try { _initApp(); } catch(e) { console.error("Init error:", e); }
-  _updateTabTitle();
+  _updateTabTitle(); _initEmotionAccent();
 });
 function _initApp() {
   // Manejar redirect de Stripe después de pago
@@ -11892,7 +11917,7 @@ async function quickEmotionSelect(emotion) {
     await api('/profile/emotion','POST',{emotion,note:'',intensity:5});
     localStorage.setItem('zyra_last_emotion_date', new Date().toDateString());
     localStorage.setItem('zyra_checkin_emotion_' + new Date().toDateString(), emotion);
-    _updateTabTitle();
+    _updateTabTitle(); _applyEmotionAccent(emotion);
     const he=document.getElementById('hero-emoji');
     const stEm=document.getElementById('st-emotion'); const stEi=document.getElementById('st-em-icon');
     if(he) he.textContent=emojiMap[emotion]||'🌊';
