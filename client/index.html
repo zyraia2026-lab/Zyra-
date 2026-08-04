@@ -1985,6 +1985,7 @@ async function b2bSubmitContact() {
       <div id="wellbeing-score-bar" style="height:100%;border-radius:3px;transition:width .6s ease;width:0%"></div>
     </div>
     <div id="wellbeing-score-items" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+    <button onclick="shareDayCard()" style="margin-top:12px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);color:var(--accent);border-radius:10px;padding:7px 16px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s" onmouseover="this.style.background='rgba(99,102,241,.18)'" onmouseout="this.style.background='rgba(99,102,241,.1)'">📤 Compartir mi día</button>
   </div>
 
   <!-- ══ PREDICCIÓN DE ÁNIMO ══ -->
@@ -16606,6 +16607,103 @@ function mobSDToggle() {
 function mobSDClose() {
   const sd = document.getElementById("mob-speed-dial");
   if (sd) sd.classList.remove("sd-open");
+}
+
+/* ══ SHARE DAY CARD ══ */
+async function shareDayCard() {
+  const today = new Date().toDateString();
+  const EMO = { feliz:"😊",tranquilo:"😌",motivado:"💪",ansioso:"😰",triste:"😢",enojado:"😤",agotado:"😮‍💨",esperanzado:"🌟",confundido:"🤔",nostalgico:"🌅" };
+  const EMO_LABEL = { feliz:"Feliz",tranquilo:"Tranquilo",motivado:"Motivado",ansioso:"Ansioso",triste:"Triste",enojado:"Enojado",agotado:"Agotado",esperanzado:"Esperanzado",confundido:"Confundido",nostalgico:"Nostálgico" };
+  const EMO_COL = { feliz:"#22c55e",tranquilo:"#0ea5e9",motivado:"#6366f1",esperanzado:"#8b5cf6",ansioso:"#f59e0b",triste:"#a78bfa",enojado:"#ef4444",agotado:"#64748b",confundido:"#6b7280",nostalgico:"#ec4899" };
+  const emo = localStorage.getItem("zyra_checkin_emotion_" + today);
+  const streak = _gamifStatus?.streak || 0;
+  const userName = user?.name?.split(" ")[0] || "";
+  const dateStr = new Date().toLocaleDateString("es-CO", { weekday:"long", day:"numeric", month:"long" });
+  const W = 1080, H = 1920;
+  const canvas = document.createElement("canvas");
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  const accentCol = emo ? (EMO_COL[emo] || "#6366f1") : "#6366f1";
+  // Background
+  const bg = ctx.createLinearGradient(0, 0, W * 0.5, H);
+  bg.addColorStop(0, "#0a0c1a"); bg.addColorStop(0.5, "#0f1128"); bg.addColorStop(1, "#080a16");
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  // Ambient glow
+  const g1 = ctx.createRadialGradient(W*0.3, H*0.35, 0, W*0.3, H*0.35, W*0.6);
+  g1.addColorStop(0, accentCol + "22"); g1.addColorStop(1, "transparent");
+  ctx.fillStyle = g1; ctx.fillRect(0, 0, W, H);
+  const g2 = ctx.createRadialGradient(W*0.8, H*0.65, 0, W*0.8, H*0.65, W*0.5);
+  g2.addColorStop(0, "#8b5cf622"); g2.addColorStop(1, "transparent");
+  ctx.fillStyle = g2; ctx.fillRect(0, 0, W, H);
+  // Top bar
+  ctx.font = "bold 52px -apple-system,sans-serif";
+  const lgrd = ctx.createLinearGradient(80, 0, 320, 0);
+  lgrd.addColorStop(0, "#a5b4fc"); lgrd.addColorStop(1, "#818cf8");
+  ctx.fillStyle = lgrd; ctx.fillText("Zyra", 80, 130);
+  ctx.font = "400 36px -apple-system,sans-serif"; ctx.fillStyle = "rgba(255,255,255,.35)";
+  ctx.fillText(dateStr, 80, 185);
+  // Divider
+  ctx.strokeStyle = "rgba(99,102,241,.25)"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(80, 220); ctx.lineTo(W - 80, 220); ctx.stroke();
+  // Emotion big display
+  if (emo) {
+    ctx.font = "200px -apple-system,sans-serif"; ctx.textAlign = "center";
+    ctx.fillText(EMO[emo] || "💙", W/2, H*0.38);
+    ctx.font = "bold 72px -apple-system,sans-serif"; ctx.fillStyle = accentCol;
+    ctx.fillText(EMO_LABEL[emo] || emo, W/2, H*0.38 + 100);
+  } else {
+    ctx.font = "200px sans-serif"; ctx.textAlign = "center"; ctx.fillText("💙", W/2, H*0.38);
+  }
+  // Greeting
+  if (userName) {
+    ctx.font = "400 48px -apple-system,sans-serif"; ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.textAlign = "center";
+    ctx.fillText(`Así fue el día de ${userName}`, W/2, H*0.52);
+  }
+  // Stats row
+  const stats = [];
+  if (streak > 0) stats.push({ label:"Racha", val: `🔥 ${streak}d` });
+  const water = parseInt(localStorage.getItem("zyra_water_" + today) || "0");
+  if (water > 0) stats.push({ label:"Agua", val: `💧 ${water}/8` });
+  const journalDone = !!localStorage.getItem("zyra_journal_saved_" + today);
+  if (journalDone) stats.push({ label:"Diario", val:"📔 ✓" });
+  const breathDone = parseInt(localStorage.getItem("zyra_breath_" + today) || "0");
+  if (breathDone) stats.push({ label:"Respiración", val:`🫁 ${breathDone}` });
+  if (stats.length > 0) {
+    const boxW = Math.min(220, (W - 160) / stats.length - 20);
+    const startX = (W - (stats.length * (boxW + 20) - 20)) / 2;
+    stats.forEach((s, i) => {
+      const bx = startX + i * (boxW + 20);
+      const by = H * 0.6;
+      ctx.fillStyle = "rgba(255,255,255,.06)"; ctx.strokeStyle = "rgba(255,255,255,.12)"; ctx.lineWidth = 1.5;
+      const R = 24;
+      ctx.beginPath(); ctx.moveTo(bx+R, by); ctx.lineTo(bx+boxW-R, by);
+      ctx.quadraticCurveTo(bx+boxW, by, bx+boxW, by+R); ctx.lineTo(bx+boxW, by+160-R);
+      ctx.quadraticCurveTo(bx+boxW, by+160, bx+boxW-R, by+160); ctx.lineTo(bx+R, by+160);
+      ctx.quadraticCurveTo(bx, by+160, bx, by+160-R); ctx.lineTo(bx, by+R);
+      ctx.quadraticCurveTo(bx, by, bx+R, by); ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      ctx.textAlign = "center";
+      ctx.font = "bold 52px -apple-system,sans-serif"; ctx.fillStyle = "#fff";
+      ctx.fillText(s.val, bx + boxW/2, by + 80);
+      ctx.font = "32px -apple-system,sans-serif"; ctx.fillStyle = "rgba(255,255,255,.4)";
+      ctx.fillText(s.label, bx + boxW/2, by + 135);
+    });
+  }
+  // Footer
+  ctx.textAlign = "center"; ctx.font = "32px -apple-system,sans-serif";
+  ctx.fillStyle = "rgba(165,180,252,.4)";
+  ctx.fillText("zyra — Tu bienestar emocional", W/2, H - 100);
+  const blob = await new Promise(r => canvas.toBlob(r, "image/png"));
+  if (!blob) return;
+  const file = new File([blob], "zyra-dia.png", { type: "image/png" });
+  const shareText = `${emo ? EMO[emo] + " " : ""}Mi día en Zyra${streak > 2 ? ` · ${streak} días seguidos 🔥` : ""} #Zyra #BienestarEmocional`;
+  if (navigator.canShare?.({ files: [file] })) {
+    try { await navigator.share({ files: [file], text: shareText }); return; } catch(e) { if (e?.name === "AbortError") return; }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = "mi-dia-zyra.png"; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  zyraToast("📥 Tarjeta descargada", "success");
 }
 
 /* ══ ZEN JOURNAL MODE ══ */
