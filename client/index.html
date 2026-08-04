@@ -2053,6 +2053,9 @@ async function b2bSubmitContact() {
   <!-- ══ PROGRAMA ACTIVO ══ -->
   <div id="active-program-banner" style="display:none;margin-bottom:16px"></div>
 
+  <!-- ══ LUNES DIGEST ══ -->
+  <div id="lunes-digest-wrap" style="display:none;margin-bottom:20px"></div>
+
   <!-- ══ PARA TI HOY ══ -->
   <div id="para-ti-hoy-section" style="margin-bottom:20px;display:none">
     <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">✨ Para ti hoy</div>
@@ -6018,6 +6021,7 @@ async function loadDashboard() {
     renderMoodPrediction(hd.history || []);
     renderZyraInsight(computeZyraInsight(hd.history || []));
     renderActiveProgramBanner();
+    renderLunesDigest(hd.history || [], entries);
     // Cache negative streak for notification bell
     const negSC = p.negativeStreakCount || 0;
     if (negSC >= 3) { localStorage.setItem('zyra_neg_streak_count', String(negSC)); showNegativeStreakBanner(negSC); }
@@ -6146,6 +6150,105 @@ function renderActiveProgramBanner() {
       </div>
       <div style="font-size:12px;color:var(--text3);line-height:1.5">${nextDay.icon} Hoy: ${nextDay.task}</div>
     </div>`;
+}
+
+/* ══════════════════════════════════════════
+   LUNES DIGEST — weekly emotional recap card
+══════════════════════════════════════════ */
+let _lunesDigestWeekData = null;
+
+function renderLunesDigest(history, entries) {
+  const wrap = document.getElementById("lunes-digest-wrap");
+  if (!wrap) return;
+  const today = new Date();
+  if (today.getDay() !== 1) { wrap.style.display = "none"; return; }
+
+  // Last full week: Mon–Sun
+  const lastMon = new Date(today); lastMon.setDate(today.getDate() - 7); lastMon.setHours(0,0,0,0);
+  const lastSun = new Date(today); lastSun.setDate(today.getDate() - 1); lastSun.setHours(23,59,59,999);
+
+  const weekHistory = (history || []).filter(h => {
+    const d = new Date(h.date); return d >= lastMon && d <= lastSun;
+  });
+  if (weekHistory.length < 2) { wrap.style.display = "none"; return; }
+
+  const EMO_EMOJI = {feliz:"😊",tranquilo:"😌",ansioso:"😰",triste:"😢",enojado:"😤",confundido:"🤔",esperanzado:"🌟",agotado:"😮‍💨",motivado:"💪",nostalgico:"🌅"};
+  const DAYS = ["L","M","M","J","V","S","D"];
+
+  const dayEmos = Array.from({length:7}, (_, i) => {
+    const d = new Date(lastMon); d.setDate(lastMon.getDate() + i);
+    const m = weekHistory.find(h => new Date(h.date).toDateString() === d.toDateString());
+    return m ? m.emotion : null;
+  });
+
+  const emoCounts = {};
+  weekHistory.forEach(h => { emoCounts[h.emotion] = (emoCounts[h.emotion] || 0) + 1; });
+  const topEmoEntry = Object.entries(emoCounts).sort((a,b) => b[1]-a[1])[0];
+
+  const weekJournals = (entries || []).filter(e => {
+    const d = new Date(e.createdAt || e.date); return d >= lastMon && d <= lastSun;
+  });
+
+  const habits = getHabits();
+  let habitPct = null;
+  if (habits.length > 0) {
+    let total = 0, done = 0;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(lastMon); d.setDate(lastMon.getDate() + i);
+      habits.forEach(h => { total++; if (isHabitDone(h.id, d.toDateString())) done++; });
+    }
+    habitPct = total > 0 ? Math.round((done / total) * 100) : null;
+  }
+
+  _lunesDigestWeekData = { weekHistory, topEmoEntry, weekJournals: weekJournals.length, habitPct };
+
+  const dayDotsHtml = dayEmos.map((emo, i) => `
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+      <div style="font-size:${emo?18:11}px;min-height:22px;display:flex;align-items:center;color:${emo?"inherit":"var(--text3)"}">${emo ? (EMO_EMOJI[emo]||"•") : "·"}</div>
+      <span style="font-size:9px;color:var(--text3);font-weight:700">${DAYS[i]}</span>
+    </div>`).join("");
+
+  const chips = [
+    topEmoEntry ? `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 12px;font-size:12px;color:var(--text2)">${EMO_EMOJI[topEmoEntry[0]]||""} <strong>${topEmoEntry[0]}</strong> × ${topEmoEntry[1]}</div>` : "",
+    weekJournals.length ? `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 12px;font-size:12px;color:var(--text2)">📔 ${weekJournals.length} entrada${weekJournals.length!==1?"s":""}</div>` : "",
+    habitPct !== null ? `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 12px;font-size:12px;color:var(--text2)">✅ ${habitPct}% hábitos</div>` : "",
+  ].filter(Boolean).join("");
+
+  wrap.innerHTML = `
+    <div style="background:linear-gradient(135deg,rgba(99,102,241,.07),rgba(139,92,246,.04));border:1.5px solid rgba(99,102,241,.22);border-radius:18px;padding:16px 18px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px">
+        <div>
+          <div style="font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.6px">📅 Tu semana pasada</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">${lastMon.toLocaleDateString("es-CO",{day:"numeric",month:"short"})} → ${lastSun.toLocaleDateString("es-CO",{day:"numeric",month:"short"})}</div>
+        </div>
+        <button onclick="document.getElementById('lunes-digest-wrap').style.display='none'" style="background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:4px 6px;line-height:1;border-radius:8px" title="Cerrar">×</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:13px;padding:8px;background:var(--surface);border-radius:12px">${dayDotsHtml}</div>
+      ${chips ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:13px">${chips}</div>` : ""}
+      <button id="lunes-digest-ai-btn" onclick="loadLunesDigestAI()" style="width:100%;background:linear-gradient(135deg,var(--accent),var(--purple));border:none;color:#fff;border-radius:12px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .2s">✨ Zyra analiza tu semana</button>
+      <div id="lunes-digest-ai-text" style="display:none;margin-top:11px;font-size:13px;color:var(--text2);line-height:1.7;background:var(--surface);border-radius:12px;padding:12px 14px;border:1px solid var(--border)"></div>
+    </div>`;
+  wrap.style.display = "block";
+}
+
+async function loadLunesDigestAI() {
+  const btn = document.getElementById("lunes-digest-ai-btn");
+  const textEl = document.getElementById("lunes-digest-ai-text");
+  if (!btn || !textEl || !_lunesDigestWeekData) return;
+  btn.disabled = true; btn.textContent = "Analizando..."; btn.style.opacity = ".6";
+  const { weekHistory, topEmoEntry, weekJournals, habitPct } = _lunesDigestWeekData;
+  const EMO_LABELS = {feliz:"feliz",tranquilo:"tranquila/o",ansioso:"ansiosa/o",triste:"triste",enojado:"enojada/o",confundido:"confundida/o",esperanzado:"esperanzada/o",agotado:"agotada/o",motivado:"motivada/o",nostalgico:"nostálgica/o"};
+  const emotionSummary = weekHistory.map(h => `${new Date(h.date).toLocaleDateString("es-CO",{weekday:"short"})}: ${h.emotion}${h.note?` (${h.note.substring(0,40)})`:""}` ).join(", ");
+  const prompt = `Mira mi semana emocional: ${emotionSummary}. ${topEmoEntry ? `La emoción más frecuente fue ${topEmoEntry[0]} (${topEmoEntry[1]} veces).` : ""} ${weekJournals ? `Escribí ${weekJournals} entrada(s) en el diario.` : ""} ${habitPct !== null ? `Cumplí el ${habitPct}% de mis hábitos.` : ""} Dame un análisis breve y honesto de mi semana (2-3 oraciones), y una sugerencia concreta y práctica para esta semana. Sin frases genéricas.`;
+  try {
+    const d = await api("/chat", "POST", { message: prompt, history: [], mode: "weekly_digest" });
+    textEl.innerHTML = `<div style="display:flex;gap:8px;align-items:flex-start"><img src="/Imagenes/zyra-avatar.png" style="width:26px;height:26px;border-radius:50%;flex-shrink:0;margin-top:2px" onerror="this.style.display='none'"><div>${safeHtml(d.response || "No pude generar el análisis ahora.").replace(/\n/g,"<br>")}</div></div>`;
+    textEl.style.display = "block";
+    btn.style.display = "none";
+  } catch {
+    btn.textContent = "✨ Zyra analiza tu semana"; btn.style.opacity = "1"; btn.disabled = false;
+    zyraToast("No pude conectar ahora. Intenta en un momento.", "error");
+  }
 }
 
 function renderParaTiHoy(emotion, history, streak) {
@@ -17229,11 +17332,15 @@ function renderHabitsTracker(el) {
         <div style="font-size:15px;font-weight:800;color:var(--text)">✅ Mis Hábitos</div>
         <div style="font-size:12px;color:var(--text3);margin-top:2px">${new Date().toLocaleDateString("es-CO",{weekday:"long",day:"numeric",month:"long"})}</div>
       </div>
-      <div style="text-align:right">
-        <div style="font-size:22px;font-weight:800;color:var(--accent)">${completedToday}/${habits.length}</div>
-        <div style="font-size:11px;color:var(--text3)">completados hoy</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        ${habits.length > 0 ? `<button onclick="toggleHabitStats()" id="habit-stats-btn" title="Ver historial 30 días" style="background:rgba(99,102,241,.1);border:1.5px solid rgba(99,102,241,.2);border-radius:10px;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;padding:5px 10px;transition:all .2s">📊 30 días</button>` : ""}
+        <div style="text-align:right">
+          <div style="font-size:22px;font-weight:800;color:var(--accent)">${completedToday}/${habits.length}</div>
+          <div style="font-size:11px;color:var(--text3)">hoy</div>
+        </div>
       </div>
     </div>
+    <div id="habit-30-stats" style="display:none;margin-bottom:16px"></div>
     <div style="height:8px;background:var(--border);border-radius:99px;margin-bottom:18px;overflow:hidden">
       <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#6366f1,#10b981);border-radius:99px;transition:width .6s ease"></div>
     </div>
@@ -17248,6 +17355,78 @@ function renderHabitsTracker(el) {
     const _ck = "zyra_habit_confetti_" + new Date().toDateString();
     if (!sessionStorage.getItem(_ck)) { sessionStorage.setItem(_ck, "1"); launchHabitConfetti(); }
   }
+}
+
+function toggleHabitStats() {
+  const panel = document.getElementById("habit-30-stats");
+  const btn = document.getElementById("habit-stats-btn");
+  if (!panel) return;
+  if (panel.style.display !== "none") { panel.style.display = "none"; if(btn) btn.style.background="rgba(99,102,241,.1)"; return; }
+  renderHabit30Stats(panel);
+  panel.style.display = "block";
+  if (btn) btn.style.background = "rgba(99,102,241,.2)";
+}
+
+function renderHabit30Stats(panel) {
+  const habits = getHabits();
+  if (!habits.length) { panel.innerHTML = ""; return; }
+  const today = new Date();
+  const last30 = Array.from({length:30}, (_,i) => { const d = new Date(today); d.setDate(d.getDate()-(29-i)); return d; });
+
+  // Overall completion by day (last 30)
+  const dailyPct = last30.map(d => {
+    const done = habits.filter(h => isHabitDone(h.id, d.toDateString())).length;
+    return habits.length ? Math.round((done / habits.length) * 100) : 0;
+  });
+  const avgPct = Math.round(dailyPct.reduce((s,v)=>s+v,0) / 30);
+
+  // Best streak per habit
+  const habitStats = habits.map(h => {
+    const streak = getHabitStreak(h.id);
+    const done30 = last30.filter(d => isHabitDone(h.id, d.toDateString())).length;
+    const pct30 = Math.round((done30 / 30) * 100);
+    // Best streak (scan last 30 days)
+    let best = 0, cur = 0;
+    for (let i = 29; i >= 0; i--) { if (isHabitDone(h.id, last30[i].toDateString())) { cur++; best = Math.max(best, cur); } else cur = 0; }
+    return { ...h, streak, done30, pct30, best30: best };
+  });
+
+  // Mini bar chart (30 days)
+  const bars = dailyPct.map((p, i) => {
+    const d = last30[i];
+    const isToday = d.toDateString() === today.toDateString();
+    const h = Math.max(3, Math.round(p * 0.36)); // max 36px
+    return `<div title="${d.toLocaleDateString("es-CO",{day:"numeric",month:"short"})}: ${p}%" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end">
+      <div style="width:100%;min-width:4px;max-width:10px;height:${h}px;border-radius:3px 3px 0 0;background:${p>=80?"#10b981":p>=50?"#6366f1":p>0?"#f59e0b":"var(--border)"};opacity:${isToday?1:.8};transition:height .3s"></div>
+    </div>`;
+  }).join("");
+
+  const habitRows = habitStats.map(h => `
+    <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:16px;flex-shrink:0">${h.emoji}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${safeHtml(h.name)}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">Racha actual: 🔥 ${h.streak}d · Mejor (30d): ⭐ ${h.best30}d</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:15px;font-weight:800;color:${h.pct30>=70?"#10b981":h.pct30>=40?"#6366f1":"#f59e0b"}">${h.pct30}%</div>
+        <div style="font-size:9px;color:var(--text3)">30 días</div>
+      </div>
+    </div>`).join("");
+
+  panel.innerHTML = `
+    <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:800;color:var(--text)">Historial 30 días</div>
+        <div style="font-size:12px;color:var(--text3)">Promedio: <strong style="color:${avgPct>=70?"#10b981":avgPct>=40?"#6366f1":"#f59e0b"}">${avgPct}%</strong></div>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:2px;height:40px;margin-bottom:12px">${bars}</div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:12px">
+        <span style="font-size:10px;color:var(--text3)">Hace 30 días</span>
+        <span style="font-size:10px;color:var(--text3)">Hoy</span>
+      </div>
+      <div>${habitRows}</div>
+    </div>`;
 }
 
 let _cbtStep = 0;
@@ -17455,9 +17634,55 @@ function renderPrograms(el) {
 }
 
 function renderCBTTool(el) {
+  if (!el) el = document.getElementById("wellness-content");
+  if (!el) return;
   _cbtStep = 0;
   Object.keys(_cbtData).forEach(k => delete _cbtData[k]);
-  showCBTStep(el);
+  // Show mode selector
+  el.innerHTML = `<div class="card" style="max-width:560px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:36px;margin-bottom:8px">🧠</div>
+      <div style="font-size:17px;font-weight:800;color:var(--text);margin-bottom:6px">Reestructuración cognitiva</div>
+      <div style="font-size:13px;color:var(--text3);line-height:1.6">Transforma un pensamiento que te bloquea en uno más justo y útil.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button onclick="_cbtStartFull()" style="background:linear-gradient(135deg,var(--accent),var(--purple));border:none;color:#fff;border-radius:16px;padding:16px 20px;text-align:left;cursor:pointer;transition:opacity .2s">
+        <div style="font-size:14px;font-weight:800;margin-bottom:4px">📋 Modo completo · 5 pasos</div>
+        <div style="font-size:12px;opacity:.85">Análisis profundo con evidencia a favor y en contra. ~5 minutos.</div>
+      </button>
+      <button onclick="_cbtStartExpress()" style="background:var(--surface);border:1.5px solid rgba(16,185,129,.4);color:var(--text);border-radius:16px;padding:16px 20px;text-align:left;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='#10b981'" onmouseout="this.style.borderColor='rgba(16,185,129,.4)'">
+        <div style="font-size:14px;font-weight:800;margin-bottom:4px;color:#10b981">⚡ Modo exprés · 2 pasos + IA</div>
+        <div style="font-size:12px;color:var(--text3)">Describe la situación, Zyra genera el reencuadre. ~2 minutos.</div>
+      </button>
+    </div>
+  </div>`;
+}
+function _cbtStartFull() {
+  const el = document.getElementById("wellness-content");
+  if (el) showCBTStep(el);
+}
+async function _cbtStartExpress() {
+  const el = document.getElementById("wellness-content");
+  if (!el) return;
+  el.innerHTML = `<div class="card" style="max-width:560px;margin:0 auto">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+      <div style="background:rgba(16,185,129,.1);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">⚡</div>
+      <div style="flex:1">
+        <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Modo exprés — Paso 1 de 2</div>
+        <div style="height:4px;background:var(--border);border-radius:99px;margin-top:5px;overflow:hidden"><div style="height:100%;width:50%;background:linear-gradient(90deg,#10b981,#059669);border-radius:99px"></div></div>
+      </div>
+    </div>
+    <div style="font-size:17px;font-weight:800;color:var(--text);margin-bottom:6px">📍 ¿Qué pensamiento te está pesando ahora?</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;font-style:italic">Escribe el pensamiento automático tal cual apareció en tu mente. Ej: "Soy un fracaso", "Nunca voy a poder", "Me odian".</div>
+    <textarea id="cbt-express-thought" placeholder="El pensamiento que quieres trabajar..." style="width:100%;min-height:90px;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;color:var(--text);font-size:13px;padding:13px 15px;outline:none;font-family:inherit;resize:vertical;box-sizing:border-box"></textarea>
+    <div style="font-size:17px;font-weight:800;color:var(--text);margin:16px 0 6px">📍 ¿En qué situación surgió?</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;font-style:italic">Solo los hechos, en una o dos frases.</div>
+    <textarea id="cbt-express-situation" placeholder="La situación que lo desencadenó..." style="width:100%;min-height:70px;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;color:var(--text);font-size:13px;padding:13px 15px;outline:none;font-family:inherit;resize:vertical;box-sizing:border-box"></textarea>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button onclick="renderCBTTool(document.getElementById('wellness-content'))" style="background:var(--surface);border:1.5px solid var(--border);color:var(--text2);border-radius:12px;padding:12px 18px;font-size:13px;cursor:pointer">← Volver</button>
+      <button onclick="_cbtExpressGenerate()" style="flex:1;background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;border-radius:12px;padding:12px 20px;font-size:14px;font-weight:700;cursor:pointer">✨ Generar reencuadre</button>
+    </div>
+  </div>`;
 }
 const CBT_STEPS = [
   { id:"situation", q:"¿Qué situación te está afectando?", placeholder:"Describe brevemente qué pasó o está pasando...", icon:"📍", hint:"Solo los hechos, sin interpretación." },
@@ -17489,6 +17714,62 @@ function showCBTStep(el) {
     </div>
     <button onclick="renderCBTTool(document.getElementById('wellness-content'))" style="display:block;width:100%;text-align:center;margin-top:12px;background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer">✕ Empezar de nuevo</button>
   </div>`;
+}
+let _cbtExpressThought = "";
+let _cbtExpressResult  = "";
+async function _cbtExpressGenerate() {
+  const el = document.getElementById("wellness-content");
+  const thought = document.getElementById("cbt-express-thought")?.value?.trim();
+  const situation = document.getElementById("cbt-express-situation")?.value?.trim();
+  if (!thought) { zyraToast("Escribe el pensamiento primero", "error"); return; }
+  if (!el) return;
+  _cbtExpressThought = thought;
+  el.innerHTML = `<div class="card" style="max-width:560px;margin:0 auto;text-align:center;padding:28px">
+    <div style="font-size:40px;margin-bottom:12px">🌱</div>
+    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px">Generando tu reencuadre...</div>
+    <div style="font-size:13px;color:var(--text3)">Zyra está analizando el pensamiento</div>
+  </div>`;
+  const prompt = `Estoy trabajando en un pensamiento que me bloquea. El pensamiento automático es: "${thought}". ${situation ? `La situación que lo generó: "${situation}".` : ""}\n\nEres una psicóloga cognitivo-conductual. Dame:\n1. Una observación breve sobre qué tipo de distorsión cognitiva puede ser esto (en 1 oración)\n2. Dos o tres preguntas que me desafíen ese pensamiento (directas, no retóricas)\n3. Un pensamiento alternativo más equilibrado (no positivo forzado, sino justo y realista)\n\nSé directa y concreta. Sin frases genéricas.`;
+  try {
+    const d = await api("/chat", "POST", { message: prompt, history: [], mode: "cbt_express" });
+    _cbtExpressResult = d.response || "No pude generar el reencuadre ahora.";
+    el.innerHTML = `<div class="card" style="max-width:560px;margin:0 auto">
+      <div style="text-align:center;margin-bottom:18px">
+        <div style="font-size:36px;margin-bottom:8px">🌱</div>
+        <div style="font-size:17px;font-weight:800;color:var(--text)">Tu reencuadre exprés</div>
+      </div>
+      <div style="background:rgba(16,185,129,.07);border:1.5px solid rgba(16,185,129,.2);border-radius:14px;padding:14px 16px;margin-bottom:16px">
+        <div style="font-size:10px;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">💭 Pensamiento original</div>
+        <div style="font-size:14px;color:var(--text2);font-style:italic">"${safeHtml(_cbtExpressThought)}"</div>
+      </div>
+      <div style="background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.05));border:1.5px solid rgba(99,102,241,.2);border-radius:14px;padding:14px 16px;margin-bottom:18px">
+        <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">✨ Análisis de Zyra</div>
+        <div style="font-size:14px;color:var(--text);line-height:1.7;white-space:pre-wrap">${safeHtml(_cbtExpressResult)}</div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button onclick="_cbtExpressSaveJournal()" style="flex:1;background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;border-radius:12px;padding:12px;font-size:13px;font-weight:700;cursor:pointer">📔 Guardar en diario</button>
+        <button onclick="renderCBTTool(document.getElementById('wellness-content'))" style="background:var(--surface);border:1.5px solid var(--border);color:var(--text2);border-radius:12px;padding:12px 16px;font-size:13px;cursor:pointer">Repetir</button>
+      </div>
+    </div>`;
+  } catch {
+    el.innerHTML = `<div class="card" style="max-width:560px;margin:0 auto;text-align:center;padding:28px">
+      <div style="font-size:13px;color:var(--text3)">No pude conectar. Intenta de nuevo.</div>
+      <button onclick="renderCBTTool(document.getElementById('wellness-content'))" style="margin-top:12px;background:var(--accent);border:none;color:#fff;border-radius:12px;padding:10px 20px;font-size:13px;cursor:pointer">Volver</button>
+    </div>`;
+  }
+}
+function _cbtExpressSaveJournal() {
+  const content = "PENSAMIENTO AUTOMÁTICO:\n" + _cbtExpressThought + "\n\nANÁLISIS DE ZYRA:\n" + _cbtExpressResult;
+  showPage("journal");
+  setTimeout(() => {
+    const form = document.getElementById("add-journal-form");
+    if (form && !form.classList.contains("show")) toggleJournalForm();
+    const t = document.getElementById("journal-title");
+    const ct = document.getElementById("journal-content");
+    if (t) t.value = "Ejercicio CBT exprés";
+    if (ct) { ct.value = content; updateJournalCharCount(ct); }
+    zyraToast("✓ Ejercicio listo en el diario", "success");
+  }, 400);
 }
 function cbtNext(fieldId) {
   const ta = document.getElementById("cbt-input-" + fieldId);
