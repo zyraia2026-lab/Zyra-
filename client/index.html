@@ -9591,6 +9591,29 @@ function openMedSpotify(query, title, emoji, playlistId) {
 }
 
 function renderMusic(el) {
+  const _ambientSounds = [
+    {id:"rain",  icon:"🌧️", label:"Lluvia",       desc:"Para calmar"},
+    {id:"ocean", icon:"🌊", label:"Olas",          desc:"Para relajar"},
+    {id:"forest",icon:"🌲", label:"Bosque",         desc:"Naturaleza"},
+    {id:"cafe",  icon:"☕", label:"Café",           desc:"Para enfocar"},
+    {id:"white", icon:"〰️", label:"Ruido blanco",  desc:"Para dormir"},
+  ];
+  const _ambientSection = `
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-header"><span class="card-title">🌿 Sonidos de fondo</span><span style="font-size:11px;color:var(--text3)">Generados en tu dispositivo · Sin internet</span></div>
+    <p style="font-size:12px;color:var(--text3);margin:0 0 14px;line-height:1.6">Activa uno o varios sonidos a la vez. Se mezclan automáticamente.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:10px;margin-bottom:10px">
+      ${_ambientSounds.map(s=>`<button id="amb-music-${s.id}" onclick="playAmbient('${s.id}');_syncAmbientMusicUI()" style="background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:12px 8px;cursor:pointer;text-align:center;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:4px">
+        <span style="font-size:22px">${s.icon}</span>
+        <span style="font-size:11px;font-weight:700;color:var(--text)">${s.label}</span>
+        <span style="font-size:9px;color:var(--text3)">${s.desc}</span>
+      </button>`).join("")}
+    </div>
+    <div style="display:flex;justify-content:center;margin-top:4px">
+      <button onclick="stopAllAmbient();_syncAmbientMusicUI()" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#ef4444;border-radius:10px;padding:7px 18px;font-size:12px;font-weight:700;cursor:pointer">⏹ Detener todo</button>
+    </div>
+  </div>`;
+
   const categories = [
     {e:"🧘",t:"Meditación y calma",desc:"Para relajar la mente",songs:[{title:"Weightless",artist:"Marconi Union"},{title:"Experience",artist:"Ludovico Einaudi"},{title:"River Flows in You",artist:"Yiruma"},{title:"Clair de Lune",artist:"Claude Debussy"},{title:"Breathe Me",artist:"Sia"}]},
     {e:"😴",t:"Para dormir",desc:"Música suave para el descanso",songs:[{title:"Comptine d'un autre été",artist:"Yann Tiersen"},{title:"A Thousand Years",artist:"Christina Perri"},{title:"Sleepsong",artist:"Secret Garden"},{title:"Gymnopédie No.1",artist:"Erik Satie"},{title:"River Flows in You",artist:"Yiruma"}]},
@@ -9619,6 +9642,8 @@ function renderMusic(el) {
       </div>
       <div id="well-player-${ci}" style="margin-top:12px"></div>
     </div>`).join("")}</div>`;
+  el.innerHTML = _ambientSection + el.innerHTML;
+  _syncAmbientMusicUI();
 }
 
 async function playWellnessSong(title, artist, playerId) {
@@ -9775,6 +9800,17 @@ const AFF_CATS = {
     "Me doy gracias por seguir intentando.",
   ],
 };
+function _syncAmbientMusicUI() {
+  const activeTypes = typeof ambientNodes !== "undefined" ? Object.keys(ambientNodes) : [];
+  document.querySelectorAll("[id^='amb-music-']").forEach(b => {
+    const type = b.id.replace("amb-music-", "");
+    const isPlaying = activeTypes.includes(type);
+    b.style.background = isPlaying ? "linear-gradient(135deg,rgba(99,102,241,.18),rgba(139,92,246,.12))" : "var(--surface)";
+    b.style.borderColor = isPlaying ? "var(--accent)" : "var(--border)";
+    b.style.color = isPlaying ? "var(--accent)" : "var(--text)";
+  });
+}
+
 let _affCurrentCat = 'all';
 let _affCatManual = false; // true if user manually picked a category
 
