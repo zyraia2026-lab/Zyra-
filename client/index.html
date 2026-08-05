@@ -2082,6 +2082,9 @@ async function b2bSubmitContact() {
   <!-- ══ ZYRA MEMORY FOLLOW-UP ══ -->
   <div id="zyra-memory-followup" style="display:none;margin-bottom:20px"></div>
 
+  <!-- ══ SPRINT SEMANAL IA ══ -->
+  <div id="ai-sprint-wrap" style="display:none;margin-bottom:20px"></div>
+
   <!-- ══ RETO DEL DÍA ══ -->
   <div id="daily-challenge-wrap" style="margin-bottom:28px;display:none">
     <div class="daily-challenge-card">
@@ -6408,6 +6411,8 @@ async function loadDashboard() {
     renderDomingoRecap(hd.history || [], entries);
     renderMonthlyRecap(hd.history || [], entries);
     renderCartaZyra(hd.history || [], entries);
+    window._dashHistory = hd.history || [];
+    loadWeeklySprint();
     // Cache negative streak for notification bell
     const negSC = p.negativeStreakCount || 0;
     if (negSC >= 3) { localStorage.setItem('zyra_neg_streak_count', String(negSC)); showNegativeStreakBanner(negSC); }
@@ -18087,6 +18092,148 @@ function completeDailyChallenge() {
 }
 
 /* ══════════════════════════════════════════
+   SPRINT SEMANAL IA
+══════════════════════════════════════════ */
+function _getSprintWeekKey() {
+  const d = new Date();
+  const jan1 = new Date(d.getFullYear(), 0, 1);
+  const week = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+  return `${d.getFullYear()}_${week}`;
+}
+
+function _getSprintDayIndex() {
+  const day = new Date().getDay();
+  return day === 0 ? 6 : day - 1; // Mon=0 … Sun=6
+}
+
+async function loadWeeklySprint() {
+  const wrap = document.getElementById("ai-sprint-wrap");
+  if (!wrap) return;
+  const wk = _getSprintWeekKey();
+  const cacheKey = `zyra_sprint_${wk}`;
+  let sprint = null;
+  try { sprint = JSON.parse(localStorage.getItem(cacheKey) || "null"); } catch(e) {}
+  if (!sprint) {
+    const isMonday = new Date().getDay() === 1;
+    if (!isMonday) { wrap.style.display = "none"; return; }
+    await generateWeeklySprint();
+    return;
+  }
+  renderWeeklySprint(sprint);
+}
+
+async function generateWeeklySprint(force = false) {
+  const wrap = document.getElementById("ai-sprint-wrap");
+  if (!wrap) return;
+  const wk = _getSprintWeekKey();
+  const cacheKey = `zyra_sprint_${wk}`;
+  if (!force) {
+    let existing = null;
+    try { existing = JSON.parse(localStorage.getItem(cacheKey) || "null"); } catch(e) {}
+    if (existing) { renderWeeklySprint(existing); return; }
+  }
+  wrap.style.display = "block";
+  wrap.innerHTML = `<div style="background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(139,92,246,.06));border:1.5px solid rgba(99,102,241,.25);border-radius:20px;padding:18px 20px"><div style="font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">✨ Generando tu sprint de la semana...</div><div style="height:6px;border-radius:3px;background:var(--border);overflow:hidden"><div style="height:100%;width:60%;background:linear-gradient(90deg,#6366f1,#a78bfa);border-radius:3px;animation:progressPulse 1.2s ease-in-out infinite"></div></div></div>`;
+  try {
+    const history = window._dashHistory || [];
+    const POSITIVE = new Set(["feliz","tranquilo","esperanzado","motivado"]);
+    const last14 = history.slice(-14);
+    const posCount = last14.filter(h => POSITIVE.has(h.emotion)).length;
+    const topEmo = last14.length ? [...last14].sort((a,b) => last14.filter(x=>x.emotion===b.emotion).length - last14.filter(x=>x.emotion===a.emotion).length)[0]?.emotion : "tranquilo";
+    const triggers = getAllTriggers ? getAllTriggers() : {};
+    const topTrigger = Object.entries(triggers).sort((a,b)=>b[1]-a[1])[0]?.[0] || "";
+    const habits = typeof getHabits === "function" ? getHabits().map(h=>h.name) : [];
+    const goals = (_goalsAllItems||[]).filter(g=>!g.completed).slice(0,3).map(g=>g.title);
+    const userName = (typeof _userData !== "undefined" && _userData?.name) || "tú";
+    const prompt = `Eres Zyra, asistente de bienestar. Crea un sprint de bienestar personalizado de 7 días para ${userName}.
+Datos de la semana: emoción predominante=${topEmo}, días positivos=${posCount}/${last14.length}, detonante más frecuente=${topTrigger||"ninguno"}, hábitos activos: ${habits.slice(0,4).join(", ")||"ninguno"}, metas en progreso: ${goals.slice(0,2).join(", ")||"ninguna"}.
+Devuelve SOLO un JSON válido con esta estructura exacta (sin markdown, sin explicación):
+{"theme":"Nombre temático del sprint (máx 4 palabras)","tasks":["tarea día 1 (máx 12 palabras)","tarea día 2","tarea día 3","tarea día 4","tarea día 5","tarea día 6","tarea día 7"]}
+Las tareas deben ser: concretas, accionables hoy, variadas (no solo meditación), basadas en los datos del usuario. Un día de creatividad, uno social, uno físico, uno de reflexión, uno de hábito, uno de meta, uno libre.`;
+    const d = await api("/chat", "POST", { message: prompt, noSave: true, mode: "sprint_semanal" });
+    let raw = (d.reply || d.message || "").trim();
+    if (raw.startsWith("```")) raw = raw.replace(/```[a-z]*\n?/g,"").replace(/```/g,"").trim();
+    const sprint = JSON.parse(raw);
+    if (!sprint.theme || !Array.isArray(sprint.tasks) || sprint.tasks.length < 7) throw new Error("invalid");
+    sprint.tasks = sprint.tasks.slice(0, 7);
+    sprint.generatedAt = Date.now();
+    sprint.weekKey = wk;
+    localStorage.setItem(cacheKey, JSON.stringify(sprint));
+    renderWeeklySprint(sprint);
+  } catch(e) {
+    wrap.style.display = "none";
+  }
+}
+
+function renderWeeklySprint(sprint) {
+  const wrap = document.getElementById("ai-sprint-wrap");
+  if (!wrap || !sprint) return;
+  const wk = _getSprintWeekKey();
+  const doneKey = `zyra_sprint_done_${wk}`;
+  let doneDays = [];
+  try { doneDays = JSON.parse(localStorage.getItem(doneKey) || "[]"); } catch(e) {}
+  const dayIdx = _getSprintDayIndex();
+  const todayDone = doneDays.includes(dayIdx);
+  const todayTask = sprint.tasks[dayIdx] || "";
+  const DAY_LABELS = ["L","M","M","J","V","S","D"];
+  const dots = DAY_LABELS.map((lbl, i) => {
+    const done = doneDays.includes(i);
+    const isToday = i === dayIdx;
+    const future = i > dayIdx && !done;
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+      <div style="width:${isToday?26:20}px;height:${isToday?26:20}px;border-radius:50%;background:${done?"#10b981":isToday?"#6366f1":future?"var(--border)":"rgba(99,102,241,.3)"};border:2px solid ${done?"#10b981":isToday?"#6366f1":"transparent"};display:flex;align-items:center;justify-content:center;font-size:${isToday?11:9}px;color:#fff;font-weight:800;transition:all .3s;box-shadow:${isToday?"0 0 0 3px rgba(99,102,241,.2)":"none"}">${done?"✓":isToday?"HOY":""}</div>
+      <span style="font-size:8px;color:${isToday?"var(--accent)":"var(--text3)"};font-weight:${isToday?800:400}">${lbl}</span>
+    </div>`;
+  }).join("");
+  const allDone = doneDays.length >= 7;
+  const isMonday = new Date().getDay() === 1;
+  wrap.style.display = "block";
+  wrap.innerHTML = `<div style="background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(139,92,246,.06));border:1.5px solid rgba(99,102,241,.25);border-radius:20px;padding:18px 20px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <div style="width:32px;height:32px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid rgba(99,102,241,.3)"><img src="${LOGO}" alt="Zyra" style="width:100%;height:100%;object-fit:cover"/></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:9px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:1px">Sprint de la semana</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text)">${safeHtml(sprint.theme)}</div>
+      </div>
+      ${isMonday ? `<button onclick="generateWeeklySprint(true)" style="background:none;border:1px solid rgba(99,102,241,.3);border-radius:8px;padding:4px 8px;font-size:10px;color:var(--accent);cursor:pointer;font-weight:700" title="Regenerar sprint">↺</button>` : ""}
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:14px">${dots}</div>
+    ${allDone ? `<div style="text-align:center;padding:12px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);border-radius:14px"><div style="font-size:18px;margin-bottom:4px">🏆</div><div style="font-size:13px;font-weight:700;color:#10b981">¡Sprint completado! Una semana entera de bienestar intencional.</div></div>` :
+    `<div style="background:rgba(255,255,255,.06);border:1px solid rgba(99,102,241,.15);border-radius:14px;padding:14px 16px;margin-bottom:12px">
+      <div style="font-size:9px;font-weight:800;color:rgba(99,102,241,.7);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Tu tarea de hoy</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.55;font-weight:500">${safeHtml(todayTask)}</div>
+    </div>
+    <button onclick="completeSprintTask()" id="sprint-complete-btn" style="width:100%;border:none;border-radius:12px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;${todayDone?"background:rgba(16,185,129,.15);color:#10b981;cursor:default":"background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;box-shadow:0 4px 12px rgba(99,102,241,.3)"}" ${todayDone?"disabled":""}>
+      ${todayDone ? "✓ Tarea de hoy completada" : "✓ Marcar como hecha"}
+    </button>`}
+  </div>`;
+}
+
+function completeSprintTask() {
+  const wk = _getSprintWeekKey();
+  const doneKey = `zyra_sprint_done_${wk}`;
+  const dayIdx = _getSprintDayIndex();
+  let doneDays = [];
+  try { doneDays = JSON.parse(localStorage.getItem(doneKey) || "[]"); } catch(e) {}
+  if (doneDays.includes(dayIdx)) return;
+  doneDays.push(dayIdx);
+  localStorage.setItem(doneKey, JSON.stringify(doneDays));
+  zyraToast("Tarea del sprint completada 🌟 Cada día cuenta.", "success");
+  if (navigator.vibrate) navigator.vibrate([30, 15, 50]);
+  if (doneDays.length >= 7) {
+    setTimeout(() => {
+      zyraToast("🏆 ¡Sprint de la semana completado! Eso es compromiso real.", "success", 6000);
+      if (typeof launchConfetti === "function") { for(let i=0;i<20;i++) setTimeout(launchConfetti, i*80); }
+    }, 800);
+    if (typeof triggerMission === "function") triggerMission("do_exercise");
+  }
+  const cacheKey = `zyra_sprint_${wk}`;
+  let sprint = null;
+  try { sprint = JSON.parse(localStorage.getItem(cacheKey) || "null"); } catch(e) {}
+  if (sprint) renderWeeklySprint(sprint);
+}
+
+/* ══════════════════════════════════════════
    FLOATING QUICK NOTE
 ══════════════════════════════════════════ */
 function openQuickNote() {
@@ -18803,6 +18950,19 @@ function getHabitKey(id, d) {
 }
 function isHabitDone(id, d) { return !!localStorage.getItem(getHabitKey(id, d)); }
 const _streakCache = {};
+
+function getHabitBestStreak(id) {
+  return parseInt(localStorage.getItem("zyra_habit_best_" + id) || "0", 10);
+}
+function _updateHabitBestStreak(id, currentStreak) {
+  const best = getHabitBestStreak(id);
+  if (currentStreak > best) {
+    localStorage.setItem("zyra_habit_best_" + id, String(currentStreak));
+    return true;
+  }
+  return false;
+}
+
 function toggleHabitDone(id) {
   const key = getHabitKey(id);
   const wasOff = !localStorage.getItem(key);
@@ -18816,6 +18976,11 @@ function toggleHabitDone(id) {
     if (MILESTONES[streak] && habit) {
       const _whyExtra = habit.why ? ` — "${habit.why}"` : "";
       zyraToast(`${habit.emoji} ${habit.name}: ${MILESTONES[streak]}${_whyExtra}`, "success", 6000);
+    }
+    // New personal best streak?
+    const isNewRecord = _updateHabitBestStreak(id, streak);
+    if (isNewRecord && streak > 1 && !MILESTONES[streak] && habit) {
+      setTimeout(() => zyraToast(`${habit.emoji} ${habit.name}: ¡Nuevo récord personal — ${streak} días seguidos! 🏅`, "success", 5000), 400);
     }
     // All habits done for today?
     const _allH = getHabits();
@@ -19021,6 +19186,7 @@ function renderHabitsTracker(el) {
   const habitRows = habits.map(h => {
     const done = isHabitDone(h.id);
     const streak = getHabitStreak(h.id);
+    const best = getHabitBestStreak(h.id);
     const dots = last7.map(d => {
       const dd = isHabitDone(h.id, d.toDateString());
       const label = dayLabels[d.getDay()];
@@ -19036,7 +19202,7 @@ function renderHabitsTracker(el) {
         <div style="flex:1;min-width:0">
           <div style="font-size:14px;font-weight:700;color:${done ? h.color : "var(--text)"};text-decoration:${done ? "line-through" : "none"};transition:color .3s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${h.emoji} ${safeHtml(h.name)}</div>
           ${h.why ? `<div style="font-size:10px;color:var(--text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-style:italic">"${safeHtml(h.why)}"</div>` : ""}
-          <div style="font-size:11px;color:var(--text3);margin-top:2px">${streak > 0 ? "🔥 "+streak+" día"+(streak!==1?"s":"")+" seguido"+(streak!==1?"s":"") : "Empieza hoy"}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;display:flex;align-items:center;gap:8px">${streak > 0 ? `<span>🔥 ${streak} día${streak!==1?"s":""}</span>` : `<span>Empieza hoy</span>`}${best > 1 && streak < best ? `<span style="color:rgba(251,191,36,.7);font-size:10px">🏅 Récord: ${best}d</span>` : best > 1 && streak >= best ? `<span style="color:#fbbf24;font-size:10px;font-weight:700">🏆 ¡Récord!</span>` : ""}</div>
         </div>
         <button onclick="deleteHabit('${h.id}')" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:4px;border-radius:8px;opacity:.5" title="Eliminar hábito">🗑</button>
       </div>
