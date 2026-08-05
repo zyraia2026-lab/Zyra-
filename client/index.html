@@ -2085,6 +2085,9 @@ async function b2bSubmitContact() {
   <!-- ══ SPRINT SEMANAL IA ══ -->
   <div id="ai-sprint-wrap" style="display:none;margin-bottom:20px"></div>
 
+  <!-- ══ PARA TI MAÑANA ══ -->
+  <div id="ptm-wrap" style="display:none;margin-bottom:20px"></div>
+
   <!-- ══ RETO DEL DÍA ══ -->
   <div id="daily-challenge-wrap" style="margin-bottom:28px;display:none">
     <div class="daily-challenge-card">
@@ -2614,6 +2617,9 @@ async function b2bSubmitContact() {
       <div id="journal-tag-cloud-wrap" style="display:none;margin-top:14px;border-top:1px solid var(--border);padding-top:14px"></div>
     </div>
   </div>
+
+  <!-- ══ ANÁLISIS SEMANAL DE DIARIO ══ -->
+  <div id="journal-analysis-wrap" style="display:none;margin-top:16px"></div>
 
   <!-- ══ NOTAS DEL FUTURO ══ -->
   <div class="card" id="future-notes-card" style="margin-top:20px;background:linear-gradient(135deg,rgba(139,92,246,.08),rgba(99,102,241,.04));border:1.5px solid rgba(139,92,246,.2)">
@@ -6518,6 +6524,7 @@ async function loadDashboard() {
     renderCartaZyra(hd.history || [], entries);
     window._dashHistory = hd.history || [];
     loadWeeklySprint();
+    loadParaTiManana();
     // Cache negative streak for notification bell
     const negSC = p.negativeStreakCount || 0;
     if (negSC >= 3) { localStorage.setItem('zyra_neg_streak_count', String(negSC)); showNegativeStreakBanner(negSC); }
@@ -8390,6 +8397,7 @@ async function loadJournal() {
     if (favBtn && _journalFavFilter) { favBtn.textContent = "⭐ Favoritas"; favBtn.style.color = "#f59e0b"; favBtn.style.borderColor = "#f59e0b"; }
     renderJournal(_journalAllEntries);
     renderJournalStreak(_journalAllEntries);
+    renderJournalAnalysis(_journalAllEntries);
     setTimeout(renderJournalTagCloud, 100);
   }
   catch(e) { if(el) el.innerHTML = `<div class="empty" style="color:var(--danger)">⚠ ${safeHtml(e.message||"Error al cargar el diario")}</div>`; }
@@ -8413,6 +8421,118 @@ function renderJournalStreak(entries) {
   }
 }
 let _journalSortAsc = false;
+
+function renderJournalAnalysis(entries) {
+  const wrap = document.getElementById("journal-analysis-wrap");
+  if (!wrap || entries.length < 5) { if (wrap) wrap.style.display = "none"; return; }
+  wrap.style.display = "block";
+
+  // Emotion frequency
+  const emoFreq = {};
+  entries.forEach(e => { if (e.emotion) emoFreq[e.emotion] = (emoFreq[e.emotion] || 0) + 1; });
+  const topEmos = Object.entries(emoFreq).sort((a,b) => b[1]-a[1]).slice(0,3);
+  const EMO_ICONS = { feliz:"😊",tranquilo:"😌",motivado:"⚡",ansioso:"😰",triste:"😔",agotado:"😴",enojado:"😤",esperanzado:"🌟",confundido:"🤔",nostalgico:"🎞️" };
+  const DAYS_ES = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+
+  // Most active writing day
+  const dayCount = [0,0,0,0,0,0,0];
+  let totalWords = 0;
+  entries.forEach(e => {
+    dayCount[new Date(e.createdAt).getDay()]++;
+    totalWords += (e.content || "").trim().split(/\s+/).filter(Boolean).length;
+  });
+  const bestDayIdx = dayCount.indexOf(Math.max(...dayCount));
+  const avgWords = Math.round(totalWords / entries.length);
+
+  // Trend: compare avg positivity of last 7 vs previous 7
+  const POSITIVE = new Set(["feliz","tranquilo","motivado","esperanzado"]);
+  const recent7 = entries.slice(0, 7);
+  const prev7 = entries.slice(7, 14);
+  const posRate = arr => arr.length ? arr.filter(e => POSITIVE.has(e.emotion)).length / arr.length : 0;
+  const trendDiff = posRate(recent7) - posRate(prev7);
+  const trendIcon = trendDiff > 0.1 ? "📈" : trendDiff < -0.1 ? "📉" : "〰️";
+  const trendLabel = trendDiff > 0.1 ? "mejorando" : trendDiff < -0.1 ? "bajando" : "estable";
+
+  const cacheKey = `zyra_janalysis_${_getWeekKey()}`;
+
+  wrap.innerHTML = `
+  <div style="background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.05));border:1.5px solid rgba(139,92,246,.18);border-radius:18px;overflow:hidden">
+    <div style="padding:13px 16px 11px;display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:18px">✦</span>
+        <div>
+          <div style="font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.6px">Zyra analiza tu diario</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:1px">${entries.length} entradas registradas</div>
+        </div>
+      </div>
+      <button onclick="_journalAnalysisToggle()" id="janalysis-toggle-btn" style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);color:var(--accent);border-radius:10px;padding:5px 11px;font-size:11px;font-weight:700;cursor:pointer">Ver análisis</button>
+    </div>
+    <div id="janalysis-body" style="display:none;padding:0 16px 14px;border-top:1px solid rgba(139,92,246,.12)">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:11px">
+        <div style="flex:1;min-width:120px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px">
+          <div style="font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Top emociones</div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            ${topEmos.map(([emo, cnt]) => {
+              const pct = Math.round(cnt / entries.length * 100);
+              return `<div style="display:flex;align-items:center;gap:6px">
+                <span style="font-size:14px">${EMO_ICONS[emo]||"•"}</span>
+                <div style="flex:1;background:rgba(99,102,241,.1);border-radius:20px;height:5px;overflow:hidden">
+                  <div style="height:100%;background:var(--accent);border-radius:20px;width:${pct}%"></div>
+                </div>
+                <span style="font-size:10px;color:var(--text3);min-width:28px;text-align:right">${pct}%</span>
+              </div>`;
+            }).join("")}
+          </div>
+        </div>
+        <div style="flex:1;min-width:120px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px">
+          <div style="font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Patrón</div>
+          <div style="font-size:12px;color:var(--text);margin-bottom:4px">📅 Escribes más los <strong>${DAYS_ES[bestDayIdx]}</strong></div>
+          <div style="font-size:12px;color:var(--text);margin-bottom:4px">📝 Promedio <strong>${avgWords} palabras</strong> por entrada</div>
+          <div style="font-size:12px;color:var(--text)">${trendIcon} Tendencia emocional: <strong>${trendLabel}</strong></div>
+        </div>
+      </div>
+      <div id="janalysis-ai-wrap" style="margin-top:10px">
+        ${localStorage.getItem(cacheKey) ? _renderJournalAIInsight(localStorage.getItem(cacheKey)) : `<button onclick="_generateJournalAIInsight()" style="width:100%;background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(139,92,246,.1));border:1.5px dashed rgba(139,92,246,.3);color:var(--accent);border-radius:12px;padding:10px;font-size:12px;font-weight:700;cursor:pointer">✦ Generar insight personal de Zyra</button>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+function _journalAnalysisToggle() {
+  const body = document.getElementById("janalysis-body");
+  const btn = document.getElementById("janalysis-toggle-btn");
+  if (!body || !btn) return;
+  const open = body.style.display === "none";
+  body.style.display = open ? "block" : "none";
+  btn.textContent = open ? "Ocultar" : "Ver análisis";
+}
+
+function _renderJournalAIInsight(text) {
+  return `<div style="background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(139,92,246,.07));border:1px solid rgba(139,92,246,.2);border-radius:12px;padding:11px 13px;display:flex;align-items:flex-start;gap:9px">
+    <img src="${LOGO}" style="width:26px;height:26px;border-radius:50%;flex-shrink:0" alt="Zyra">
+    <div style="font-size:12px;color:var(--text);line-height:1.6">${safeHtml(text)}</div>
+  </div>`;
+}
+
+async function _generateJournalAIInsight() {
+  const wrap = document.getElementById("janalysis-ai-wrap");
+  if (!wrap) return;
+  const entries = _journalAllEntries || [];
+  wrap.innerHTML = `<div style="text-align:center;padding:10px;font-size:12px;color:var(--text3)">✦ Zyra está leyendo tu diario…</div>`;
+  try {
+    const sample = entries.slice(0, 10).map(e => `${e.emotion ? "["+e.emotion+"] " : ""}${(e.content||"").substring(0,120)}`).join("\n---\n");
+    const r = await api("/chat", "POST", { message: `Eres Zyra, IA de bienestar emocional. Has leído las últimas entradas del diario personal de ${user?.name || "este usuario"}. Aquí están algunas:
+
+${sample}
+
+Da una observación personal, cálida y perceptiva de máx 45 palabras. Menciona algo específico que hayas notado — un patrón emocional, un tema recurrente, o una fortaleza. No menciones que eres IA. Habla directamente a la persona.`, noSave: true });
+    const insight = (r.response || r.message || "").trim();
+    if (insight) {
+      localStorage.setItem(`zyra_janalysis_${_getWeekKey()}`, insight);
+      wrap.innerHTML = _renderJournalAIInsight(insight);
+    } else { wrap.innerHTML = ""; }
+  } catch(e) { wrap.innerHTML = ""; }
+}
 
 function updateJournalCharCount(textarea) {
   const el = document.getElementById("journal-char-count");
@@ -18457,6 +18577,138 @@ function completeSprintTask() {
   let sprint = null;
   try { sprint = JSON.parse(localStorage.getItem(cacheKey) || "null"); } catch(e) {}
   if (sprint) renderWeeklySprint(sprint);
+}
+
+/* ══════════════════════════════════════════
+   PARA TI MAÑANA
+══════════════════════════════════════════ */
+async function loadParaTiManana() {
+  const wrap = document.getElementById("ptm-wrap");
+  if (!wrap) return;
+  if (new Date().getHours() < 19) { wrap.style.display = "none"; return; }
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+  const cacheKey = `zyra_ptm_${tomorrow.toDateString()}`;
+  const cached = localStorage.getItem(cacheKey);
+  if (cached) {
+    try { renderParaTiManana(JSON.parse(cached)); wrap.style.display = "block"; return; } catch(e) {}
+  }
+  generateParaTiManana();
+}
+
+async function generateParaTiManana(force = false) {
+  const wrap = document.getElementById("ptm-wrap");
+  if (!wrap) return;
+  wrap.style.display = "block";
+  wrap.innerHTML = `<div style="background:linear-gradient(135deg,rgba(15,10,30,.8),rgba(25,15,50,.7));border:1.5px solid rgba(139,92,246,.2);border-radius:20px;padding:18px 20px;animation:pageFade .4s ease">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><span style="font-size:22px">🌙</span><div style="font-size:11px;font-weight:800;color:rgba(139,92,246,.8);text-transform:uppercase;letter-spacing:.8px">Para ti mañana</div></div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="skeleton" style="height:14px;width:80%;border-radius:7px"></div>
+      <div class="skeleton" style="height:14px;width:65%;border-radius:7px"></div>
+      <div class="skeleton" style="height:14px;width:72%;border-radius:7px"></div>
+    </div>
+  </div>`;
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+  const dayNames = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+  const tmrDayName = dayNames[tomorrow.getDay()];
+  const tmrDow = tomorrow.getDay();
+  // Build day-of-week emotion pattern from last 90 days
+  const dayBuckets = {};
+  for (let i = 1; i <= 90; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const emo = localStorage.getItem("zyra_checkin_emotion_" + d.toDateString());
+    if (emo) {
+      const dow = d.getDay();
+      if (!dayBuckets[dow]) dayBuckets[dow] = {};
+      dayBuckets[dow][emo] = (dayBuckets[dow][emo] || 0) + 1;
+    }
+  }
+  let tmrTopEmo = "tranquilo";
+  if (dayBuckets[tmrDow]) {
+    const sorted = Object.entries(dayBuckets[tmrDow]).sort((a,b) => b[1]-a[1]);
+    if (sorted.length) tmrTopEmo = sorted[0][0];
+  }
+  const habits = typeof getHabits === "function" ? getHabits() : [];
+  const streakHabits = habits.filter(h => typeof getHabitStreak === "function" && getHabitStreak(h.id) > 0).map(h => `${h.emoji} ${h.name} (${getHabitStreak(h.id)}d)`).slice(0, 3);
+  const goals = (_goalsAllItems || []).filter(g => !g.completed);
+  let closestGoal = null;
+  if (goals.length) {
+    const withDue = goals.filter(g => g.dueDate).sort((a,b) => new Date(a.dueDate)-new Date(b.dueDate));
+    closestGoal = withDue[0] || goals.sort((a,b) => (a.progress||0)-(b.progress||0))[0];
+  }
+  try {
+    const prompt = `Eres Zyra, IA de bienestar. El usuario está terminando su día y quiere prepararse para mañana (${tmrDayName}).
+Contexto:
+- Emoción que suele tener los ${tmrDayName}s: "${tmrTopEmo}"
+- Hábitos en racha que no quiere romper: ${streakHabits.length ? streakHabits.join(", ") : "ninguno activo aún"}
+- Meta más cercana: ${closestGoal ? `"${closestGoal.title}" al ${closestGoal.progress||0}%` : "ninguna activa"}
+- Nombre del usuario: ${user?.name || ""}
+Responde SOLO con JSON válido, sin texto extra:
+{"forecast":"pronóstico emocional para mañana, máx 18 palabras","habitTip":"consejo corto sobre hábitos mañana, máx 18 palabras","goalNudge":"motivación para la meta, máx 18 palabras","message":"mensaje personal y cálido de Zyra para esta noche, máx 28 palabras"}`;
+    const r = await api("/chat", "POST", { message: prompt, noSave: true });
+    let parsed = null;
+    try {
+      const raw = (r.response || r.message || "").trim();
+      const jsonStr = raw.startsWith("{") ? raw : raw.match(/\{[\s\S]*\}/)?.[0];
+      if (jsonStr) parsed = JSON.parse(jsonStr);
+    } catch(e) {}
+    if (!parsed) {
+      parsed = {
+        forecast: `Los ${tmrDayName}s tiendes a sentirte ${tmrTopEmo}. Saberlo ya es una ventaja.`,
+        habitTip: streakHabits.length ? `Tienes ${streakHabits.length} hábito${streakHabits.length!==1?"s":""} en racha — mañana es otro día de mantenerlos.` : "Mañana es un buen día para retomar algún hábito.",
+        goalNudge: closestGoal ? `"${closestGoal.title.substring(0,35)}" te espera. Un paso mañana suma.` : "Cada día que avanzas, algo cambia.",
+        message: "Duerme bien esta noche. Mañana tienes otra oportunidad, y yo estaré aquí. — Zyra"
+      };
+    }
+    parsed.tmrDayName = tmrDayName;
+    parsed.tmrTopEmo = tmrTopEmo;
+    localStorage.setItem(`zyra_ptm_${tomorrow.toDateString()}`, JSON.stringify(parsed));
+    renderParaTiManana(parsed);
+  } catch(e) { wrap.style.display = "none"; }
+}
+
+function renderParaTiManana(data) {
+  const wrap = document.getElementById("ptm-wrap");
+  if (!wrap) return;
+  const EMOJIS = { feliz:"😊", tranquilo:"😌", motivado:"⚡", ansioso:"😰", triste:"😔", agotado:"😴", enojado:"😤", esperanzado:"🌟", confundido:"🤔", nostalgico:"🎞️" };
+  const emoEmoji = EMOJIS[data.tmrTopEmo] || "🌙";
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+  const dayNames = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+  const tmrDayName = data.tmrDayName || dayNames[tomorrow.getDay()];
+  wrap.innerHTML = `
+  <div style="background:linear-gradient(135deg,rgba(10,8,28,.9),rgba(20,12,48,.9),rgba(28,14,58,.85));border:1.5px solid rgba(139,92,246,.22);border-radius:20px;overflow:hidden;animation:pageFade .5s ease">
+    <div style="background:linear-gradient(90deg,rgba(139,92,246,.08),transparent);padding:13px 17px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:9px">
+          <span style="font-size:20px">🌙</span>
+          <div>
+            <div style="font-size:10px;font-weight:800;color:rgba(167,139,250,.85);text-transform:uppercase;letter-spacing:.8px">Para ti mañana</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.4);text-transform:capitalize;margin-top:1px">${safeHtml(tmrDayName)}</div>
+          </div>
+        </div>
+        <button onclick="generateParaTiManana(true)" style="background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.18);color:rgba(167,139,250,.65);border-radius:10px;padding:5px 10px;font-size:10px;cursor:pointer;font-weight:600">↻</button>
+      </div>
+    </div>
+    <div style="padding:0 17px 15px;display:flex;flex-direction:column;gap:9px">
+      <div style="display:flex;gap:9px;flex-wrap:wrap">
+        <div style="flex:1;min-width:130px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:9px 11px">
+          <div style="font-size:9px;font-weight:800;color:rgba(167,139,250,.55);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${emoEmoji} Pronóstico</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.72);line-height:1.5">${safeHtml(data.forecast || "")}</div>
+        </div>
+        <div style="flex:1;min-width:130px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:9px 11px">
+          <div style="font-size:9px;font-weight:800;color:rgba(167,139,250,.55);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">🔥 Hábitos</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.72);line-height:1.5">${safeHtml(data.habitTip || "")}</div>
+        </div>
+      </div>
+      ${data.goalNudge ? `<div style="background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:9px 11px">
+        <div style="font-size:9px;font-weight:800;color:rgba(167,139,250,.55);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">🎯 Meta</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.72);line-height:1.5">${safeHtml(data.goalNudge)}</div>
+      </div>` : ""}
+      <div style="border-top:1px solid rgba(255,255,255,.06);padding-top:9px;display:flex;align-items:flex-start;gap:9px">
+        <img src="${LOGO}" style="width:24px;height:24px;border-radius:50%;flex-shrink:0;opacity:.8" alt="Zyra">
+        <div style="font-size:12px;color:rgba(255,255,255,.55);line-height:1.5;font-style:italic">"${safeHtml(data.message || "Buenas noches. Mañana es una nueva oportunidad. — Zyra")}"</div>
+      </div>
+    </div>
+  </div>`;
 }
 
 /* ══════════════════════════════════════════
