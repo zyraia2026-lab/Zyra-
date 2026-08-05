@@ -8086,8 +8086,20 @@ async function quickGoalProgress(id, pct) {
     if (idx >= 0) _goalsAllItems[idx] = updated.goal;
     renderGoalsStats(_goalsAllItems);
     filterGoalsCat(_goalsCurrentFilter);
-    if (pct === 100) zyraToast("🎉 ¡Meta al 100%! Márcala como completada cuando estés listo.", "success", 4000);
-    else zyraToast(`Progreso actualizado a ${pct}% ✓`, "success");
+    const prevPct = goal.progress || 0;
+    const _GOAL_MILESTONES = {
+      25: "🌱 ¡25%! Ya arrancaste — lo difícil ya pasó.",
+      50: "⚡ ¡Mitad del camino! Vas a llegar.",
+      75: "🔥 ¡75%! Ya casi está — no pares ahora.",
+      100: "🏆 ¡100%! Márcala como completada cuando quieras.",
+    };
+    if (_GOAL_MILESTONES[pct] && pct > prevPct) {
+      zyraToast(`${_GOAL_MILESTONES[pct]} "${goal.title.substring(0,30)}"`, "success", 5000);
+      if (pct >= 75) { for(let i=0;i<(pct===100?20:8);i++) setTimeout(launchConfetti, i*80); }
+      if (navigator.vibrate) navigator.vibrate(pct === 100 ? [50,30,80,30,100] : [40,20,60]);
+    } else {
+      zyraToast(`Progreso actualizado a ${pct}% ✓`, "success");
+    }
   } catch(e) { zyraToast(e.message, "error"); }
 }
 async function addGoalNoteClient(goalId) {
