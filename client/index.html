@@ -18618,7 +18618,10 @@ function toggleHabitDone(id) {
     const habit = getHabits().find(h => h.id === id);
     const streak = getHabitStreak(id);
     const MILESTONES = { 7:"🔥 ¡7 días! Eso es disciplina de verdad.", 14:"🌟 ¡2 semanas! Ya lo tienes en la sangre.", 21:"💎 ¡21 días! Esto ya es parte de ti.", 30:"🏆 ¡30 días seguidos! Eso no lo hace cualquiera." };
-    if (MILESTONES[streak] && habit) zyraToast(`${habit.emoji} ${habit.name}: ${MILESTONES[streak]}`, "success", 5000);
+    if (MILESTONES[streak] && habit) {
+      const _whyExtra = habit.why ? ` — "${habit.why}"` : "";
+      zyraToast(`${habit.emoji} ${habit.name}: ${MILESTONES[streak]}${_whyExtra}`, "success", 6000);
+    }
     // All habits done for today?
     const _allH = getHabits();
     if (_allH.length >= 2 && _allH.every(h => !!localStorage.getItem(getHabitKey(h.id)))) {
@@ -18683,31 +18686,125 @@ function addHabitPrompt() {
       <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px">
         ${available.map(o => `<button onclick="addHabitQuick('${o.emoji.replace(/'/g,"&#39;")}','${o.name.replace(/'/g,"&#39;")}','${o.color}')" style="background:rgba(99,102,241,.07);border:1px solid var(--border);border-radius:20px;color:var(--text);font-size:12px;padding:6px 12px;cursor:pointer">${safeHtml(o.emoji)} ${safeHtml(o.name)}</button>`).join("")}
       </div>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:8px;margin-bottom:8px">
         <input id="habit-custom-inp" placeholder="O escribe el nombre..." maxlength="30" style="flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;padding:8px 12px;outline:none" onkeydown="if(event.key==='Enter')addHabitCustom()"/>
         <button onclick="addHabitCustom()" style="background:var(--accent);border:none;color:#fff;border-radius:10px;padding:8px 14px;font-size:13px;cursor:pointer;font-weight:700">+</button>
       </div>
-      <button onclick="document.getElementById('habit-add-panel').innerHTML=''" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer;margin-top:8px">Cancelar</button>
+      <input id="habit-why-inp" placeholder="¿Por qué quieres este hábito? (opcional)" maxlength="60" style="width:100%;box-sizing:border-box;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:12px;padding:7px 12px;outline:none;margin-bottom:8px"/>
+      <button onclick="document.getElementById('habit-add-panel').innerHTML=''" style="background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer">Cancelar</button>
     </div>`;
 }
 
-function addHabitQuick(emoji, name, color) {
+function addHabitQuick(emoji, name, color, why) {
   const habits = getHabits();
   if (habits.length >= 12) return zyraToast("Máximo 12 hábitos", "error");
-  habits.push({ id: "h_" + Date.now(), name, emoji, color });
+  const habit = { id: "h_" + Date.now(), name, emoji, color };
+  if (why) habit.why = why;
+  habits.push(habit);
   saveHabits(habits);
   const panel = document.getElementById("habit-add-panel");
   if (panel) panel.innerHTML = "";
+  const sp = document.getElementById("habit-suggest-panel");
+  if (sp) sp.style.display = "none";
   renderHabitsTracker(document.getElementById("wellness-content"));
   zyraToast("Hábito añadido — a darle 💪", "success");
 }
 
 function addHabitCustom() {
   const inp = document.getElementById("habit-custom-inp");
+  const why = document.getElementById("habit-why-inp")?.value.trim() || "";
   if (!inp) return;
   const name = inp.value.trim();
   if (!name) return zyraToast("Escribe el nombre del hábito", "error");
-  addHabitQuick("⭐", name, "#6366f1");
+  addHabitQuick("⭐", name, "#6366f1", why || undefined);
+}
+
+function toggleHabitSuggest() {
+  const panel = document.getElementById("habit-suggest-panel");
+  const btn = document.getElementById("habit-suggest-btn");
+  if (!panel) return;
+  if (panel.style.display !== "none") {
+    panel.style.display = "none";
+    if (btn) btn.style.background = "rgba(139,92,246,.1)";
+    return;
+  }
+  panel.style.display = "";
+  if (btn) { btn.style.background = "rgba(139,92,246,.2)"; btn.textContent = "✨ Cargando..."; btn.disabled = true; }
+  suggestHabitsAI();
+}
+
+async function suggestHabitsAI() {
+  const panel = document.getElementById("habit-suggest-panel");
+  const btn = document.getElementById("habit-suggest-btn");
+  if (!panel) return;
+
+  const SUGGEST_KEY = "zyra_habit_suggestions_" + new Date().toLocaleDateString("es",{year:"numeric",month:"2-digit",week:"2-digit"}).replace(/\//g,"-");
+  const cached = localStorage.getItem(SUGGEST_KEY);
+  if (cached) {
+    try { _renderHabitSuggestions(panel, JSON.parse(cached)); if (btn) { btn.textContent = "✨ Ideas IA"; btn.disabled = false; } return; } catch(e) {}
+  }
+
+  const current = getHabits();
+  const emo = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString()) || "neutral";
+  const allTriggers = getAllTriggers?.() || [];
+  const topTrigger = allTriggers.length ? (Object.entries(allTriggers.reduce((a,t)=>{a[t.trigger]=(a[t.trigger]||0)+1;return a;},{}) || {}).sort((x,y)=>y[1]-x[1])[0]?.[0] || null) : null;
+
+  const prompt = `Eres Zyra, asistente de bienestar. Sugiere exactamente 3 hábitos diarios PERSONALIZADOS para este usuario.
+
+Contexto:
+- Emoción frecuente: ${emo}
+${topTrigger ? `- Detonante emocional principal: ${topTrigger}` : ""}
+- Hábitos actuales: ${current.length ? current.map(h=>h.name).join(", ") : "ninguno"}
+
+Reglas:
+- NO sugieras hábitos que ya tiene
+- Sé específico/a y práctico/a (ej: "Caminar 10 min al mediodía" NO "Hacer ejercicio")
+- Cada sugerencia incluye: emoji, nombre corto (max 25 chars), color hex, y una razón breve (max 60 chars) de por qué le ayudaría
+- Responde SOLO con JSON array, sin texto extra:
+[{"emoji":"🚶","name":"Caminar 10 min","color":"#10b981","why":"Despeja la mente y da energía"}]`;
+
+  try {
+    const d = await api("/chat", "POST", { message: prompt, history: [], noSave: true, mode: "habit_suggest" });
+    const raw = d?.reply || "[]";
+    const match = raw.match(/\[[\s\S]*?\]/);
+    const suggestions = match ? JSON.parse(match[0]) : [];
+    if (suggestions.length) {
+      localStorage.setItem(SUGGEST_KEY, JSON.stringify(suggestions));
+      _renderHabitSuggestions(panel, suggestions);
+    } else {
+      panel.innerHTML = `<p style="font-size:12px;color:var(--text3);text-align:center;padding:12px">No pude generar sugerencias ahora. Intenta más tarde.</p>`;
+    }
+  } catch(e) {
+    panel.innerHTML = `<p style="font-size:12px;color:var(--text3);text-align:center;padding:12px">Error al cargar sugerencias.</p>`;
+  }
+  if (btn) { btn.textContent = "✨ Ideas IA"; btn.disabled = false; btn.style.background = "rgba(139,92,246,.2)"; }
+}
+
+function _renderHabitSuggestions(panel, suggestions) {
+  const current = getHabits();
+  panel.innerHTML = `
+    <div style="background:linear-gradient(135deg,rgba(139,92,246,.07),rgba(99,102,241,.04));border:1.5px solid rgba(139,92,246,.22);border-radius:16px;padding:14px 16px">
+      <div style="font-size:12px;font-weight:700;color:#a78bfa;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+        <img src="${LOGO}" alt="Zyra" style="width:18px;height:18px;border-radius:50%"> Zyra recomienda para ti
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${suggestions.map(s => {
+          const alreadyHas = current.find(h => h.name.toLowerCase() === (s.name||"").toLowerCase());
+          return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px">
+            <span style="font-size:22px;flex-shrink:0">${s.emoji || "⭐"}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:700;color:var(--text)">${safeHtml(s.name || "")}</div>
+              ${s.why ? `<div style="font-size:11px;color:var(--text3);margin-top:2px;font-style:italic">"${safeHtml(s.why)}"</div>` : ""}
+            </div>
+            ${alreadyHas
+              ? `<span style="font-size:11px;color:var(--text3);flex-shrink:0">✓ ya tienes</span>`
+              : `<button onclick="addHabitQuick('${(s.emoji||'⭐').replace(/'/g,"&#39;")}','${(s.name||'').replace(/'/g,"&#39;")}','${s.color||'#6366f1'}','${(s.why||'').replace(/'/g,"&#39;")}')" style="background:linear-gradient(135deg,${s.color||'#6366f1'},${s.color||'#8b5cf6'});border:none;color:#fff;border-radius:10px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap">+ Añadir</button>`
+            }
+          </div>`;
+        }).join("")}
+      </div>
+      <p style="font-size:11px;color:var(--text3);margin:10px 0 0;text-align:center">Basado en tus patrones emocionales y hábitos actuales</p>
+    </div>`;
 }
 
 function deleteHabit(id) {
@@ -18743,6 +18840,7 @@ function renderHabitsTracker(el) {
         <button onclick="toggleHabitDone('${h.id}')" style="width:36px;height:36px;border-radius:50%;border:2.5px solid ${h.color};background:${done ? h.color : "transparent"};font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .25s;flex-shrink:0;color:${done ? "#fff" : h.color}">${done ? "✓" : h.emoji}</button>
         <div style="flex:1;min-width:0">
           <div style="font-size:14px;font-weight:700;color:${done ? h.color : "var(--text)"};text-decoration:${done ? "line-through" : "none"};transition:color .3s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${h.emoji} ${safeHtml(h.name)}</div>
+          ${h.why ? `<div style="font-size:10px;color:var(--text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-style:italic">"${safeHtml(h.why)}"</div>` : ""}
           <div style="font-size:11px;color:var(--text3);margin-top:2px">${streak > 0 ? "🔥 "+streak+" día"+(streak!==1?"s":"")+" seguido"+(streak!==1?"s":"") : "Empieza hoy"}</div>
         </div>
         <button onclick="deleteHabit('${h.id}')" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:4px;border-radius:8px;opacity:.5" title="Eliminar hábito">🗑</button>
@@ -18774,7 +18872,11 @@ function renderHabitsTracker(el) {
       ${habitRows || '<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">Ningún hábito todavía. El primero es el que más cuesta.</div>'}
     </div>
     <div id="habit-add-panel"></div>
-    <button onclick="addHabitPrompt()" style="width:100%;background:rgba(99,102,241,.08);border:1.5px dashed var(--accent);color:var(--accent);border-radius:14px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;margin-top:4px">+ Añadir hábito</button>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button onclick="addHabitPrompt()" style="flex:1;background:rgba(99,102,241,.08);border:1.5px dashed var(--accent);color:var(--accent);border-radius:14px;padding:12px;font-size:13px;font-weight:700;cursor:pointer">+ Añadir hábito</button>
+      <button onclick="toggleHabitSuggest()" id="habit-suggest-btn" style="background:rgba(139,92,246,.1);border:1.5px solid rgba(139,92,246,.3);color:#a78bfa;border-radius:14px;padding:12px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap" title="Zyra sugiere hábitos personalizados">✨ Ideas IA</button>
+    </div>
+    <div id="habit-suggest-panel" style="display:none;margin-top:12px"></div>
     ${completedToday === habits.length && habits.length > 0 ? '<div style="text-align:center;margin-top:16px;padding:14px;background:linear-gradient(135deg,rgba(16,185,129,.1),rgba(99,102,241,.1));border:1px solid rgba(16,185,129,.25);border-radius:16px"><div style="font-size:20px;margin-bottom:4px">🎉</div><div style="font-size:14px;font-weight:700;color:#10b981">Todos los hábitos de hoy — listos.</div><div style="font-size:12px;color:var(--text3);margin-top:4px">Eso no es poco. Ya está en ti.</div></div>' : ""}
   </div>`;
   if (completedToday === habits.length && habits.length > 0) {
