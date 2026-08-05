@@ -11368,6 +11368,7 @@ function _updateChatSearchNav() {
 
 const _CMD_AUTOCOMPLETE = [
   { cmd:"/respirar",     icon:"🫁", desc:"Ejercicio de respiración guiado" },
+  { cmd:"/desahogo",     icon:"💭", desc:"Modo desahogo — escribe libremente, Zyra escucha" },
   { cmd:"/reflexion",    icon:"🌙", desc:"Sesión de reflexión en 4 preguntas" },
   { cmd:"/grounding",    icon:"🌿", desc:"Técnica 5-4-3-2-1 para el presente" },
   { cmd:"/afirmacion",   icon:"💫", desc:"Afirmación positiva al azar" },
@@ -12165,6 +12166,76 @@ async function _cierreSave(answers) {
   }
 }
 
+/* ── Modo Desahogo ── */
+let _desahogoMode = false;
+let _desahogoMsgs = [];
+const _DESAHOGO_ACKS = [
+  "Te escucho.", "Eso pesa.", "Sigue, aquí estoy.", "Entiendo.", "Qué difícil.",
+  "Cuéntame más.", "Estoy contigo.", "Eso es mucho.", "Lo veo.", "Aquí estoy."
+];
+let _desahogoAckIdx = 0;
+
+function _desahogoStart() {
+  _desahogoMode = true; _desahogoMsgs = []; _desahogoAckIdx = 0;
+  const inp = document.getElementById("chat-input");
+  if (inp) inp.placeholder = "Escribe lo que sientes... (escribe 'listo' cuando termines)";
+  addBotMsg(`💭 **Modo Desahogo activado.**\n\nEstoy aquí contigo — sin juicios, sin consejos por ahora.\n\nEscríbeme todo lo que sientes. Cuando termines, escribe **listo** y te doy mi reflexión.`);
+}
+
+function _desahogoHandleAnswer(msg) {
+  addUserMsg(msg);
+  const clean = msg.toLowerCase().trim();
+  if (clean === "listo" || clean === "/salir" || _desahogoMsgs.length >= 8) {
+    _desahogoEnd();
+    return;
+  }
+  _desahogoMsgs.push(msg);
+  const ack = _DESAHOGO_ACKS[_desahogoAckIdx % _DESAHOGO_ACKS.length];
+  _desahogoAckIdx++;
+  setTimeout(() => addBotMsg(ack), 600);
+}
+
+async function _desahogoEnd() {
+  _desahogoMode = false;
+  const inp = document.getElementById("chat-input");
+  if (inp) inp.placeholder = "Cuéntame lo que sea... · /ayuda para comandos";
+  if (!_desahogoMsgs.length) { addBotMsg("No escribiste nada — y eso también está bien. Aquí estaré cuando quieras."); return; }
+  setTimeout(() => addBotMsg("*Procesando lo que compartiste...*"), 400);
+  try {
+    const combined = _desahogoMsgs.join("\n\n");
+    const prompt = `El usuario acaba de compartir esto en modo desahogo libre (sin presión de respuesta):\n\n"${combined}"\n\nDa una reflexión compasiva de 3-4 oraciones que:\n1. Valide lo que siente sin minimizar\n2. Nombre algo específico de lo que escribió (demuestra que leíste)\n3. Deje una sola pregunta suave o pensamiento para que lleve consigo\nTono: cálido, real, sin platitudes. Sin listar pasos ni dar consejos.`;
+    const d = await api("/chat", "POST", { message: prompt, history: [], noSave: true, mode: "desahogo_close" });
+    const reply = (d.reply || d.response || d.message || "").trim();
+    setTimeout(() => {
+      addBotMsg(`💙 ${reply || "Gracias por compartir esto conmigo. Lo que sientes importa — y tiene sentido."}`);
+    }, 1200);
+    // Optional: offer to save to journal
+    setTimeout(() => {
+      const div = document.createElement("div");
+      div.className = "msg bot";
+      div.innerHTML = `<div class="msg-av bot"><img src="${LOGO}" alt="Zyra"/></div><div class="msg-bubble"><div style="font-size:13px;color:var(--text2);margin-bottom:10px">¿Guardamos esto en tu diario?</div><div style="display:flex;gap:8px"><button onclick="_desahogoSave()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;border-radius:10px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">💾 Sí, guardar</button><button onclick="this.closest('.msg').remove()" style="background:transparent;border:1px solid var(--border);color:var(--text3);border-radius:10px;padding:7px 14px;font-size:12px;cursor:pointer">No, gracias</button></div></div>`;
+      const msgs = document.getElementById("chat-msgs");
+      if (msgs) { msgs.appendChild(div); msgs.scrollTop = msgs.scrollHeight; }
+    }, 3200);
+  } catch(e) {
+    addBotMsg("Gracias por compartir esto conmigo. Aquí estoy siempre que lo necesites.");
+  }
+}
+
+async function _desahogoSave() {
+  document.querySelectorAll(".msg.bot").forEach(m => { if (m.querySelector("button") && m.querySelector("[onclick*='_desahogoSave']")) m.remove(); });
+  const date = new Date().toLocaleDateString("es-CO",{weekday:"long",day:"numeric",month:"long"});
+  const content = _desahogoMsgs.join("\n\n");
+  const emotion = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString()) || "tranquilo";
+  try {
+    await api("/journal","POST",{ title:`Desahogo — ${date}`, content, emotion });
+    localStorage.setItem("zyra_journal_saved_" + new Date().toDateString(), "1");
+    triggerMission && triggerMission("write_journal");
+    addBotMsg("✅ Guardado en tu diario. Solo tú puedes leerlo.");
+    zyraToast("📔 Desahogo guardado", "success");
+  } catch(e) { addBotMsg("No pude guardarlo ahora. Intenta de nuevo desde tu diario."); }
+}
+
 /* ── In-chat breathing exercise ── */
 let _breathTimer = null;
 function _breathChatStart() {
@@ -12268,10 +12339,12 @@ async function sendMsg() {
   const msg = inp.value.trim(); if (!msg) return;
   if (_reflMode) { inp.value = ""; onInput(); _reflHandleAnswer(msg); return; }
   if (_cierreMode) { inp.value = ""; onInput(); _cierreHandleAnswer(msg); return; }
+  if (_desahogoMode) { inp.value = ""; onInput(); _desahogoHandleAnswer(msg); return; }
   // Slash commands — instant local actions
   if (msg.startsWith("/")) {
     const cmd = msg.toLowerCase().replace(/^\//, "").trim();
     inp.value = ""; onInput();
+    if (cmd === "desahogo") { _desahogoStart(); return; }
     if (cmd === "respirar" || cmd === "respiracion" || cmd === "respiración") { _breathChatStart(); return; }
     // /emocion [nombre] — registra la emoción del día desde el chat
     if (cmd.startsWith("emocion") || cmd.startsWith("emoción")) {
@@ -12434,7 +12507,7 @@ async function sendMsg() {
     }
     if (cmd === "cierre" || cmd === "cerrar" || cmd === "noche") { _cierreStart(); inp.value = ""; localStorage.removeItem("zyra_chat_draft"); onInput(); return; }
     if (cmd === "ayuda" || cmd === "help" || cmd === "?") {
-      addBotMsg(`Estos son los comandos que puedes usar:\n\n🧭 NAVEGAR\n/inicio · /diario · /metas · /analitica · /perfil · /juegos\n\n🌿 BIENESTAR\n/respirar · /enfoque · /sueno · /habitos · /agua · /gratitud · /musica\n\n💬 CHAT\n/afirmacion · /inspiracion · /reflexion · /grounding · /nota · /plan · /nuevo · /comovoy · /resumen\n\n🌙 RITUAL\n/cierre — ritual de cierre del día (3 preguntas + Zyra lo guarda)\n\n✦ RÁPIDO\n/emocion [nombre] — registra cómo te sientes (ej: /emocion feliz)\n\nEscribe cualquiera y lo activo.`);
+      addBotMsg(`Estos son los comandos que puedes usar:\n\n🧭 NAVEGAR\n/inicio · /diario · /metas · /analitica · /perfil · /juegos\n\n🌿 BIENESTAR\n/respirar · /enfoque · /sueno · /habitos · /agua · /gratitud · /musica\n\n💬 CHAT\n/afirmacion · /inspiracion · /reflexion · /grounding · /nota · /plan · /nuevo · /comovoy · /resumen\n\n💭 MODO DESAHOGO\n/desahogo — escribe libremente sin interrupciones, Zyra te escucha y da una reflexión al final\n\n🌙 RITUAL\n/cierre — ritual de cierre del día (3 preguntas + Zyra lo guarda)\n\n✦ RÁPIDO\n/emocion [nombre] — registra cómo te sientes (ej: /emocion feliz)\n\nEscribe cualquiera y lo activo.`);
       return;
     }
     // Unknown command — show hint
@@ -20083,6 +20156,7 @@ const _CMD_ITEMS = [
   { group:"Acción", icon:"😊", bg:"rgba(99,102,241,.15)", label:"Registrar emoción", sub:"¿Cómo te sientes ahora?", action:()=>openQuickEmotion() },
   { group:"Acción", icon:"🫁", bg:"rgba(99,102,241,.15)", label:"Respiración guiada", sub:"Ejercicio 4-4-6 en el chat", action:()=>{ showPage("assistant"); setTimeout(_breathChatStart, 300); } },
   { group:"Acción", icon:"✍️", bg:"rgba(16,185,129,.15)", label:"Nota rápida", sub:"Escribir sin guardar aún", action:()=>openQuickNote() },
+  { group:"Acción", icon:"💭", bg:"rgba(139,92,246,.15)", label:"Modo Desahogo", sub:"Escribe libremente, Zyra escucha", action:()=>{ showPage("assistant"); setTimeout(_desahogoStart, 300); } },
   { group:"Acción", icon:"🌙", bg:"rgba(139,92,246,.15)", label:"Reflexión guiada", sub:"4 preguntas de introspección", action:()=>{ showPage("assistant"); setTimeout(_reflStart, 300); } },
   { group:"Acción", icon:"🔥", bg:"rgba(245,158,11,.15)", label:"Mi racha", sub:"Ver progreso gamificado", action:()=>{ showPage("games"); setTimeout(()=>document.getElementById("tab-games")?.click(), 200); } },
   { group:"Acción", icon:"📊", bg:"rgba(59,130,246,.15)", label:"Reporte semanal", sub:"Resumen con IA de tu semana", action:()=>showPage("weekly-report") },
