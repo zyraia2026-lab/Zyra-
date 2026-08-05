@@ -2846,6 +2846,9 @@ async function b2bSubmitContact() {
     </div>
   </div>
 
+  <!-- ══ HUELLA DE BIENESTAR ══ -->
+  <div id="prof-fingerprint-card" style="display:none;margin-bottom:20px"></div>
+
   <!-- ══ LOGROS + TIENDA ══ -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
     <button onclick="openAchievements()" class="card" style="text-align:center;padding:18px;cursor:pointer;border:none;transition:transform .15s;display:block" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
@@ -5952,7 +5955,109 @@ async function loadProfile() {
 
     // Cuentas conectadas
     renderConnectedAccounts(ud.user);
+    // Huella de Bienestar
+    renderWellnessFingerprint(p);
   } catch(e) { console.error("loadProfile error:", e); }
+}
+
+function renderWellnessFingerprint(profile) {
+  const card = document.getElementById("prof-fingerprint-card");
+  if (!card) return;
+
+  // Gather last 30 days of emotion data from localStorage
+  const EMOTION_COLOR = { feliz:"#22c55e", tranquilo:"#0ea5e9", motivado:"#6366f1", esperanzado:"#a78bfa", confundido:"#f59e0b", ansioso:"#f97316", agotado:"#94a3b8", triste:"#60a5fa", enojado:"#ef4444", nostalgico:"#e879f9" };
+  const EMOTION_EMOJI = { feliz:"😊", tranquilo:"😌", motivado:"💪", esperanzado:"🌟", confundido:"🤔", ansioso:"😰", agotado:"😮‍💨", triste:"😢", enojado:"😤", nostalgico:"🌅" };
+  const POSITIVE = new Set(["feliz","tranquilo","motivado","esperanzado"]);
+  const DAYS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+
+  const emoFreq = {};
+  const dayBuckets = Array.from({length:7}, () => ({pos:0, total:0}));
+  const today = new Date();
+  let activeDays = 0;
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    const emo = localStorage.getItem("zyra_checkin_emotion_" + d.toDateString());
+    if (emo) { emoFreq[emo] = (emoFreq[emo] || 0) + 1; activeDays++; dayBuckets[d.getDay()].total++; if (POSITIVE.has(emo)) dayBuckets[d.getDay()].pos++; }
+  }
+  if (activeDays < 3) { card.style.display = "none"; return; }
+
+  const sorted = Object.entries(emoFreq).sort((a,b) => b[1]-a[1]);
+  const topEmo = sorted[0]?.[0] || "tranquilo";
+  const topColor = EMOTION_COLOR[topEmo] || "#6366f1";
+  const topEmoji = EMOTION_EMOJI[topEmo] || "💙";
+  const totalLogs = Object.values(emoFreq).reduce((s,v)=>s+v,0);
+  const positiveCount = sorted.filter(([e]) => POSITIVE.has(e)).reduce((s,[,v])=>s+v, 0);
+  const positivityPct = totalLogs > 0 ? Math.round((positiveCount / totalLogs) * 100) : 0;
+
+  // Best day of week
+  const bestDay = dayBuckets.map((b,i) => ({...b,i})).filter(b=>b.total>=2).sort((a,b) => (b.pos/b.total) - (a.pos/a.total))[0];
+
+  // Mini SVG fingerprint — unique wavy bars representing emotion mix
+  const RADAR_EMOS = ["feliz","tranquilo","motivado","esperanzado","ansioso","triste","agotado","enojado"];
+  const total = totalLogs || 1;
+  const radarPoints = RADAR_EMOS.map(e => Math.min(1, (emoFreq[e] || 0) / total * 4));
+  const CX = 48, CY = 48, R = 38;
+  const pts = radarPoints.map((v, i) => {
+    const angle = (i / RADAR_EMOS.length) * Math.PI * 2 - Math.PI / 2;
+    const r = 8 + v * (R - 8);
+    return [CX + r * Math.cos(angle), CY + r * Math.sin(angle)];
+  });
+  const polygon = pts.map(([x,y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+  const axisSvg = RADAR_EMOS.map((_, i) => {
+    const angle = (i / RADAR_EMOS.length) * Math.PI * 2 - Math.PI / 2;
+    return `<line x1="${CX}" y1="${CY}" x2="${(CX + R * Math.cos(angle)).toFixed(1)}" y2="${(CY + R * Math.sin(angle)).toFixed(1)}" stroke="rgba(255,255,255,.08)" stroke-width="1"/>`;
+  }).join("");
+  const dotSvg = pts.map(([x,y], i) => {
+    const col = EMOTION_COLOR[RADAR_EMOS[i]] || "#6366f1";
+    return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="${col}" opacity=".9"/>`;
+  }).join("");
+
+  const svgFingerprint = `<svg width="96" height="96" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+    ${[0.25,0.5,0.75,1].map(scale => `<circle cx="${CX}" cy="${CY}" r="${(R*scale).toFixed(1)}" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="1"/>`).join("")}
+    ${axisSvg}
+    <defs><radialGradient id="fpGrad" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="${topColor}" stop-opacity=".7"/><stop offset="100%" stop-color="${topColor}" stop-opacity=".15"/></radialGradient></defs>
+    <polygon points="${polygon}" fill="url(#fpGrad)" stroke="${topColor}" stroke-width="1.5" opacity=".9"/>
+    ${dotSvg}
+  </svg>`;
+
+  // Habit best overall streak
+  const habits = typeof getHabits === "function" ? getHabits() : [];
+  const habitBests = habits.map(h => getHabitBestStreak(h.id));
+  const allTimeBest = habitBests.length ? Math.max(...habitBests) : 0;
+
+  card.style.display = "block";
+  card.innerHTML = `<div style="background:linear-gradient(135deg,rgba(15,15,25,.7),rgba(30,25,60,.8));border:1.5px solid rgba(99,102,241,.3);border-radius:24px;padding:20px 22px;position:relative;overflow:hidden">
+    <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,${topColor}22,transparent);pointer-events:none"></div>
+    <div style="font-size:10px;font-weight:800;color:${topColor};text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;opacity:.9">✦ Mi huella de bienestar</div>
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <div style="flex-shrink:0">${svgFingerprint}</div>
+      <div style="flex:1;min-width:140px">
+        <div style="font-size:11px;color:rgba(255,255,255,.5);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Estado dominante (30 días)</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <span style="font-size:24px">${topEmoji}</span>
+          <span style="font-size:18px;font-weight:800;color:${topColor};text-transform:capitalize">${topEmo}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="background:rgba(255,255,255,.05);border-radius:10px;padding:8px 10px">
+            <div style="font-size:18px;font-weight:900;color:#fff">${positivityPct}%</div>
+            <div style="font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.3px">Positividad</div>
+          </div>
+          <div style="background:rgba(255,255,255,.05);border-radius:10px;padding:8px 10px">
+            <div style="font-size:18px;font-weight:900;color:#fff">${activeDays}</div>
+            <div style="font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.3px">Días activos</div>
+          </div>
+          ${bestDay ? `<div style="background:rgba(255,255,255,.05);border-radius:10px;padding:8px 10px">
+            <div style="font-size:13px;font-weight:900;color:#fff">${DAYS[bestDay.i]}</div>
+            <div style="font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.3px">Mejor día</div>
+          </div>` : ""}
+          ${allTimeBest > 1 ? `<div style="background:rgba(255,255,255,.05);border-radius:10px;padding:8px 10px">
+            <div style="font-size:13px;font-weight:900;color:#fbbf24">${allTimeBest}d</div>
+            <div style="font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.3px">Récord racha</div>
+          </div>` : ""}
+        </div>
+      </div>
+    </div>
+  </div>`;
 }
 
 function renderConnectedAccounts(u) {
