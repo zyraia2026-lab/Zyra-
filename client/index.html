@@ -4880,6 +4880,12 @@ function renderAnalytics(d, el) {
     }).join("")}</div>
   </div>` : ""}
 
+  <!-- Radar emocional -->
+  <div id="analytics-radar-card" style="margin-bottom:20px"></div>
+
+  <!-- Comparación mensual -->
+  <div id="analytics-monthly-compare-card" style="margin-bottom:20px"></div>
+
   <!-- Check-in histórico local (14 días) -->
   <div id="analytics-checkin-history-card" style="margin-bottom:20px"></div>
 
@@ -4923,7 +4929,196 @@ function renderAnalytics(d, el) {
 
 </div>`;
   // Render local cards after HTML is set
-  setTimeout(() => { renderCheckinHistory(); renderHabitAnalytics(); renderEmotionHeatmap(d); renderSleepEmotionCorrelation(d); renderStreakMap(activityDates || []); renderWellnessLevers(d); renderTriggerInsights(); }, 0);
+  setTimeout(() => { renderEmotionRadar(d); renderMonthlyComparison(d); renderCheckinHistory(); renderHabitAnalytics(); renderEmotionHeatmap(d); renderSleepEmotionCorrelation(d); renderStreakMap(activityDates || []); renderWellnessLevers(d); renderTriggerInsights(); }, 0);
+}
+
+function renderEmotionRadar(analyticsData) {
+  const card = document.getElementById("analytics-radar-card");
+  if (!card) return;
+  const emotionHist = analyticsData?.profile?.emotionHistory || [];
+  if (emotionHist.length < 5) { card.innerHTML = ""; return; }
+
+  const AXES = [
+    { key:"feliz",       label:"Feliz",       color:"#22c55e" },
+    { key:"tranquilo",   label:"Calma",        color:"#0ea5e9" },
+    { key:"motivado",    label:"Motivación",   color:"#6366f1" },
+    { key:"esperanzado", label:"Esperanza",    color:"#a78bfa" },
+    { key:"nostalgico",  label:"Nostalgia",    color:"#e879f9" },
+    { key:"confundido",  label:"Confusión",    color:"#f59e0b" },
+    { key:"agotado",     label:"Agotamiento",  color:"#94a3b8" },
+    { key:"ansioso",     label:"Ansiedad",     color:"#f97316" },
+    { key:"enojado",     label:"Enojo",        color:"#ef4444" },
+    { key:"triste",      label:"Tristeza",     color:"#60a5fa" },
+  ];
+
+  const freq = {};
+  emotionHist.forEach(h => { if (h.emotion) freq[h.emotion] = (freq[h.emotion] || 0) + 1; });
+  const maxFreq = Math.max(1, ...Object.values(freq));
+  const values = AXES.map(a => (freq[a.key] || 0) / maxFreq);
+
+  const SIZE = 240, CX = SIZE/2, CY = SIZE/2, R = 90, LABEL_R = 108;
+  const N = AXES.length;
+  const angle = i => (i * 2 * Math.PI / N) - Math.PI / 2;
+  const px = (r, i) => CX + r * Math.cos(angle(i));
+  const py = (r, i) => CY + r * Math.sin(angle(i));
+
+  // Concentric rings
+  const rings = [0.25, 0.5, 0.75, 1].map(t =>
+    `<polygon points="${AXES.map((_,i) => `${px(R*t,i)},${py(R*t,i)}`).join(" ")}" fill="none" stroke="var(--border)" stroke-width="1" opacity="${0.4+t*0.2}"/>`
+  ).join("");
+
+  // Axis lines
+  const axisLines = AXES.map((_,i) =>
+    `<line x1="${CX}" y1="${CY}" x2="${px(R,i)}" y2="${py(R,i)}" stroke="var(--border)" stroke-width="1" opacity=".5"/>`
+  ).join("");
+
+  // Data polygon
+  const dataPoints = AXES.map((_,i) => `${px(R*values[i],i)},${py(R*values[i],i)}`).join(" ");
+  const fillColor = "rgba(99,102,241,0.18)";
+  const strokeColor = "#6366f1";
+
+  // Axis labels
+  const labels = AXES.map((a,i) => {
+    const lx = px(LABEL_R, i);
+    const ly = py(LABEL_R, i);
+    const anchor = lx < CX - 10 ? "end" : lx > CX + 10 ? "start" : "middle";
+    const hasVal = values[i] > 0.05;
+    return `<text x="${lx}" y="${ly}" text-anchor="${anchor}" dominant-baseline="middle" style="font-size:9px;fill:${hasVal ? a.color : 'var(--text3)'};font-weight:${hasVal?700:400}">${a.label}</text>`;
+  }).join("");
+
+  // Dots on data polygon
+  const dots = AXES.map((a,i) => values[i] > 0
+    ? `<circle cx="${px(R*values[i],i)}" cy="${py(R*values[i],i)}" r="${values[i] > 0.3 ? 5 : 3}" fill="${a.color}" stroke="var(--bg)" stroke-width="1.5" opacity=".9"/>`
+    : ""
+  ).join("");
+
+  // Top emotion insight
+  const topEmo = AXES.reduce((a,b) => (freq[b.key]||0) > (freq[a.key]||0) ? b : a, AXES[0]);
+  const topCount = freq[topEmo.key] || 0;
+  const pct = Math.round(topCount / emotionHist.length * 100);
+
+  card.innerHTML = `<div class="card">
+    <div class="card-header">
+      <span class="card-title">🕸️ Tu perfil emocional</span>
+      <span style="font-size:11px;color:var(--text3)">${emotionHist.length} registros</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <div style="flex-shrink:0">
+        <svg viewBox="0 0 ${SIZE} ${SIZE}" width="${SIZE}" height="${SIZE}" style="display:block;overflow:visible">
+          <defs>
+            <radialGradient id="radar-grd" cx="50%" cy="50%">
+              <stop offset="0%" stop-color="#6366f1" stop-opacity=".35"/>
+              <stop offset="100%" stop-color="#8b5cf6" stop-opacity=".08"/>
+            </radialGradient>
+          </defs>
+          ${rings}${axisLines}
+          <polygon points="${dataPoints}" fill="url(#radar-grd)" stroke="${strokeColor}" stroke-width="2" stroke-linejoin="round"/>
+          ${dots}${labels}
+        </svg>
+      </div>
+      <div style="flex:1;min-width:140px">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">Tu emoción más frecuente</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <div style="width:10px;height:10px;border-radius:50%;background:${topEmo.color};flex-shrink:0"></div>
+          <div style="font-size:15px;font-weight:800;color:${topEmo.color}">${topEmo.label}</div>
+          <div style="font-size:12px;color:var(--text3)">${pct}%</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          ${AXES.filter(a => (freq[a.key]||0) > 0).sort((a,b)=>(freq[b.key]||0)-(freq[a.key]||0)).slice(0,4).map(a => {
+            const v = (freq[a.key]||0)/emotionHist.length;
+            return `<div style="display:flex;align-items:center;gap:6px">
+              <div style="font-size:10px;color:${a.color};width:62px;white-space:nowrap;font-weight:600">${a.label}</div>
+              <div style="flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden"><div style="height:100%;width:${Math.round(v*100)}%;background:${a.color};border-radius:3px;opacity:.8"></div></div>
+              <div style="font-size:10px;color:var(--text3);min-width:24px;text-align:right">${Math.round(v*100)}%</div>
+            </div>`;
+          }).join("")}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderMonthlyComparison(analyticsData) {
+  const card = document.getElementById("analytics-monthly-compare-card");
+  if (!card) return;
+  const emotionHist = analyticsData?.profile?.emotionHistory || [];
+  if (emotionHist.length < 5) { card.innerHTML = ""; return; }
+
+  const POSITIVE = new Set(["feliz","tranquilo","esperanzado","motivado"]);
+  const now = new Date();
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthEnd   = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+  const thisMoHist = emotionHist.filter(h => new Date(h.date) >= thisMonthStart);
+  const lastMoHist = emotionHist.filter(h => { const d = new Date(h.date); return d >= lastMonthStart && d <= lastMonthEnd; });
+
+  if (!lastMoHist.length) { card.innerHTML = ""; return; }
+
+  const posRate = arr => arr.length ? Math.round(arr.filter(h => POSITIVE.has(h.emotion)).length / arr.length * 100) : 0;
+  const thisMo = {
+    entries: thisMoHist.length,
+    positivity: posRate(thisMoHist),
+    journal: (() => { let n=0; for(let i=0;i<31;i++){const d=new Date(now);d.setDate(now.getDate()-i);if(d<thisMonthStart)break;if(localStorage.getItem("zyra_journal_saved_"+d.toDateString()))n++;} return n; })(),
+    habits: (() => { let done=0,total=0; const habits=getHabits(); for(let i=0;i<31;i++){const d=new Date(now);d.setDate(now.getDate()-i);if(d<thisMonthStart)break;total+=habits.length;done+=habits.filter(h=>isHabitDone(h.id,d.toDateString())).length;} return total?Math.round(done/total*100):0; })(),
+  };
+  const lastMo = {
+    entries: lastMoHist.length,
+    positivity: posRate(lastMoHist),
+    journal: (() => { let n=0; for(let i=0;i<31;i++){const d=new Date(lastMonthEnd);d.setDate(lastMonthEnd.getDate()-i);if(d<lastMonthStart)break;if(localStorage.getItem("zyra_journal_saved_"+d.toDateString()))n++;} return n; })(),
+    habits: (() => { let done=0,total=0; const habits=getHabits(); for(let i=0;i<31;i++){const d=new Date(lastMonthEnd);d.setDate(lastMonthEnd.getDate()-i);if(d<lastMonthStart)break;total+=habits.length;done+=habits.filter(h=>isHabitDone(h.id,d.toDateString())).length;} return total?Math.round(done/total*100):0; })(),
+  };
+
+  const MONTHS = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  const thisName = MONTHS[now.getMonth()];
+  const lastName = MONTHS[(now.getMonth()-1+12)%12];
+
+  function delta(curr, prev, suffix="") {
+    const diff = curr - prev;
+    const sign = diff > 0 ? "+" : "";
+    const col = diff > 0 ? "#10b981" : diff < 0 ? "#ef4444" : "var(--text3)";
+    const arrow = diff > 0 ? "↑" : diff < 0 ? "↓" : "=";
+    return { diff, sign, col, arrow, text: `${sign}${diff}${suffix}` };
+  }
+
+  const metrics = [
+    { label:"Check-ins", icon:"😊", curr:thisMo.entries, prev:lastMo.entries, suffix:"" },
+    { label:"Positividad", icon:"✨", curr:thisMo.positivity, prev:lastMo.positivity, suffix:"%" },
+    { label:"Journaling", icon:"📔", curr:thisMo.journal, prev:lastMo.journal, suffix:" días" },
+    { label:"Hábitos", icon:"✅", curr:thisMo.habits, prev:lastMo.habits, suffix:"%" },
+  ];
+
+  const rows = metrics.map(m => {
+    const d = delta(m.curr, m.prev, m.suffix);
+    const hasData = m.curr > 0 || m.prev > 0;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:18px;flex-shrink:0">${m.icon}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${m.label}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:1px">${lastName}: <strong>${m.prev}${m.suffix}</strong></div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:16px;font-weight:800;color:var(--text)">${m.curr}${m.suffix}</div>
+        ${hasData && m.diff !== 0 ? `<div style="font-size:11px;font-weight:700;color:${d.col}">${d.arrow} ${d.text}</div>` : `<div style="font-size:11px;color:var(--text3)">—</div>`}
+      </div>
+    </div>`;
+  }).join("");
+
+  const overallDelta = (thisMo.entries - lastMo.entries) + (thisMo.positivity - lastMo.positivity)/10 + (thisMo.journal - lastMo.journal) + (thisMo.habits - lastMo.habits)/10;
+  const summary = overallDelta > 1
+    ? `📈 ${thisName.charAt(0).toUpperCase()+thisName.slice(1)} va mejor que ${lastName}.`
+    : overallDelta < -1
+    ? `${thisName.charAt(0).toUpperCase()+thisName.slice(1)} está siendo más desafiante que ${lastName}.`
+    : `Este mes va similar a ${lastName}. La consistencia ya es un logro.`;
+
+  card.innerHTML = `<div class="card">
+    <div class="card-header">
+      <span class="card-title">📅 Este mes vs el anterior</span>
+      <span style="font-size:11px;color:var(--text3)">${thisName} · al día ${now.getDate()}</span>
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin:0 0 4px;line-height:1.6">${summary}</p>
+    ${rows}
+  </div>`;
 }
 
 function renderCheckinHistory() {
