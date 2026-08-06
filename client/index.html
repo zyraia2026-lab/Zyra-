@@ -11769,9 +11769,26 @@ function addBotMsg(text, ts, cards) {
     });
     cHTML += '</div>';
   }
+  // Detect contextual action chips based on keywords in Zyra's message
+  const _lowerText = text.toLowerCase();
+  const _chips = [];
+  if (/respira|respiraci[oó]n|inhala|exhala/.test(_lowerText) && !_espejoMode)
+    _chips.push({icon:"🫁", label:"Respirar ahora", action:"_breathChatStart()"});
+  if (/diario|escr[ií]b/.test(_lowerText) && !_espejoMode)
+    _chips.push({icon:"📔", label:"Abrir diario", action:"showPage('journal');setTimeout(toggleJournalForm,300)"});
+  if (/h[aá]bito/.test(_lowerText))
+    _chips.push({icon:"✅", label:"Ver hábitos", action:"showPage('wellness');setTimeout(()=>openWellness('habits'),100)"});
+  if (/medita|mindfulness/.test(_lowerText))
+    _chips.push({icon:"🧘", label:"Meditar ahora", action:"showPage('wellness');setTimeout(()=>openWellness('meditation'),100)"});
+  if (/gratitud/.test(_lowerText))
+    _chips.push({icon:"🙏", label:"Anotar gratitud", action:"showPage('wellness');setTimeout(()=>openWellness('gratitude'),100)"});
+  if (/meta[s ]|objetivo/.test(_lowerText))
+    _chips.push({icon:"🎯", label:"Mis metas", action:"showPage('goals')"});
+  const _chipsHtml = _chips.length && !cards?.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">${_chips.map(c=>`<button onclick="${c.action}" style="background:rgba(99,102,241,.09);border:1px solid rgba(99,102,241,.2);color:var(--accent);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(99,102,241,.16)'" onmouseout="this.style.background='rgba(99,102,241,.09)'">${c.icon} ${c.label}</button>`).join("")}</div>` : "";
   div.innerHTML = `<div class="msg-av bot"><img src="${LOGO}" alt="Zyra"/></div>
     <div class="msg-bubble">
       ${renderMarkdown(text)}
+      ${_chipsHtml}
       ${cHTML}
       <div class="msg-actions">
         <span class="msg-time">${time}</span>
