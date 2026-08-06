@@ -2869,6 +2869,9 @@ async function b2bSubmitContact() {
   <!-- ══ ZYRA TE OBSERVA ══ -->
   <div id="prof-zyra-observa-card" style="display:none;margin-bottom:20px"></div>
 
+  <!-- ══ MI MANIFIESTO ══ -->
+  <div id="prof-manifiesto-card" style="margin-bottom:20px"></div>
+
   <!-- ══ LOGROS + TIENDA ══ -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
     <button onclick="openAchievements()" class="card" style="text-align:center;padding:18px;cursor:pointer;border:none;transition:transform .15s;display:block" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
@@ -6042,6 +6045,8 @@ async function loadProfile() {
     renderStrengthCard(p, gd, jd);
     // Zyra te observa — patrones de comportamiento
     renderZyraObservaCard(p, gd, jd);
+    // Manifiesto personal
+    renderManifiesto();
   } catch(e) { console.error("loadProfile error:", e); }
 }
 
@@ -6375,6 +6380,135 @@ async function _generateObservaAI() {
       }
     }
   } catch(e) { if(btn){btn.disabled=false;btn.textContent="🔭 Zyra: analiza mis patrones";btn.style.opacity="1";} }
+}
+
+const _MANIFIESTO_QS = [
+  { id:"valor",    q:"¿Cuál es el valor más importante en tu vida ahora mismo?",  ph:"Ej: la honestidad, la familia, la libertad..." },
+  { id:"miedo",    q:"¿Qué es lo que más temes perder o no lograr?",               ph:"Ej: perder mi salud, no ser suficiente..." },
+  { id:"recuerdo", q:"¿Cómo quieres ser recordado/a por las personas que amas?",  ph:"Ej: como alguien que estuvo presente, que fue valiente..." },
+  { id:"habito",   q:"¿Qué un solo hábito cambiaría más tu vida?",                ph:"Ej: dormir bien, meditar cada mañana..." },
+  { id:"futuro",   q:"¿Qué le dirías a tu yo de dentro de 5 años?",               ph:"Ej: valió la pena, confía en el proceso..." },
+];
+let _manifiestoAnswers = {};
+let _manifiestoStep = 0;
+
+function renderManifiesto() {
+  const card = document.getElementById("prof-manifiesto-card");
+  if (!card) return;
+  const saved = localStorage.getItem("zyra_manifiesto");
+  if (saved) {
+    card.innerHTML = `
+      <div style="background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(99,102,241,.07));border:1.5px solid rgba(139,92,246,.25);border-radius:20px;padding:20px 22px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#6366f1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📜</div>
+            <div>
+              <div style="font-size:13px;font-weight:800;color:var(--text)">Mi Manifiesto Personal</div>
+              <div style="font-size:11px;color:var(--text3)">Tu declaración de bienestar</div>
+            </div>
+          </div>
+          <button onclick="_manifiestoReset()" style="background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;padding:4px 8px;border-radius:8px;border:1px solid var(--border)">↺ Renovar</button>
+        </div>
+        <div id="manifiesto-text" style="font-size:13px;color:var(--text);line-height:1.9;font-style:italic;white-space:pre-wrap;border-left:3px solid #8b5cf6;padding-left:14px">${safeHtml(saved)}</div>
+        <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+          <button onclick="navigator.clipboard?.writeText(localStorage.getItem('zyra_manifiesto')||'').then(()=>zyraToast('📜 Manifiesto copiado','success'))" style="background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.3);color:#8b5cf6;border-radius:10px;padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer">📋 Copiar</button>
+          <button onclick="_manifiestoShare()" style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);color:#10b981;border-radius:10px;padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer">📤 Compartir</button>
+        </div>
+      </div>`;
+    return;
+  }
+  card.innerHTML = `
+    <div style="background:linear-gradient(135deg,rgba(139,92,246,.08),rgba(99,102,241,.05));border:1.5px solid rgba(139,92,246,.2);border-radius:20px;padding:20px 22px;text-align:center">
+      <div style="font-size:32px;margin-bottom:10px">📜</div>
+      <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px">Tu Manifiesto Personal</div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:16px">5 preguntas · Zyra escribe tu declaración de bienestar personal · 3 minutos</div>
+      <button onclick="_manifiestoStart()" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;border-radius:14px;padding:12px 28px;font-size:13px;font-weight:700;cursor:pointer">✨ Crear mi manifiesto</button>
+    </div>`;
+}
+
+function _manifiestoStart() {
+  _manifiestoAnswers = {}; _manifiestoStep = 0;
+  _manifiestoRenderStep();
+}
+
+function _manifiestoReset() {
+  if (!confirm("¿Crear un nuevo manifiesto? Se reemplazará el anterior.")) return;
+  localStorage.removeItem("zyra_manifiesto");
+  _manifiestoStart();
+}
+
+function _manifiestoRenderStep() {
+  const card = document.getElementById("prof-manifiesto-card");
+  if (!card) return;
+  const q = _MANIFIESTO_QS[_manifiestoStep];
+  const total = _MANIFIESTO_QS.length;
+  const pct = Math.round((_manifiestoStep / total) * 100);
+  card.innerHTML = `
+    <div style="background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(99,102,241,.07));border:1.5px solid rgba(139,92,246,.25);border-radius:20px;padding:20px 22px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <div style="font-size:10px;font-weight:700;color:#8b5cf6;text-transform:uppercase;letter-spacing:.5px">📜 Mi Manifiesto · Pregunta ${_manifiestoStep+1} de ${total}</div>
+      </div>
+      <div style="height:4px;background:var(--border);border-radius:99px;margin-bottom:16px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#8b5cf6,#6366f1);border-radius:99px;transition:width .4s"></div>
+      </div>
+      <div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:12px;line-height:1.4">${q.q}</div>
+      <textarea id="manifiesto-answer" placeholder="${q.ph}" style="width:100%;min-height:80px;background:var(--surface);border:1.5px solid rgba(139,92,246,.3);border-radius:14px;color:var(--text);font-size:13px;padding:12px 14px;outline:none;font-family:inherit;resize:vertical;box-sizing:border-box;transition:border-color .2s" onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor='rgba(139,92,246,.3)'">${_manifiestoAnswers[q.id]||""}</textarea>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        ${_manifiestoStep > 0 ? `<button onclick="_manifiestoBack()" style="background:var(--surface);border:1.5px solid var(--border);color:var(--text2);border-radius:12px;padding:11px 20px;font-size:13px;cursor:pointer">← Atrás</button>` : ""}
+        <button onclick="_manifiestoNext('${q.id}')" style="flex:1;background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;border-radius:12px;padding:11px 20px;font-size:14px;font-weight:700;cursor:pointer">${_manifiestoStep === total-1 ? "✨ Crear mi manifiesto" : "Siguiente →"}</button>
+      </div>
+    </div>`;
+  setTimeout(() => document.getElementById("manifiesto-answer")?.focus(), 100);
+}
+
+function _manifiestoBack() {
+  const q = _MANIFIESTO_QS[_manifiestoStep];
+  const val = (document.getElementById("manifiesto-answer")?.value || "").trim();
+  if (val) _manifiestoAnswers[q.id] = val;
+  _manifiestoStep--;
+  _manifiestoRenderStep();
+}
+
+async function _manifiestoNext(id) {
+  const val = (document.getElementById("manifiesto-answer")?.value || "").trim();
+  if (!val) { zyraToast("Escribe algo antes de continuar 💙", "info"); return; }
+  _manifiestoAnswers[id] = val;
+  _manifiestoStep++;
+  if (_manifiestoStep < _MANIFIESTO_QS.length) { _manifiestoRenderStep(); return; }
+  // Generate
+  const card = document.getElementById("prof-manifiesto-card");
+  if (card) card.innerHTML = `<div style="text-align:center;padding:30px 20px;background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(99,102,241,.07));border:1.5px solid rgba(139,92,246,.25);border-radius:20px">
+    <div style="width:24px;height:24px;border:2px solid rgba(139,92,246,.3);border-top-color:#8b5cf6;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px"></div>
+    <div style="font-size:13px;color:var(--text3)">Zyra está creando tu manifiesto personal…</div>
+  </div>`;
+
+  const name = user?.name?.split(" ")[0] || "tú";
+  const sysPrompt = `Eres un escritor de manifestos personales inspirado en la filosofía estoica y el bienestar emocional. A partir de las respuestas de ${name}, escribe un manifiesto personal en primera persona (usando "Yo") que sea poderoso, real y específico. Estructura: 5-6 oraciones que fluyen naturalmente. Empieza con "Yo, ${name}..." Sé profundo pero accesible. No pongas título. Solo el texto del manifiesto.`;
+  const userMsg = `Mis respuestas:
+- Lo que más valoro: ${_manifiestoAnswers.valor}
+- Lo que temo perder: ${_manifiestoAnswers.miedo}
+- Cómo quiero ser recordado/a: ${_manifiestoAnswers.recuerdo}
+- El hábito que cambiaría mi vida: ${_manifiestoAnswers.habito}
+- Lo que le diría a mi yo futuro: ${_manifiestoAnswers.futuro}`;
+
+  try {
+    const r = await api("/chat", "POST", { message: userMsg, systemOverride: sysPrompt, noSave: true, mode: "manifiesto" });
+    const text = (r.reply || "").trim();
+    if (!text) throw new Error("empty");
+    localStorage.setItem("zyra_manifiesto", text);
+    renderManifiesto();
+    zyraToast("📜 Tu manifiesto ha sido creado ✨", "success", 3000);
+    launchConfetti?.();
+  } catch(e) {
+    if (card) card.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text3)">No pude generar el manifiesto ahora. <button onclick="_manifiestoStart()" style="color:#8b5cf6;background:none;border:none;cursor:pointer;font-weight:700">Reintentar</button></div>`;
+  }
+}
+
+function _manifiestoShare() {
+  const text = localStorage.getItem("zyra_manifiesto") || "";
+  const full = `📜 Mi manifiesto personal:\n\n${text}\n\n— Escrito con Zyra`;
+  if (navigator.share) navigator.share({ title: "Mi Manifiesto Personal", text: full }).catch(()=>{});
+  else navigator.clipboard?.writeText(full).then(() => zyraToast("Manifiesto copiado 📋", "success"));
 }
 
 function renderConnectedAccounts(u) {
