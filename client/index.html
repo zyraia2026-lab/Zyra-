@@ -13149,11 +13149,12 @@ async function _espejoHandleAnswer(msg) {
   _espejoUserNotes.push(msg);
   _espejoExchanges++;
   if (_espejoExchanges >= 6) { _espejoEnd(false); return; }
-  showTyping(false);
+  showTyping(true);
   const prompt = `Eres Zyra en Modo Espejo — coaching socrático de bienestar emocional. Tu ÚNICA función es hacer preguntas reflexivas que ayuden al usuario a descubrir sus propias respuestas. NUNCA des consejos, soluciones, o afirmaciones. Solo preguntas abiertas. Máximo 2 preguntas por turno. Las preguntas deben profundizar en lo que el usuario acaba de compartir, nombrando algo específico de lo que dijo. Tono: cálido, curioso, presente, sin prisa.\n\nHistorial de la reflexión:\n${_espejoUserNotes.map((n,i)=>`[${i+1}] "${n}"`).join("\n")}\n\nÚltimo mensaje del usuario: "${msg}"\n\nResponde con 1-2 preguntas reflexivas. Sin saludos, sin prefacios.`;
   try {
     const d = await api("/chat","POST",{message:prompt,history:[],noSave:true,mode:"espejo"});
     const reply = (d.reply||d.response||d.message||"").trim();
+    showTyping(false);
     setTimeout(() => {
       addBotMsg(reply || "¿Qué más hay detrás de lo que acabas de decir?");
       if (_espejoExchanges === 5) {
@@ -13161,6 +13162,7 @@ async function _espejoHandleAnswer(msg) {
       }
     }, 600);
   } catch(e) {
+    showTyping(false);
     addBotMsg("¿Qué sientes al escucharte decir eso?");
   }
 }
