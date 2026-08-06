@@ -2855,6 +2855,9 @@ async function b2bSubmitContact() {
   <!-- ══ HUELLA DE BIENESTAR ══ -->
   <div id="prof-fingerprint-card" style="display:none;margin-bottom:20px"></div>
 
+  <!-- ══ FORTALEZAS EMOCIONALES ══ -->
+  <div id="prof-strengths-card" style="display:none;margin-bottom:20px"></div>
+
   <!-- ══ LOGROS + TIENDA ══ -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
     <button onclick="openAchievements()" class="card" style="text-align:center;padding:18px;cursor:pointer;border:none;transition:transform .15s;display:block" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
@@ -6024,6 +6027,8 @@ async function loadProfile() {
     renderConnectedAccounts(ud.user);
     // Huella de Bienestar
     renderWellnessFingerprint(p);
+    // Fortalezas emocionales
+    renderStrengthCard(p, gd, jd);
   } catch(e) { console.error("loadProfile error:", e); }
 }
 
@@ -6124,6 +6129,84 @@ function renderWellnessFingerprint(profile) {
         </div>
       </div>
     </div>
+  </div>`;
+}
+
+function renderStrengthCard(profile, gd, jd) {
+  const card = document.getElementById("prof-strengths-card");
+  if (!card) return;
+
+  // Compute stats
+  const streak = profile.streakDays || 0;
+  const sessions = profile.sessionsCount || 0;
+  const journals = Array.isArray(jd?.entries) ? jd.entries.length : (Array.isArray(jd) ? jd.length : 0);
+  const goals = Array.isArray(gd?.goals) ? gd.goals : (Array.isArray(gd) ? gd : []);
+  const completedGoals = goals.filter(g => g.completed).length;
+  const habits = getHabits();
+  const maxHabitStreak = habits.reduce((max, h) => Math.max(max, typeof getHabitBestStreak === "function" ? getHabitBestStreak(h.id) : 0), 0);
+
+  // Emotion variety (last 30 days)
+  const emoSet = new Set();
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const emo = localStorage.getItem("zyra_checkin_emotion_" + d.toDateString());
+    if (emo) emoSet.add(emo);
+  }
+
+  // Build strengths based on real data
+  const strengths = [];
+
+  if (streak >= 7) {
+    strengths.push({ icon:"🔥", name:"Constancia", desc:`${streak} días seguidos sin parar. Eso no es suerte — es carácter.`, color:"#f97316" });
+  } else if (streak >= 3) {
+    strengths.push({ icon:"🌱", name:"Constancia en construcción", desc:`${streak} días consecutivos. Cada día que apareces, te fortaleces.`, color:"#22c55e" });
+  }
+
+  if (sessions >= 20) {
+    strengths.push({ icon:"🤝", name:"Comprometido contigo", desc:`${sessions} sesiones de bienestar. La relación contigo mismo/a es la más larga que tendrás.`, color:"#6366f1" });
+  }
+
+  if (journals >= 10) {
+    strengths.push({ icon:"✍️", name:"Autoconocimiento profundo", desc:`${journals} entradas de diario. Escribir es una de las formas más honestas de entenderte.`, color:"#8b5cf6" });
+  }
+
+  if (completedGoals >= 1) {
+    strengths.push({ icon:"🏆", name:"Cumplidor/a de metas", desc:`${completedGoals} meta${completedGoals!==1?"s":""} completada${completedGoals!==1?"s":""}. Demostraste que no solo propones — terminas.`, color:"#f59e0b" });
+  }
+
+  if (maxHabitStreak >= 7) {
+    strengths.push({ icon:"⚡", name:"Hábito de élite", desc:`${maxHabitStreak} días seguidos en un hábito. La repetición es la que construye quién eres.`, color:"#ec4899" });
+  }
+
+  if (emoSet.size >= 5) {
+    strengths.push({ icon:"🌈", name:"Inteligencia emocional", desc:`Has registrado ${emoSet.size} emociones distintas este mes. Reconocer la variedad emocional es una habilidad real.`, color:"#0ea5e9" });
+  }
+
+  if (!strengths.length) { card.style.display = "none"; return; }
+
+  card.style.display = "block";
+  const topStrengths = strengths.slice(0, 3);
+  card.innerHTML = `
+  <div style="background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.05));border:1.5px solid rgba(139,92,246,.18);border-radius:18px;padding:16px 18px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+      <span style="font-size:18px">💎</span>
+      <div>
+        <div style="font-size:11px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.6px">Tus fortalezas</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:1px">Lo que Zyra ve en ti</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${topStrengths.map(s => `
+        <div style="display:flex;align-items:flex-start;gap:12px;background:var(--surface);border:1px solid var(--border);border-left:3px solid ${s.color};border-radius:12px;padding:10px 12px">
+          <span style="font-size:20px;flex-shrink:0">${s.icon}</span>
+          <div>
+            <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:3px">${safeHtml(s.name)}</div>
+            <div style="font-size:11px;color:var(--text3);line-height:1.5">${safeHtml(s.desc)}</div>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+    ${strengths.length > 3 ? `<div style="text-align:center;margin-top:10px;font-size:11px;color:var(--text3)">+${strengths.length-3} fortaleza${strengths.length-3!==1?"s":""} más identificada${strengths.length-3!==1?"s":""}</div>` : ""}
   </div>`;
 }
 
