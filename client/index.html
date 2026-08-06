@@ -12233,6 +12233,7 @@ function _updateChatSearchNav() {
 
 const _CMD_AUTOCOMPLETE = [
   { cmd:"/respirar",     icon:"🫁", desc:"Ejercicio de respiración guiado" },
+  { cmd:"/espejo",       icon:"🔭", desc:"Modo Espejo — coaching socrático, Zyra te pregunta" },
   { cmd:"/desahogo",     icon:"💭", desc:"Modo desahogo — escribe libremente, Zyra escucha" },
   { cmd:"/reflexion",    icon:"🌙", desc:"Sesión de reflexión en 4 preguntas" },
   { cmd:"/grounding",    icon:"🌿", desc:"Técnica 5-4-3-2-1 para el presente" },
@@ -13102,6 +13103,89 @@ async function _desahogoSave() {
 }
 
 /* ── In-chat breathing exercise ── */
+/* ── Modo Espejo (Socratic coaching) ── */
+let _espejoMode = false, _espejoExchanges = 0, _espejoUserNotes = [];
+
+function _espejoStart() {
+  _espejoMode = true; _espejoExchanges = 0; _espejoUserNotes = [];
+  const inp = document.getElementById("chat-input");
+  if (inp) inp.placeholder = "Comparte lo que quieras explorar... (escribe /salir para terminar)";
+  // Mode banner
+  const msgs = document.getElementById("chat-msgs");
+  if (msgs) {
+    const old = document.getElementById("_espejo-banner");
+    if (old) old.remove();
+    const banner = document.createElement("div");
+    banner.id = "_espejo-banner";
+    banner.style.cssText = "margin:8px 0;padding:8px 14px;background:linear-gradient(135deg,rgba(14,165,233,.12),rgba(99,102,241,.1));border:1px solid rgba(14,165,233,.25);border-radius:12px;font-size:11px;font-weight:700;color:#0ea5e9;text-align:center;letter-spacing:.3px";
+    banner.textContent = "🔭 MODO ESPEJO — Zyra te hace preguntas, tú encuentras tus respuestas";
+    msgs.appendChild(banner);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+  addBotMsg(`🔭 **Modo Espejo activado.**\n\nEn este espacio no voy a darte respuestas — voy a hacerte preguntas que te ayuden a encontrarlas tú mismo/a.\n\nUna pregunta para empezar: **¿Sobre qué te gustaría reflexionar hoy?**`);
+}
+
+async function _espejoHandleAnswer(msg) {
+  addUserMsg(msg);
+  const clean = msg.toLowerCase().trim();
+  if (clean === "/salir" || clean === "salir" || clean === "/espejo") { _espejoEnd(true); return; }
+  _espejoUserNotes.push(msg);
+  _espejoExchanges++;
+  if (_espejoExchanges >= 6) { _espejoEnd(false); return; }
+  showTyping(false);
+  const prompt = `Eres Zyra en Modo Espejo — coaching socrático de bienestar emocional. Tu ÚNICA función es hacer preguntas reflexivas que ayuden al usuario a descubrir sus propias respuestas. NUNCA des consejos, soluciones, o afirmaciones. Solo preguntas abiertas. Máximo 2 preguntas por turno. Las preguntas deben profundizar en lo que el usuario acaba de compartir, nombrando algo específico de lo que dijo. Tono: cálido, curioso, presente, sin prisa.\n\nHistorial de la reflexión:\n${_espejoUserNotes.map((n,i)=>`[${i+1}] "${n}"`).join("\n")}\n\nÚltimo mensaje del usuario: "${msg}"\n\nResponde con 1-2 preguntas reflexivas. Sin saludos, sin prefacios.`;
+  try {
+    const d = await api("/chat","POST",{message:prompt,history:[],noSave:true,mode:"espejo"});
+    const reply = (d.reply||d.response||d.message||"").trim();
+    setTimeout(() => {
+      addBotMsg(reply || "¿Qué más hay detrás de lo que acabas de decir?");
+      if (_espejoExchanges === 5) {
+        setTimeout(() => addBotMsg("Hemos explorado bastante juntos/as. Escribe **listo** cuando quieras que te dé una síntesis, o sigue explorando."), 1500);
+      }
+    }, 600);
+  } catch(e) {
+    addBotMsg("¿Qué sientes al escucharte decir eso?");
+  }
+}
+
+async function _espejoEnd(manual) {
+  _espejoMode = false;
+  const banner = document.getElementById("_espejo-banner");
+  if (banner) banner.remove();
+  const inp = document.getElementById("chat-input");
+  if (inp) inp.placeholder = "Cuéntame lo que sea... · /ayuda para comandos";
+  if (!_espejoUserNotes.length) { addBotMsg("El espejo queda abierto cuando lo necesites. 💙"); return; }
+  setTimeout(() => addBotMsg("🔭 *Cerrando el Modo Espejo — procesando tu reflexión...*"), 400);
+  try {
+    const combined = _espejoUserNotes.map((n,i)=>`[${i+1}] ${n}`).join("\n");
+    const prompt = `El usuario acaba de hacer una sesión de reflexión socrática. Compartió esto:\n\n${combined}\n\nHaz una síntesis en 3-5 oraciones que:\n1. Nombre el tema central que exploró\n2. Señale una observación o patrón que nota\n3. Ofrezca UNA pregunta para llevar consigo (no respondas — es para que sigan reflexionando después)\nTono: cálido, perceptivo, no condescendiente. Habla en segunda persona.`;
+    const d = await api("/chat","POST",{message:prompt,history:[],noSave:true,mode:"espejo_close"});
+    const reply = (d.reply||d.response||d.message||"").trim();
+    setTimeout(() => {
+      addBotMsg(`💙 **Síntesis de tu reflexión:**\n\n${reply || "Exploraste algo importante hoy. Sigue cargando esas preguntas contigo."}`);
+      // Offer to save
+      setTimeout(() => {
+        const div = document.createElement("div");
+        div.className = "msg bot";
+        div.innerHTML = `<div class="msg-av bot"><img src="${LOGO}" alt="Zyra"/></div><div class="msg-bubble"><div style="font-size:13px;color:var(--text2);margin-bottom:10px">¿Guardamos tu reflexión en el diario?</div><div style="display:flex;gap:8px"><button onclick="_espejoSave('${encodeURIComponent(combined)}')" style="background:linear-gradient(135deg,#0ea5e9,#6366f1);border:none;color:#fff;border-radius:10px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">💾 Sí, guardar</button><button onclick="this.closest('.msg').remove()" style="background:transparent;border:1px solid var(--border);color:var(--text3);border-radius:10px;padding:7px 14px;font-size:12px;cursor:pointer">No</button></div></div>`;
+        const msgs = document.getElementById("chat-msgs");
+        if (msgs) { msgs.appendChild(div); msgs.scrollTop = msgs.scrollHeight; }
+      }, 2000);
+    }, 1200);
+  } catch(e) { addBotMsg("Gracias por explorar contigo mismo/a hoy. Eso tiene valor. 💙"); }
+}
+
+async function _espejoSave(encodedNotes) {
+  document.querySelectorAll(".msg.bot").forEach(m => { if (m.querySelector("[onclick*='_espejoSave']")) m.remove(); });
+  const text = decodeURIComponent(encodedNotes);
+  const date = new Date().toLocaleDateString("es-CO",{weekday:"long",day:"numeric",month:"long"});
+  const entry = { text:`🔭 Modo Espejo — ${date}\n\n${text}`, emotion:"tranquilo", date:new Date().toISOString() };
+  try {
+    await api("/journal","POST",entry);
+    addBotMsg("✅ Reflexión guardada en tu diario. Volver a leerla tiene mucho valor.");
+  } catch(e) { addBotMsg("No pude guardarlo ahora. Pero está en ti de todas formas."); }
+}
+
 let _breathTimer = null;
 function _breathChatStart() {
   const msgs = document.getElementById("chat-msgs");
@@ -13205,11 +13289,13 @@ async function sendMsg() {
   if (_reflMode) { inp.value = ""; onInput(); _reflHandleAnswer(msg); return; }
   if (_cierreMode) { inp.value = ""; onInput(); _cierreHandleAnswer(msg); return; }
   if (_desahogoMode) { inp.value = ""; onInput(); _desahogoHandleAnswer(msg); return; }
+  if (_espejoMode) { inp.value = ""; localStorage.removeItem("zyra_chat_draft"); onInput(); _espejoHandleAnswer(msg); return; }
   // Slash commands — instant local actions
   if (msg.startsWith("/")) {
     const cmd = msg.toLowerCase().replace(/^\//, "").trim();
     inp.value = ""; onInput();
     if (cmd === "desahogo") { _desahogoStart(); return; }
+    if (cmd === "espejo") { if (_espejoMode) { _espejoEnd(true); } else { _espejoStart(); } return; }
     if (cmd === "respirar" || cmd === "respiracion" || cmd === "respiración") { _breathChatStart(); return; }
     // /emocion [nombre] — registra la emoción del día desde el chat
     if (cmd.startsWith("emocion") || cmd.startsWith("emoción")) {
@@ -13372,7 +13458,7 @@ async function sendMsg() {
     }
     if (cmd === "cierre" || cmd === "cerrar" || cmd === "noche") { _cierreStart(); inp.value = ""; localStorage.removeItem("zyra_chat_draft"); onInput(); return; }
     if (cmd === "ayuda" || cmd === "help" || cmd === "?") {
-      addBotMsg(`Estos son los comandos que puedes usar:\n\n🧭 NAVEGAR\n/inicio · /diario · /metas · /analitica · /perfil · /juegos\n\n🌿 BIENESTAR\n/respirar · /enfoque · /sueno · /habitos · /agua · /gratitud · /musica\n\n💬 CHAT\n/afirmacion · /inspiracion · /reflexion · /grounding · /nota · /plan · /nuevo · /comovoy · /resumen\n\n💭 MODO DESAHOGO\n/desahogo — escribe libremente sin interrupciones, Zyra te escucha y da una reflexión al final\n\n🌙 RITUAL\n/cierre — ritual de cierre del día (3 preguntas + Zyra lo guarda)\n\n✦ RÁPIDO\n/emocion [nombre] — registra cómo te sientes (ej: /emocion feliz)\n\nEscribe cualquiera y lo activo.`);
+      addBotMsg(`Estos son los comandos que puedes usar:\n\n🧭 NAVEGAR\n/inicio · /diario · /metas · /analitica · /perfil · /juegos\n\n🌿 BIENESTAR\n/respirar · /enfoque · /sueno · /habitos · /agua · /gratitud · /musica\n\n💬 CHAT\n/afirmacion · /inspiracion · /reflexion · /grounding · /nota · /plan · /nuevo · /comovoy · /resumen\n\n💭 MODOS ESPECIALES\n/desahogo — escribe libremente, Zyra te escucha sin interrumpir\n/espejo — coaching socrático: Zyra te hace preguntas para que encuentres tus propias respuestas\n\n🌙 RITUAL\n/cierre — ritual de cierre del día (3 preguntas + Zyra lo guarda)\n\n✦ RÁPIDO\n/emocion [nombre] — registra cómo te sientes (ej: /emocion feliz)\n\nEscribe cualquiera y lo activo.`);
       return;
     }
     // Unknown command — show hint
