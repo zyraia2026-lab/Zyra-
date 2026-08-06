@@ -10217,6 +10217,7 @@ async function renderTrends(el) {
 }
 
 function openWellness(tab) {
+  if (window.speechSynthesis && _medTTSPlaying) { speechSynthesis.cancel(); _medTTSPlaying = false; }
   currentWTab = tab;
   ["breath","meditation","music","affirmations","gratitude","water","sleep","focus","habits","cbt","programs","trends"].forEach(t => {
     const btn = document.getElementById("wtab-"+t);
@@ -10341,6 +10342,9 @@ function stopBreath() {
   if(inst)   inst.textContent = "Presiona iniciar cuando estés en un lugar cómodo";
 }
 
+let _medTTSUtterance = null;
+let _medTTSPlaying = false;
+
 function renderMeditation(el) {
   const items = [
     {e:"🌅",t:"Para arrancar el día",d:"5 min",desc:"Calma antes de que todo empiece",q:"meditacion guiada mañana español",pid:"37i9dQZF1DX1s9knjP51Oa"},
@@ -10350,14 +10354,123 @@ function renderMeditation(el) {
     {e:"🌊",t:"Solo estar presente",d:"7 min",desc:"Sin tener que hacer nada más",q:"mindfulness meditacion presente español",pid:"37i9dQZF1DX4sWSpwq3LiO"},
     {e:"🌙",t:"Cierre del día",d:"15 min",desc:"Soltar lo que pasó y descansar",q:"meditacion nocturna relajacion español",pid:"37i9dQZF1DWMlPakdgZhy4"},
   ];
-  el.innerHTML = `<div class="meditation-grid">${items.map(m=>`
-    <div class="meditation-card" onclick="openMedSpotify(${JSON.stringify(m.q)},${JSON.stringify(m.t)},${JSON.stringify(m.e)},${JSON.stringify(m.pid)})">
-      <span class="meditation-card-emoji">${m.e}</span>
-      <div class="meditation-card-title">${m.t}</div>
-      <div class="meditation-card-desc">${m.desc}</div>
-      <span class="badge blue">⏱ ${m.d}</span>
-    </div>`).join("")}</div>
-  <div id="meditation-player" style="margin-top:22px"></div>`;
+  const todayEmotion = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString()) || "";
+  const todayIntention = localStorage.getItem("zyra_daily_intention_" + new Date().toDateString()) || "";
+  const hour = new Date().getHours();
+  const moment = hour < 11 ? "mañana" : hour < 15 ? "mediodía" : hour < 20 ? "tarde" : "noche";
+  const cachedKey = "zyra_med_ai_" + new Date().toDateString() + (todayEmotion || "x");
+  const cachedMed = localStorage.getItem(cachedKey);
+
+  el.innerHTML = `
+    <!-- AI Meditation -->
+    <div style="background:linear-gradient(135deg,rgba(139,92,246,.12),rgba(99,102,241,.08));border:1.5px solid rgba(139,92,246,.25);border-radius:20px;padding:20px 22px;margin-bottom:22px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+        <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#6366f1);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">✨</div>
+        <div>
+          <div style="font-size:14px;font-weight:800;color:var(--text)">Meditación personalizada</div>
+          <div style="font-size:11px;color:var(--text3)">Zyra la genera para ti, ahora mismo</div>
+        </div>
+      </div>
+      <div id="med-ai-area">
+        ${cachedMed
+          ? `<div id="med-ai-reader" style="font-size:13px;color:var(--text);line-height:1.9;padding:14px;background:rgba(0,0,0,.04);border-radius:12px;white-space:pre-wrap;max-height:280px;overflow-y:auto">${cachedMed}</div>
+             <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+               <button onclick="_medTTS()" id="med-tts-btn" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;border-radius:12px;padding:9px 18px;font-size:12px;font-weight:700;cursor:pointer">▶ Escuchar</button>
+               <button onclick="_stopMedTTS()" style="background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.3);color:#8b5cf6;border-radius:12px;padding:9px 14px;font-size:12px;font-weight:700;cursor:pointer">■ Parar</button>
+               <button onclick="_genMedAI(true)" style="background:var(--surface);border:1px solid var(--border);color:var(--text3);border-radius:12px;padding:9px 14px;font-size:12px;font-weight:600;cursor:pointer">↺ Nueva</button>
+             </div>`
+          : `<div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">
+              ${todayEmotion ? `Basada en tu estado de hoy (<strong style="color:var(--text)">${todayEmotion}</strong>)` : "Basada en el momento del día"} —
+              una guía única, solo para ti.
+            </div>
+            <button onclick="_genMedAI()" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;border-radius:14px;padding:11px 22px;font-size:13px;font-weight:700;cursor:pointer;width:100%">
+              ✨ Generar mi meditación de ahora
+            </button>`}
+      </div>
+    </div>
+    <div class="meditation-grid">${items.map(m=>`
+      <div class="meditation-card" onclick="openMedSpotify(${JSON.stringify(m.q)},${JSON.stringify(m.t)},${JSON.stringify(m.e)},${JSON.stringify(m.pid)})">
+        <span class="meditation-card-emoji">${m.e}</span>
+        <div class="meditation-card-title">${m.t}</div>
+        <div class="meditation-card-desc">${m.desc}</div>
+        <span class="badge blue">⏱ ${m.d}</span>
+      </div>`).join("")}</div>
+    <div id="meditation-player" style="margin-top:22px"></div>`;
+}
+
+async function _genMedAI(force) {
+  const area = document.getElementById("med-ai-area");
+  if (!area) return;
+  const todayEmotion = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString()) || "";
+  const todayIntention = localStorage.getItem("zyra_daily_intention_" + new Date().toDateString()) || "";
+  const hour = new Date().getHours();
+  const moment = hour < 11 ? "mañana" : hour < 15 ? "mediodía" : hour < 20 ? "tarde" : "noche";
+  const duration = hour < 9 || hour > 22 ? "3" : "5";
+  const cachedKey = "zyra_med_ai_" + new Date().toDateString() + (todayEmotion || "x");
+  if (!force && localStorage.getItem(cachedKey)) return;
+
+  area.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:16px 0">
+    <div style="width:20px;height:20px;border:2px solid rgba(139,92,246,.3);border-top-color:#8b5cf6;border-radius:50%;animation:spin .8s linear infinite"></div>
+    <span style="font-size:13px;color:var(--text3)">Creando tu meditación personalizada…</span>
+  </div>`;
+
+  const contextParts = [];
+  if (todayEmotion) contextParts.push(`hoy se siente ${todayEmotion}`);
+  if (todayIntention) contextParts.push(`su intención del día es "${todayIntention}"`);
+  contextParts.push(`es de ${moment}`);
+
+  const sysPrompt = `Eres un guía de meditación experto en mindfulness. Escribe una meditación guiada en español, en segunda persona ("tú"), de exactamente ${duration} minutos de lectura lenta. Empieza directamente con la guía — sin título ni introducción. Usa párrafos cortos separados por líneas en blanco. Incluye: invitación a cerrar los ojos y respirar, escaneo corporal, visualización o ancla de atención, y cierre suave. Hazla cálida, poética y profundamente personal. NO uses emojis.`;
+  const userMsg = `Genera una meditación guiada personalizada para alguien que ${contextParts.join(", ")}.`;
+
+  try {
+    const r = await api("/chat", "POST", { message: userMsg, systemOverride: sysPrompt, noSave: true, mode: "meditacion" });
+    const text = (r.reply || "").trim();
+    if (!text) throw new Error("empty");
+    localStorage.setItem(cachedKey, text);
+    area.innerHTML = `
+      <div id="med-ai-reader" style="font-size:13px;color:var(--text);line-height:1.9;padding:14px;background:rgba(0,0,0,.04);border-radius:12px;white-space:pre-wrap;max-height:280px;overflow-y:auto">${safeHtml(text)}</div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button onclick="_medTTS()" id="med-tts-btn" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;border-radius:12px;padding:9px 18px;font-size:12px;font-weight:700;cursor:pointer">▶ Escuchar</button>
+        <button onclick="_stopMedTTS()" style="background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.3);color:#8b5cf6;border-radius:12px;padding:9px 14px;font-size:12px;font-weight:700;cursor:pointer">■ Parar</button>
+        <button onclick="_genMedAI(true)" style="background:var(--surface);border:1px solid var(--border);color:var(--text3);border-radius:12px;padding:9px 14px;font-size:12px;font-weight:600;cursor:pointer">↺ Nueva</button>
+      </div>`;
+  } catch(e) {
+    area.innerHTML = `<div style="font-size:13px;color:var(--text3);padding:8px 0">No se pudo generar ahora. <button onclick="_genMedAI(true)" style="color:#8b5cf6;background:none;border:none;cursor:pointer;font-weight:700">Reintentar</button></div>`;
+  }
+}
+
+function _medTTS() {
+  const reader = document.getElementById("med-ai-reader");
+  if (!reader || !window.speechSynthesis) return;
+  _stopMedTTS();
+  const text = reader.innerText || reader.textContent;
+  _medTTSUtterance = new SpeechSynthesisUtterance(text);
+  _medTTSUtterance.lang = "es-ES";
+  _medTTSUtterance.rate = 0.82;
+  _medTTSUtterance.pitch = 0.95;
+  // Prefer a female Spanish voice if available
+  const voices = speechSynthesis.getVoices();
+  const esVoice = voices.find(v => v.lang.startsWith("es") && v.name.toLowerCase().includes("female"))
+    || voices.find(v => v.lang.startsWith("es"));
+  if (esVoice) _medTTSUtterance.voice = esVoice;
+  _medTTSUtterance.onstart = () => {
+    _medTTSPlaying = true;
+    const btn = document.getElementById("med-tts-btn");
+    if (btn) btn.textContent = "▶ Reproduciendo…";
+  };
+  _medTTSUtterance.onend = _medTTSUtterance.onerror = () => {
+    _medTTSPlaying = false;
+    const btn = document.getElementById("med-tts-btn");
+    if (btn) btn.textContent = "▶ Escuchar";
+  };
+  speechSynthesis.speak(_medTTSUtterance);
+}
+
+function _stopMedTTS() {
+  if (window.speechSynthesis) { speechSynthesis.cancel(); }
+  _medTTSPlaying = false;
+  const btn = document.getElementById("med-tts-btn");
+  if (btn) btn.textContent = "▶ Escuchar";
 }
 
 function openMedSpotify(query, title, emoji, playlistId) {
