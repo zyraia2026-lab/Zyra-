@@ -10097,6 +10097,30 @@ const AFF_CATS = {
     "Hoy, algo estuvo bien.",
     "Me doy gracias por seguir intentando.",
   ],
+  compassion: [
+    "No tengo que ser fuerte todo el tiempo.",
+    "Está bien no estar bien. No es para siempre.",
+    "Me merece la misma amabilidad que le daría a alguien que quiero.",
+    "Este cansancio que siento es real. Necesito y merezco descansar.",
+    "No estoy roto/a — estoy en proceso.",
+    "Mi dolor no me hace menos. Me hace humano/a.",
+    "Puedo descansar sin culpa. Recargar también es avanzar.",
+    "Hoy sobrevivir es suficiente. Mañana puedo construir más.",
+    "Me permito sentir esto sin juzgarme.",
+    "Hay fuerza en reconocer cuando necesito ayuda.",
+  ],
+  resilience: [
+    "Esta emoción tiene información para mí — la puedo escuchar sin que me domine.",
+    "He superado cosas difíciles antes. Tengo esa prueba.",
+    "No tengo que reaccionar ahora mismo. Puedo esperar.",
+    "Lo que siento es válido. Lo que hago con eso, lo elijo yo.",
+    "La claridad llega después de la confusión — casi siempre.",
+    "Esto también va a pasar.",
+    "Soy más que este momento.",
+    "Incluso en días difíciles, algo mío sigue firme.",
+    "Puedo sentir y aun así elegir cómo respondo.",
+    "Mi historia no termina aquí.",
+  ],
 };
 function _syncAmbientMusicUI() {
   const activeTypes = typeof ambientNodes !== "undefined" ? Object.keys(ambientNodes) : [];
@@ -10114,10 +10138,17 @@ let _affCatManual = false; // true if user manually picked a category
 
 function renderAffirmations(el) {
   // Auto-select category based on today's emotion if user hasn't picked manually
+  const _todayEmo = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString());
   if (!_affCatManual) {
-    const emo = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString());
-    const EMO_CAT = { ansioso:"calm", enojado:"calm", tranquilo:"calm", feliz:"gratitude", esperanzado:"gratitude", motivado:"confidence" };
-    if (emo && EMO_CAT[emo]) _affCurrentCat = EMO_CAT[emo];
+    const EMO_CAT = { ansioso:"calm", enojado:"resilience", tranquilo:"calm", feliz:"gratitude", esperanzado:"gratitude", motivado:"confidence", triste:"compassion", agotado:"compassion", confundido:"resilience", nostalgico:"gratitude" };
+    if (_todayEmo && EMO_CAT[_todayEmo]) _affCurrentCat = EMO_CAT[_todayEmo];
+  }
+  // Auto-load personal affirmation for high-distress emotions
+  const _highDistress = new Set(["triste","agotado","enojado","ansioso"]);
+  const _autoPersonalKey = "zyra_aff_personal_" + new Date().toDateString();
+  const _autoPersonal = localStorage.getItem(_autoPersonalKey);
+  if (_todayEmo && _highDistress.has(_todayEmo) && !_autoPersonal && !_affCatManual) {
+    setTimeout(generatePersonalAffirmation, 600);
   }
   let affs = AFF_CATS[_affCurrentCat] || AFF_CATS.all;
   let idx = new Date().getDate() % affs.length;
@@ -10133,7 +10164,7 @@ function renderAffirmations(el) {
       </div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
-      ${[['all','🌟 Todas'],['calm','🌊 Calma'],['confidence','💪 Confianza'],['gratitude','🙏 Gratitud']].map(([k,l])=>`
+      ${[['all','🌟 Todas'],['calm','🌊 Calma'],['confidence','💪 Confianza'],['gratitude','🙏 Gratitud'],['compassion','🫂 Compasión'],['resilience','🔥 Resiliencia']].map(([k,l])=>`
         <button onclick="switchAffCat('${k}')" id="affcat-${k}" class="btn-sm ${k===_affCurrentCat?'accent':''}" style="${k===_affCurrentCat?'':'background:var(--surface);color:var(--text2);border:1.5px solid var(--border)'}padding:7px 12px;font-size:12px">${l}</button>
       `).join('')}
     </div>
