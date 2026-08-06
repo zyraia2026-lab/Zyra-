@@ -2548,6 +2548,7 @@ async function b2bSubmitContact() {
     <button id="journal-tab-list" class="btn-sm accent" onclick="showJournalTab('list')" style="flex:1;padding:10px">📋 Entradas</button>
     <button id="journal-tab-timeline" class="btn-sm" onclick="showJournalTab('timeline')" style="flex:1;padding:10px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">🌊 Viaje</button>
     <button id="journal-tab-calendar" class="btn-sm" onclick="showJournalTab('calendar')" style="flex:1;padding:10px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">📅 Calendario</button>
+    <button id="journal-tab-reflexion" class="btn-sm" onclick="showJournalTab('reflexion')" style="flex:1;padding:10px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">💭 Preguntas</button>
   </div>
 
   <!-- Vista: lista de entradas -->
@@ -2691,6 +2692,11 @@ async function b2bSubmitContact() {
       <!-- Detalle del día seleccionado -->
       <div id="mood-cal-detail" style="display:none;margin-top:18px;padding:16px;background:var(--surface);border-radius:16px;border:1px solid var(--border)"></div>
     </div>
+  </div>
+
+  <!-- Vista: preguntas profundas -->
+  <div id="journal-view-reflexion" style="display:none">
+    <div id="journal-reflexion-content"></div>
   </div>
 
 </div>
@@ -9067,8 +9073,8 @@ let _journalAllEntries = [];
 let _goalsAllItems = [];
 
 function showJournalTab(tab) {
-  const views = { list:"journal-view-list", timeline:"journal-view-timeline", calendar:"journal-view-calendar" };
-  const btns  = { list:"journal-tab-list",  timeline:"journal-tab-timeline",  calendar:"journal-tab-calendar" };
+  const views = { list:"journal-view-list", timeline:"journal-view-timeline", calendar:"journal-view-calendar", reflexion:"journal-view-reflexion" };
+  const btns  = { list:"journal-tab-list",  timeline:"journal-tab-timeline",  calendar:"journal-tab-calendar",  reflexion:"journal-tab-reflexion" };
   Object.keys(views).forEach(t => {
     const vEl = document.getElementById(views[t]);
     if (vEl) vEl.style.display = t === tab ? "" : "none";
@@ -9077,8 +9083,146 @@ function showJournalTab(tab) {
     bEl.className = t === tab ? "btn-sm accent" : "btn-sm";
     bEl.style.cssText = t === tab ? "flex:1;padding:10px" : "flex:1;padding:10px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)";
   });
-  if (tab === 'calendar') renderMoodCalendar();
-  if (tab === 'timeline') renderEmotionTimeline();
+  if (tab === 'calendar')  renderMoodCalendar();
+  if (tab === 'timeline')  renderEmotionTimeline();
+  if (tab === 'reflexion') renderReflexionTab();
+}
+
+// ══════════════════════════════════════════
+//  PREGUNTAS PROFUNDAS — DIARIO REFLEXIVO
+// ══════════════════════════════════════════
+const _REFLEXION_FALLBACK_QS = [
+  "¿Qué parte de ti necesita más amor y atención ahora mismo?",
+  "¿De qué te has dado cuenta esta semana que antes no veías?",
+  "¿Qué decisión sabes que debes tomar pero te da miedo?",
+  "¿En qué momentos del día sientes que eres más tú mismo/a?",
+  "¿Qué le dirías a alguien que está pasando exactamente por lo que tú pasas?",
+  "¿Qué hábito pequeño estaría cambiando tu vida si lo hicieras todos los días?",
+  "¿Qué estás cargando que no es tuyo cargar?",
+  "¿Cuándo fue la última vez que hiciste algo por primera vez?",
+  "¿Qué parte de tu historia te da vergüenza pero en realidad te hizo más fuerte?",
+  "Si mañana no hubiera miedos, ¿qué harías diferente?",
+];
+let _reflexionSubmitting = false;
+
+async function renderReflexionTab() {
+  const el = document.getElementById("journal-reflexion-content");
+  if (!el) return;
+
+  const today = new Date().toDateString();
+  const todayKey = `zyra_reflexion_q_${today}`;
+  const answerKey = `zyra_reflexion_a_${today}`;
+  let todayQ = localStorage.getItem(todayKey);
+  const todayA = localStorage.getItem(answerKey);
+
+  if (!todayQ) {
+    const ds = new Date().toDateString();
+    const emoRaw = localStorage.getItem(`zyra_emotion_${ds}`) || localStorage.getItem(`zyra_checkin_${ds}`) || "";
+    let emo = "";
+    try { emo = emoRaw ? (JSON.parse(emoRaw)?.emotion || emoRaw) : ""; } catch { emo = emoRaw; }
+    todayQ = await _getReflexionQuestion(emo, today);
+  }
+
+  // Load all past answers
+  const history = [];
+  for (let i = 1; i <= 30; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const ds = d.toDateString();
+    const q = localStorage.getItem(`zyra_reflexion_q_${ds}`);
+    const a = localStorage.getItem(`zyra_reflexion_a_${ds}`);
+    if (q && a) history.push({ date: d, q, a, ds });
+  }
+
+  el.innerHTML = `
+    <div>
+      <!-- Today's question -->
+      <div style="background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.08));border:1.5px solid rgba(99,102,241,.25);border-radius:20px;padding:20px 22px;margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+          <div style="width:8px;height:8px;border-radius:50%;background:#6366f1;animation:crisis-pulse 2s ease-in-out infinite"></div>
+          <div style="font-size:11px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:.6px">Pregunta de hoy</div>
+        </div>
+        <div id="reflexion-q-text" style="font-size:16px;font-weight:700;color:var(--text);line-height:1.5;margin-bottom:16px">${safeHtml(todayQ || "Cargando…")}</div>
+        ${todayA
+          ? `<div style="background:rgba(99,102,241,.06);border-left:3px solid #6366f1;border-radius:0 12px 12px 0;padding:12px 14px;font-size:13px;color:var(--text);line-height:1.7;font-style:italic">"${safeHtml(todayA)}"</div>
+             <div style="font-size:11px;color:var(--text3);margin-top:10px;text-align:center">✓ Respondida hoy · <button onclick="_reflexionEditToday()" style="background:none;border:none;color:#6366f1;cursor:pointer;font-size:11px;font-weight:700">Editar</button></div>`
+          : `<textarea id="reflexion-answer" placeholder="Escribe lo que venga sin juzgar…" style="width:100%;min-height:100px;background:var(--surface);border:1.5px solid rgba(99,102,241,.3);border-radius:14px;color:var(--text);font-size:13px;padding:12px 14px;outline:none;font-family:inherit;resize:vertical;box-sizing:border-box;line-height:1.6" onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='rgba(99,102,241,.3)'"></textarea>
+             <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+               <button onclick="_saveReflexion('${today}')" style="flex:1;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;border-radius:12px;padding:11px 20px;font-size:13px;font-weight:700;cursor:pointer">💭 Guardar reflexión</button>
+               <button onclick="_reflexionNewQ('${today}')" style="background:var(--surface);border:1.5px solid var(--border);color:var(--text3);border-radius:12px;padding:11px 14px;font-size:12px;cursor:pointer" title="Cambiar pregunta">↺</button>
+             </div>`}
+      </div>
+
+      <!-- History -->
+      ${history.length ? `
+        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">📚 Reflexiones anteriores — ${history.length} entradas</div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          ${history.map(h => `
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 16px;cursor:pointer;transition:border-color .2s" onclick="this.querySelector('.reflexion-hist-answer').style.display = this.querySelector('.reflexion-hist-answer').style.display==='none'?'block':'none'" onmouseover="this.style.borderColor='rgba(99,102,241,.35)'" onmouseout="this.style.borderColor='var(--border)'">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                <div style="font-size:11px;color:var(--text3)">${h.date.toLocaleDateString('es',{weekday:'short',day:'numeric',month:'long'})}</div>
+                <div style="font-size:10px;color:var(--text3)">▼</div>
+              </div>
+              <div style="font-size:13px;font-weight:700;color:var(--text);line-height:1.4;margin-bottom:4px">${safeHtml(h.q)}</div>
+              <div class="reflexion-hist-answer" style="display:none;margin-top:10px;font-size:13px;color:var(--text2);line-height:1.7;font-style:italic;border-left:2px solid rgba(99,102,241,.4);padding-left:12px">"${safeHtml(h.a)}"</div>
+            </div>`).join("")}
+        </div>` : `<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">Tu archivo de reflexiones crece cada día que respondes 💭</div>`}
+    </div>`;
+}
+
+async function _getReflexionQuestion(emo, today) {
+  const idx = Math.abs([...today].reduce((a,c) => a + c.charCodeAt(0), 0)) % _REFLEXION_FALLBACK_QS.length;
+  const fallback = _REFLEXION_FALLBACK_QS[idx];
+  const todayKey = `zyra_reflexion_q_${today}`;
+
+  try {
+    const name = user?.name?.split(" ")[0] || "ti";
+    const recentEmos = [];
+    for (let i = 1; i <= 5; i++) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const ds = d.toDateString();
+      const raw = localStorage.getItem(`zyra_emotion_${ds}`) || localStorage.getItem(`zyra_checkin_${ds}`);
+      let e = null; try { e = raw ? (JSON.parse(raw)?.emotion || raw) : null; } catch { e = raw; }
+      if (e) recentEmos.push(e);
+    }
+    const sysPrompt = `Eres Zyra. Genera UNA sola pregunta de reflexión profunda para ${name}. La pregunta debe ser específica, personal, y provocar una respuesta honesta. NO uses preguntas cliché. La pregunta debe ir al fondo de la experiencia humana. Solo devuelve la pregunta, sin puntos ni comillas extra.`;
+    const ctx = emo ? `Hoy se siente: ${emo}. Emociones recientes: ${recentEmos.join(", ")}.` : `Emociones recientes: ${recentEmos.join(", ") || "ninguna registrada"}.`;
+    const r = await api("/chat", "POST", { message: ctx, systemOverride: sysPrompt, noSave: true, mode: "reflexion" });
+    const q = (r.reply || "").trim().replace(/^"|"$/g, "");
+    if (q && q.length > 10) {
+      localStorage.setItem(todayKey, q);
+      return q;
+    }
+  } catch(e) {}
+
+  localStorage.setItem(todayKey, fallback);
+  return fallback;
+}
+
+async function _saveReflexion(today) {
+  if (_reflexionSubmitting) return;
+  const ta = document.getElementById("reflexion-answer");
+  const val = (ta?.value || "").trim();
+  if (!val) { zyraToast("Escribe algo antes de guardar 💭", "info"); return; }
+  _reflexionSubmitting = true;
+  localStorage.setItem(`zyra_reflexion_a_${today}`, val);
+  renderReflexionTab();
+  zyraToast("Reflexión guardada ✨", "success");
+  launchConfetti?.();
+  _reflexionSubmitting = false;
+}
+
+function _reflexionEditToday() {
+  const today = new Date().toDateString();
+  localStorage.removeItem(`zyra_reflexion_a_${today}`);
+  renderReflexionTab();
+}
+
+async function _reflexionNewQ(today) {
+  localStorage.removeItem(`zyra_reflexion_q_${today}`);
+  const el = document.getElementById("reflexion-q-text");
+  if (el) { el.style.opacity = "0.4"; el.textContent = "Generando nueva pregunta…"; }
+  const q = await _getReflexionQuestion("", today);
+  if (el) { el.style.opacity = "1"; el.textContent = q; }
 }
 
 function renderEmotionTimeline() {
