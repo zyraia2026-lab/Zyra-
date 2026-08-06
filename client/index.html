@@ -6710,6 +6710,7 @@ async function loadDashboard() {
   }
   if (!token || !user) return;
   _maybeShowReturnCard();
+  _maybeShowMorningRitual();
   loadDailyChallenge();
   loadDailyIntention();
   loadMentalHealthTip();
@@ -7656,6 +7657,164 @@ function _maybeShowEveningNudge() {
   if (insightSection?.parentElement) {
     insightSection.parentElement.insertBefore(nudge, insightSection);
   }
+}
+
+function _maybeShowMorningRitual() {
+  const hour = new Date().getHours();
+  if (hour < 6 || hour >= 11) return;
+  const key = "zyra_morning_ritual_" + new Date().toDateString();
+  if (localStorage.getItem(key)) return;
+  // Delay slightly so the dashboard loads first
+  setTimeout(launchMorningRitual, 1500);
+}
+
+function launchMorningRitual() {
+  const key = "zyra_morning_ritual_" + new Date().toDateString();
+  if (localStorage.getItem(key)) return;
+  const existing = document.getElementById("zyra-morning-ritual-modal");
+  if (existing) return;
+  const name = user ? user.name.split(" ")[0] : "";
+  const EMO_OPTIONS = [
+    { key:"tranquilo", emoji:"😌", label:"Tranquilo/a" },
+    { key:"motivado",  emoji:"⚡", label:"Motivado/a" },
+    { key:"ansioso",   emoji:"😰", label:"Ansioso/a" },
+    { key:"agotado",   emoji:"😴", label:"Agotado/a" },
+    { key:"feliz",     emoji:"😊", label:"Bien" },
+    { key:"triste",    emoji:"😔", label:"Triste" },
+  ];
+  const overlay = document.createElement("div");
+  overlay.id = "zyra-morning-ritual-modal";
+  overlay.style.cssText = "position:fixed;inset:0;z-index:9500;background:rgba(5,5,15,.82);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;padding:0 0 env(safe-area-inset-bottom,0)";
+  overlay.innerHTML = `
+  <div style="background:linear-gradient(180deg,rgba(18,14,38,.98),rgba(10,8,22,.99));border:1.5px solid rgba(99,102,241,.2);border-radius:24px 24px 0 0;padding:26px 22px 32px;max-width:440px;width:100%;max-height:85vh;overflow-y:auto">
+    <div id="mritual-step1">
+      <div style="text-align:center;margin-bottom:18px">
+        <div style="font-size:36px;margin-bottom:8px">☀️</div>
+        <div style="font-size:16px;font-weight:800;color:rgba(255,255,255,.9);margin-bottom:4px">Buenos días, ${safeHtml(name)}</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.45)">¿Cómo amaneciste hoy?</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px">
+        ${EMO_OPTIONS.map(e => `<button onclick="_mritualSelectEmo('${e.key}')" class="mritual-emo-btn" data-key="${e.key}" style="background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 8px;cursor:pointer;text-align:center;transition:all .2s">
+          <div style="font-size:22px;margin-bottom:4px">${e.emoji}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.6);font-weight:600">${e.label}</div>
+        </button>`).join("")}
+      </div>
+      <button onclick="_closeMorningRitual()" style="width:100%;background:transparent;border:none;color:rgba(255,255,255,.25);font-size:12px;cursor:pointer;padding:8px">Saltar por hoy</button>
+    </div>
+    <div id="mritual-step2" style="display:none">
+      <div style="text-align:center;margin-bottom:18px">
+        <div style="font-size:30px;margin-bottom:8px">🙏</div>
+        <div style="font-size:15px;font-weight:800;color:rgba(255,255,255,.9);margin-bottom:4px">Una cosa buena</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.45)">¿Qué es algo por lo que puedes dar gracias hoy?</div>
+      </div>
+      <textarea id="mritual-gratitude" placeholder="Puede ser algo pequeño..." maxlength="200" style="width:100%;height:80px;background:rgba(255,255,255,.05);border:1.5px solid rgba(99,102,241,.25);border-radius:14px;color:rgba(255,255,255,.85);font-size:13px;padding:12px 14px;outline:none;resize:none;font-family:inherit;box-sizing:border-box;line-height:1.5"></textarea>
+      <button onclick="_mritualStep2Next()" style="margin-top:12px;width:100%;background:linear-gradient(135deg,rgba(99,102,241,.7),rgba(139,92,246,.7));border:none;color:#fff;border-radius:14px;padding:13px;font-size:14px;font-weight:700;cursor:pointer">Continuar →</button>
+      <button onclick="_mritualStep2Next(true)" style="margin-top:8px;width:100%;background:transparent;border:none;color:rgba(255,255,255,.25);font-size:12px;cursor:pointer;padding:6px">Omitir</button>
+    </div>
+    <div id="mritual-step3" style="display:none">
+      <div style="text-align:center;margin-bottom:18px">
+        <div style="font-size:30px;margin-bottom:8px">🎯</div>
+        <div style="font-size:15px;font-weight:800;color:rgba(255,255,255,.9);margin-bottom:4px">Tu intención de hoy</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.45)">¿Con qué actitud quieres vivir este día?</div>
+      </div>
+      <input id="mritual-intention" type="text" placeholder="Ej: Mantener la calma, enfocarme en lo importante..." maxlength="100" style="width:100%;background:rgba(255,255,255,.05);border:1.5px solid rgba(99,102,241,.25);border-radius:14px;color:rgba(255,255,255,.85);font-size:13px;padding:12px 14px;outline:none;box-sizing:border-box;font-family:inherit">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px" id="mritual-intention-chips"></div>
+      <button onclick="_mritualFinish()" style="margin-top:14px;width:100%;background:linear-gradient(135deg,rgba(99,102,241,.7),rgba(139,92,246,.7));border:none;color:#fff;border-radius:14px;padding:13px;font-size:14px;font-weight:700;cursor:pointer">Completar ritual ✓</button>
+      <button onclick="_mritualFinish(true)" style="margin-top:8px;width:100%;background:transparent;border:none;color:rgba(255,255,255,.25);font-size:12px;cursor:pointer;padding:6px">Omitir intención</button>
+    </div>
+    <div id="mritual-step4" style="display:none">
+      <div style="text-align:center;margin-bottom:16px">
+        <img src="${LOGO}" style="width:54px;height:54px;border-radius:50%;margin:0 auto 10px;display:block;border:2px solid rgba(99,102,241,.4)" alt="Zyra">
+        <div style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Zyra dice</div>
+      </div>
+      <div id="mritual-zyra-msg" style="font-size:14px;color:rgba(255,255,255,.8);line-height:1.7;text-align:center;min-height:60px;font-style:italic;padding:0 8px">Generando tu mensaje…</div>
+      <button onclick="_closeMorningRitual()" style="margin-top:20px;width:100%;background:linear-gradient(135deg,rgba(99,102,241,.6),rgba(139,92,246,.6));border:none;color:#fff;border-radius:14px;padding:13px;font-size:14px;font-weight:700;cursor:pointer">¡Listo! A comenzar el día 🌅</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener("click", e => { if (e.target === overlay) _closeMorningRitual(); });
+}
+
+let _mritualEmo = null;
+function _mritualSelectEmo(key) {
+  _mritualEmo = key;
+  document.querySelectorAll(".mritual-emo-btn").forEach(b => {
+    const active = b.dataset.key === key;
+    b.style.background = active ? "rgba(99,102,241,.25)" : "rgba(255,255,255,.04)";
+    b.style.borderColor = active ? "rgba(99,102,241,.7)" : "rgba(255,255,255,.08)";
+  });
+  // Auto-advance after 400ms
+  setTimeout(() => {
+    const s1 = document.getElementById("mritual-step1");
+    const s2 = document.getElementById("mritual-step2");
+    if (s1) s1.style.display = "none";
+    if (s2) s2.style.display = "block";
+  }, 400);
+}
+
+function _mritualStep2Next(skip = false) {
+  const gratVal = skip ? "" : (document.getElementById("mritual-gratitude")?.value.trim() || "");
+  if (gratVal) localStorage.setItem("zyra_gratitude_" + new Date().toDateString(), JSON.stringify([gratVal]));
+  const s2 = document.getElementById("mritual-step2");
+  const s3 = document.getElementById("mritual-step3");
+  if (s2) s2.style.display = "none";
+  if (s3) s3.style.display = "block";
+  // Pre-populate intention chips based on emotion
+  const INTENTION_BY_EMO = {
+    ansioso: ["Respirar antes de reaccionar","Ir paso a paso, sin apresurarme","Recordar que lo urgente no siempre es importante"],
+    agotado: ["Hacer lo esencial y descansar","Ser compasivo/a conmigo hoy","Pedir ayuda si lo necesito"],
+    tranquilo: ["Aprovechar esta calma para lo que importa","Hacer algo creativo hoy","Conectar con alguien que quiero"],
+    motivado: ["Enfocarme en mi meta más importante","Ser disciplinado/a con mi tiempo","Terminar lo que empecé"],
+    feliz: ["Compartir este estado con otros","Guardar un momento de gratitud","Aprovechar esta energía"],
+    triste: ["Cuidarme especialmente hoy","Hablar con alguien de confianza","Dar un pequeño paso"],
+  };
+  const chips = _mritualEmo && INTENTION_BY_EMO[_mritualEmo] ? INTENTION_BY_EMO[_mritualEmo] : ["Ser auténtico/a hoy","Hacer lo que importa","Cuidarme"];
+  const chipsWrap = document.getElementById("mritual-intention-chips");
+  if (chipsWrap) {
+    chipsWrap.innerHTML = chips.map(c => `<button onclick="_mritualFillIntention(${JSON.stringify(c)})" style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.22);color:rgba(167,139,250,.8);border-radius:20px;padding:5px 12px;font-size:11px;cursor:pointer;font-weight:600">${c}</button>`).join("");
+  }
+  setTimeout(() => document.getElementById("mritual-intention")?.focus(), 100);
+}
+
+function _mritualFillIntention(text) {
+  const inp = document.getElementById("mritual-intention");
+  if (inp) inp.value = text;
+}
+
+async function _mritualFinish(skip = false) {
+  const intentionVal = skip ? "" : (document.getElementById("mritual-intention")?.value.trim() || "");
+  const gratVal = localStorage.getItem("zyra_gratitude_" + new Date().toDateString());
+  const key = "zyra_morning_ritual_" + new Date().toDateString();
+  localStorage.setItem(key, JSON.stringify({ emo: _mritualEmo, intention: intentionVal, ts: Date.now() }));
+  // Save intention to the dashboard intention system
+  if (intentionVal) { localStorage.setItem("zyra_intention_" + new Date().toDateString(), intentionVal); loadDailyIntention(); }
+  if (_mritualEmo) {
+    const todayKey = "zyra_checkin_emotion_" + new Date().toDateString();
+    if (!localStorage.getItem(todayKey)) localStorage.setItem(todayKey, _mritualEmo);
+  }
+  // Show step 4 (Zyra message)
+  const s3 = document.getElementById("mritual-step3");
+  const s4 = document.getElementById("mritual-step4");
+  if (s3) s3.style.display = "none";
+  if (s4) s4.style.display = "block";
+  // Generate Zyra message
+  const msgEl = document.getElementById("mritual-zyra-msg");
+  const emoLabel = { tranquilo:"tranquilo/a", motivado:"motivado/a", ansioso:"ansioso/a", agotado:"agotado/a", feliz:"bien", triste:"algo triste" };
+  try {
+    const prompt = `Eres Zyra, la mejor amiga de ${user?.name||"esta persona"}. Es por la mañana. ${_mritualEmo ? `Hoy amanecieron sintiéndose ${emoLabel[_mritualEmo]||_mritualEmo}.` : ""} ${intentionVal ? `Su intención del día: "${intentionVal}".` : ""} Dales un mensaje personal, cálido y específico para comenzar bien el día. Máximo 2 oraciones. No empieces con "Buenos días" — ya se lo dijiste. Sin emojis. Habla directo.`;
+    const r = await api("/chat", "POST", { message: prompt, noSave: true });
+    const msg = (r.response || r.message || "").trim();
+    if (msgEl) msgEl.textContent = msg || "Que tengas un día que valga la pena recordar.";
+  } catch(e) {
+    if (msgEl) msgEl.textContent = "Que tengas un día que valga la pena recordar.";
+  }
+  if (navigator.vibrate) navigator.vibrate([30, 20, 60]);
+}
+
+function _closeMorningRitual() {
+  const overlay = document.getElementById("zyra-morning-ritual-modal");
+  if (overlay) { overlay.style.opacity = "0"; overlay.style.transition = "opacity .3s"; setTimeout(() => overlay.remove(), 300); }
+  localStorage.setItem("zyra_morning_ritual_" + new Date().toDateString(), "dismissed");
 }
 
 function renderMoodCalendar(history) {
