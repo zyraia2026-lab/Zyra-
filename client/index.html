@@ -2349,6 +2349,7 @@ async function b2bSubmitContact() {
     <button class="game-tab"       id="gtab-doodle"   onclick="openGame('doodle')">🎨 Doodle</button>
     <button class="game-tab"       id="gtab-release"  onclick="openGame('release')">💨 Liberar</button>
     <button class="game-tab"       id="gtab-emocion"  onclick="openGame('emocion')">🎭 Emociones</button>
+    <button class="game-tab"       id="gtab-raices"   onclick="openGame('raices')">🌳 Raíces</button>
   </div>
 
   <div id="game-container"></div>
@@ -17801,7 +17802,7 @@ function _playWin()   { [523,659,784,1047].forEach((f,i) => setTimeout(() => _ga
 function _playFlip()  { _gameAudio(440, 'triangle', 0.08, 0.08); }
 
 function openGame(name) {
-  ['breath','bubbles','memory','zen','doodle','release','emocion'].forEach(t => {
+  ['breath','bubbles','memory','zen','doodle','release','emocion','raices'].forEach(t => {
     const btn = document.getElementById('gtab-' + t);
     if (btn) btn.classList.toggle('active', t === name);
   });
@@ -17817,6 +17818,7 @@ function openGame(name) {
   if (name === 'doodle')  renderDoodleGame(container);
   if (name === 'release') renderReleaseGame(container);
   if (name === 'emocion') renderEmocionGame(container);
+  if (name === 'raices')  renderRaicesGame(container);
 }
 
 /* ── JUEGO 1: Respiración guiada ── */
@@ -18684,6 +18686,218 @@ function renderEmocionGame(el) {
 }
 
 /* No showPage override needed — hooks added inline below */
+
+// ══════════════════════════════════════════
+// JUEGO: RAÍCES — árbol emocional
+// ══════════════════════════════════════════
+function renderRaicesGame(el) {
+  const EMO_COLOR = { feliz:"#22c55e", tranquilo:"#0ea5e9", motivado:"#6366f1", esperanzado:"#a78bfa",
+    confundido:"#f59e0b", ansioso:"#f97316", agotado:"#94a3b8", triste:"#60a5fa", enojado:"#ef4444", nostalgico:"#e879f9" };
+  const EMO_EMOJI = { feliz:"☀️", tranquilo:"🌊", motivado:"⚡", esperanzado:"🌟",
+    confundido:"🌀", ansioso:"🌪️", agotado:"🌫️", triste:"💧", enojado:"🔥", nostalgico:"🌸" };
+  const POSITIVE = new Set(["feliz","tranquilo","motivado","esperanzado","nostalgico"]);
+
+  // Gather last 30 days of emotion data
+  const today = new Date();
+  const days = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    const emo = localStorage.getItem("zyra_checkin_emotion_" + d.toDateString());
+    days.push({ date: d, emo: emo || null, daysAgo: i });
+  }
+  const logged = days.filter(d => d.emo);
+  const streak = (() => {
+    let s = 0;
+    for (let i = 0; i < days.length; i++) {
+      if (days[days.length - 1 - i].emo) s++;
+      else break;
+    }
+    return s;
+  })();
+  const positivityPct = logged.length ? Math.round(logged.filter(d => POSITIVE.has(d.emo)).length / logged.length * 100) : 0;
+
+  el.innerHTML = `
+  <div style="text-align:center;padding:0 4px 20px">
+    <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Tus emociones hacen crecer este árbol</div>
+    <canvas id="raices-canvas" width="320" height="380" style="max-width:100%;border-radius:18px;display:block;margin:0 auto"></canvas>
+    <div style="display:flex;justify-content:center;gap:16px;margin-top:12px;flex-wrap:wrap">
+      <div style="text-align:center">
+        <div style="font-size:22px;font-weight:800;color:#22c55e">${logged.length}</div>
+        <div style="font-size:10px;color:var(--text3);font-weight:600">DÍAS REGISTRADOS</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:22px;font-weight:800;color:#f59e0b">🔥${streak}</div>
+        <div style="font-size:10px;color:var(--text3);font-weight:600">RACHA ACTUAL</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:22px;font-weight:800;color:#6366f1">${positivityPct}%</div>
+        <div style="font-size:10px;color:var(--text3);font-weight:600">POSITIVIDAD</div>
+      </div>
+    </div>
+    <div id="raices-legend" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px;max-width:320px;margin-left:auto;margin-right:auto"></div>
+    <div style="margin-top:14px;font-size:12px;color:var(--text3);line-height:1.6;max-width:280px;margin-left:auto;margin-right:auto">
+      ${logged.length === 0
+        ? "Tu árbol espera. Registra una emoción hoy para que crezca 🌱"
+        : logged.length < 7
+          ? `Tu árbol tiene ${logged.length} días de vida. Sigue regándolo 🌱`
+          : logged.length < 14
+            ? `¡Tu árbol ya tiene hojas! ${30-logged.length} días más para florecer 🌿`
+            : `Tu árbol lleva ${logged.length} días creciendo — es tuyo 🌳`}
+    </div>
+    <button onclick="_raicesDownload()" style="margin-top:14px;background:linear-gradient(135deg,#22c55e,#0ea5e9);border:none;color:#fff;border-radius:12px;padding:9px 20px;font-size:12px;font-weight:700;cursor:pointer">💾 Guardar mi árbol</button>
+  </div>`;
+
+  // Draw tree on canvas
+  setTimeout(() => {
+    const canvas = document.getElementById("raices-canvas");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width, H = canvas.height;
+
+    // Sky gradient background
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, "#0f172a");
+    sky.addColorStop(0.6, "#1e293b");
+    sky.addColorStop(1, "#2d4a22");
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+
+    // Ground
+    const ground = ctx.createLinearGradient(0, H * 0.82, 0, H);
+    ground.addColorStop(0, "#166534");
+    ground.addColorStop(1, "#14532d");
+    ctx.fillStyle = ground;
+    ctx.beginPath();
+    ctx.ellipse(W / 2, H * 0.88, W * 0.55, H * 0.12, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Stars (if few days logged = night sky)
+    if (logged.length < 15) {
+      ctx.fillStyle = "rgba(255,255,255,0.6)";
+      for (let s = 0; s < 30; s++) {
+        const sx = Math.random() * W, sy = Math.random() * H * 0.55;
+        const sr = Math.random() * 1.2 + 0.3;
+        ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2); ctx.fill();
+      }
+    } else {
+      // Sun / moon based on positivity
+      if (positivityPct >= 50) {
+        const sunG = ctx.createRadialGradient(W * 0.8, H * 0.12, 0, W * 0.8, H * 0.12, 40);
+        sunG.addColorStop(0, "rgba(251,191,36,.9)");
+        sunG.addColorStop(0.5, "rgba(251,191,36,.4)");
+        sunG.addColorStop(1, "rgba(251,191,36,0)");
+        ctx.fillStyle = sunG;
+        ctx.beginPath(); ctx.arc(W * 0.8, H * 0.12, 40, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "rgba(251,191,36,.95)";
+        ctx.beginPath(); ctx.arc(W * 0.8, H * 0.12, 18, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    // Draw tree branches using logged emotions
+    const trunkX = W / 2, trunkY = H * 0.82;
+    const trunkH = Math.min(H * 0.45, (logged.length / 30) * H * 0.45 + H * 0.08);
+
+    // Trunk
+    const trunkG = ctx.createLinearGradient(trunkX - 12, 0, trunkX + 12, 0);
+    trunkG.addColorStop(0, "#713f12");
+    trunkG.addColorStop(0.5, "#92400e");
+    trunkG.addColorStop(1, "#713f12");
+    ctx.fillStyle = trunkG;
+    ctx.beginPath();
+    ctx.moveTo(trunkX - 10, trunkY);
+    ctx.bezierCurveTo(trunkX - 10, trunkY - trunkH * 0.4, trunkX - 6, trunkY - trunkH * 0.7, trunkX - 4, trunkY - trunkH);
+    ctx.bezierCurveTo(trunkX + 4, trunkY - trunkH, trunkX + 6, trunkY - trunkH * 0.7, trunkX + 10, trunkY);
+    ctx.closePath();
+    ctx.fill();
+
+    // Draw branches and leaves from emotions
+    if (logged.length >= 3) {
+      const rng = (seed) => { let x = Math.sin(seed) * 10000; return x - Math.floor(x); };
+      const branchColors = logged.map(d => EMO_COLOR[d.emo] || "#22c55e");
+
+      // Draw up to 20 branches
+      const numBranches = Math.min(20, logged.length);
+      for (let b = 0; b < numBranches; b++) {
+        const t = b / numBranches;
+        const bY = trunkY - trunkH * (0.2 + t * 0.7);
+        const side = b % 2 === 0 ? 1 : -1;
+        const bLen = 25 + rng(b * 13) * 45;
+        const bAngle = (side * (Math.PI / 4 + rng(b * 7) * Math.PI / 6));
+        const bX2 = trunkX + Math.cos(bAngle) * bLen;
+        const bY2 = bY - Math.sin(Math.abs(bAngle)) * bLen * 0.7;
+        const emoColor = branchColors[b % branchColors.length];
+
+        ctx.strokeStyle = "#713f12";
+        ctx.lineWidth = Math.max(1.5, 4 - b * 0.15);
+        ctx.beginPath();
+        ctx.moveTo(trunkX + side * 3, bY);
+        ctx.quadraticCurveTo(trunkX + side * (bLen * 0.4), bY - bLen * 0.3, bX2, bY2);
+        ctx.stroke();
+
+        // Leaf cluster at branch tip
+        if (logged.length >= 5) {
+          const leafCount = Math.floor(rng(b * 17) * 5) + 3;
+          for (let l = 0; l < leafCount; l++) {
+            const lx = bX2 + (rng(b * 31 + l) - 0.5) * 28;
+            const ly = bY2 + (rng(b * 41 + l) - 0.5) * 28;
+            const lr = 6 + rng(b * 23 + l) * 8;
+            ctx.globalAlpha = 0.75 + rng(b * 53 + l) * 0.25;
+            ctx.fillStyle = emoColor;
+            ctx.beginPath();
+            ctx.ellipse(lx, ly, lr, lr * 0.7, rng(b * 61 + l) * Math.PI, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    // Seedling for 0-2 days
+    if (logged.length < 3) {
+      ctx.strokeStyle = "#22c55e";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(W / 2, trunkY);
+      ctx.lineTo(W / 2, trunkY - 30 - logged.length * 10);
+      ctx.stroke();
+      if (logged.length > 0) {
+        ctx.fillStyle = "#22c55e";
+        ctx.beginPath(); ctx.arc(W / 2, trunkY - 30 - logged.length * 10, 6, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    // Flowers for high positivity trees
+    if (logged.length >= 14 && positivityPct >= 60) {
+      const flowerEmojis = ["🌸","🌺","🌻","🌼"];
+      ctx.font = "16px serif";
+      ctx.textAlign = "center";
+      for (let f = 0; f < 6; f++) {
+        const fx = W * 0.2 + (f * W * 0.13), fy = H * 0.75 + Math.sin(f) * 15;
+        ctx.fillText(flowerEmojis[f % flowerEmojis.length], fx, fy);
+      }
+    }
+
+    // Legend
+    const legendEl = document.getElementById("raices-legend");
+    if (legendEl) {
+      const emoSeen = [...new Set(logged.map(d=>d.emo).filter(Boolean))];
+      legendEl.innerHTML = emoSeen.map(e=>`<span style="font-size:11px;background:${EMO_COLOR[e]||'#6366f1'}22;border:1px solid ${EMO_COLOR[e]||'#6366f1'}44;color:${EMO_COLOR[e]||'#6366f1'};border-radius:20px;padding:3px 9px;font-weight:700">${EMO_EMOJI[e]||'💙'} ${e}</span>`).join("");
+    }
+
+    // Store canvas ref for download
+    window._raicesCanvas = canvas;
+  }, 80);
+}
+
+function _raicesDownload() {
+  const canvas = window._raicesCanvas;
+  if (!canvas) return;
+  const link = document.createElement("a");
+  link.download = "mi-arbol-emocional.png";
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+  zyraToast("🌳 Árbol guardado en tus descargas", "success");
+}
 
 // ══════════════════════════════════════════
 // AVATAR ZYRA — imagen animada en llamada
