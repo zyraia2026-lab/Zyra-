@@ -898,7 +898,7 @@ function closeSplash(){
 <button class="sos-fab" id="sos-fab" onclick="showCrisisOverlay()" style="display:none" title="Apoyo de emergencia · Recursos de crisis">🆘</button>
 
 <!-- ══ QUICK CALM FAB ══ -->
-<button id="calm-fab" onclick="openCalmOverlay()" style="display:none;position:fixed;bottom:140px;right:20px;z-index:8900;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:50%;width:50px;height:50px;font-size:22px;cursor:pointer;box-shadow:0 4px 20px rgba(99,102,241,.4);align-items:center;justify-content:center;transition:transform .15s" title="Momento de calma — 60 segundos" onmouseenter="this.style.transform='scale(1.1)'" onmouseleave="this.style.transform='scale(1)'">🧘</button>
+<button id="calm-fab" onclick="openCalmOverlay()" style="display:none;position:fixed;bottom:154px;right:20px;z-index:8900;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:50%;width:50px;height:50px;font-size:22px;cursor:pointer;box-shadow:0 4px 20px rgba(99,102,241,.4);align-items:center;justify-content:center;transition:transform .15s" title="Momento de calma — 60 segundos" onmouseenter="this.style.transform='scale(1.1)'" onmouseleave="this.style.transform='scale(1)'">🧘</button>
 <!-- ══ CALM OVERLAY ══ -->
 <div id="calm-overlay" style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(10,10,30,0.92);backdrop-filter:blur(16px);align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:24px">
   <button onclick="closeCalmOverlay()" style="position:absolute;top:20px;right:20px;background:rgba(255,255,255,.1);border:none;color:#fff;border-radius:50%;width:40px;height:40px;font-size:18px;cursor:pointer">×</button>
@@ -8443,7 +8443,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if(slider) slider.oninput = () => { document.getElementById("intensity-val").textContent = slider.value; };
   initGdprBanner();
   initPasswordToggles();
-  setTimeout(updateNotifBadge, 1200);
+  setTimeout(updateNotifBadge, 2000);
   window._notifBadgeInterval = setInterval(updateNotifBadge, 5 * 60 * 1000);
 });
 async function saveEmotion() {
@@ -22805,7 +22805,9 @@ function updateNotifBadge() {
   const fab = document.getElementById("zyra-notif-fab");
   const badge = document.getElementById("zyra-notif-count");
   if (!fab) return;
-  if (!token) { fab.style.display = "none"; return; }
+  const _authOnlyPages = ['landing','login','register','verify-login','verify-register','forgot-password','reset-password'];
+  const _cp = window._zyraCurrentPage || '';
+  if (!token || _authOnlyPages.includes(_cp)) { fab.style.display = "none"; return; }
   fab.style.display = "flex";
   const notifs = computeNotifs();
   const hasNotifs = notifs.length > 0;
