@@ -7895,7 +7895,106 @@ function showZyraEmotionReaction(emotion) {
   requestAnimationFrame(() => { div.style.opacity = '1'; div.style.transform = 'translateX(-50%) translateY(0)'; });
   const autoHide = isNeg && !alreadyHasTrigger ? 12000 : 6000;
   setTimeout(() => { if (div.parentNode) { div.style.opacity = '0'; div.style.transform = 'translateX(-50%) translateY(10px)'; setTimeout(() => div.remove(), 300); } }, autoHide);
+  // Auto-launch Escudo Emocional for high-distress emotions
+  const _escudoEmos = new Set(["triste","agotado","ansioso"]);
+  const _escudoDoneKey = "zyra_escudo_" + new Date().toDateString();
+  if (_escudoEmos.has(emotion) && !localStorage.getItem(_escudoDoneKey)) {
+    setTimeout(() => launchEscudoEmocional(emotion), autoHide + 500);
+  }
 }
+function launchEscudoEmocional(emotion) {
+  const _escudoDoneKey = "zyra_escudo_" + new Date().toDateString();
+  if (localStorage.getItem(_escudoDoneKey)) return;
+  localStorage.setItem(_escudoDoneKey, "1");
+  const existing = document.getElementById("zyra-escudo-modal");
+  if (existing) existing.remove();
+
+  const MSGS = {
+    triste: "Sé que ahora no es fácil. Estoy aquí — no tienes que estar bien todavía.",
+    agotado: "Tu cuerpo y tu mente están pidiendo pausa. Escúchalos. Lo que no hiciste hoy puede esperar.",
+    ansioso: "La ansiedad miente — te dice que el peligro es mayor de lo que es. Respira conmigo un momento.",
+  };
+  const AFFS = {
+    triste: "No estoy roto/a — estoy en proceso. Esto también va a pasar.",
+    agotado: "Descansar no es rendirse. Recargar también es avanzar.",
+    ansioso: "No tengo que resolver todo ahora mismo. Respiro y dejo que el cuerpo sepa que estoy bien.",
+  };
+  const msg = MSGS[emotion] || "Aquí estoy contigo.";
+  const aff = AFFS[emotion] || "Soy suficiente. Exactamente ahora, exactamente así.";
+
+  const overlay = document.createElement("div");
+  overlay.id = "zyra-escudo-modal";
+  overlay.style.cssText = "position:fixed;inset:0;z-index:9600;background:rgba(5,5,15,.85);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;padding:0 0 env(safe-area-inset-bottom,0);animation:pageFade .4s ease";
+  overlay.innerHTML = `
+  <div style="background:linear-gradient(180deg,rgba(20,15,40,.98),rgba(10,8,25,.99));border:1.5px solid rgba(139,92,246,.25);border-radius:24px 24px 0 0;padding:28px 24px 32px;max-width:440px;width:100%;animation:slideUp .4s cubic-bezier(.22,.68,0,1.2)">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:40px;margin-bottom:10px">🛡️</div>
+      <div style="font-size:14px;font-weight:800;color:rgba(167,139,250,.9);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Escudo emocional</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.55)">Zyra está aquí contigo</div>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:12px;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.18);border-radius:16px;padding:14px;margin-bottom:18px">
+      <img src="${LOGO}" style="width:36px;height:36px;border-radius:50%;flex-shrink:0" alt="Zyra">
+      <div style="font-size:13px;color:rgba(255,255,255,.8);line-height:1.6;padding-top:4px">${safeHtml(msg)}</div>
+    </div>
+    <div id="escudo-breath-wrap" style="text-align:center;padding:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:16px;margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:rgba(139,92,246,.7);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px">Respiración 4-4-4</div>
+      <div id="escudo-breath-circle" style="width:72px;height:72px;border-radius:50%;background:rgba(139,92,246,.15);border:2.5px solid rgba(139,92,246,.4);display:inline-flex;align-items:center;justify-content:center;margin-bottom:10px;transition:transform 4s ease,opacity .3s">
+        <span style="font-size:22px">🫁</span>
+      </div>
+      <div id="escudo-breath-label" style="font-size:14px;font-weight:700;color:rgba(255,255,255,.7)">Pulsa para respirar</div>
+      <div id="escudo-breath-count" style="font-size:28px;font-weight:800;color:rgba(167,139,250,.9);min-height:40px;line-height:40px;font-variant-numeric:tabular-nums"></div>
+    </div>
+    <div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.15);border-radius:14px;padding:12px 16px;margin-bottom:20px;text-align:center">
+      <div style="font-size:10px;font-weight:700;color:rgba(167,139,250,.6);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Para ti ahora</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.75);line-height:1.6;font-style:italic">"${safeHtml(aff)}"</div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button onclick="_escudoStartBreath()" id="escudo-breath-btn" style="flex:1;background:rgba(139,92,246,.2);border:1.5px solid rgba(139,92,246,.4);color:#c4b5fd;border-radius:14px;padding:12px;font-size:13px;font-weight:700;cursor:pointer">🫁 Respirar juntos</button>
+      <button onclick="document.getElementById('zyra-escudo-modal').remove()" style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5);border-radius:14px;padding:12px;font-size:13px;cursor:pointer">Ya estoy bien</button>
+    </div>
+    <div style="text-align:center;margin-top:14px">
+      <button onclick="newChat();showPage('assistant');document.getElementById('zyra-escudo-modal')?.remove()" style="background:none;border:none;color:rgba(167,139,250,.5);font-size:12px;cursor:pointer;text-decoration:underline">Hablar con Zyra →</button>
+    </div>
+  </div>`;
+
+  document.body.appendChild(overlay);
+  overlay.addEventListener("click", e => { if (e.target === overlay) overlay.remove(); });
+}
+
+let _escudoBreathTimer = null;
+function _escudoStartBreath() {
+  if (_escudoBreathTimer) { clearInterval(_escudoBreathTimer); _escudoBreathTimer = null; }
+  const circle = document.getElementById("escudo-breath-circle");
+  const label = document.getElementById("escudo-breath-label");
+  const count = document.getElementById("escudo-breath-count");
+  const btn = document.getElementById("escudo-breath-btn");
+  if (!circle || !label || !count) return;
+  if (btn) { btn.textContent = "⏹ Detener"; btn.onclick = () => { clearInterval(_escudoBreathTimer); _escudoBreathTimer = null; if(btn) { btn.textContent = "🫁 Respirar juntos"; btn.onclick = _escudoStartBreath; } if(label) label.textContent = "Bien hecho ✓"; if(count) count.textContent = ""; }; }
+
+  // 4-4-4 box breathing: 4s inhale, 4s hold, 4s exhale × 3 cycles
+  const PHASES = [
+    { name:"Inhala", dur:4, scale:"1.35" },
+    { name:"Aguanta", dur:4, scale:"1.35" },
+    { name:"Exhala", dur:4, scale:"1" },
+  ];
+  let phase = 0, sec = 0, cycles = 0;
+  label.textContent = PHASES[0].name;
+  count.textContent = PHASES[0].dur;
+  circle.style.transform = `scale(${PHASES[0].scale})`;
+
+  _escudoBreathTimer = setInterval(() => {
+    sec++;
+    if (sec > PHASES[phase].dur) {
+      sec = 1;
+      phase = (phase + 1) % PHASES.length;
+      if (phase === 0) { cycles++; if (cycles >= 3) { clearInterval(_escudoBreathTimer); _escudoBreathTimer = null; label.textContent = "Excelente 💙 Ya respira mejor"; count.textContent = ""; circle.style.transform = "scale(1)"; if(btn) { btn.textContent = "🫁 Respirar de nuevo"; btn.onclick = _escudoStartBreath; } return; } }
+      circle.style.transform = `scale(${PHASES[phase].scale})`;
+      label.textContent = PHASES[phase].name;
+    }
+    count.textContent = PHASES[phase].dur - sec + 1;
+  }, 1000);
+}
+
 const _MOOD_VAL = { feliz:5, motivado:5, esperanzado:4, tranquilo:4, confundido:3, ansioso:3, nostalgico:3, agotado:2, triste:2, enojado:2 };
 function renderChart(history) {
   const el = document.getElementById("emotion-chart");
