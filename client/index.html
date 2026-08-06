@@ -19494,6 +19494,46 @@ function renderHabitAnalytics() {
       </div>
     </div>`;
   }).join("");
+  // Habit-emotion correlation
+  const MOOD_VAL = { feliz:5, motivado:5, esperanzado:4, tranquilo:4, confundido:3, ansioso:3, nostalgico:3, agotado:2, triste:2, enojado:2 };
+  const correlations = habits.map(h => {
+    let withSum = 0, withCount = 0, withoutSum = 0, withoutCount = 0;
+    last30.forEach(d => {
+      const emo = localStorage.getItem("zyra_checkin_emotion_" + d.toDateString());
+      if (!emo) return;
+      const val = MOOD_VAL[emo] || 3;
+      if (isHabitDone(h.id, d.toDateString())) { withSum += val; withCount++; }
+      else { withoutSum += val; withoutCount++; }
+    });
+    if (withCount < 3) return null;
+    const withAvg = withCount ? withSum / withCount : 0;
+    const withoutAvg = withoutCount ? withoutSum / withoutCount : withAvg;
+    const diff = withAvg - withoutAvg;
+    return { ...h, withAvg, withoutAvg, diff, withCount };
+  }).filter(Boolean).filter(c => Math.abs(c.diff) >= 0.3).sort((a,b) => b.diff - a.diff);
+
+  const corrHtml = correlations.length >= 1 ? `
+    <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
+      <div style="font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">📊 Correlación con tu ánimo</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${correlations.slice(0,3).map(c => {
+          const pct = Math.round(Math.abs(c.diff) / 4 * 100);
+          const isPos = c.diff > 0;
+          const color = isPos ? "#10b981" : "#ef4444";
+          const icon = isPos ? "↑" : "↓";
+          const label = isPos ? `Los días que haces ${c.name} tu ánimo es ${pct > 30 ? "notablemente" : "ligeramente"} mejor` : `Los días que haces ${c.name} tu ánimo tiende a ser menor`;
+          return `<div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid ${color};border-radius:10px;padding:8px 11px;display:flex;align-items:center;gap:10px">
+            <span style="font-size:18px;flex-shrink:0">${c.emoji}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11px;color:var(--text);line-height:1.4">${safeHtml(label)}</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">Basado en ${c.withCount} día${c.withCount!==1?"s":""}</div>
+            </div>
+            <div style="font-size:14px;font-weight:800;color:${color};flex-shrink:0">${icon}${pct}%</div>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>` : "";
+
   card.innerHTML = `
     <div class="card-header"><span class="card-title">✅ Mis hábitos (30 días)</span></div>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
@@ -19510,7 +19550,7 @@ function renderHabitAnalytics() {
         <div style="font-size:12px;color:var(--text3);margin-top:2px">${totalDone} de ${totalPossible} sesiones en 30 días</div>
       </div>
     </div>
-    ${habitRows}`;
+    ${habitRows}${corrHtml}`;
 }
 
 /* ══════════════════════════════════════════
