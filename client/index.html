@@ -2858,6 +2858,9 @@ async function b2bSubmitContact() {
   <!-- ══ FORTALEZAS EMOCIONALES ══ -->
   <div id="prof-strengths-card" style="display:none;margin-bottom:20px"></div>
 
+  <!-- ══ ZYRA TE OBSERVA ══ -->
+  <div id="prof-zyra-observa-card" style="display:none;margin-bottom:20px"></div>
+
   <!-- ══ LOGROS + TIENDA ══ -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
     <button onclick="openAchievements()" class="card" style="text-align:center;padding:18px;cursor:pointer;border:none;transition:transform .15s;display:block" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
@@ -6029,6 +6032,8 @@ async function loadProfile() {
     renderWellnessFingerprint(p);
     // Fortalezas emocionales
     renderStrengthCard(p, gd, jd);
+    // Zyra te observa — patrones de comportamiento
+    renderZyraObservaCard(p, gd, jd);
   } catch(e) { console.error("loadProfile error:", e); }
 }
 
@@ -6208,6 +6213,160 @@ function renderStrengthCard(profile, gd, jd) {
     </div>
     ${strengths.length > 3 ? `<div style="text-align:center;margin-top:10px;font-size:11px;color:var(--text3)">+${strengths.length-3} fortaleza${strengths.length-3!==1?"s":""} más identificada${strengths.length-3!==1?"s":""}</div>` : ""}
   </div>`;
+}
+
+function renderZyraObservaCard(profile, gd, jd) {
+  const card = document.getElementById("prof-zyra-observa-card");
+  if (!card) return;
+  const MOOD_V = { feliz:5, tranquilo:4, motivado:5, esperanzado:4, confundido:2, ansioso:2, agotado:1, triste:1, enojado:1, nostalgico:3 };
+  const DAY_NAMES = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+  const today = new Date();
+
+  const dayBuckets = Array.from({length:7}, () => ({sum:0,count:0}));
+  const thisMonthScores = [], lastMonthScores = [];
+  const triggerCounts = {};
+  let totalActiveDays = 0;
+
+  for (let i = 0; i < 90; i++) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    const emo = localStorage.getItem("zyra_checkin_emotion_" + d.toDateString());
+    if (emo) {
+      totalActiveDays++;
+      const score = MOOD_V[emo] || 3;
+      dayBuckets[d.getDay()].sum += score;
+      dayBuckets[d.getDay()].count++;
+      if (i < 30) thisMonthScores.push(score);
+      else if (i < 60) lastMonthScores.push(score);
+    }
+    const traw = localStorage.getItem("zyra_trigger_" + d.toDateString());
+    if (traw) {
+      try {
+        const parsed = JSON.parse(traw);
+        (Array.isArray(parsed) ? parsed : [parsed]).forEach(t => {
+          const k = typeof t === "string" ? t : (t.trigger || t.text || "");
+          if (k) triggerCounts[k] = (triggerCounts[k] || 0) + 1;
+        });
+      } catch(e) {}
+    }
+  }
+
+  if (totalActiveDays < 7) { card.style.display = "none"; return; }
+
+  const validDays = dayBuckets.map((b,i) => ({day:i,avg:b.count>=2?b.sum/b.count:null})).filter(d=>d.avg!==null);
+  if (validDays.length < 2) { card.style.display = "none"; return; }
+
+  const bestDay  = validDays.reduce((a,b) => a.avg > b.avg ? a : b);
+  const worstDay = validDays.reduce((a,b) => a.avg < b.avg ? a : b);
+  const thisAvg  = thisMonthScores.length  ? thisMonthScores.reduce((a,b)=>a+b,0)/thisMonthScores.length   : null;
+  const lastAvg  = lastMonthScores.length  ? lastMonthScores.reduce((a,b)=>a+b,0)/lastMonthScores.length   : null;
+  const moodTrend = (thisAvg && lastAvg) ? ((thisAvg - lastAvg) / lastAvg * 100).toFixed(0) : null;
+  const topTrigger = Object.entries(triggerCounts).sort((a,b)=>b[1]-a[1])[0];
+
+  // Habit mood lift
+  const habits = getHabits();
+  let bestHabit = null, bestDiff = 0;
+  habits.forEach(h => {
+    let ws=0,wn=0,os=0,on=0;
+    for (let i=0;i<30;i++) {
+      const d = new Date(today); d.setDate(today.getDate()-i);
+      const emo = localStorage.getItem("zyra_checkin_emotion_"+d.toDateString());
+      if (!emo) continue;
+      const sc = MOOD_V[emo]||3;
+      if (isHabitDone(h.id,d.toDateString())) { ws+=sc; wn++; } else { os+=sc; on++; }
+    }
+    if (wn>=3 && on>=3) { const diff=(ws/wn)-(os/on); if(diff>bestDiff){bestDiff=diff;bestHabit=h;} }
+  });
+
+  const obs = [];
+  if (bestDay.avg - worstDay.avg > 0.5) {
+    obs.push({icon:"📅", text:`Tus <strong>${DAY_NAMES[bestDay.day]}s</strong> suelen ser tus mejores días`, detail:`Los ${DAY_NAMES[worstDay.day]}s tienden a ser más difíciles.`});
+  }
+  if (moodTrend !== null) {
+    const up = parseFloat(moodTrend) > 0;
+    obs.push({icon: up?"📈":"📉", text:`Tu bienestar <strong>${up?`subió un ${Math.abs(moodTrend)}%`:`bajó un ${Math.abs(moodTrend)}%`}</strong> este mes`, detail: up?"Vas mejor que el mes pasado.":"El mes pasado fue más estable — buena señal para retomar rutinas."});
+  }
+  if (topTrigger) {
+    obs.push({icon:"🔍", text:`Tu detonante más frecuente: <strong>${safeHtml(topTrigger[0])}</strong>`, detail:`Aparece ${topTrigger[1]} ${topTrigger[1]===1?"vez":"veces"} en tus registros.`});
+  }
+  if (bestHabit && bestDiff > 0.3) {
+    obs.push({icon:"✨", text:`"<strong>${safeHtml(bestHabit.name)}</strong>" mejora tu estado de ánimo`, detail:`Los días que lo haces, tu bienestar sube notablemente.`});
+  }
+  if (totalActiveDays >= 14) {
+    const pct = Math.round((totalActiveDays/90)*100);
+    obs.push({icon:"🗓️", text:`Llevas <strong>${totalActiveDays} días</strong> de registro en los últimos 3 meses`, detail:`${pct}% de consistencia — ${pct>=70?"excelente":"muy buena"} base de datos de ti mismo/a.`});
+  }
+
+  if (obs.length < 2) { card.style.display = "none"; return; }
+
+  const cacheKey = "zyra_observa_ai_" + _getWeekKey();
+  const cached   = localStorage.getItem(cacheKey);
+
+  card.style.display = "block";
+  card.innerHTML = `
+  <div style="background:linear-gradient(135deg,rgba(14,165,233,.07),rgba(99,102,241,.06));border:1.5px solid rgba(14,165,233,.2);border-radius:18px;padding:16px 18px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+      <span style="font-size:18px">🔭</span>
+      <div>
+        <div style="font-size:11px;font-weight:800;color:#0ea5e9;text-transform:uppercase;letter-spacing:.6px">Zyra te observa</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:1px">Patrones en ${totalActiveDays} días de registro</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:${cached?'14':'12'}px">
+      ${obs.slice(0,4).map(o=>`
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px">
+          <div style="display:flex;align-items:flex-start;gap:8px">
+            <span style="font-size:15px;flex-shrink:0;margin-top:1px">${o.icon}</span>
+            <div>
+              <div style="font-size:12px;color:var(--text);line-height:1.4">${o.text}</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:2px">${o.detail}</div>
+            </div>
+          </div>
+        </div>`).join("")}
+    </div>
+    ${cached
+      ? `<div style="display:flex;align-items:flex-start;gap:10px;background:rgba(14,165,233,.07);border:1px solid rgba(14,165,233,.15);border-radius:12px;padding:12px">
+           <img src="${LOGO}" style="width:28px;height:28px;border-radius:50%;flex-shrink:0;object-fit:cover">
+           <div style="font-size:12px;color:var(--text);line-height:1.6;font-style:italic">"${safeHtml(cached)}"</div>
+         </div>`
+      : `<button id="observa-ai-btn" onclick="_generateObservaAI()" style="width:100%;background:linear-gradient(135deg,#0ea5e9,#6366f1);border:none;color:#fff;border-radius:12px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .2s">🔭 Zyra: analiza mis patrones</button>`
+    }
+  </div>`;
+}
+
+async function _generateObservaAI() {
+  const btn = document.getElementById("observa-ai-btn");
+  if (btn) { btn.disabled=true; btn.textContent="Analizando patrones..."; btn.style.opacity=".7"; }
+  const MOOD_V2 = { feliz:5, tranquilo:4, motivado:5, esperanzado:4, confundido:2, ansioso:2, agotado:1, triste:1, enojado:1, nostalgico:3 };
+  const DAY_NAMES2 = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+  const today2 = new Date();
+  const db = Array.from({length:7},()=>({sum:0,count:0}));
+  const ef = {}; let tot = 0;
+  for (let i=0;i<90;i++) {
+    const d=new Date(today2); d.setDate(today2.getDate()-i);
+    const emo=localStorage.getItem("zyra_checkin_emotion_"+d.toDateString());
+    if (!emo) continue; tot++;
+    ef[emo]=(ef[emo]||0)+1; db[d.getDay()].sum+=(MOOD_V2[emo]||3); db[d.getDay()].count++;
+  }
+  const topEmo = Object.entries(ef).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`${k}(${v}x)`).join(", ");
+  const daySum = db.map((b,i)=>b.count>=2?`${DAY_NAMES2[i]}:${(b.sum/b.count).toFixed(1)}`:"").filter(Boolean).join(", ");
+  const prompt = `Eres Zyra, asistente de bienestar emocional empática y perspicaz. Basándote en los datos del usuario, da UNA observación perceptiva y personal (2-3 oraciones, máx 55 palabras). Habla en segunda persona, con calidez, como una buena amiga que te conoce bien. No menciones los números crudos — interpreta el patrón humano detrás de ellos. Datos: emociones más frecuentes: ${topEmo||"variadas"}; promedio de ánimo por día de la semana (escala 1-5): ${daySum||"sin datos suficientes"}; total días activos: ${tot}.`;
+  try {
+    const r = await api("/chat","POST",{message:prompt,noSave:true});
+    const txt = r.reply || r.message || "";
+    if (txt) {
+      localStorage.setItem("zyra_observa_ai_"+_getWeekKey(), txt);
+      const card = document.getElementById("prof-zyra-observa-card");
+      if (card) {
+        const oldBtn = card.querySelector("button");
+        if (oldBtn) {
+          const msgDiv = document.createElement("div");
+          msgDiv.style.cssText = "display:flex;align-items:flex-start;gap:10px;background:rgba(14,165,233,.07);border:1px solid rgba(14,165,233,.15);border-radius:12px;padding:12px;margin-top:12px";
+          msgDiv.innerHTML = `<img src="${LOGO}" style="width:28px;height:28px;border-radius:50%;flex-shrink:0;object-fit:cover"><div style="font-size:12px;color:var(--text);line-height:1.6;font-style:italic">"${safeHtml(txt)}"</div>`;
+          oldBtn.replaceWith(msgDiv);
+        }
+      }
+    }
+  } catch(e) { if(btn){btn.disabled=false;btn.textContent="🔭 Zyra: analiza mis patrones";btn.style.opacity="1";} }
 }
 
 function renderConnectedAccounts(u) {
