@@ -2437,6 +2437,7 @@ async function b2bSubmitContact() {
     <button class="wellness-tab" id="wtab-cbt" onclick="openWellness('cbt')">🧠 Reestructurar</button>
     <button class="wellness-tab" id="wtab-programs" onclick="openWellness('programs')">📚 Programas</button>
     <button class="wellness-tab" id="wtab-trends" onclick="openWellness('trends')">📈 Tendencias</button>
+    <button class="wellness-tab" id="wtab-constelacion" onclick="openWellness('constelacion')">🌌 Constelación</button>
   </div>
   <div id="wellness-content"></div>
 </div>
@@ -10488,6 +10489,7 @@ async function renderTrends(el) {
 
 function openWellness(tab) {
   if (window.speechSynthesis && (_medTTSPlaying || _sleepTTSPlaying)) { speechSynthesis.cancel(); _medTTSPlaying = false; _sleepTTSPlaying = false; }
+  if (tab !== "constelacion" && _constellRAF) { cancelAnimationFrame(_constellRAF); _constellRAF = null; }
   currentWTab = tab;
   ["breath","meditation","music","affirmations","gratitude","water","sleep","focus","habits","cbt","programs","trends"].forEach(t => {
     const btn = document.getElementById("wtab-"+t);
@@ -10507,6 +10509,7 @@ function openWellness(tab) {
   else if(tab==="cbt")          renderCBTTool(el);
   else if(tab==="programs")     renderPrograms(el);
   else if(tab==="trends")       renderTrends(el);
+  else if(tab==="constelacion") renderConstelacion(el);
 }
 const BREATH_TECHS = {
   '478':  { name:'4-7-8', desc:'Inhala <strong>4s</strong> · mantén <strong>7s</strong> · exhala <strong>8s</strong>. La más poderosa para calmar la ansiedad rápido.', phases:[{t:"Inhala",d:4,cls:"inhale"},{t:"Mantén",d:7,cls:""},{t:"Exhala",d:8,cls:"exhale"}] },
@@ -10514,6 +10517,291 @@ const BREATH_TECHS = {
   'calm': { name:'Calma 4-6', desc:'Inhala <strong>4s</strong> · exhala <strong>6s</strong>. Simple, efectivo, para cuando solo necesitas bajar un poco.', phases:[{t:"Inhala",d:4,cls:"inhale"},{t:"Exhala",d:6,cls:"exhale"}] },
 };
 let currentBreathTech = '478';
+
+// ══════════════════════════════════════════
+//  CONSTELACIÓN EMOCIONAL
+// ══════════════════════════════════════════
+const _CONSTELL_COLORS = {
+  feliz:      { fill:"#fbbf24", glow:"rgba(251,191,36,.6)",  label:"Feliz" },
+  tranquilo:  { fill:"#34d399", glow:"rgba(52,211,153,.6)",  label:"Tranquilo" },
+  ansioso:    { fill:"#818cf8", glow:"rgba(129,140,248,.6)", label:"Ansioso" },
+  triste:     { fill:"#60a5fa", glow:"rgba(96,165,250,.6)",  label:"Triste" },
+  enojado:    { fill:"#f87171", glow:"rgba(248,113,113,.6)", label:"Enojado" },
+  agotado:    { fill:"#a78bfa", glow:"rgba(167,139,250,.6)", label:"Agotado" },
+  motivado:   { fill:"#fb923c", glow:"rgba(251,146,60,.6)",  label:"Motivado" },
+  confundido: { fill:"#e879f9", glow:"rgba(232,121,249,.6)", label:"Confundido" },
+  gratitud:   { fill:"#2dd4bf", glow:"rgba(45,212,191,.6)",  label:"Gratitud" },
+  esperanza:  { fill:"#facc15", glow:"rgba(250,204,21,.6)",  label:"Esperanza" },
+};
+const _CONSTELL_DEFAULT = { fill:"#475569", glow:"rgba(71,85,105,.4)", label:"Sin dato" };
+let _constellCanvas = null, _constellCtx = null, _constellStars = [], _constellRAF = null, _constellSelected = null;
+
+function renderConstelacion(el) {
+  if (!el) return;
+  if (_constellRAF) { cancelAnimationFrame(_constellRAF); _constellRAF = null; }
+
+  // Collect 90 days
+  const days = [];
+  for (let i = 89; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const ds = d.toDateString();
+    const emoRaw = localStorage.getItem(`zyra_emotion_${ds}`) || localStorage.getItem(`zyra_checkin_${ds}`);
+    let emo = null;
+    try { emo = emoRaw ? (JSON.parse(emoRaw)?.emotion || emoRaw) : null; } catch { emo = emoRaw; }
+    const hasJournal = !!localStorage.getItem(`zyra_journal_${ds}`);
+    const hasGratitude = !!localStorage.getItem(`zyra_gratitude_${ds}`);
+    const depth = (emo ? 1 : 0) + (hasJournal ? 1 : 0) + (hasGratitude ? 1 : 0);
+    days.push({ ds, date: d, emo: emo?.toLowerCase(), depth, idx: 89 - i });
+  }
+
+  const withData = days.filter(d => d.emo);
+  const topEmo = withData.length ? (() => {
+    const counts = {};
+    withData.forEach(d => { counts[d.emo] = (counts[d.emo] || 0) + 1; });
+    return Object.entries(counts).sort((a,b) => b[1]-a[1])[0];
+  })() : null;
+
+  el.innerHTML = `
+    <div style="padding:16px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-size:16px;font-weight:800;color:var(--text)">🌌 Constelación Emocional</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">Tus últimos 90 días · cada estrella es un día</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap" id="constell-legend"></div>
+      </div>
+
+      <div style="position:relative;border-radius:20px;overflow:hidden;background:#060a14;border:1px solid rgba(99,102,241,.15)">
+        <canvas id="constell-canvas" style="display:block;width:100%;touch-action:none"></canvas>
+        <div id="constell-tooltip" style="display:none;position:absolute;background:rgba(10,15,30,.95);border:1px solid rgba(99,102,241,.35);border-radius:14px;padding:10px 14px;font-size:12px;color:#e8eaf6;pointer-events:none;max-width:180px;z-index:10;backdrop-filter:blur(8px)"></div>
+      </div>
+
+      <div id="constell-detail" style="margin-top:12px;display:none"></div>
+
+      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+        <div style="flex:1;min-width:100px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center">
+          <div style="font-size:22px;font-weight:800;color:var(--text)">${withData.length}</div>
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Días registrados</div>
+        </div>
+        <div style="flex:1;min-width:100px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center">
+          <div style="font-size:22px;font-weight:800;color:var(--text)">${topEmo ? ((_CONSTELL_COLORS[topEmo[0]] || _CONSTELL_DEFAULT).label) : "—"}</div>
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Emoción dominante</div>
+        </div>
+        <div style="flex:1;min-width:100px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center">
+          <div style="font-size:22px;font-weight:800;color:var(--text)">${Math.round((withData.length/90)*100)}%</div>
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Consistencia</div>
+        </div>
+      </div>
+
+      <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:10px">Toca una estrella para ver ese día · El brillo indica cuánto registraste</div>
+    </div>`;
+
+  // Build legend
+  const usedEmos = [...new Set(withData.map(d => d.emo).filter(Boolean))];
+  const legend = document.getElementById("constell-legend");
+  if (legend) {
+    usedEmos.forEach(emo => {
+      const c = _CONSTELL_COLORS[emo] || _CONSTELL_DEFAULT;
+      const chip = document.createElement("div");
+      chip.style.cssText = `display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:3px 8px`;
+      chip.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:${c.fill};display:inline-block;flex-shrink:0"></span>${c.label}`;
+      legend.appendChild(chip);
+    });
+  }
+
+  // Setup canvas after DOM is ready
+  requestAnimationFrame(() => _constellSetup(days));
+}
+
+function _constellSetup(days) {
+  const canvas = document.getElementById("constell-canvas");
+  if (!canvas) return;
+  const container = canvas.parentElement;
+  const W = container.clientWidth;
+  const H = Math.min(W * 0.65, 340);
+  canvas.width  = W * devicePixelRatio;
+  canvas.height = H * devicePixelRatio;
+  canvas.style.height = H + "px";
+  _constellCanvas = canvas;
+  _constellCtx = canvas.getContext("2d");
+  _constellCtx.scale(devicePixelRatio, devicePixelRatio);
+
+  // Layout: 10 columns × 9 rows grid with organic scatter
+  const PAD = 28, cols = 10, rows = 9;
+  const cellW = (W - PAD*2) / cols;
+  const cellH = (H - PAD*2) / rows;
+
+  _constellStars = days.map((day, i) => {
+    const col = i % cols, row = Math.floor(i / cols);
+    const jitter = (s => ({ x: (Math.random()-.5)*cellW*.45, y: (Math.random()-.5)*cellH*.45 }))(i);
+    const cx = PAD + col*cellW + cellW/2 + jitter.x;
+    const cy = PAD + row*cellH + cellH/2 + jitter.y;
+    const c = (_CONSTELL_COLORS[day.emo] || _CONSTELL_DEFAULT);
+    const baseR = day.depth === 0 ? 2 : (3 + day.depth * 2.5);
+    return { ...day, cx, cy, baseR, fill: c.fill, glow: c.glow, twinkleOffset: Math.random() * Math.PI * 2 };
+  });
+
+  // Constellation lines between same-emotion consecutive days
+  _constellLines = [];
+  for (let i = 1; i < _constellStars.length; i++) {
+    const a = _constellStars[i-1], b = _constellStars[i];
+    if (a.emo && b.emo && a.emo === b.emo) {
+      _constellLines.push({ ax:a.cx, ay:a.cy, bx:b.cx, by:b.cy, color: a.glow });
+    }
+  }
+
+  // Interaction
+  canvas.ontouchstart = canvas.onmousedown = (e) => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const px = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    const py = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+    let hit = null, bestDist = 999;
+    _constellStars.forEach(s => {
+      const dist = Math.hypot(px - s.cx, py - s.cy);
+      if (dist < Math.max(s.baseR + 8, 14) && dist < bestDist) { bestDist = dist; hit = s; }
+    });
+    _constellSelected = hit ? hit.ds : null;
+    if (hit) _constellShowDetail(hit);
+    else document.getElementById("constell-detail").style.display = "none";
+  };
+
+  canvas.onmousemove = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const px = e.clientX - rect.left, py = e.clientY - rect.top;
+    let hit = null, bestDist = 999;
+    _constellStars.forEach(s => {
+      const dist = Math.hypot(px - s.cx, py - s.cy);
+      if (dist < Math.max(s.baseR + 10, 16) && dist < bestDist) { bestDist = dist; hit = s; }
+    });
+    const tip = document.getElementById("constell-tooltip");
+    if (hit && tip) {
+      const c = _CONSTELL_COLORS[hit.emo] || _CONSTELL_DEFAULT;
+      tip.style.display = "block";
+      const left = Math.min(px + 12, canvas.clientWidth - 195);
+      const top  = py - 60 < 8 ? py + 12 : py - 65;
+      tip.style.left = left + "px"; tip.style.top = top + "px";
+      tip.innerHTML = `<strong style="color:${c.fill}">${c.label || "Sin dato"}</strong><br>${hit.date.toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short'})}<br><span style="color:#7880a0;font-size:10px">${["Sin registro","Básico","Bueno","Completo"][hit.depth]}</span>`;
+    } else if (tip) tip.style.display = "none";
+    canvas.style.cursor = hit ? "pointer" : "default";
+  };
+
+  canvas.onmouseleave = () => {
+    const tip = document.getElementById("constell-tooltip");
+    if (tip) tip.style.display = "none";
+    canvas.style.cursor = "default";
+  };
+
+  _constellAnimate(0);
+}
+
+let _constellLines = [];
+function _constellAnimate(ts) {
+  const ctx = _constellCtx, canvas = _constellCanvas;
+  if (!ctx || !canvas) return;
+  const W = canvas.width / devicePixelRatio, H = canvas.height / devicePixelRatio;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Ambient background stars (tiny)
+  if (!_constellBgStars) {
+    _constellBgStars = Array.from({length:60}, () => ({
+      x: Math.random()*W, y: Math.random()*H,
+      r: Math.random()*.8+.2, a: Math.random()*Math.PI*2
+    }));
+  }
+  _constellBgStars.forEach(s => {
+    ctx.globalAlpha = .15 + .1*Math.sin(ts*.001 + s.a);
+    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+
+  // Constellation lines
+  _constellLines.forEach(l => {
+    ctx.save();
+    ctx.strokeStyle = l.color;
+    ctx.lineWidth = 0.5;
+    ctx.globalAlpha = 0.18;
+    ctx.beginPath(); ctx.moveTo(l.ax, l.ay); ctx.lineTo(l.bx, l.by); ctx.stroke();
+    ctx.restore();
+  });
+
+  // Stars
+  _constellStars.forEach(s => {
+    const twinkle = Math.sin(ts * .0015 + s.twinkleOffset);
+    const r = s.baseR * (1 + twinkle * 0.12);
+    const sel = _constellSelected === s.ds;
+
+    if (s.emo) {
+      // Outer glow
+      ctx.save();
+      const grad = ctx.createRadialGradient(s.cx, s.cy, 0, s.cx, s.cy, r * (sel ? 4.5 : 3.5));
+      grad.addColorStop(0, s.glow.replace('.6', sel ? '.7' : '.45'));
+      grad.addColorStop(1, 'transparent');
+      ctx.fillStyle = grad;
+      ctx.globalAlpha = sel ? 1 : 0.8;
+      ctx.beginPath(); ctx.arc(s.cx, s.cy, r * (sel ? 4.5 : 3.5), 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+
+      // Star body
+      ctx.save();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = s.fill;
+      ctx.shadowColor = s.fill;
+      ctx.shadowBlur = sel ? 14 : 6;
+      ctx.beginPath(); ctx.arc(s.cx, s.cy, r, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+
+      if (sel) {
+        ctx.save();
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.6;
+        ctx.beginPath(); ctx.arc(s.cx, s.cy, r + 4, 0, Math.PI*2); ctx.stroke();
+        ctx.restore();
+      }
+    } else {
+      // Empty day — tiny dim dot
+      ctx.save();
+      ctx.globalAlpha = 0.15;
+      ctx.fillStyle = "#4b5563";
+      ctx.beginPath(); ctx.arc(s.cx, s.cy, 1.5, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+  });
+
+  _constellRAF = requestAnimationFrame(t => _constellAnimate(t));
+}
+let _constellBgStars = null;
+
+function _constellShowDetail(star) {
+  const detail = document.getElementById("constell-detail");
+  if (!detail) return;
+  const c = _CONSTELL_COLORS[star.emo] || _CONSTELL_DEFAULT;
+  const journal = localStorage.getItem(`zyra_journal_${star.ds}`) || "";
+  const gratitude = localStorage.getItem(`zyra_gratitude_${star.ds}`) || "";
+  const dateStr = star.date.toLocaleDateString('es', { weekday:'long', day:'numeric', month:'long' });
+  const depthLabel = ["Sin registro","Solo emoción","Emoción + más","Día completo"][star.depth];
+  const journalPreview = journal ? journal.slice(0, 120) + (journal.length > 120 ? "…" : "") : null;
+  const gratPreview = gratitude ? gratitude.slice(0, 80) + (gratitude.length > 80 ? "…" : "") : null;
+
+  detail.style.display = "block";
+  detail.innerHTML = `
+    <div style="background:linear-gradient(135deg,rgba(6,10,20,.95),rgba(15,20,40,.9));border:1.5px solid ${c.fill}40;border-radius:18px;padding:16px 18px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <div style="width:12px;height:12px;border-radius:50%;background:${c.fill};box-shadow:0 0 8px ${c.fill};flex-shrink:0"></div>
+        <div>
+          <div style="font-size:13px;font-weight:800;color:#e8eaf6;text-transform:capitalize">${dateStr}</div>
+          <div style="font-size:11px;color:#7880a0">${c.label} · ${depthLabel}</div>
+        </div>
+        <button onclick="document.getElementById('constell-detail').style.display='none';_constellSelected=null;" style="margin-left:auto;background:none;border:none;color:#7880a0;font-size:16px;cursor:pointer">✕</button>
+      </div>
+      ${journalPreview ? `<div style="font-size:12px;color:#c7d2fe;line-height:1.6;margin-bottom:8px;border-left:2px solid ${c.fill}60;padding-left:10px">"${safeHtml(journalPreview)}"</div>` : ""}
+      ${gratPreview ? `<div style="font-size:11px;color:#34d399;margin-top:6px">🙏 ${safeHtml(gratPreview)}</div>` : ""}
+      ${!journalPreview && !gratPreview ? `<div style="font-size:12px;color:#4b5563;text-align:center;padding:8px 0">Solo se registró la emoción ese día.</div>` : ""}
+    </div>`;
+}
 
 function renderBreath(el) {
   if(breathTimer) { clearTimeout(breathTimer); breathTimer = null; }
