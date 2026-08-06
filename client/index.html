@@ -2349,7 +2349,8 @@ async function b2bSubmitContact() {
     <button class="game-tab"       id="gtab-doodle"   onclick="openGame('doodle')">🎨 Doodle</button>
     <button class="game-tab"       id="gtab-release"  onclick="openGame('release')">💨 Liberar</button>
     <button class="game-tab"       id="gtab-emocion"  onclick="openGame('emocion')">🎭 Emociones</button>
-    <button class="game-tab"       id="gtab-raices"   onclick="openGame('raices')">🌳 Raíces</button>
+    <button class="game-tab"       id="gtab-raices"        onclick="openGame('raices')">🌳 Raíces</button>
+    <button class="game-tab"       id="gtab-emocionario"   onclick="openGame('emocionario')">📖 Emocionario</button>
   </div>
 
   <div id="game-container"></div>
@@ -18102,7 +18103,7 @@ function _playWin()   { [523,659,784,1047].forEach((f,i) => setTimeout(() => _ga
 function _playFlip()  { _gameAudio(440, 'triangle', 0.08, 0.08); }
 
 function openGame(name) {
-  ['breath','bubbles','memory','zen','doodle','release','emocion','raices'].forEach(t => {
+  ['breath','bubbles','memory','zen','doodle','release','emocion','raices','emocionario'].forEach(t => {
     const btn = document.getElementById('gtab-' + t);
     if (btn) btn.classList.toggle('active', t === name);
   });
@@ -18117,8 +18118,9 @@ function openGame(name) {
   if (name === 'zen')     renderZenGarden(container);
   if (name === 'doodle')  renderDoodleGame(container);
   if (name === 'release') renderReleaseGame(container);
-  if (name === 'emocion') renderEmocionGame(container);
-  if (name === 'raices')  renderRaicesGame(container);
+  if (name === 'emocion')      renderEmocionGame(container);
+  if (name === 'raices')       renderRaicesGame(container);
+  if (name === 'emocionario')  renderEmocionario(container);
 }
 
 /* ── JUEGO 1: Respiración guiada ── */
@@ -19197,6 +19199,223 @@ function _raicesDownload() {
   link.href = canvas.toDataURL("image/png");
   link.click();
   zyraToast("🌳 Árbol guardado en tus descargas", "success");
+}
+
+// ══════════════════════════════════════════
+// EMOCIONARIO — Diccionario interactivo de emociones
+// ══════════════════════════════════════════
+const EMOCIONARIO_DATA = {
+  feliz: {
+    emoji:"😊", color:"#22c55e", gradient:"linear-gradient(135deg,#22c55e,#16a34a)",
+    titulo:"Alegría / Felicidad",
+    definicion:"Un estado de bienestar que señala que algo en tu vida está yendo bien. No es ausencia de problemas — es la presencia de algo que importa.",
+    cuerpo:"Músculos relajados, sensación de ligereza en el pecho, tendencia a sonreír, energía fácil, mayor apertura a los demás.",
+    mensaje:"Tu sistema emocional confirma que algo está bien alineado con lo que valoras. Merece atención y gratitud.",
+    ejercicios:[
+      { icon:"📔", text:"Anota exactamente qué lo generó — para poder recrearlo" },
+      { icon:"🤝", text:"Compártelo con alguien: la alegría se amplifica al compartirse" },
+      { icon:"🙏", text:"Un minuto de gratitud consciente antes de que pase" },
+    ]
+  },
+  tranquilo: {
+    emoji:"😌", color:"#0ea5e9", gradient:"linear-gradient(135deg,#0ea5e9,#0284c7)",
+    titulo:"Calma / Tranquilidad",
+    definicion:"Un estado de equilibrio donde la mente no lucha contra el presente. Es activa, no pasiva — elegir estar aquí en lugar de resistir.",
+    cuerpo:"Respiración más lenta y profunda, músculos sin tensión, capacidad de atención amplia, menos urgencia en los pensamientos.",
+    mensaje:"La calma es una forma sofisticada de bienestar. No siempre llega sola — cultivarla es una habilidad real.",
+    ejercicios:[
+      { icon:"🌬️", text:"Respiración 4-4 para profundizar este estado" },
+      { icon:"📝", text:"Escribe algo importante ahora que tienes claridad" },
+      { icon:"🌿", text:"Registra qué lo generó para poder volver aquí" },
+    ]
+  },
+  motivado: {
+    emoji:"💪", color:"#6366f1", gradient:"linear-gradient(135deg,#6366f1,#4f46e5)",
+    titulo:"Motivación / Impulso",
+    definicion:"Energía dirigida hacia algo que importa. Puede ser intrínseca (desde dentro) o extrínseca (desde afuera). La intrínseca dura más.",
+    cuerpo:"Mayor energía física, pensamiento acelerado, menor percepción de obstáculos, sentido de propósito en el movimiento.",
+    mensaje:"La motivación es perecedera — es una señal de actuar ahora, no de esperar. Úsala mientras está.",
+    ejercicios:[
+      { icon:"🎯", text:"Define una acción concreta para los próximos 30 minutos" },
+      { icon:"📋", text:"Anota tus metas activas para capitalizar este impulso" },
+      { icon:"⏱", text:"Usa el modo Pomodoro para mantener el momentum" },
+    ]
+  },
+  ansioso: {
+    emoji:"😰", color:"#f97316", gradient:"linear-gradient(135deg,#f97316,#ea580c)",
+    titulo:"Ansiedad",
+    definicion:"Una respuesta al peligro percibido — real o imaginado. Tu sistema nervioso activa la alarma. No distingue entre una amenaza real y un pensamiento.",
+    cuerpo:"Tensión muscular (especialmente hombros y mandíbula), respiración corta, corazón acelerado, estómago apretado, mente acelerada.",
+    mensaje:"La ansiedad aparece cuando algo importante está en riesgo o incierto. La pregunta no es cómo eliminarla, sino qué te está diciendo.",
+    ejercicios:[
+      { icon:"🫁", text:"Respiración 4-7-8: inhala 4s, mantén 7s, exhala 8s" },
+      { icon:"🖐", text:"5-4-3-2-1: nombra 5 cosas que ves, 4 que tocas, 3 que escuchas" },
+      { icon:"💬", text:"Cuéntale a Zyra qué te está generando la ansiedad" },
+    ]
+  },
+  triste: {
+    emoji:"😢", color:"#60a5fa", gradient:"linear-gradient(135deg,#60a5fa,#3b82f6)",
+    titulo:"Tristeza",
+    definicion:"Una respuesta a la pérdida — de una persona, situación, expectativa, o parte de ti mismo. Es la emoción que procesa lo que ya no está.",
+    cuerpo:"Pesadez en el pecho, cansancio general, menor energía, tendencia a alejarse, ojos que lloran o se llenan.",
+    mensaje:"La tristeza dice 'esto importaba'. Es una señal de amor, no de debilidad. No hay que arreglarla — hay que atravesarla.",
+    ejercicios:[
+      { icon:"📔", text:"Escribe sobre lo que perdiste o extrañas, sin editar" },
+      { icon:"🤗", text:"Permítete sentirla en lugar de distraerte — 10 minutos" },
+      { icon:"💬", text:"Cuéntaselo a alguien de confianza o a Zyra" },
+    ]
+  },
+  enojado: {
+    emoji:"😤", color:"#ef4444", gradient:"linear-gradient(135deg,#ef4444,#dc2626)",
+    titulo:"Enojo / Ira",
+    definicion:"Una reacción a una injusticia real o percibida, o al cruce de un límite importante. Avisa que algo que valoras fue violado.",
+    cuerpo:"Calor en cara y cuello, tensión en manos y mandíbula, respiración corta y rápida, energía que busca salida.",
+    mensaje:"El enojo tiene información importante. La pregunta es: ¿qué límite se cruzó? ¿Qué necesitas que no estás obteniendo?",
+    ejercicios:[
+      { icon:"💨", text:"Exhala lentamente antes de actuar — siempre" },
+      { icon:"✍", text:"Escribe lo que sientes SIN enviar — el diario es ideal" },
+      { icon:"🏃", text:"Descarga física: caminar, correr, algo que mueva el cuerpo" },
+    ]
+  },
+  agotado: {
+    emoji:"😮‍💨", color:"#94a3b8", gradient:"linear-gradient(135deg,#94a3b8,#64748b)",
+    titulo:"Agotamiento",
+    definicion:"El sistema nervioso ha estado en alta demanda por demasiado tiempo sin suficiente recuperación. No es flojera — es biología.",
+    cuerpo:"Cansancio que no cede con descanso corto, dificultad para concentrarse, menor tolerancia a la frustración, sensación de vacío.",
+    mensaje:"El agotamiento no se cura trabajando más. La única salida real es el descanso genuino — incluyendo el mental.",
+    ejercicios:[
+      { icon:"😴", text:"Registra tu sueño esta semana — ¿está siendo suficiente?" },
+      { icon:"📵", text:"20 minutos sin pantalla, sin pendientes, sin productividad" },
+      { icon:"💧", text:"Agua, movimiento suave, algo que disfrutes sin esfuerzo" },
+    ]
+  },
+  confundido: {
+    emoji:"🤔", color:"#f59e0b", gradient:"linear-gradient(135deg,#f59e0b,#d97706)",
+    titulo:"Confusión",
+    definicion:"El estado en que la mente procesa información contradictoria o intenta resolver algo que aún no tiene suficientes datos.",
+    cuerpo:"Sensación de niebla mental, dificultad para tomar decisiones, pensamientos en círculos, a veces dolor de cabeza.",
+    mensaje:"La confusión es normal antes de una nueva comprensión. No tienes que resolverlo todo — a veces hay que esperar más información.",
+    ejercicios:[
+      { icon:"✏", text:"Escribe los dos lados de la confusión sin juzgar" },
+      { icon:"🛑", text:"Para. La decisión puede esperar más de lo que crees" },
+      { icon:"💬", text:"Habla con alguien — verbalizar aclara" },
+    ]
+  },
+  esperanzado: {
+    emoji:"🌟", color:"#a78bfa", gradient:"linear-gradient(135deg,#a78bfa,#8b5cf6)",
+    titulo:"Esperanza",
+    definicion:"La creencia de que algo mejor es posible, aun cuando no está garantizado. Es una elección activa, no un estado pasivo.",
+    cuerpo:"Ligereza en el pecho, mayor energía orientada al futuro, apertura a posibilidades, menos peso de los problemas actuales.",
+    mensaje:"La esperanza no es ingenuidad — es la capacidad de ver más allá de lo que es para ver lo que puede ser. Es poderosa.",
+    ejercicios:[
+      { icon:"🎯", text:"Define una meta pequeña que mueva esto hacia adelante" },
+      { icon:"📔", text:"Escribe exactamente qué estás esperando y por qué" },
+      { icon:"🌱", text:"Un paso concreto hoy hacia lo que esperas" },
+    ]
+  },
+  nostalgico: {
+    emoji:"🌅", color:"#e879f9", gradient:"linear-gradient(135deg,#e879f9,#c026d3)",
+    titulo:"Nostalgia",
+    definicion:"El deseo de un pasado que importó. A diferencia de la tristeza, la nostalgia lleva un sabor dulce — es memoria cargada de cariño.",
+    cuerpo:"Mezcla de calidez y melancolía, sensación de añoranza, imágenes y sensaciones del pasado más vívidas.",
+    mensaje:"La nostalgia dice que lo que fue bueno, fue real. Nadie puede quitarte lo que realmente viviste.",
+    ejercicios:[
+      { icon:"📸", text:"Mira fotos o escucha música de ese tiempo — con intención" },
+      { icon:"📔", text:"Escribe sobre ese momento o persona con detalle" },
+      { icon:"💌", text:"Escribe una carta a alguien de ese entonces — no tienes que enviarla" },
+    ]
+  },
+};
+
+function renderEmocionario(el) {
+  const today = new Date();
+  const emoFreq = {};
+  for (let i = 0; i < 90; i++) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    const e = localStorage.getItem("zyra_checkin_emotion_" + d.toDateString());
+    if (e) emoFreq[e] = (emoFreq[e] || 0) + 1;
+  }
+  const total90 = Object.values(emoFreq).reduce((a,b) => a+b, 0);
+
+  el.innerHTML = `
+    <div style="max-width:600px;margin:0 auto">
+      <div style="text-align:center;margin-bottom:22px">
+        <div style="font-size:36px;margin-bottom:8px">📖</div>
+        <div style="font-size:18px;font-weight:900;color:var(--text);margin-bottom:6px">Emocionario</div>
+        <div style="font-size:12px;color:var(--text3);line-height:1.6">Tu guía personal de emociones. Toca cualquiera para explorarla.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px" id="emocionario-grid">
+        ${Object.entries(EMOCIONARIO_DATA).map(([key, em]) => {
+          const count = emoFreq[key] || 0;
+          const pct = total90 > 0 ? Math.round(count / total90 * 100) : 0;
+          return `<div onclick="_openEmocionarioCard('${key}')" style="background:var(--surface);border:1.5px solid var(--border);border-radius:18px;padding:16px 14px;text-align:center;cursor:pointer;transition:transform .15s,box-shadow .15s;position:relative;overflow:hidden" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 20px rgba(0,0,0,.12)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+            <div style="position:absolute;bottom:0;left:0;height:3px;width:${pct}%;background:${em.gradient};transition:width .5s"></div>
+            <div style="font-size:30px;margin-bottom:8px">${em.emoji}</div>
+            <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:4px;text-transform:capitalize">${key}</div>
+            ${count > 0 ? `<div style="font-size:10px;color:${em.color};font-weight:700">${count}× en 90 días</div>` : `<div style="font-size:10px;color:var(--text3)">Sin datos</div>`}
+          </div>`;
+        }).join("")}
+      </div>
+      <div id="emocionario-detail" style="margin-top:20px"></div>
+    </div>`;
+}
+
+function _openEmocionarioCard(key) {
+  const em = EMOCIONARIO_DATA[key];
+  if (!em) return;
+  const today = new Date();
+  let count = 0;
+  for (let i = 0; i < 90; i++) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    if (localStorage.getItem("zyra_checkin_emotion_" + d.toDateString()) === key) count++;
+  }
+  const detail = document.getElementById("emocionario-detail");
+  if (!detail) return;
+  // Toggle off if already showing same
+  if (detail.dataset.key === key && detail.innerHTML) { detail.innerHTML = ""; detail.dataset.key = ""; return; }
+  detail.dataset.key = key;
+  detail.innerHTML = `
+    <div style="border-radius:22px;overflow:hidden;border:1.5px solid ${em.color}44;animation:pageFade .3s ease">
+      <!-- Header -->
+      <div style="background:${em.gradient};padding:24px 22px">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div style="font-size:48px;line-height:1">${em.emoji}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:18px;font-weight:900;color:#fff;margin-bottom:4px">${em.titulo}</div>
+            ${count > 0 ? `<div style="background:rgba(255,255,255,.2);border-radius:20px;padding:3px 12px;display:inline-block;font-size:11px;color:#fff;font-weight:700">${count}× en tus últimos 90 días</div>` : `<div style="font-size:12px;color:rgba(255,255,255,.75)">Aún sin registrar en tus datos</div>`}
+          </div>
+          <button onclick="document.getElementById('emocionario-detail').innerHTML='';document.getElementById('emocionario-detail').dataset.key=''" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:50%;width:30px;height:30px;font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;line-height:1">×</button>
+        </div>
+      </div>
+      <!-- Body -->
+      <div style="background:var(--bg,#f8f9ff);padding:20px 22px;display:flex;flex-direction:column;gap:18px">
+        <div>
+          <div style="font-size:10px;font-weight:800;color:${em.color};text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px">¿Qué es?</div>
+          <div style="font-size:13px;color:var(--text);line-height:1.7">${em.definicion}</div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:800;color:${em.color};text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px">Cómo se siente en el cuerpo</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.7">${em.cuerpo}</div>
+        </div>
+        <div style="background:${em.color}15;border-left:3px solid ${em.color};border-radius:0 10px 10px 0;padding:12px 14px">
+          <div style="font-size:10px;font-weight:800;color:${em.color};text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px">Lo que te está diciendo</div>
+          <div style="font-size:13px;color:var(--text);line-height:1.6;font-style:italic">"${em.mensaje}"</div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:800;color:${em.color};text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Qué puedes hacer</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            ${em.ejercicios.map(e => `<div style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 13px">
+              <span style="font-size:18px;flex-shrink:0">${e.icon}</span>
+              <span style="font-size:13px;color:var(--text);line-height:1.4">${e.text}</span>
+            </div>`).join("")}
+          </div>
+        </div>
+        <button onclick="selectEmotion('${key}');showPage('dashboard');setTimeout(saveEmotion,200)" style="background:${em.gradient};border:none;color:#fff;border-radius:14px;padding:12px 20px;font-size:13px;font-weight:700;cursor:pointer;width:100%">
+          ${em.emoji} Registrar esta emoción ahora
+        </button>
+      </div>
+    </div>`;
+  detail.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 // ══════════════════════════════════════════
