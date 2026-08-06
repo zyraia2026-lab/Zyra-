@@ -2544,6 +2544,7 @@ async function b2bSubmitContact() {
   <!-- Tabs -->
   <div style="display:flex;gap:8px;margin-bottom:18px">
     <button id="journal-tab-list" class="btn-sm accent" onclick="showJournalTab('list')" style="flex:1;padding:10px">📋 Entradas</button>
+    <button id="journal-tab-timeline" class="btn-sm" onclick="showJournalTab('timeline')" style="flex:1;padding:10px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">🌊 Viaje</button>
     <button id="journal-tab-calendar" class="btn-sm" onclick="showJournalTab('calendar')" style="flex:1;padding:10px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">📅 Calendario</button>
   </div>
 
@@ -2650,6 +2651,11 @@ async function b2bSubmitContact() {
     <div id="future-notes-list" style="display:flex;flex-direction:column;gap:8px">
       <div style="text-align:center;padding:20px 0;color:var(--text3);font-size:13px;opacity:.6">Cargando...</div>
     </div>
+  </div>
+
+  <!-- Vista: viaje emocional -->
+  <div id="journal-view-timeline" style="display:none">
+    <div id="journal-timeline-content"></div>
   </div>
 
   <!-- Vista: calendario de ánimo -->
@@ -8820,22 +8826,151 @@ let _journalAllEntries = [];
 let _goalsAllItems = [];
 
 function showJournalTab(tab) {
-  const isList = tab === 'list';
-  document.getElementById("journal-view-list").style.display = isList ? "" : "none";
-  document.getElementById("journal-view-calendar").style.display = isList ? "none" : "";
-  const btnList = document.getElementById("journal-tab-list");
-  const btnCal  = document.getElementById("journal-tab-calendar");
-  if (btnList) {
-    btnList.className = isList ? "btn-sm accent" : "btn-sm";
-    if (!isList) btnList.style.cssText = "flex:1;padding:10px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)";
-    else btnList.style.cssText = "flex:1;padding:10px";
+  const views = { list:"journal-view-list", timeline:"journal-view-timeline", calendar:"journal-view-calendar" };
+  const btns  = { list:"journal-tab-list",  timeline:"journal-tab-timeline",  calendar:"journal-tab-calendar" };
+  Object.keys(views).forEach(t => {
+    const vEl = document.getElementById(views[t]);
+    if (vEl) vEl.style.display = t === tab ? "" : "none";
+    const bEl = document.getElementById(btns[t]);
+    if (!bEl) return;
+    bEl.className = t === tab ? "btn-sm accent" : "btn-sm";
+    bEl.style.cssText = t === tab ? "flex:1;padding:10px" : "flex:1;padding:10px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)";
+  });
+  if (tab === 'calendar') renderMoodCalendar();
+  if (tab === 'timeline') renderEmotionTimeline();
+}
+
+function renderEmotionTimeline() {
+  const el = document.getElementById("journal-timeline-content");
+  if (!el) return;
+
+  const EMO_COLOR = { feliz:"#22c55e", tranquilo:"#0ea5e9", motivado:"#6366f1", esperanzado:"#a78bfa", confundido:"#f59e0b", ansioso:"#f97316", agotado:"#94a3b8", triste:"#60a5fa", enojado:"#ef4444", nostalgico:"#e879f9" };
+  const EMO_EMOJI = { feliz:"😊", tranquilo:"😌", motivado:"💪", esperanzado:"🌟", confundido:"🤔", ansioso:"😰", agotado:"😮‍💨", triste:"😢", enojado:"😤", nostalgico:"🌅" };
+  const POSITIVE = new Set(["feliz","tranquilo","motivado","esperanzado"]);
+  const MOOD_VAL = { feliz:5, tranquilo:4, motivado:5, esperanzado:4, confundido:2, ansioso:2, agotado:1.5, triste:1, enojado:1, nostalgico:3 };
+
+  // Gather 90 days of data
+  const days = [];
+  const today = new Date();
+  for (let i = 89; i >= 0; i--) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    const ds = d.toDateString();
+    const emo = localStorage.getItem("zyra_checkin_emotion_" + ds);
+    const gratCnt = (() => { try { return JSON.parse(localStorage.getItem("zyra_gratitude_" + ds) || "[]").length; } catch(e) { return 0; } })();
+    const hasJournal = !!localStorage.getItem("zyra_journal_saved_" + ds);
+    days.push({ d, ds, emo, gratCnt, hasJournal, dayNum: i });
   }
-  if (btnCal) {
-    btnCal.className = isList ? "btn-sm" : "btn-sm accent";
-    if (isList) btnCal.style.cssText = "flex:1;padding:10px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)";
-    else btnCal.style.cssText = "flex:1;padding:10px";
+
+  const activeDays = days.filter(d => d.emo);
+  if (activeDays.length === 0) {
+    el.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--text3)">
+      <div style="font-size:40px;margin-bottom:12px">🌊</div>
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px">Tu viaje emocional</div>
+      <div style="font-size:13px;line-height:1.6">Registra tu emoción del día para ver tu viaje aparecer aquí.</div>
+    </div>`;
+    return;
   }
-  if (!isList) renderMoodCalendar();
+
+  // Stats
+  const posDays = activeDays.filter(d => POSITIVE.has(d.emo)).length;
+  const posRate = Math.round(posDays / activeDays.length * 100);
+  const emoFreq = {};
+  activeDays.forEach(d => { emoFreq[d.emo] = (emoFreq[d.emo] || 0) + 1; });
+  const topEmo = Object.entries(emoFreq).sort((a,b)=>b[1]-a[1])[0];
+
+  // Group by month for sections
+  const months = {};
+  days.forEach(d => {
+    if (!d.emo) return;
+    const key = d.d.getFullYear() + "-" + d.d.getMonth();
+    if (!months[key]) months[key] = { label: d.d.toLocaleDateString("es", {month:"long", year:"numeric"}), days: [] };
+    months[key].days.push(d);
+  });
+
+  const monthsHtml = Object.values(months).reverse().map(m => `
+    <div style="margin-bottom:24px">
+      <div style="font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px;padding-left:2px">${m.label}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${m.days.slice().reverse().map(d => {
+          const color = EMO_COLOR[d.emo] || "var(--accent)";
+          const emoji = EMO_EMOJI[d.emo] || "●";
+          const val = MOOD_VAL[d.emo] || 3;
+          const size = 36 + Math.round(val * 4);
+          const dayNum = d.d.getDate();
+          const isToday = d.ds === today.toDateString();
+          const dots = (d.gratCnt > 0 ? "🙏" : "") + (d.hasJournal ? "📔" : "");
+          return `<div title="${d.d.toLocaleDateString("es",{weekday:"long",day:"numeric",month:"long"})}: ${d.emo}${dots?" · "+dots:""}"
+            onclick="_showTimelineDayDetail('${d.ds}','${d.emo}')"
+            style="display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer">
+            <div style="width:${size}px;height:${size}px;border-radius:50%;background:radial-gradient(circle at 35% 35%, ${color}, ${color}aa);box-shadow:0 2px 10px ${color}55;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*0.44)}px;transition:transform .15s;${isToday?"outline:2px solid "+color+";outline-offset:2px":""}" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'">${emoji}</div>
+            <div style="font-size:9px;color:var(--text3);font-weight:600">${dayNum}${isToday?"·hoy":""}</div>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>`).join("");
+
+  el.innerHTML = `
+    <!-- Summary strip -->
+    <div style="display:flex;gap:10px;margin-bottom:22px;flex-wrap:wrap">
+      <div style="flex:1;min-width:100px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;text-align:center">
+        <div style="font-size:22px;font-weight:900;color:var(--accent)">${activeDays.length}</div>
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-top:2px">días registrados</div>
+      </div>
+      <div style="flex:1;min-width:100px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;text-align:center">
+        <div style="font-size:22px;font-weight:900;color:#22c55e">${posRate}%</div>
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-top:2px">días positivos</div>
+      </div>
+      ${topEmo ? `<div style="flex:1;min-width:100px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;text-align:center">
+        <div style="font-size:22px">${EMO_EMOJI[topEmo[0]] || "●"}</div>
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-top:2px">${topEmo[0]}</div>
+      </div>` : ""}
+    </div>
+    <!-- Month bubbles -->
+    ${monthsHtml}
+    <!-- Detail popup anchor -->
+    <div id="timeline-detail-popup"></div>`;
+}
+
+function _showTimelineDayDetail(ds, emo) {
+  const EMO_COLOR = { feliz:"#22c55e", tranquilo:"#0ea5e9", motivado:"#6366f1", esperanzado:"#a78bfa", confundido:"#f59e0b", ansioso:"#f97316", agotado:"#94a3b8", triste:"#60a5fa", enojado:"#ef4444", nostalgico:"#e879f9" };
+  const EMO_EMOJI = { feliz:"😊", tranquilo:"😌", motivado:"💪", esperanzado:"🌟", confundido:"🤔", ansioso:"😰", agotado:"😮‍💨", triste:"😢", enojado:"😤", nostalgico:"🌅" };
+  const color = EMO_COLOR[emo] || "#6366f1";
+  const d = new Date(ds);
+  const dateStr = d.toLocaleDateString("es", { weekday:"long", day:"numeric", month:"long" });
+  const gratItems = (() => { try { return JSON.parse(localStorage.getItem("zyra_gratitude_" + ds) || "[]"); } catch(e) { return []; } })();
+  const triggerRaw = localStorage.getItem("zyra_trigger_" + ds);
+  const trigger = (() => { try { const t = JSON.parse(triggerRaw || "{}"); return t.trigger && t.trigger !== "ninguno" ? t.trigger : null; } catch(e) { return null; } })();
+
+  // Look up journal entry for that day in cached entries
+  const journalEntry = (_journalAllEntries || []).find(e => new Date(e.createdAt).toDateString() === ds);
+
+  const popup = document.getElementById("timeline-detail-popup");
+  if (!popup) return;
+  const existing = document.getElementById("_timeline-detail-card");
+  if (existing && existing.dataset.ds === ds) { existing.remove(); return; }
+  if (existing) existing.remove();
+
+  const card = document.createElement("div");
+  card.id = "_timeline-detail-card";
+  card.dataset.ds = ds;
+  card.style.cssText = `background:var(--bg2,#141624);border:1.5px solid ${color}44;border-left:3px solid ${color};border-radius:16px;padding:16px;margin-top:12px;animation:pageFade .25s ease`;
+  card.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:22px">${EMO_EMOJI[emo]||"●"}</span>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--text);text-transform:capitalize">${emo}</div>
+          <div style="font-size:10px;color:var(--text3)">${dateStr}</div>
+        </div>
+      </div>
+      <button onclick="document.getElementById('_timeline-detail-card')?.remove()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;padding:0;line-height:1">×</button>
+    </div>
+    ${trigger ? `<div style="font-size:11px;color:var(--text3);margin-bottom:8px">Detonante: <strong style="color:var(--text)">${trigger}</strong></div>` : ""}
+    ${gratItems.length ? `<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">Gratitud</div>${gratItems.map(t=>`<div style="font-size:12px;color:var(--text2);padding:2px 0">🙏 ${safeHtml(t)}</div>`).join("")}</div>` : ""}
+    ${journalEntry ? `<div><div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">Diario</div><div style="font-size:12px;color:var(--text2);line-height:1.5;max-height:80px;overflow:hidden">${safeHtml((journalEntry.content||"").slice(0,220))}${journalEntry.content?.length>220?"…":""}</div></div>` : ""}
+    ${!trigger && !gratItems.length && !journalEntry ? `<div style="font-size:12px;color:var(--text3)">Solo el registro de emoción para este día.</div>` : ""}`;
+  popup.appendChild(card);
+  card.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 let _journalFavFilter = localStorage.getItem("zyra_fav_filter") === "1";
