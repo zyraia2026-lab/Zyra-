@@ -2351,6 +2351,7 @@ async function b2bSubmitContact() {
     <button class="game-tab"       id="gtab-emocion"  onclick="openGame('emocion')">🎭 Emociones</button>
     <button class="game-tab"       id="gtab-raices"        onclick="openGame('raices')">🌳 Raíces</button>
     <button class="game-tab"       id="gtab-emocionario"   onclick="openGame('emocionario')">📖 Emocionario</button>
+    <button class="game-tab"       id="gtab-compasion"     onclick="openGame('compasion')">💙 Compasión</button>
   </div>
 
   <div id="game-container"></div>
@@ -18792,6 +18793,7 @@ function openGame(name) {
   if (name === 'emocion')      renderEmocionGame(container);
   if (name === 'raices')       renderRaicesGame(container);
   if (name === 'emocionario')  renderEmocionario(container);
+  if (name === 'compasion')   renderCompasionGame(container);
 }
 
 /* ── JUEGO 1: Respiración guiada ── */
@@ -20179,6 +20181,166 @@ function loadMentalHealthTip() {
 /* ══════════════════════════════════════════
    TODAY'S PLAN (daily tasks checklist)
 ══════════════════════════════════════════ */
+// ══════════════════════════════════════════
+//  AUTO-COMPASIÓN — Práctica guiada
+// ══════════════════════════════════════════
+let _cpStep = 0, _cpAnswers = {};
+
+const _CP_STEPS = [
+  {
+    icon: "🌊",
+    phase: "Mindfulness",
+    subtitle: "Paso 1 de 3 · Reconocer",
+    title: "¿Qué estás sintiendo ahora mismo?",
+    desc: "Sin juzgar, sin cambiar nada. Solo nombra lo que está presente en ti.",
+    placeholder: "Estoy sintiendo… (miedo, tristeza, presión, cansancio…)",
+    color: "#6366f1", glow: "rgba(99,102,241,.15)",
+    hint: "Nombrar la emoción ya es el primer paso. El cerebro se calma cuando ponemos palabras a lo que sentimos."
+  },
+  {
+    icon: "🫂",
+    phase: "Humanidad compartida",
+    subtitle: "Paso 2 de 3 · Conectar",
+    title: "No estás solo/a en esto.",
+    desc: "Millones de personas en este momento sienten algo muy parecido a lo que tú sientes. ¿Puedes sentir esa conexión?",
+    placeholder: "Escribe algo que te recuerde que no estás solo/a…",
+    color: "#ec4899", glow: "rgba(236,72,153,.15)",
+    hint: "La imperfección y el sufrimiento son parte de la experiencia humana compartida. No son fracasos personales."
+  },
+  {
+    icon: "💙",
+    phase: "Amabilidad propia",
+    subtitle: "Paso 3 de 3 · Amar",
+    title: "¿Cómo puedes ser amable contigo ahora?",
+    desc: "Imagina qué le dirías a tu mejor amigo/a si estuviera sintiéndose exactamente como tú. Ahora díselo a ti mismo/a.",
+    placeholder: "Me digo con amor…",
+    color: "#10b981", glow: "rgba(16,185,129,.15)",
+    hint: "La auto-compasión no es debilidad. Es la misma fortaleza que necesitas para seguir adelante."
+  },
+];
+
+function renderCompasionGame(el) {
+  _cpStep = 0; _cpAnswers = {};
+  _cpRenderStep(el);
+}
+
+function _cpRenderStep(el) {
+  if (!el) el = document.getElementById("game-container");
+  if (!el) return;
+  const s = _CP_STEPS[_cpStep];
+  const total = _CP_STEPS.length;
+  const pct = Math.round((_cpStep / total) * 100);
+
+  el.innerHTML = `
+    <div style="max-width:480px;margin:0 auto;padding:8px 0">
+      <!-- Header -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+        <div style="width:40px;height:40px;border-radius:50%;background:${s.glow.replace('.15','.25')};border:2px solid ${s.color}40;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${s.icon}</div>
+        <div>
+          <div style="font-size:11px;font-weight:800;color:${s.color};text-transform:uppercase;letter-spacing:.6px">${s.phase}</div>
+          <div style="font-size:10px;color:var(--text3)">${s.subtitle}</div>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div style="height:4px;background:var(--border);border-radius:99px;margin-bottom:24px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${s.color};border-radius:99px;transition:width .5s"></div>
+      </div>
+
+      <!-- Question card -->
+      <div style="background:${s.glow};border:1.5px solid ${s.color}30;border-radius:22px;padding:24px 20px;margin-bottom:16px">
+        <div style="font-size:20px;font-weight:900;color:var(--text);line-height:1.35;margin-bottom:12px">${s.title}</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:18px">${s.desc}</div>
+        <textarea id="cp-answer" placeholder="${s.placeholder}" style="width:100%;min-height:90px;background:var(--bg,#0d0f1a);border:1.5px solid ${s.color}40;border-radius:14px;color:var(--text);font-size:13px;padding:12px 14px;outline:none;font-family:inherit;resize:vertical;box-sizing:border-box;line-height:1.6" onfocus="this.style.borderColor='${s.color}'" onblur="this.style.borderColor='${s.color}40'">${_cpAnswers[_cpStep]||""}</textarea>
+      </div>
+
+      <!-- Hint -->
+      <div style="background:var(--surface);border-radius:14px;padding:12px 14px;margin-bottom:20px;border:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--text3);line-height:1.6;font-style:italic">💡 ${s.hint}</div>
+      </div>
+
+      <!-- Actions -->
+      <div style="display:flex;gap:10px">
+        ${_cpStep > 0 ? `<button onclick="_cpBack()" style="background:var(--surface);border:1.5px solid var(--border);color:var(--text2);border-radius:12px;padding:12px 20px;font-size:13px;cursor:pointer">← Atrás</button>` : ""}
+        <button onclick="_cpNext()" style="flex:1;background:${s.color};border:none;color:#fff;border-radius:12px;padding:13px 20px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px ${s.color}40">
+          ${_cpStep === total-1 ? "💙 Completar práctica" : "Siguiente →"}
+        </button>
+      </div>
+    </div>`;
+  setTimeout(() => document.getElementById("cp-answer")?.focus(), 100);
+}
+
+function _cpBack() {
+  const val = (document.getElementById("cp-answer")?.value || "").trim();
+  if (val) _cpAnswers[_cpStep] = val;
+  _cpStep--;
+  _cpRenderStep();
+}
+
+async function _cpNext() {
+  const val = (document.getElementById("cp-answer")?.value || "").trim();
+  if (!val) { zyraToast("Escribe algo antes de continuar 💙", "info"); return; }
+  _cpAnswers[_cpStep] = val;
+  _cpStep++;
+  if (_cpStep < _CP_STEPS.length) { _cpRenderStep(); return; }
+
+  // Completion
+  const el = document.getElementById("game-container");
+  if (el) el.innerHTML = `<div style="text-align:center;padding:40px 20px;max-width:420px;margin:0 auto">
+    <div style="width:28px;height:28px;border:2px solid rgba(16,185,129,.3);border-top-color:#10b981;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px"></div>
+    <div style="font-size:13px;color:var(--text3)">Zyra está generando tu frase de compasión…</div>
+  </div>`;
+
+  const name = user?.name?.split(" ")[0] || "ti";
+  const sysP = `Eres Zyra. Basándote en lo que ${name} compartió, escribe UNA frase de compasión profunda y específica (2-3 oraciones). Que valide su experiencia, reconozca su humanidad compartida, y ofrezca amabilidad propia. Empieza con su nombre. Sé cálida, directa y real. Sin clichés.`;
+  const uMsg = `Lo que siente: "${_cpAnswers[0]}". Humanidad compartida: "${_cpAnswers[1]}". Cómo quiere ser amable consigo: "${_cpAnswers[2]}"`;
+
+  let compassionMsg = "";
+  try {
+    const r = await api("/chat", "POST", { message: uMsg, systemOverride: sysP, noSave: true, mode: "compasion" });
+    compassionMsg = (r.reply || "").trim();
+  } catch(e) {}
+
+  if (!compassionMsg) compassionMsg = `${name}, lo que sientes es real y válido. No estás solo/a en esto. Mereces la misma amabilidad que le darías a alguien que amas.`;
+
+  // Log to gratitude for the day
+  const today = new Date().toDateString();
+  if (!localStorage.getItem(`zyra_compasion_${today}`)) {
+    localStorage.setItem(`zyra_compasion_${today}`, compassionMsg);
+  }
+
+  if (el) el.innerHTML = `
+    <div style="max-width:480px;margin:0 auto;text-align:center;padding:12px 0">
+      <div style="font-size:48px;margin-bottom:16px;animation:pageFade .5s ease">💙</div>
+      <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:6px">Práctica completada</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:24px">3 pasos · Mindfulness · Humanidad · Amor propio</div>
+
+      <div style="background:linear-gradient(135deg,rgba(16,185,129,.1),rgba(99,102,241,.08));border:1.5px solid rgba(16,185,129,.25);border-radius:20px;padding:22px 20px;text-align:left;margin-bottom:20px">
+        <div style="font-size:11px;font-weight:800;color:#10b981;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">💙 Zyra para ti</div>
+        <div style="font-size:14px;color:var(--text);line-height:1.8;font-style:italic">"${safeHtml(compassionMsg)}"</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+        ${[["Lo que sentí", _cpAnswers[0]], ["Humanidad", _cpAnswers[1]], ["Mi amabilidad", _cpAnswers[2]]].map(([label,val]) => `
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:left">
+            <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">${label}</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.5">${safeHtml(val.slice(0,80))}${val.length>80?"…":""}</div>
+          </div>`).join("")}
+        <div style="background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(139,92,246,.07));border:1px solid rgba(99,102,241,.2);border-radius:14px;padding:12px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px">
+          <div style="font-size:22px;font-weight:800;color:#6366f1">3</div>
+          <div style="font-size:10px;color:var(--text3);text-align:center">pasos completados</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button onclick="navigator.clipboard?.writeText('${compassionMsg.replace(/'/g,"\\'")}').then(()=>zyraToast('💙 Copiado','success'))" style="flex:1;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);color:#6366f1;border-radius:12px;padding:12px;font-size:13px;font-weight:700;cursor:pointer">📋 Guardar frase</button>
+        <button onclick="renderCompasionGame(document.getElementById('game-container'))" style="flex:1;background:var(--surface);border:1.5px solid var(--border);color:var(--text2);border-radius:12px;padding:12px;font-size:13px;cursor:pointer">↺ Repetir</button>
+      </div>
+    </div>`;
+  launchConfetti?.();
+  zyraToast("💙 Práctica de auto-compasión completada", "success", 4000);
+}
+
 function getTodayPlanKey() { return `zyra_plan_${new Date().toDateString()}`; }
 function loadTodayPlan() {
   const tasks = (() => { try { return JSON.parse(localStorage.getItem(getTodayPlanKey()) || "[]"); } catch(e) { return []; } })();
