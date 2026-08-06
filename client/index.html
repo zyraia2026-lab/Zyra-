@@ -2873,6 +2873,9 @@ async function b2bSubmitContact() {
   <!-- ══ MI MANIFIESTO ══ -->
   <div id="prof-manifiesto-card" style="margin-bottom:20px"></div>
 
+  <!-- ══ CARTA DE COMPASIÓN ══ -->
+  <div id="prof-compasion-card" style="margin-bottom:20px"></div>
+
   <!-- ══ LOGROS + TIENDA ══ -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
     <button onclick="openAchievements()" class="card" style="text-align:center;padding:18px;cursor:pointer;border:none;transition:transform .15s;display:block" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
@@ -6048,6 +6051,8 @@ async function loadProfile() {
     renderZyraObservaCard(p, gd, jd);
     // Manifiesto personal
     renderManifiesto();
+    // Carta de compasión semanal
+    renderCartaCompasion();
   } catch(e) { console.error("loadProfile error:", e); }
 }
 
@@ -6510,6 +6515,106 @@ function _manifiestoShare() {
   const full = `📜 Mi manifiesto personal:\n\n${text}\n\n— Escrito con Zyra`;
   if (navigator.share) navigator.share({ title: "Mi Manifiesto Personal", text: full }).catch(()=>{});
   else navigator.clipboard?.writeText(full).then(() => zyraToast("Manifiesto copiado 📋", "success"));
+}
+
+// ══════════════════════════════════════════
+//  CARTA DE COMPASIÓN DE ZYRA
+// ══════════════════════════════════════════
+async function renderCartaCompasion() {
+  const card = document.getElementById("prof-compasion-card");
+  if (!card) return;
+
+  const weekKey = _getWeekKey ? _getWeekKey() : new Date().toISOString().slice(0,10);
+  const cacheKey = `zyra_carta_compasion_${weekKey}`;
+  const saved = localStorage.getItem(cacheKey);
+
+  if (saved) {
+    _renderCartaCompasionContent(card, saved, weekKey);
+    return;
+  }
+
+  // Show request card
+  card.innerHTML = `
+    <div style="background:linear-gradient(135deg,rgba(236,72,153,.07),rgba(167,139,250,.07));border:1.5px solid rgba(236,72,153,.2);border-radius:20px;padding:20px 22px;text-align:center">
+      <div style="font-size:28px;margin-bottom:10px">💌</div>
+      <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px">Carta de Zyra para ti</div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:16px">Cada semana Zyra lee tus registros y te escribe una carta personal con lo que necesitas escuchar</div>
+      <button onclick="_generarCartaCompasion('${weekKey}')" style="background:linear-gradient(135deg,#ec4899,#a855f7);border:none;color:#fff;border-radius:14px;padding:12px 28px;font-size:13px;font-weight:700;cursor:pointer">💌 Recibir mi carta</button>
+    </div>`;
+}
+
+function _renderCartaCompasionContent(card, text, weekKey) {
+  card.innerHTML = `
+    <div style="background:linear-gradient(135deg,rgba(236,72,153,.08),rgba(167,139,250,.06));border:1.5px solid rgba(236,72,153,.22);border-radius:20px;padding:20px 22px;position:relative">
+      <div style="position:absolute;top:0;right:0;width:80px;height:80px;opacity:.04;font-size:64px;line-height:1;pointer-events:none;overflow:hidden;border-radius:0 20px 0 0">💌</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#ec4899,#a855f7);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">💌</div>
+          <div>
+            <div style="font-size:13px;font-weight:800;color:var(--text)">Carta de Zyra para ti</div>
+            <div style="font-size:11px;color:var(--text3)">Esta semana · renovación automática</div>
+          </div>
+        </div>
+        <button onclick="localStorage.removeItem('${`zyra_carta_compasion_${weekKey}`}');renderCartaCompasion()" style="background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;padding:4px 8px;border-radius:8px;border:1px solid var(--border)">↺ Nueva</button>
+      </div>
+      <div style="font-size:13px;color:var(--text);line-height:2;white-space:pre-wrap;font-style:italic;border-left:3px solid rgba(236,72,153,.5);padding-left:14px;margin-bottom:14px">${safeHtml(text)}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="navigator.clipboard?.writeText(localStorage.getItem('${`zyra_carta_compasion_${weekKey}`}')||'').then(()=>zyraToast('💌 Carta copiada','success'))" style="background:rgba(236,72,153,.1);border:1px solid rgba(236,72,153,.25);color:#ec4899;border-radius:10px;padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer">📋 Copiar</button>
+        <button onclick="_compartirCartaCompasion('${weekKey}')" style="background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.25);color:#a855f7;border-radius:10px;padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer">📤 Compartir</button>
+      </div>
+    </div>`;
+}
+
+async function _generarCartaCompasion(weekKey) {
+  const card = document.getElementById("prof-compasion-card");
+  if (card) card.innerHTML = `<div style="text-align:center;padding:30px 20px;background:linear-gradient(135deg,rgba(236,72,153,.07),rgba(167,139,250,.07));border:1.5px solid rgba(236,72,153,.2);border-radius:20px">
+    <div style="width:24px;height:24px;border:2px solid rgba(236,72,153,.3);border-top-color:#ec4899;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px"></div>
+    <div style="font-size:13px;color:var(--text3)">Zyra está escribiendo tu carta…</div>
+  </div>`;
+
+  // Gather context
+  const name = user?.name?.split(" ")[0] || "querida persona";
+  const recentEmos = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const ds = d.toDateString();
+    const raw = localStorage.getItem(`zyra_emotion_${ds}`) || localStorage.getItem(`zyra_checkin_${ds}`);
+    let emo = null;
+    try { emo = raw ? (JSON.parse(raw)?.emotion || raw) : null; } catch { emo = raw; }
+    if (emo) recentEmos.push(emo);
+  }
+  const journalSnippets = [];
+  for (let i = 0; i < 5; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const j = localStorage.getItem(`zyra_journal_${d.toDateString()}`);
+    if (j) journalSnippets.push(j.slice(0, 150));
+  }
+
+  const emoContext = recentEmos.length ? `Emociones de la semana: ${recentEmos.join(", ")}` : "Sin registros de emoción esta semana";
+  const journalContext = journalSnippets.length ? `Fragmentos del diario: "${journalSnippets.join('" / "')}"` : "";
+  const streak = parseInt(localStorage.getItem("zyra_journal_streak") || "0");
+
+  const sysPrompt = `Eres Zyra, la compañera de bienestar emocional de ${name}. Has leído los registros de esta persona esta semana. Escribe una carta breve (5-7 oraciones) que sea: íntima como si fuera de una amiga muy querida, compasiva y validante sin ser condescendiente, honesta y real, esperanzadora. Empieza con "${name}," como saludo de carta. Termina con "Con amor, Zyra 💙". No uses clichés vacíos. Sé específica con lo que ves en sus datos.`;
+  const userMsg = `${emoContext}. ${journalContext}. Racha de journaling: ${streak} días.`;
+
+  try {
+    const r = await api("/chat", "POST", { message: userMsg, systemOverride: sysPrompt, noSave: true, mode: "compasion" });
+    const text = (r.reply || "").trim();
+    if (!text) throw new Error("empty");
+    localStorage.setItem(`zyra_carta_compasion_${weekKey}`, text);
+    _renderCartaCompasionContent(document.getElementById("prof-compasion-card"), text, weekKey);
+    zyraToast("💌 Carta de Zyra lista", "success", 3000);
+  } catch(e) {
+    const c = document.getElementById("prof-compasion-card");
+    if (c) c.innerHTML = `<div style="text-align:center;padding:20px;color:var(--text3)">No pude escribir la carta ahora. <button onclick="_generarCartaCompasion('${weekKey}')" style="color:#ec4899;background:none;border:none;cursor:pointer;font-weight:700">Reintentar</button></div>`;
+  }
+}
+
+function _compartirCartaCompasion(weekKey) {
+  const text = localStorage.getItem(`zyra_carta_compasion_${weekKey}`) || "";
+  const full = `💌 Una carta de Zyra para mí:\n\n${text}`;
+  if (navigator.share) navigator.share({ title: "Mi carta de Zyra", text: full }).catch(()=>{});
+  else navigator.clipboard?.writeText(full).then(() => zyraToast("Carta copiada 📋", "success"));
 }
 
 function renderConnectedAccounts(u) {
