@@ -18933,6 +18933,8 @@ let _pomodoroRounds = 0;
 const POMODORO_DURATIONS = { work: 25, short: 5, long: 15 };
 
 let _pomoAmbType = "";
+let _pomoIntention = "";
+let _pomoMotivation = "";
 
 function pomodoroFormatTime(s) {
   const m = Math.floor(s / 60); const sec = s % 60;
@@ -18974,6 +18976,14 @@ function renderPomodoro(el) {
     <div style="display:flex;gap:6px;justify-content:center;margin-bottom:22px">
       ${[["","🔇","Silencio"],["rain","🌧️","Lluvia"],["ocean","🌊","Océano"],["forest","🌿","Bosque"]].map(([t,e,n])=>`<button class="pomo-amb-btn" data-amb="${t}" onclick="_pomoSetAmbient('${t}')" style="flex:1;max-width:90px;padding:7px 4px;border-radius:10px;font-size:11px;cursor:pointer;border:1.5px solid ${_pomoAmbType===t?'var(--accent)':'var(--border)'};background:${_pomoAmbType===t?'rgba(99,102,241,.18)':'var(--surface)'};color:${_pomoAmbType===t?'var(--accent)':'var(--text3)'};font-weight:${_pomoAmbType===t?'700':'500'};transition:all .18s">${e}<br><span style="font-size:9px">${n}</span></button>`).join("")}
     </div>
+    ${_pomodoroRunning && _pomoIntention ? `<div style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.22);border-radius:12px;padding:8px 14px;margin-bottom:14px;font-size:12px;color:var(--accent);font-weight:600">🎯 ${safeHtml(_pomoIntention)}</div>` : ""}
+    ${!_pomodoroRunning && _pomodoroMode === "work" ? `<div style="margin-bottom:14px">
+      <input id="pomo-intention-input" type="text" placeholder="¿En qué vas a trabajar?" value="${safeHtml(_pomoIntention)}" maxlength="80" style="width:100%;padding:9px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:13px;outline:none;box-sizing:border-box;text-align:center" oninput="_pomoIntention=this.value.trim()">
+    </div>` : ""}
+    ${_pomoMotivation && !_pomodoroRunning ? `<div style="background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.06));border:1px solid rgba(139,92,246,.15);border-radius:12px;padding:8px 14px;margin-bottom:12px;display:flex;align-items:flex-start;gap:8px;text-align:left">
+      <img src="${LOGO}" style="width:22px;height:22px;border-radius:50%;flex-shrink:0" alt="Zyra">
+      <div style="font-size:12px;color:var(--text);line-height:1.5;font-style:italic">${safeHtml(_pomoMotivation)}</div>
+    </div>` : ""}
     <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;margin-bottom:24px">
       <svg width="180" height="180" viewBox="0 0 180 180" style="transform:rotate(-90deg)">
         <circle cx="90" cy="90" r="78" fill="none" stroke="var(--border)" stroke-width="8"/>
@@ -19010,13 +19020,25 @@ function setPomodoroMode(mode) {
   if (wc) renderPomodoro(wc);
 }
 
-function togglePomodoro() {
+async function togglePomodoro() {
   if (_pomodoroRunning) {
     clearInterval(_pomodoroTimer); _pomodoroTimer = null; _pomodoroRunning = false;
     const btn = document.getElementById("pomo-btn-start");
     if (btn) btn.textContent = "▶ Continuar";
   } else {
+    // Capture intention from input if present
+    const intentionEl = document.getElementById("pomo-intention-input");
+    if (intentionEl) _pomoIntention = intentionEl.value.trim();
+    // Generate AI motivation on first start of a work session with intention
+    if (_pomoIntention && _pomodoroMode === "work" && !_pomoMotivation) {
+      try {
+        const r = await api("/chat", "POST", { message: `Zyra, da una frase motivadora cortísima (máx 18 palabras) para alguien que va a trabajar en: "${_pomoIntention}". Directa, enérgica, personal.`, noSave: true });
+        _pomoMotivation = (r.response || r.message || "").trim().replace(/^["']+|["']+$/g,"");
+      } catch(e) { _pomoMotivation = ""; }
+    }
     _pomodoroRunning = true;
+    const wc = document.getElementById("wellness-content");
+    if (wc) renderPomodoro(wc);
     const btn = document.getElementById("pomo-btn-start");
     if (btn) btn.textContent = "⏸ Pausar";
     _pomodoroTimer = setInterval(() => {
@@ -19032,7 +19054,9 @@ function togglePomodoro() {
           _pomodoroRounds++;
           logPomodoroSession();
           if (navigator.vibrate) navigator.vibrate([100,50,100,50,200]);
-          zyraToast("🍅 Ronda completada — toma un descanso de verdad", "success");
+          const taskMsg = _pomoIntention ? `🍅 "${_pomoIntention}" — ronda completada. Descansa.` : "🍅 Ronda completada — toma un descanso de verdad";
+          zyraToast(taskMsg, "success", 5000);
+          _pomoMotivation = "";
           setPomodoroMode(_pomodoroRounds % 4 === 0 ? "long" : "short");
         } else {
           if (navigator.vibrate) navigator.vibrate([50,30,100]);
@@ -19048,6 +19072,8 @@ function resetPomodoro() {
   if (_pomodoroTimer) { clearInterval(_pomodoroTimer); _pomodoroTimer = null; }
   _pomodoroRunning = false;
   _pomodoroSecsLeft = POMODORO_DURATIONS[_pomodoroMode] * 60;
+  _pomoIntention = "";
+  _pomoMotivation = "";
   const wc = document.getElementById("wellness-content");
   if (wc) renderPomodoro(wc);
 }
