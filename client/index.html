@@ -6766,7 +6766,12 @@ async function connectSmartwatch() {
     await _watchGattConnect();
   } catch(err) {
     if (err.name !== 'NotFoundError' && err.name !== 'NotAllowedError') {
-      zyraToast('No se pudo conectar: ' + err.message, 'error', 5000);
+      const isOccupied = err.message && (err.message.includes('Connection attempt failed') || err.message.includes('Connection Error') || err.message.includes('GATT'));
+      if (isOccupied) {
+        zyraToast('⌚ El reloj está ocupado por otra app (Da Fit). Ciérrala → ve a Ajustes › Bluetooth → toca el reloj → Desconectar → vuelve aquí.', 'error', 9000);
+      } else {
+        zyraToast('No se pudo conectar: ' + err.message, 'error', 5000);
+      }
     }
   }
 }
@@ -7095,6 +7100,195 @@ function _updateWatchUI() {
   if (bEl && _watchBattery !== null) bEl.textContent = _watchBattery + '%';
 }
 
+// ══════════════════════════════════════════
+//  CÁMARA HR — Fotopletismografía (rPPG)
+// ══════════════════════════════════════════
+let _cameraHRStream = null, _cameraHRTimer = null, _cameraHRInterval = null;
+
+async function startCameraHR() {
+  // Modal overlay
+  const overlay = document.createElement('div');
+  overlay.id = 'camera-hr-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#0a0a0f;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px';
+  overlay.innerHTML = `
+    <div style="width:100%;max-width:360px;text-align:center">
+      <div style="font-size:28px;font-weight:900;color:#fff;margin-bottom:6px">Midiendo pulso</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:28px">Cubre la cámara trasera con tu dedo</div>
+      <div style="position:relative;margin:0 auto 28px;width:160px;height:160px">
+        <div id="chr-ring" style="position:absolute;inset:0;border-radius:50%;border:3px solid rgba(236,72,153,.2)"></div>
+        <div id="chr-pulse" style="position:absolute;inset:6px;border-radius:50%;background:radial-gradient(circle,rgba(236,72,153,.6) 0%,rgba(236,72,153,.15) 70%);transition:transform .15s ease-out"></div>
+        <video id="chr-video" autoplay playsinline muted style="position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:cover;opacity:.7"></video>
+        <div style="position:absolute;inset:0;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;pointer-events:none">
+          <div id="chr-bpm" style="font-size:36px;font-weight:900;color:#fff;line-height:1">—</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.6);font-weight:600">bpm</div>
+        </div>
+      </div>
+      <div style="height:48px;background:rgba(255,255,255,.06);border-radius:24px;overflow:hidden;margin-bottom:20px;position:relative">
+        <canvas id="chr-canvas-vis" width="360" height="48" style="width:100%;height:100%"></canvas>
+        <div id="chr-hint" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:rgba(255,255,255,.4)">Pon el dedo en la cámara trasera…</div>
+      </div>
+      <div style="margin-bottom:20px">
+        <div id="chr-countdown" style="font-size:13px;color:rgba(255,255,255,.5)">Midiendo durante <span id="chr-sec">30</span>s…</div>
+        <div style="height:4px;background:rgba(255,255,255,.1);border-radius:99px;margin-top:8px;overflow:hidden">
+          <div id="chr-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#ec4899,#f43f5e);border-radius:99px;transition:width .5s linear"></div>
+        </div>
+      </div>
+      <button onclick="stopCameraHR()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:14px;padding:12px 32px;font-size:14px;font-weight:700;cursor:pointer;width:100%">Cancelar</button>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  // Canvas oculto para extraer datos de frames
+  const canvas = document.createElement('canvas');
+  canvas.width = 64; canvas.height = 64;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+  try {
+    _cameraHRStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 320 }, height: { ideal: 240 } }
+    });
+    const video = document.getElementById('chr-video');
+    if (video) video.srcObject = _cameraHRStream;
+
+    // Intentar encender el flash/linterna para mejor señal
+    const track = _cameraHRStream.getVideoTracks()[0];
+    try { await track.applyConstraints({ advanced: [{ torch: true }] }); } catch(_) {}
+
+  } catch(e) {
+    stopCameraHR();
+    zyraToast('No se pudo acceder a la cámara. Permite el permiso en el navegador.', 'error', 5000);
+    return;
+  }
+
+  // Recolección de datos
+  const samples = [];   // {t, r, g, b}
+  const MEASURE_MS = 30000;
+  const startTs = Date.now();
+  const visCanvas = document.getElementById('chr-canvas-vis');
+  const visCtx = visCanvas ? visCanvas.getContext('2d') : null;
+
+  _cameraHRInterval = setInterval(() => {
+    const video = document.getElementById('chr-video');
+    if (!video || !video.videoWidth) return;
+
+    ctx.drawImage(video, 0, 0, 64, 64);
+    const px = ctx.getImageData(0, 0, 64, 64).data;
+    let r = 0, g = 0, b = 0;
+    for (let i = 0; i < px.length; i += 4) { r += px[i]; g += px[i+1]; b += px[i+2]; }
+    const n = px.length / 4;
+    r /= n; g /= n; b /= n;
+    samples.push({ t: Date.now(), r, g, b });
+
+    // Detectar si el dedo está cubriendo la cámara (imagen oscura rojiza)
+    const fingerOn = r > 30 && r < 240 && g < 100 && b < 80;
+    const hint = document.getElementById('chr-hint');
+    if (hint) hint.style.display = fingerOn ? 'none' : 'flex';
+
+    // Pulso visual
+    if (samples.length > 5) {
+      const recent = samples.slice(-8).map(s => s.r);
+      const mean = recent.reduce((a,b) => a+b) / recent.length;
+      const last = recent[recent.length - 1];
+      const pulse = document.getElementById('chr-pulse');
+      if (pulse) pulse.style.transform = `scale(${last > mean ? 1.08 : 0.95})`;
+    }
+
+    // Visualización waveform
+    if (visCtx && samples.length > 2) {
+      const last30 = samples.slice(-60);
+      const vals = last30.map(s => s.r);
+      const vMax = Math.max(...vals), vMin = Math.min(...vals);
+      const range = Math.max(vMax - vMin, 1);
+      visCtx.clearRect(0, 0, 360, 48);
+      visCtx.beginPath();
+      visCtx.strokeStyle = '#ec4899';
+      visCtx.lineWidth = 2;
+      last30.forEach((s, i) => {
+        const x = (i / (last30.length - 1)) * 360;
+        const y = 48 - ((s.r - vMin) / range) * 40 - 4;
+        i === 0 ? visCtx.moveTo(x, y) : visCtx.lineTo(x, y);
+      });
+      visCtx.stroke();
+    }
+
+    // Progreso
+    const elapsed = Date.now() - startTs;
+    const pct = Math.min(elapsed / MEASURE_MS * 100, 100);
+    const secLeft = Math.max(0, Math.round((MEASURE_MS - elapsed) / 1000));
+    const bar = document.getElementById('chr-bar');
+    const sec = document.getElementById('chr-sec');
+    if (bar) bar.style.width = pct + '%';
+    if (sec) sec.textContent = secLeft;
+
+    // Calcular BPM en tiempo real (si tenemos >5s de datos)
+    if (samples.length > 50) {
+      const bpm = _rppgCalculateBPM(samples.slice(-150));
+      if (bpm) {
+        const el = document.getElementById('chr-bpm');
+        if (el) el.textContent = bpm;
+      }
+    }
+
+    // Fin de medición
+    if (elapsed >= MEASURE_MS) {
+      const finalBPM = _rppgCalculateBPM(samples);
+      stopCameraHR();
+      if (finalBPM) {
+        _handleHR(finalBPM);
+        zyraToast(`💓 Pulso medido: ${finalBPM} bpm`, 'success', 4000);
+        renderWatchCard();
+        renderWatchWidget();
+      } else {
+        zyraToast('No se pudo leer el pulso. Asegúrate de cubrir bien la cámara.', 'error', 5000);
+      }
+    }
+  }, 33); // ~30fps
+}
+
+function _rppgCalculateBPM(samples) {
+  if (samples.length < 60) return null;
+  const vals = samples.map(s => s.r);
+  // Suavizado con media móvil (ventana 5)
+  const smoothed = vals.map((v, i) => {
+    const win = vals.slice(Math.max(0, i - 2), i + 3);
+    return win.reduce((a, b) => a + b) / win.length;
+  });
+  // Media y normalización
+  const mean = smoothed.reduce((a, b) => a + b) / smoothed.length;
+  const norm = smoothed.map(v => v - mean);
+  // Detección de picos (cruces por cero positivos)
+  const peaks = [];
+  for (let i = 1; i < norm.length - 1; i++) {
+    if (norm[i] > norm[i - 1] && norm[i] > norm[i + 1] && norm[i] > 0.5) {
+      // Evitar picos muy cercanos (mínimo 300ms = 200bpm)
+      if (!peaks.length || (samples[i].t - samples[peaks[peaks.length - 1]].t) > 300) {
+        peaks.push(i);
+      }
+    }
+  }
+  if (peaks.length < 3) return null;
+  // BPM promedio de los intervalos
+  const intervals = [];
+  for (let i = 1; i < peaks.length; i++) {
+    intervals.push(samples[peaks[i]].t - samples[peaks[i - 1]].t);
+  }
+  // Filtrar intervalos inválidos (40-200 bpm = 300-1500ms)
+  const valid = intervals.filter(d => d >= 300 && d <= 1500);
+  if (valid.length < 2) return null;
+  const avgMs = valid.reduce((a, b) => a + b) / valid.length;
+  return Math.round(60000 / avgMs);
+}
+
+function stopCameraHR() {
+  if (_cameraHRInterval) { clearInterval(_cameraHRInterval); _cameraHRInterval = null; }
+  if (_cameraHRTimer)    { clearTimeout(_cameraHRTimer);     _cameraHRTimer    = null; }
+  if (_cameraHRStream) {
+    _cameraHRStream.getTracks().forEach(t => { try { t.stop(); } catch(_) {} });
+    _cameraHRStream = null;
+  }
+  const overlay = document.getElementById('camera-hr-overlay');
+  if (overlay) overlay.remove();
+}
+
 /* ── RENDERIZAR TARJETA PERFIL ── */
 function renderWatchCard() {
   const card = document.getElementById('prof-watch-card');
@@ -7135,23 +7329,15 @@ function renderWatchCard() {
         <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:16px">
           ${['💓 Frecuencia cardíaca','👟 Pasos diarios','🌙 Sueño automático','⚡ Alertas inteligentes'].map(f=>`<span style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:#10b981;border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700">${f}</span>`).join('')}
         </div>
-        ${navigator.bluetooth ? (() => {
-            const isAndroid = /android/i.test(navigator.userAgent);
-            const isPhone   = /mobile/i.test(navigator.userAgent);
-            return `<div>
-              <button onclick="connectSmartwatch()" style="background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;border-radius:14px;padding:12px 28px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(16,185,129,.35);margin-bottom:10px;width:100%">⌚ Conectar reloj por Bluetooth</button>
-              ${!isAndroid ? `<div style="font-size:11px;color:#f59e0b;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:10px 13px;line-height:1.7;text-align:left">
-                <strong>📱 Mejor desde tu celular Android</strong><br>
-                Chrome en Windows tiene problemas detectando relojes BLE. Para conectar:<br>
-                1. Abre <strong>Chrome en tu celular Android</strong><br>
-                2. Entra a Zyra con tu cuenta<br>
-                3. Ve a Perfil → conectar reloj<br>
-                4. Pon el reloj en <strong>modo emparejamiento</strong> (Bluetooth parpadeando)<br>
-                <span style="opacity:.6">O intenta igualmente desde PC — algunos relojes sí aparecen.</span>
-              </div>` : ''}
-             </div>`;
-          })()
-          : `<div style="font-size:12px;color:#f59e0b;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);border-radius:12px;padding:10px 14px">Tu navegador no soporta Web Bluetooth. Usa <strong>Chrome en Android</strong>.</div>`}
+        <div style="display:flex;flex-direction:column;gap:10px">
+          ${navigator.bluetooth ? `<button onclick="connectSmartwatch()" style="background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;border-radius:14px;padding:13px 28px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(16,185,129,.35);width:100%">⌚ Conectar reloj Bluetooth</button>` : ''}
+          <button onclick="startCameraHR()" style="background:linear-gradient(135deg,#ec4899,#f43f5e);border:none;color:#fff;border-radius:14px;padding:13px 28px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(236,72,153,.35);width:100%">💓 Medir pulso con cámara</button>
+          <div style="font-size:11px;color:var(--text3);text-align:center;line-height:1.6">Cubre la cámara trasera con tu dedo — 30 segundos</div>
+          ${navigator.bluetooth ? `<div style="font-size:11px;color:rgba(245,158,11,.8);background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:9px 12px;line-height:1.7;text-align:left">
+            <strong>⚠️ Si el reloj da error</strong> — probablemente está conectado a Da Fit u otra app.<br>
+            Cierra esa app → Ajustes › Bluetooth → toca tu reloj → <strong>Desconectar</strong> → vuelve aquí.
+          </div>` : ''}
+        </div>
       </div>`;
     return;
   }
@@ -7175,7 +7361,10 @@ function renderWatchCard() {
           ${_watchConnected
             ? `<button onclick="sendWatchReminder()" style="background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);color:#818cf8;border-radius:10px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer" title="Enviar recordatorio al reloj">📳 Notificar</button>
                <button onclick="disconnectSmartwatch()" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#f87171;border-radius:10px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer">Desconectar</button>`
-            : `<button onclick="connectSmartwatch()" style="background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;border-radius:10px;padding:7px 16px;font-size:11px;font-weight:700;cursor:pointer">Reconectar</button>`}
+            : `<div style="display:flex;gap:6px">
+                 <button onclick="connectSmartwatch()" style="background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;border-radius:10px;padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer">⌚ Reconectar</button>
+                 <button onclick="startCameraHR()" style="background:linear-gradient(135deg,#ec4899,#f43f5e);border:none;color:#fff;border-radius:10px;padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer">💓 Cámara</button>
+               </div>`}
         </div>
       </div>
 
