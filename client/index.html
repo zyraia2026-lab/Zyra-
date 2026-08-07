@@ -6732,16 +6732,11 @@ async function connectSmartwatch() {
     _watchDevice = await navigator.bluetooth.requestDevice({
       acceptAllDevices: true,
       optionalServices: [
-        _WATCH_SERVICE,
-        _WATCH_HR_SVC,
-        'battery_service',
-        '0000fee0-0000-1000-8000-00805f9b34fb', // Xiaomi/Amazfit
+        _WATCH_SERVICE,    // Nordic UART
+        _WATCH_HR_SVC,     // Heart Rate
+        'battery_service', // Batería estándar
+        '0000fee0-0000-1000-8000-00805f9b34fb', // Xiaomi/Mi Band
         '0000fee1-0000-1000-8000-00805f9b34fb',
-        '0000180d-0000-1000-8000-00805f9b34fb', // Heart Rate
-        '0000180f-0000-1000-8000-00805f9b34fb', // Battery
-        '00001800-0000-1000-8000-00805f9b34fb', // Generic Access
-        '00001801-0000-1000-8000-00805f9b34fb', // Generic Attribute
-        '6e40fc00-b5a3-f393-e0a9-e50e24dcca9e', // Nordic UART
       ],
     });
     _watchDevice.addEventListener('gattserverdisconnected', _onWatchDisconnected);
@@ -6991,19 +6986,23 @@ function renderWatchCard() {
         <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:16px">
           ${['💓 Frecuencia cardíaca','👟 Pasos diarios','🌙 Sueño automático','⚡ Alertas inteligentes'].map(f=>`<span style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:#10b981;border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700">${f}</span>`).join('')}
         </div>
-        ${navigator.bluetooth
-          ? `<div>
-              <button onclick="connectSmartwatch()" style="background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;border-radius:14px;padding:12px 28px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(16,185,129,.35);margin-bottom:10px">⌚ Conectar reloj por Bluetooth</button>
-              <div style="font-size:11px;color:var(--text3);background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:9px 12px;line-height:1.6;text-align:left">
-                <strong style="color:#f59e0b">⚠️ Si no aparece el reloj:</strong><br>
-                1. Ve a <strong>Configuración → Bluetooth</strong> en Windows<br>
-                2. <strong>Desempareja</strong> el reloj de Windows<br>
-                3. Mantén el reloj <strong>sin emparejar</strong> y en modo BLE<br>
-                4. Vuelve aquí y haz click en conectar<br>
-                <span style="opacity:.7">Web Bluetooth no funciona si el reloj ya está emparejado con Windows.</span>
-              </div>
-             </div>`
-          : `<div style="font-size:12px;color:#f59e0b;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);border-radius:12px;padding:10px 14px">Tu navegador no soporta Web Bluetooth. Usa <strong>Chrome</strong> en Android o escritorio.</div>`}
+        ${navigator.bluetooth ? (() => {
+            const isAndroid = /android/i.test(navigator.userAgent);
+            const isPhone   = /mobile/i.test(navigator.userAgent);
+            return `<div>
+              <button onclick="connectSmartwatch()" style="background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;border-radius:14px;padding:12px 28px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(16,185,129,.35);margin-bottom:10px;width:100%">⌚ Conectar reloj por Bluetooth</button>
+              ${!isAndroid ? `<div style="font-size:11px;color:#f59e0b;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:10px 13px;line-height:1.7;text-align:left">
+                <strong>📱 Mejor desde tu celular Android</strong><br>
+                Chrome en Windows tiene problemas detectando relojes BLE. Para conectar:<br>
+                1. Abre <strong>Chrome en tu celular Android</strong><br>
+                2. Entra a Zyra con tu cuenta<br>
+                3. Ve a Perfil → conectar reloj<br>
+                4. Pon el reloj en <strong>modo emparejamiento</strong> (Bluetooth parpadeando)<br>
+                <span style="opacity:.6">O intenta igualmente desde PC — algunos relojes sí aparecen.</span>
+              </div>` : ''}
+             </div>`;
+          })()
+          : `<div style="font-size:12px;color:#f59e0b;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);border-radius:12px;padding:10px 14px">Tu navegador no soporta Web Bluetooth. Usa <strong>Chrome en Android</strong>.</div>`}
       </div>`;
     return;
   }
