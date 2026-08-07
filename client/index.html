@@ -6870,12 +6870,25 @@ async function disconnectSmartwatch() {
 }
 
 function _onWatchDisconnected() {
+  const wasConnected = _watchConnected;
   _watchConnected = false;
   _watchRxChar = null;
   if (_watchHRInterval) { clearInterval(_watchHRInterval); _watchHRInterval = null; }
-  zyraToast('⌚ Reloj desconectado', 'info');
+  if (wasConnected) {
+    zyraToast('⌚ Reloj desconectado — toca Reconectar', 'info', 4000);
+  }
   renderWatchCard();
   renderWatchWidget();
+  // Auto-reconexión suave si el usuario ya había emparejado
+  if (localStorage.getItem('zyra_watch_paired') && wasConnected) {
+    setTimeout(async () => {
+      if (_watchConnected || !_watchDevice) return;
+      try {
+        if (_watchDebug) console.log('[Watch] Auto-reconectando...');
+        await _watchGattConnect();
+      } catch(_) {}
+    }, 3000);
+  }
 }
 
 /* ── RECIBIR DATOS (UART) ── */
