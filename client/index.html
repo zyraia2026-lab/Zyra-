@@ -6722,21 +6722,18 @@ let _watchDebug = true;
 /* ── BLE CONNECT ── */
 async function connectSmartwatch() {
   if (!navigator.bluetooth) {
-    zyraToast('Tu navegador no soporta Bluetooth. Usa Chrome en Android o escritorio.', 'error', 5000);
+    zyraToast('Tu navegador no soporta Bluetooth. Usa Chrome en Android.', 'error', 5000);
     return;
   }
   try {
     zyraToast('Buscando dispositivos BLE…', 'info', 2000);
-    // Mostrar TODOS los dispositivos BLE — el usuario elige su reloj
     _watchDevice = await navigator.bluetooth.requestDevice({
       acceptAllDevices: true,
       optionalServices: [
-        // Nordic UART (genérico)
-        '6e40fc00-b5a3-f393-e0a9-e50e24dcca9e',
+        '6e40fc00-b5a3-f393-e0a9-e50e24dcca9e', // Nordic UART
         '6e400002-b5a3-f393-e0a9-e50e24dcca9e',
         '6e400003-b5a3-f393-e0a9-e50e24dcca9e',
-        // Da Fit / Y13 / relojes chinos genéricos
-        '0000ffd0-0000-1000-8000-00805f9b34fb',
+        '0000ffd0-0000-1000-8000-00805f9b34fb', // Da Fit / Y13
         '0000ffd1-0000-1000-8000-00805f9b34fb',
         '0000ffd2-0000-1000-8000-00805f9b34fb',
         '0000ffd3-0000-1000-8000-00805f9b34fb',
@@ -6744,20 +6741,26 @@ async function connectSmartwatch() {
         '0000ffd5-0000-1000-8000-00805f9b34fb',
         '0000ffd8-0000-1000-8000-00805f9b34fb',
         '0000ffd9-0000-1000-8000-00805f9b34fb',
-        // FitPro / HPlus
-        '0000fee7-0000-1000-8000-00805f9b34fb',
+        '0000ffe0-0000-1000-8000-00805f9b34fb', // Genérico BLE barato
+        '0000ffe1-0000-1000-8000-00805f9b34fb',
+        '0000ffe2-0000-1000-8000-00805f9b34fb',
+        '0000ffe3-0000-1000-8000-00805f9b34fb',
+        '0000fff0-0000-1000-8000-00805f9b34fb', // VeryFit / HBand
+        '0000fff1-0000-1000-8000-00805f9b34fb',
+        '0000fff2-0000-1000-8000-00805f9b34fb',
+        '0000fff3-0000-1000-8000-00805f9b34fb',
+        '0000fff4-0000-1000-8000-00805f9b34fb',
+        '0000fff5-0000-1000-8000-00805f9b34fb',
+        '0000fee7-0000-1000-8000-00805f9b34fb', // FitPro / HPlus
         '0000fee8-0000-1000-8000-00805f9b34fb',
         '0000fee9-0000-1000-8000-00805f9b34fb',
-        // Xiaomi / Mi Band
-        '0000fee0-0000-1000-8000-00805f9b34fb',
+        '0000fee0-0000-1000-8000-00805f9b34fb', // Xiaomi / Mi Band
         '0000fee1-0000-1000-8000-00805f9b34fb',
-        // Estándar BLE
-        '0000180d-0000-1000-8000-00805f9b34fb', // Heart Rate
+        '0000180d-0000-1000-8000-00805f9b34fb', // HR estándar
         '0000180f-0000-1000-8000-00805f9b34fb', // Battery
-        '00001800-0000-1000-8000-00805f9b34fb', // Generic Access
-        '00001801-0000-1000-8000-00805f9b34fb', // Generic Attribute
-        'battery_service',
-        'heart_rate',
+        '00001800-0000-1000-8000-00805f9b34fb',
+        '00001801-0000-1000-8000-00805f9b34fb',
+        'battery_service', 'heart_rate',
       ],
     });
     _watchDevice.addEventListener('gattserverdisconnected', _onWatchDisconnected);
@@ -6772,39 +6775,117 @@ async function connectSmartwatch() {
 // Mantener por compatibilidad
 async function _watchConnectAny() { connectSmartwatch(); }
 
+/* Helper: escribe en una característica usando write o writeWithoutResponse según soporte */
+async function _watchWrite(char, data) {
+  if (!char) return;
+  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  try {
+    if (char.properties && char.properties.writeWithoutResponse) {
+      await char.writeValueWithoutResponse(bytes);
+    } else {
+      await char.writeValue(bytes);
+    }
+  } catch(_) {
+    // Fallback cruzado
+    try { await char.writeValue(bytes); } catch(_) {
+      try { await char.writeValueWithoutResponse(bytes); } catch(_) {}
+    }
+  }
+}
+
 async function _watchGattConnect() {
   const server = await _watchDevice.gatt.connect();
-  // Esperar que el GATT se estabilice antes de descubrir servicios
-  await new Promise(r => setTimeout(r, 400));
+  await new Promise(r => setTimeout(r, 250));
   if (!server.connected) throw new Error('GATT dropped immediately');
 
+  // ── MARCAR CONECTADO INMEDIATAMENTE y arrancar keep-alive ──
+  // El reloj puede desconectar si tarda demasiado el discovery. Anclar primero.
+  _watchConnected = true;
+  _watchReconnecting = false;
+  const rawName = _watchDevice.name || '';
+  const stored  = localStorage.getItem('zyra_watch_name');
+  const name    = stored || (rawName && rawName.toLowerCase() !== 'unknown' ? rawName : 'Mi Reloj');
+  localStorage.setItem('zyra_watch_name', name);
+  localStorage.setItem('zyra_watch_paired', '1');
+  zyraToast(`⌚ ${name} conectado — leyendo datos…`, 'success', 3000);
+  renderWatchCard();
+  renderWatchWidget();
+
+  // Keep-alive agresivo cada 3s para evitar que el link de radio se corte
+  if (_watchKeepAlive) clearInterval(_watchKeepAlive);
+  _watchKeepAlive = setInterval(async () => {
+    if (!server.connected) { clearInterval(_watchKeepAlive); _watchKeepAlive = null; return; }
+    if (_watchRxChar) {
+      await _watchWrite(_watchRxChar, [0xAB,0x00,0x04,0xFF,0x84,0x01,0x00]);
+    }
+  }, 3000);
+
+  // Poller de estado GATT por si el evento 'gattserverdisconnected' no se dispara
+  const _gattPoll = setInterval(() => {
+    if (!server.connected && _watchConnected) {
+      clearInterval(_gattPoll);
+      _onWatchDisconnected();
+    }
+    if (!_watchConnected) clearInterval(_gattPoll);
+  }, 2000);
+
+  // ── DISCOVERY en background — no bloquea la conexión ──
+  _watchDiscoverServices(server).catch(e => {
+    if (_watchDebug) console.log('[Watch] Discovery error:', e.message);
+  });
+}
+
+async function _watchDiscoverServices(server) {
+  // Enumerar TODOS los servicios del dispositivo para debug y brute-force subscribe
+  let allSvcs = [];
+  try {
+    allSvcs = await server.getPrimaryServices();
+    if (_watchDebug) {
+      console.log('[Watch] 📋 SERVICIOS DEL RELOJ:');
+      for (const s of allSvcs) {
+        console.log('[Watch]  ▶', s.uuid);
+        try {
+          const chs = await s.getCharacteristics();
+          for (const c of chs) {
+            const props = Object.entries(c.properties).filter(([,v])=>v).map(([k])=>k);
+            console.log('[Watch]    ↳', c.uuid, props.join(','));
+          }
+        } catch(_) {}
+      }
+    }
+  } catch(e) { if (_watchDebug) console.log('[Watch] getPrimaryServices error:', e.message); }
+
   let anyOk = false;
+  const n = new Date();
+  const timeSyncCmd  = [0xAB,0x00,0x08,0xFF,0x94, n.getFullYear()-2000, n.getMonth()+1, n.getDate(), n.getHours(), n.getMinutes(), n.getSeconds()];
+  const hrActivateCmd = [0xAB,0x00,0x04,0xFF,0x84,0x01,0x00];
+  const bindCmd       = [0xAB,0x00,0x05,0xFF,0x80,0x00,0x00,0x00];
 
   // ── 1. Da Fit / Y13 (ffd0) ──
   try {
     const svc = await server.getPrimaryService('0000ffd0-0000-1000-8000-00805f9b34fb');
-    if (_watchDebug) console.log('[Watch] ✅ Protocolo Da Fit/Y13 (ffd0)');
-
-    // Obtener canal de escritura primero
+    if (_watchDebug) console.log('[Watch] ✅ Da Fit/Y13 (ffd0)');
+    // Write char — probar todos los candidatos
     for (const uuid of ['0000ffd9-0000-1000-8000-00805f9b34fb','0000ffd8-0000-1000-8000-00805f9b34fb','0000ffd3-0000-1000-8000-00805f9b34fb']) {
-      try { _watchRxChar = await svc.getCharacteristic(uuid); if(_watchDebug) console.log('[Watch] Write:',uuid); break; } catch(_) {}
+      try {
+        const c = await svc.getCharacteristic(uuid);
+        if (c.properties.write || c.properties.writeWithoutResponse) {
+          _watchRxChar = c;
+          if (_watchDebug) console.log('[Watch] Write char:', uuid);
+          break;
+        }
+      } catch(_) {}
     }
-
-    // INMEDIATAMENTE enviar sync para que el reloj no corte la conexión
+    // Handshake Da Fit: bind → timesync → HR
     if (_watchRxChar) {
-      const n = new Date();
-      // Comando 1: sincronizar hora (mantiene conexión)
-      const timeSync = new Uint8Array([0xAB,0x00,0x08,0xFF,0x94,
-        n.getFullYear()-2000, n.getMonth()+1, n.getDate(),
-        n.getHours(), n.getMinutes(), n.getSeconds()]);
-      try { await _watchRxChar.writeValue(timeSync); } catch(_) {}
-      await new Promise(r => setTimeout(r, 200));
-      // Comando 2: activar medición continua de HR
-      try { await _watchRxChar.writeValue(new Uint8Array([0xAB,0x00,0x04,0xFF,0x84,0x01,0x00])); } catch(_) {}
+      await _watchWrite(_watchRxChar, bindCmd);
+      await new Promise(r => setTimeout(r, 80));
+      await _watchWrite(_watchRxChar, timeSyncCmd);
+      await new Promise(r => setTimeout(r, 80));
+      await _watchWrite(_watchRxChar, hrActivateCmd);
     }
-
-    // Suscribir notificaciones
-    for (const uuid of ['0000ffd4-0000-1000-8000-00805f9b34fb','0000ffd1-0000-1000-8000-00805f9b34fb']) {
+    // Notify chars
+    for (const uuid of ['0000ffd4-0000-1000-8000-00805f9b34fb','0000ffd1-0000-1000-8000-00805f9b34fb','0000ffd2-0000-1000-8000-00805f9b34fb']) {
       try {
         const c = await svc.getCharacteristic(uuid);
         await c.startNotifications();
@@ -6814,15 +6895,49 @@ async function _watchGattConnect() {
         break;
       } catch(_) {}
     }
-  } catch(e) { if (_watchDebug) console.log('[Watch] ffd0 no encontrado:', e.message); }
+  } catch(e) { if (_watchDebug) console.log('[Watch] ffd0:', e.message); }
 
-  // ── 2. FitPro / HPlus (fee7) ──
+  // ── 2. Genérico BLE barato (ffe0) — muy común en Y13 ──
+  if (!_watchRxChar) {
+    try {
+      const svc = await server.getPrimaryService('0000ffe0-0000-1000-8000-00805f9b34fb');
+      if (_watchDebug) console.log('[Watch] ✅ ffe0 genérico');
+      const chars = await svc.getCharacteristics();
+      for (const c of chars) {
+        if ((c.properties.notify||c.properties.indicate) && !anyOk) {
+          try { await c.startNotifications(); c.addEventListener('characteristicvaluechanged',(e)=>_onWatchDataAuto(e,'ffe0',c.uuid)); anyOk=true; if(_watchDebug) console.log('[Watch] Notify ffe0:', c.uuid); } catch(_) {}
+        }
+        if ((c.properties.write||c.properties.writeWithoutResponse) && !_watchRxChar) { _watchRxChar = c; if(_watchDebug) console.log('[Watch] Write ffe0:', c.uuid); }
+      }
+      if (_watchRxChar) {
+        await _watchWrite(_watchRxChar, timeSyncCmd);
+        await new Promise(r => setTimeout(r, 80));
+        await _watchWrite(_watchRxChar, hrActivateCmd);
+      }
+    } catch(_) {}
+  }
+
+  // ── 3. VeryFit / HBand (fff0) ──
+  if (!anyOk) {
+    try {
+      const svc = await server.getPrimaryService('0000fff0-0000-1000-8000-00805f9b34fb');
+      if (_watchDebug) console.log('[Watch] ✅ fff0 VeryFit');
+      const chars = await svc.getCharacteristics();
+      for (const c of chars) {
+        if ((c.properties.notify||c.properties.indicate) && !anyOk) {
+          try { await c.startNotifications(); c.addEventListener('characteristicvaluechanged',(e)=>_onWatchDataAuto(e,'fff0',c.uuid)); anyOk=true; } catch(_) {}
+        }
+        if ((c.properties.write||c.properties.writeWithoutResponse) && !_watchRxChar) _watchRxChar = c;
+      }
+    } catch(_) {}
+  }
+
+  // ── 4. FitPro / HPlus (fee7) ──
   if (!anyOk) {
     try {
       const svc = await server.getPrimaryService('0000fee7-0000-1000-8000-00805f9b34fb');
       if (_watchDebug) console.log('[Watch] ✅ FitPro (fee7)');
       const chars = await svc.getCharacteristics();
-      if (_watchDebug) console.log('[Watch] Chars fee7:', chars.map(c=>c.uuid));
       for (const c of chars) {
         if ((c.properties.notify||c.properties.indicate) && !anyOk) {
           try { await c.startNotifications(); c.addEventListener('characteristicvaluechanged',(e)=>_onWatchDataAuto(e,'fee7',c.uuid)); anyOk=true; } catch(_) {}
@@ -6832,7 +6947,7 @@ async function _watchGattConnect() {
     } catch(_) {}
   }
 
-  // ── 3. Nordic UART ──
+  // ── 5. Nordic UART ──
   if (!anyOk) {
     try {
       const svc = await server.getPrimaryService(_WATCH_SERVICE);
@@ -6842,35 +6957,42 @@ async function _watchGattConnect() {
     } catch(_) {}
   }
 
-  // ── 4. HR estándar BLE ──
+  // ── 6. HR estándar BLE (siempre intentar) ──
   try {
-    const hrSvc=await server.getPrimaryService(_WATCH_HR_SVC);
-    const hrChar=await hrSvc.getCharacteristic(_WATCH_HR_CHAR);
+    const hrSvc  = await server.getPrimaryService(_WATCH_HR_SVC);
+    const hrChar = await hrSvc.getCharacteristic(_WATCH_HR_CHAR);
     await hrChar.startNotifications();
-    hrChar.addEventListener('characteristicvaluechanged',_onHRStandard);
-    anyOk=true;
+    hrChar.addEventListener('characteristicvaluechanged', _onHRStandard);
+    anyOk = true;
     if (_watchDebug) console.log('[Watch] ✅ HR estándar BLE');
   } catch(_) {}
 
-  _watchConnected = true;
-  _watchReconnecting = false;
-  const rawName = _watchDevice.name || '';
-  const stored  = localStorage.getItem('zyra_watch_name');
-  const name    = stored || (rawName && rawName.toLowerCase()!=='unknown' ? rawName : 'Mi Reloj');
-  localStorage.setItem('zyra_watch_name', name);
-  localStorage.setItem('zyra_watch_paired', '1');
-  zyraToast(`⌚ ${name} conectado`, 'success', 3000);
-  renderWatchCard();
-  renderWatchWidget();
-
-  // Keep-alive cada 12s — pide HR activo
-  if (_watchKeepAlive) clearInterval(_watchKeepAlive);
-  _watchKeepAlive = setInterval(async () => {
-    if (!server.connected) { clearInterval(_watchKeepAlive); return; }
-    if (_watchRxChar) {
-      try { await _watchRxChar.writeValue(new Uint8Array([0xAB,0x00,0x04,0xFF,0x84,0x01,0x00])); } catch(_) {}
+  // ── 7. Brute-force: suscribir TODAS las chars notificables de servicios desconocidos ──
+  if (!anyOk && allSvcs.length) {
+    for (const svc of allSvcs) {
+      if (anyOk) break;
+      try {
+        const chars = await svc.getCharacteristics();
+        for (const c of chars) {
+          if (c.properties.notify || c.properties.indicate) {
+            try {
+              await c.startNotifications();
+              c.addEventListener('characteristicvaluechanged', (e) => _onWatchDataAuto(e, svc.uuid, c.uuid));
+              anyOk = true;
+              if (_watchDebug) console.log('[Watch] Brute-force notify:', svc.uuid, c.uuid);
+            } catch(_) {}
+          }
+          if ((c.properties.write || c.properties.writeWithoutResponse) && !_watchRxChar) {
+            _watchRxChar = c;
+            if (_watchDebug) console.log('[Watch] Brute-force write:', c.uuid);
+          }
+        }
+      } catch(_) {}
     }
-  }, 12000);
+  }
+
+  if (_watchDebug) console.log('[Watch] Discovery done. anyOk:', anyOk, 'rxChar:', _watchRxChar?.uuid);
+  if (anyOk) zyraToast(`⌚ ${localStorage.getItem('zyra_watch_name') || 'Reloj'} — leyendo pulso…`, 'success', 2000);
 }
 
 // Handler automático que detecta el formato de datos según la característica
@@ -6878,35 +7000,47 @@ function _onWatchDataAuto(event, svcUuid, charUuid) {
   const val   = event.target.value;
   const bytes = new Uint8Array(val.buffer);
 
-  // Intentar decodificar como texto (UART)
-  const text = new TextDecoder('utf-8').decode(val).trim();
-  if (text && /^[A-Z]{2,}[:=]/.test(text)) {
-    _onWatchData(event); // delegar al parser UART
-    return;
-  }
-
   if (_watchDebug) {
-    console.log('[Watch Data]', charUuid, '→ HEX:', Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join(' '));
+    console.log('[Watch Data]', charUuid.slice(-4), '→', Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join(' '));
   }
 
-  // HR estándar BLE (flags + valor)
+  // HR estándar BLE
   if (charUuid === _WATCH_HR_CHAR || charUuid === '00002a37-0000-1000-8000-00805f9b34fb') {
     _onHRStandard(event); return;
   }
 
-  // Protocolo binario genérico — byte[0] indica tipo
-  if (bytes.length >= 2) {
-    const type = bytes[0];
-    if (type === 0x01 || type === 0x03) { _handleHR(bytes[1]); return; }
-    if (type === 0x04 || type === 0x50) { _handleSteps((bytes[1] << 8) | bytes[2]); return; }
-    if (type === 0x08 || type === 0x0A) { _handleBattery(bytes[1]); return; }
-    // Protocolo Y13 / Fitpro — paquetes de 20 bytes
-    if (bytes.length >= 4 && bytes[0] === 0xAB) {
-      if (bytes[2] === 0x84) { _handleHR(bytes[3]); return; }       // HR
-      if (bytes[2] === 0x86) { _handleSteps((bytes[3] << 8) | bytes[4]); return; } // pasos
-      if (bytes[2] === 0x7F) { _handleBattery(bytes[3]); return; }  // batería
-    }
+  // Texto UART
+  const text = new TextDecoder('utf-8').decode(val).trim();
+  if (text && /^[A-Za-z]{2,}[:=]/.test(text)) { _onWatchData(event); return; }
+
+  if (bytes.length < 1) return;
+
+  // ── Da Fit / Y13: magic 0xAB ──
+  if (bytes[0] === 0xAB && bytes.length >= 4) {
+    const cmd = bytes[3]; // cmd byte
+    if (cmd === 0x84 && bytes.length >= 5) { _handleHR(bytes[4]); return; }
+    if (cmd === 0x86 && bytes.length >= 6) { _handleSteps((bytes[4]<<8)|bytes[5]); return; }
+    if (cmd === 0x7F && bytes.length >= 5) { _handleBattery(bytes[4]); return; }
+    if (cmd === 0x94) return; // ack time sync — ignorar
+    // Fallback posicional: byte[4] puede ser HR en respuestas de activación
+    if (bytes.length >= 5 && bytes[4] >= 30 && bytes[4] <= 220) { _handleHR(bytes[4]); }
+    return;
   }
+
+  // ── Protocolo VeryFit / HBand (fff0/ffe0): primer byte = tipo ──
+  if (bytes.length >= 2) {
+    const t = bytes[0];
+    // HR
+    if ((t===0x01||t===0x03||t===0x06||t===0x07) && bytes[1]>=30 && bytes[1]<=220) { _handleHR(bytes[1]); return; }
+    // Pasos (big-endian)
+    if ((t===0x04||t===0x50||t===0x52) && bytes.length>=3) { _handleSteps((bytes[1]<<8)|bytes[2]); return; }
+    // Batería
+    if ((t===0x08||t===0x0A||t===0x0C) && bytes[1]<=100) { _handleBattery(bytes[1]); return; }
+  }
+
+  // ── Heurística: si el paquete tiene exactamente 1-2 bytes de HR verosímil ──
+  if (bytes.length === 1 && bytes[0] >= 40 && bytes[0] <= 200) { _handleHR(bytes[0]); return; }
+  if (bytes.length === 2 && bytes[1] >= 40 && bytes[1] <= 200 && bytes[0] <= 5) { _handleHR(bytes[1]); return; }
 }
 
 async function disconnectSmartwatch() {
@@ -6917,15 +7051,16 @@ async function disconnectSmartwatch() {
 }
 
 function _onWatchDisconnected() {
+  if (!_watchConnected && !_watchReconnecting) return; // ignorar duplicados
   _watchConnected = false;
   _watchRxChar = null;
-  if (_watchHRInterval)  { clearInterval(_watchHRInterval);  _watchHRInterval = null; }
-  if (_watchKeepAlive)   { clearInterval(_watchKeepAlive);   _watchKeepAlive  = null; }
+  if (_watchHRInterval) { clearInterval(_watchHRInterval); _watchHRInterval = null; }
+  if (_watchKeepAlive)  { clearInterval(_watchKeepAlive);  _watchKeepAlive  = null; }
   renderWatchCard();
   renderWatchWidget();
-  // Auto-reconexión inmediata y persistente
   if (localStorage.getItem('zyra_watch_paired') && _watchDevice && !_watchReconnecting) {
     _watchReconnecting = true;
+    zyraToast('⌚ Reloj desconectado — reconectando…', 'info', 2500);
     _autoReconnect(1);
   }
 }
@@ -6934,13 +7069,22 @@ async function _autoReconnect(attempt) {
   if (_watchConnected || !_watchDevice || !localStorage.getItem('zyra_watch_paired')) {
     _watchReconnecting = false; return;
   }
-  if (attempt > 8) { _watchReconnecting = false; zyraToast('⌚ Reloj fuera de rango. Toca Reconectar cuando esté cerca.', 'info', 5000); return; }
-  const delay = Math.min(1000 * attempt, 8000);
+  if (attempt > 15) {
+    _watchReconnecting = false;
+    zyraToast('⌚ No se pudo reconectar. Toca "Reconectar" cuando estés cerca.', 'info', 6000);
+    return;
+  }
+  const delay = Math.min(1000 * Math.min(attempt, 8), 8000);
   if (_watchDebug) console.log(`[Watch] Reconexión intento ${attempt} en ${delay}ms`);
   await new Promise(r => setTimeout(r, delay));
   if (_watchConnected) { _watchReconnecting = false; return; }
-  try { await _watchGattConnect(); _watchReconnecting = false; }
-  catch(_) { _autoReconnect(attempt + 1); }
+  try {
+    await _watchGattConnect();
+    // _watchGattConnect ya pone _watchReconnecting = false
+  } catch(e) {
+    if (_watchDebug) console.log('[Watch] Reconexión fallida:', e.message);
+    _autoReconnect(attempt + 1);
+  }
 }
 
 /* ── RECIBIR DATOS (UART) ── */
