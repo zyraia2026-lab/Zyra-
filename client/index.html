@@ -6732,11 +6732,33 @@ async function connectSmartwatch() {
     _watchDevice = await navigator.bluetooth.requestDevice({
       acceptAllDevices: true,
       optionalServices: [
-        _WATCH_SERVICE,    // Nordic UART
-        _WATCH_HR_SVC,     // Heart Rate
-        'battery_service', // Batería estándar
-        '0000fee0-0000-1000-8000-00805f9b34fb', // Xiaomi/Mi Band
+        // Nordic UART (genérico)
+        '6e40fc00-b5a3-f393-e0a9-e50e24dcca9e',
+        '6e400002-b5a3-f393-e0a9-e50e24dcca9e',
+        '6e400003-b5a3-f393-e0a9-e50e24dcca9e',
+        // Da Fit / Y13 / relojes chinos genéricos
+        '0000ffd0-0000-1000-8000-00805f9b34fb',
+        '0000ffd1-0000-1000-8000-00805f9b34fb',
+        '0000ffd2-0000-1000-8000-00805f9b34fb',
+        '0000ffd3-0000-1000-8000-00805f9b34fb',
+        '0000ffd4-0000-1000-8000-00805f9b34fb',
+        '0000ffd5-0000-1000-8000-00805f9b34fb',
+        '0000ffd8-0000-1000-8000-00805f9b34fb',
+        '0000ffd9-0000-1000-8000-00805f9b34fb',
+        // FitPro / HPlus
+        '0000fee7-0000-1000-8000-00805f9b34fb',
+        '0000fee8-0000-1000-8000-00805f9b34fb',
+        '0000fee9-0000-1000-8000-00805f9b34fb',
+        // Xiaomi / Mi Band
+        '0000fee0-0000-1000-8000-00805f9b34fb',
         '0000fee1-0000-1000-8000-00805f9b34fb',
+        // Estándar BLE
+        '0000180d-0000-1000-8000-00805f9b34fb', // Heart Rate
+        '0000180f-0000-1000-8000-00805f9b34fb', // Battery
+        '00001800-0000-1000-8000-00805f9b34fb', // Generic Access
+        '00001801-0000-1000-8000-00805f9b34fb', // Generic Attribute
+        'battery_service',
+        'heart_rate',
       ],
     });
     _watchDevice.addEventListener('gattserverdisconnected', _onWatchDisconnected);
