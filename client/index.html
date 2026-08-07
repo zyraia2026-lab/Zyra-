@@ -1122,8 +1122,9 @@ function closeSplash(){
     <span class="mnb-icon-wrap"><span class="mnb-icon">🏠</span><span class="mnb-mission-dot" id="tab-mission-dot" style="display:none"></span></span>
     <span class="mnb-label">Inicio</span>
   </button>
-  <button class="mobile-nav-btn" onclick="showPage('assistant')" data-page="assistant">
-    <span class="mnb-icon">💬</span><span class="mnb-label">Zyra IA</span>
+  <button class="mobile-nav-btn" onclick="showPage('assistant')" data-page="assistant" style="position:relative">
+    <span class="mnb-icon-wrap" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:16px;padding:7px 10px;margin-bottom:1px;display:inline-flex;align-items:center;justify-content:center"><span class="mnb-icon" style="font-size:18px">💬</span></span>
+    <span class="mnb-label" style="color:var(--accent);font-weight:800">Chat</span>
   </button>
   <button class="mobile-nav-btn" onclick="showPage('journal')" data-page="journal">
     <span class="mnb-icon">📔</span><span class="mnb-label">Diario</span>
@@ -2812,9 +2813,9 @@ async function b2bSubmitContact() {
       </div>
       <div>
         <div class="chat-name">Zyra</div>
-        <div class="chat-status"><span class="chat-dot"></span>Disponible ahora</div>
+        <div class="chat-status"><span class="chat-dot"></span>Tu acompañante emocional · IA con memoria</div>
       </div>
-      <div class="ai-badge">✦ Zyra IA</div>
+      <div class="ai-badge" style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><span style="font-size:10px;font-weight:800;color:var(--accent);letter-spacing:.3px">✦ ZYRA IA</span><span style="font-size:9px;color:var(--text3);white-space:nowrap">≠ ChatGPT</span></div>
       <button class="btn-tts" id="btn-tts-toggle" onclick="toggleAutoSpeak()" title="Activar voz">🔇</button>
       <button class="btn-feedback" onclick="showSavedMsgs()" title="Ver mensajes guardados" style="font-size:16px;opacity:.6">🔖</button>
       <button class="btn-feedback" onclick="exportCurrentChat()" title="Exportar conversación" style="font-size:16px;opacity:.5">💾</button>
@@ -2832,6 +2833,14 @@ async function b2bSubmitContact() {
     <button id="btn-scroll-bottom" class="btn-scroll-bottom" onclick="scrollChatBottom()" title="Ir al final" style="display:none">↓</button>
     <div class="chat-input" style="position:relative">
       <div id="cmd-autocomplete" style="display:none;position:absolute;bottom:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.3);max-height:240px;overflow-y:auto;z-index:200"></div>
+      <!-- Diferenciadores vs ChatGPT -->
+      <div style="display:flex;gap:6px;overflow-x:auto;padding:6px 4px 8px;scrollbar-width:none;-ms-overflow-style:none" id="zyra-diff-pills">
+        <span style="flex-shrink:0;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:var(--accent);white-space:nowrap;cursor:pointer" onclick="showPage('journal')" title="Tu diario emocional conectado">📓 Lee tu diario</span>
+        <span style="flex-shrink:0;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:#10b981;white-space:nowrap;cursor:pointer" onclick="showPage('wellness');setTimeout(()=>openWellness('breath'),100)" title="Respiración guiada integrada">🌬️ /respirar</span>
+        <span style="flex-shrink:0;background:rgba(236,72,153,.1);border:1px solid rgba(236,72,153,.2);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:#ec4899;white-space:nowrap;cursor:default" title="Memoria de tus conversaciones">🧠 Memoria</span>
+        <span style="flex-shrink:0;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:#f59e0b;white-space:nowrap;cursor:pointer" onclick="showPage('goals')" title="Conectado a tus metas">🎯 Tus metas</span>
+        <span style="flex-shrink:0;background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.2);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:#06b6d4;white-space:nowrap;cursor:default" title="Conversaciones privadas y seguras">🔒 Privado</span>
+      </div>
       <div class="input-row">
         <button class="btn-voice" id="btn-voice" onclick="toggleVoice()" title="Mantén para hablar">🎤</button>
         <textarea class="chat-ta" id="chat-input" placeholder="Cuéntame lo que sea... · /ayuda para comandos" oninput="onInput()" onkeydown="onKey(event)"></textarea>
