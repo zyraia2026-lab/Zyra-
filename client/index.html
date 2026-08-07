@@ -6716,7 +6716,8 @@ const _WATCH_HR_CHAR  = '00002a37-0000-1000-8000-00805f9b34fb';
 
 let _watchDevice = null, _watchRxChar = null, _watchConnected = false;
 let _watchHR = null, _watchSteps = null, _watchBattery = null;
-let _watchHRInterval = null, _watchDebug = true; // debug activo para ver servicios Y13
+let _watchHRInterval = null, _watchKeepAlive = null, _watchReconnecting = false;
+let _watchDebug = true;
 
 /* ── BLE CONNECT ── */
 async function connectSmartwatch() {
@@ -6772,86 +6773,104 @@ async function connectSmartwatch() {
 async function _watchConnectAny() { connectSmartwatch(); }
 
 async function _watchGattConnect() {
+  const server = await _watchDevice.gatt.connect();
+  // Esperar que el GATT se estabilice antes de descubrir servicios
+  await new Promise(r => setTimeout(r, 400));
+  if (!server.connected) throw new Error('GATT dropped immediately');
+
+  let anyOk = false;
+
+  // ── 1. Da Fit / Y13 (ffd0) ──
   try {
-    const server = await _watchDevice.gatt.connect();
-    let anyOk = false;
+    const svc = await server.getPrimaryService('0000ffd0-0000-1000-8000-00805f9b34fb');
+    if (_watchDebug) console.log('[Watch] ✅ Protocolo Da Fit/Y13 (ffd0)');
 
-    // ── 1. Da Fit / Y13 / relojes chinos genéricos (ffd0) ──
-    try {
-      const svc = await server.getPrimaryService('0000ffd0-0000-1000-8000-00805f9b34fb');
-      if (_watchDebug) console.log('[Watch] Protocolo Da Fit/Y13 (ffd0)');
-      for (const uuid of ['0000ffd4-0000-1000-8000-00805f9b34fb','0000ffd1-0000-1000-8000-00805f9b34fb','0000ffd2-0000-1000-8000-00805f9b34fb']) {
-        try { const c = await svc.getCharacteristic(uuid); await c.startNotifications(); c.addEventListener('characteristicvaluechanged',(e)=>_onWatchDataAuto(e,'ffd0',uuid)); anyOk=true; if(_watchDebug) console.log('[Watch] Notify:',uuid); break; } catch(_) {}
-      }
-      for (const uuid of ['0000ffd9-0000-1000-8000-00805f9b34fb','0000ffd8-0000-1000-8000-00805f9b34fb','0000ffd3-0000-1000-8000-00805f9b34fb']) {
-        try { _watchRxChar = await svc.getCharacteristic(uuid); if(_watchDebug) console.log('[Watch] Write:',uuid); break; } catch(_) {}
-      }
-      if (_watchRxChar) {
-        // Sync time — mantiene la conexión viva en protocolo Da Fit
-        const n = new Date();
-        const cmd = new Uint8Array([0xAB,0x00,0x08,0xFF,0x94,n.getFullYear()-2000,n.getMonth()+1,n.getDate(),n.getHours(),n.getMinutes(),n.getSeconds()]);
-        try { await _watchRxChar.writeValue(cmd); } catch(_) {}
-        setTimeout(async()=>{ try { await _watchRxChar.writeValue(new Uint8Array([0xAB,0x00,0x04,0xFF,0x84,0x01,0x00])); } catch(_) {} }, 800);
-      }
-    } catch(_) {}
+    // Obtener canal de escritura primero
+    for (const uuid of ['0000ffd9-0000-1000-8000-00805f9b34fb','0000ffd8-0000-1000-8000-00805f9b34fb','0000ffd3-0000-1000-8000-00805f9b34fb']) {
+      try { _watchRxChar = await svc.getCharacteristic(uuid); if(_watchDebug) console.log('[Watch] Write:',uuid); break; } catch(_) {}
+    }
 
-    // ── 2. FitPro / HPlus (fee7) ──
-    if (!anyOk) {
+    // INMEDIATAMENTE enviar sync para que el reloj no corte la conexión
+    if (_watchRxChar) {
+      const n = new Date();
+      // Comando 1: sincronizar hora (mantiene conexión)
+      const timeSync = new Uint8Array([0xAB,0x00,0x08,0xFF,0x94,
+        n.getFullYear()-2000, n.getMonth()+1, n.getDate(),
+        n.getHours(), n.getMinutes(), n.getSeconds()]);
+      try { await _watchRxChar.writeValue(timeSync); } catch(_) {}
+      await new Promise(r => setTimeout(r, 200));
+      // Comando 2: activar medición continua de HR
+      try { await _watchRxChar.writeValue(new Uint8Array([0xAB,0x00,0x04,0xFF,0x84,0x01,0x00])); } catch(_) {}
+    }
+
+    // Suscribir notificaciones
+    for (const uuid of ['0000ffd4-0000-1000-8000-00805f9b34fb','0000ffd1-0000-1000-8000-00805f9b34fb']) {
       try {
-        const svc = await server.getPrimaryService('0000fee7-0000-1000-8000-00805f9b34fb');
-        if (_watchDebug) console.log('[Watch] Protocolo FitPro (fee7)');
-        const chars = await svc.getCharacteristics();
-        for (const c of chars) {
-          if ((c.properties.notify||c.properties.indicate) && !anyOk) { try { await c.startNotifications(); c.addEventListener('characteristicvaluechanged',(e)=>_onWatchDataAuto(e,'fee7',c.uuid)); anyOk=true; } catch(_) {} }
-          if ((c.properties.write||c.properties.writeWithoutResponse) && !_watchRxChar) _watchRxChar=c;
+        const c = await svc.getCharacteristic(uuid);
+        await c.startNotifications();
+        c.addEventListener('characteristicvaluechanged', (e) => _onWatchDataAuto(e,'ffd0',uuid));
+        anyOk = true;
+        if (_watchDebug) console.log('[Watch] Notify OK:', uuid);
+        break;
+      } catch(_) {}
+    }
+  } catch(e) { if (_watchDebug) console.log('[Watch] ffd0 no encontrado:', e.message); }
+
+  // ── 2. FitPro / HPlus (fee7) ──
+  if (!anyOk) {
+    try {
+      const svc = await server.getPrimaryService('0000fee7-0000-1000-8000-00805f9b34fb');
+      if (_watchDebug) console.log('[Watch] ✅ FitPro (fee7)');
+      const chars = await svc.getCharacteristics();
+      if (_watchDebug) console.log('[Watch] Chars fee7:', chars.map(c=>c.uuid));
+      for (const c of chars) {
+        if ((c.properties.notify||c.properties.indicate) && !anyOk) {
+          try { await c.startNotifications(); c.addEventListener('characteristicvaluechanged',(e)=>_onWatchDataAuto(e,'fee7',c.uuid)); anyOk=true; } catch(_) {}
         }
-      } catch(_) {}
-    }
-
-    // ── 3. Nordic UART ──
-    if (!anyOk) {
-      try {
-        const svc = await server.getPrimaryService(_WATCH_SERVICE);
-        if (_watchDebug) console.log('[Watch] Nordic UART');
-        try { const tx=await svc.getCharacteristic(_WATCH_TX_CHAR); await tx.startNotifications(); tx.addEventListener('characteristicvaluechanged',_onWatchData); anyOk=true; } catch(_) {}
-        try { _watchRxChar=await svc.getCharacteristic(_WATCH_RX_CHAR); } catch(_) {}
-      } catch(_) {}
-    }
-
-    // ── 4. BLE Heart Rate estándar ──
-    try {
-      const hrSvc=await server.getPrimaryService(_WATCH_HR_SVC);
-      const hrChar=await hrSvc.getCharacteristic(_WATCH_HR_CHAR);
-      await hrChar.startNotifications();
-      hrChar.addEventListener('characteristicvaluechanged',_onHRStandard);
-      anyOk=true;
-      if (_watchDebug) console.log('[Watch] HR estándar BLE');
-    } catch(_) {}
-
-    _watchConnected = true;
-    const _rawName = _watchDevice.name || '';
-    const _storedName = localStorage.getItem('zyra_watch_name');
-    const _finalName = _storedName || (_rawName && _rawName.toLowerCase() !== 'unknown' ? _rawName : 'Mi Reloj');
-    localStorage.setItem('zyra_watch_name', _finalName);
-    localStorage.setItem('zyra_watch_paired', '1');
-    zyraToast(`⌚ ${_finalName} conectado`, 'success', 3500);
-    renderWatchCard();
-    renderWatchWidget();
-
-    // Keep-alive cada 15s
-    if (_watchHRInterval) clearInterval(_watchHRInterval);
-    _watchHRInterval = setInterval(async () => {
-      if (!_watchDevice?.gatt?.connected) { clearInterval(_watchHRInterval); return; }
-      if (_watchRxChar) {
-        try { await _watchRxChar.writeValue(new Uint8Array([0xAB,0x00,0x04,0xFF,0x84,0x01,0x00])); } catch(_) {}
+        if ((c.properties.write||c.properties.writeWithoutResponse) && !_watchRxChar) _watchRxChar = c;
       }
-    }, 15000);
-
-  } catch(err) {
-    zyraToast('Error al conectar: ' + err.message, 'error');
-    _watchConnected = false;
-    renderWatchCard();
+    } catch(_) {}
   }
+
+  // ── 3. Nordic UART ──
+  if (!anyOk) {
+    try {
+      const svc = await server.getPrimaryService(_WATCH_SERVICE);
+      if (_watchDebug) console.log('[Watch] ✅ Nordic UART');
+      try { const tx=await svc.getCharacteristic(_WATCH_TX_CHAR); await tx.startNotifications(); tx.addEventListener('characteristicvaluechanged',_onWatchData); anyOk=true; } catch(_) {}
+      try { if(!_watchRxChar) _watchRxChar=await svc.getCharacteristic(_WATCH_RX_CHAR); } catch(_) {}
+    } catch(_) {}
+  }
+
+  // ── 4. HR estándar BLE ──
+  try {
+    const hrSvc=await server.getPrimaryService(_WATCH_HR_SVC);
+    const hrChar=await hrSvc.getCharacteristic(_WATCH_HR_CHAR);
+    await hrChar.startNotifications();
+    hrChar.addEventListener('characteristicvaluechanged',_onHRStandard);
+    anyOk=true;
+    if (_watchDebug) console.log('[Watch] ✅ HR estándar BLE');
+  } catch(_) {}
+
+  _watchConnected = true;
+  _watchReconnecting = false;
+  const rawName = _watchDevice.name || '';
+  const stored  = localStorage.getItem('zyra_watch_name');
+  const name    = stored || (rawName && rawName.toLowerCase()!=='unknown' ? rawName : 'Mi Reloj');
+  localStorage.setItem('zyra_watch_name', name);
+  localStorage.setItem('zyra_watch_paired', '1');
+  zyraToast(`⌚ ${name} conectado`, 'success', 3000);
+  renderWatchCard();
+  renderWatchWidget();
+
+  // Keep-alive cada 12s — pide HR activo
+  if (_watchKeepAlive) clearInterval(_watchKeepAlive);
+  _watchKeepAlive = setInterval(async () => {
+    if (!server.connected) { clearInterval(_watchKeepAlive); return; }
+    if (_watchRxChar) {
+      try { await _watchRxChar.writeValue(new Uint8Array([0xAB,0x00,0x04,0xFF,0x84,0x01,0x00])); } catch(_) {}
+    }
+  }, 12000);
 }
 
 // Handler automático que detecta el formato de datos según la característica
@@ -6898,25 +6917,30 @@ async function disconnectSmartwatch() {
 }
 
 function _onWatchDisconnected() {
-  const wasConnected = _watchConnected;
   _watchConnected = false;
   _watchRxChar = null;
-  if (_watchHRInterval) { clearInterval(_watchHRInterval); _watchHRInterval = null; }
-  if (wasConnected) {
-    zyraToast('⌚ Reloj desconectado — toca Reconectar', 'info', 4000);
-  }
+  if (_watchHRInterval)  { clearInterval(_watchHRInterval);  _watchHRInterval = null; }
+  if (_watchKeepAlive)   { clearInterval(_watchKeepAlive);   _watchKeepAlive  = null; }
   renderWatchCard();
   renderWatchWidget();
-  // Auto-reconexión suave si el usuario ya había emparejado
-  if (localStorage.getItem('zyra_watch_paired') && wasConnected) {
-    setTimeout(async () => {
-      if (_watchConnected || !_watchDevice) return;
-      try {
-        if (_watchDebug) console.log('[Watch] Auto-reconectando...');
-        await _watchGattConnect();
-      } catch(_) {}
-    }, 3000);
+  // Auto-reconexión inmediata y persistente
+  if (localStorage.getItem('zyra_watch_paired') && _watchDevice && !_watchReconnecting) {
+    _watchReconnecting = true;
+    _autoReconnect(1);
   }
+}
+
+async function _autoReconnect(attempt) {
+  if (_watchConnected || !_watchDevice || !localStorage.getItem('zyra_watch_paired')) {
+    _watchReconnecting = false; return;
+  }
+  if (attempt > 8) { _watchReconnecting = false; zyraToast('⌚ Reloj fuera de rango. Toca Reconectar cuando esté cerca.', 'info', 5000); return; }
+  const delay = Math.min(1000 * attempt, 8000);
+  if (_watchDebug) console.log(`[Watch] Reconexión intento ${attempt} en ${delay}ms`);
+  await new Promise(r => setTimeout(r, delay));
+  if (_watchConnected) { _watchReconnecting = false; return; }
+  try { await _watchGattConnect(); _watchReconnecting = false; }
+  catch(_) { _autoReconnect(attempt + 1); }
 }
 
 /* ── RECIBIR DATOS (UART) ── */
