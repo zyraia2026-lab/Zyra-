@@ -6716,7 +6716,7 @@ const _WATCH_HR_CHAR  = '00002a37-0000-1000-8000-00805f9b34fb';
 
 let _watchDevice = null, _watchRxChar = null, _watchConnected = false;
 let _watchHR = null, _watchSteps = null, _watchBattery = null;
-let _watchKeepAlive = null, _watchReconnectTimer = null;
+let _watchKeepAlive = null, _watchReconnectTimer = null, _watchAutoReconnected = false;
 const _watchDebug = true;
 
 /* ── BLE CONNECT ── */
@@ -6754,7 +6754,8 @@ async function connectSmartwatch() {
     zyraToast('Usa Chrome en Android para conectar el reloj.', 'error', 5000);
     return;
   }
-  _watchReset(); // cancelar cualquier reconexión/conexión anterior
+  _watchReset();
+  _watchAutoReconnected = false; // permitir 1 auto-reconexión para la nueva sesión
   try {
     zyraToast('Selecciona tu reloj…', 'info', 2000);
     _watchDevice = await navigator.bluetooth.requestDevice({
@@ -6824,7 +6825,7 @@ async function _watchDiscoverServices(server) {
           const chs = await s.getCharacteristics();
           for (const c of chs) {
             const p = Object.entries(c.properties).filter(([,v])=>v).map(([k])=>k).join(',');
-            console.log(`[Watch] SVC:${s.uuid.slice(-4)} CHAR:${c.uuid.slice(-4)} [${p}]`);
+            console.log(`[Watch] SVC:${s.uuid} CHAR:${c.uuid} [${p}]`);
           }
         } catch(_) { console.log('[Watch] SVC:', s.uuid); }
       }
@@ -6841,7 +6842,7 @@ async function _watchDiscoverServices(server) {
           try {
             await c.startNotifications();
             c.addEventListener('characteristicvaluechanged', (e) => _onWatchDataAuto(e, svc.uuid, c.uuid));
-            if (_watchDebug) console.log(`[Watch] ✅ Notify ${svc.uuid.slice(-4)}/${c.uuid.slice(-4)}`);
+            if (_watchDebug) console.log(`[Watch] ✅ Notify ${svc.uuid}/${c.uuid}`);
           } catch(_) {}
         }
         if (!_watchRxChar && (c.properties.write || c.properties.writeWithoutResponse)) {
@@ -6939,8 +6940,13 @@ function _onWatchDisconnected() {
 
   if (!localStorage.getItem('zyra_watch_paired') || !_watchDevice) return;
 
-  // Reconexión suave: 1 intento automático a los 4 segundos.
-  // Si falla → el usuario usa el botón "Reconectar". Sin bucles agresivos.
+  // Solo 1 auto-reconexión por sesión. Si el reloj desconecta de nuevo → usuario reconecta manual.
+  if (_watchAutoReconnected) {
+    zyraToast('⌚ Reloj desconectado — toca Reconectar', 'info', 5000);
+    return;
+  }
+  _watchAutoReconnected = true;
+
   if (_watchReconnectTimer) clearTimeout(_watchReconnectTimer);
   _watchReconnectTimer = setTimeout(async () => {
     _watchReconnectTimer = null;
@@ -6952,7 +6958,7 @@ function _onWatchDisconnected() {
       if (_watchDebug) console.log('[Watch] Auto-reconexión fallida:', e.message);
       zyraToast('⌚ Reloj fuera de alcance — toca Reconectar', 'info', 5000);
     }
-  }, 4000);
+  }, 5000);
 }
 
 /* ── RECIBIR DATOS (UART) ── */
