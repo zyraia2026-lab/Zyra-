@@ -6819,63 +6819,117 @@ async function _watchGattConnect() {
 }
 
 async function _watchDiscoverServices(server) {
-  // PASO 1: Enumerar TODO lo que expone el reloj (crítico para debug)
+  // ── PASO 1: getPrimaryServices() — servicios que el OS nos permite ver ──
   let allSvcs = [];
   try {
     allSvcs = await server.getPrimaryServices();
-    if (_watchDebug) {
-      console.log('[Watch] ══ SERVICIOS ══');
-      for (const s of allSvcs) {
-        try {
-          const chs = await s.getCharacteristics();
-          for (const c of chs) {
-            const p = Object.entries(c.properties).filter(([,v])=>v).map(([k])=>k).join(',');
-            console.log(`[Watch] SVC:${s.uuid} CHAR:${c.uuid} [${p}]`);
-          }
-        } catch(_) { console.log('[Watch] SVC:', s.uuid); }
-      }
-    }
   } catch(e) { if (_watchDebug) console.log('[Watch] getPrimaryServices:', e.message); }
 
-  // PASO 2: Suscribir TODO lo notificable + registrar chars de escritura
-  // Esto ancla la conexión BLE antes de cualquier write
+  // ── PASO 2: Prueba directa de CADA UUID en nuestra lista ──
+  // Algunos relojes no los reportan en getPrimaryServices() pero sí responden directamente
+  const extraUuids = [
+    '0000ffd0-0000-1000-8000-00805f9b34fb',
+    '0000ffe0-0000-1000-8000-00805f9b34fb',
+    '0000fff0-0000-1000-8000-00805f9b34fb',
+    '0000fee0-0000-1000-8000-00805f9b34fb',
+    '0000fee7-0000-1000-8000-00805f9b34fb',
+    '6e40fc00-b5a3-f393-e0a9-e50e24dcca9e',
+    '0000180d-0000-1000-8000-00805f9b34fb',
+  ];
+  for (const uuid of extraUuids) {
+    if (allSvcs.some(s => s.uuid === uuid)) continue; // ya lo tenemos
+    try {
+      const svc = await server.getPrimaryService(uuid);
+      allSvcs.push(svc);
+    } catch(_) {}
+  }
+
+  if (_watchDebug) {
+    console.log(`[Watch] ══ ${allSvcs.length} SERVICIOS ══`);
+    for (const s of allSvcs) {
+      try {
+        const chs = await s.getCharacteristics();
+        for (const c of chs) {
+          // Leer propiedades tanto por acceso directo como por enumeración
+          const p = [];
+          if (c.properties.read)                   p.push('read');
+          if (c.properties.write)                  p.push('write');
+          if (c.properties.writeWithoutResponse)   p.push('writeWR');
+          if (c.properties.notify)                 p.push('notify');
+          if (c.properties.indicate)               p.push('indicate');
+          console.log(`[Watch] SVC:${s.uuid} | CHAR:${c.uuid} | [${p.join(',')||'?'}]`);
+        }
+      } catch(_) { console.log('[Watch] SVC:', s.uuid, '(sin chars)'); }
+    }
+  }
+
+  // ── PASO 3: Suscribir TODAS las chars notificables ──
   for (const svc of allSvcs) {
     try {
       const chars = await svc.getCharacteristics();
       for (const c of chars) {
-        if (c.properties.notify || c.properties.indicate) {
+        // Suscribir si notifiable — incluso si las properties no se leen bien
+        const canNotify = c.properties.notify || c.properties.indicate;
+        if (canNotify) {
           try {
             await c.startNotifications();
             c.addEventListener('characteristicvaluechanged', (e) => _onWatchDataAuto(e, svc.uuid, c.uuid));
-            if (_watchDebug) console.log(`[Watch] ✅ Notify ${svc.uuid}/${c.uuid}`);
+            if (_watchDebug) console.log(`[Watch] ✅ Subscribed: ${c.uuid}`);
           } catch(_) {}
         }
-        if (!_watchRxChar && (c.properties.write || c.properties.writeWithoutResponse)) {
-          // Excluir chars de solo lectura estándar (battery, device info)
-          const skipSvcs = ['0000180f','0000180a','00001800','00001801'];
-          if (!skipSvcs.some(s => svc.uuid.includes(s))) {
-            _watchRxChar = c;
-            if (_watchDebug) console.log(`[Watch] ✅ Write ${svc.uuid.slice(-4)}/${c.uuid.slice(-4)}`);
-          }
+        // Registrar primera char escribible (saltando servicios estándar de solo lectura)
+        const skipSvcs = ['0000180f','0000180a','00001800','00001801','0000180a'];
+        const isSkip   = skipSvcs.some(id => svc.uuid.includes(id));
+        if (!_watchRxChar && !isSkip && (c.properties.write || c.properties.writeWithoutResponse)) {
+          _watchRxChar = c;
+          if (_watchDebug) console.log(`[Watch] ✅ Write char: ${svc.uuid} / ${c.uuid}`);
         }
       }
     } catch(_) {}
   }
 
-  // PASO 3: Enviar handshake Da Fit DESPUÉS de suscribir (orden importa)
-  if (_watchRxChar) {
-    const n = new Date();
-    await _watchWrite(_watchRxChar, [0xAB,0x00,0x05,0xFF,0x80,0x00,0x00,0x00]); // bind
-    await new Promise(r => setTimeout(r, 100));
-    await _watchWrite(_watchRxChar, [0xAB,0x00,0x08,0xFF,0x94,              // time sync
-      n.getFullYear()-2000, n.getMonth()+1, n.getDate(),
-      n.getHours(), n.getMinutes(), n.getSeconds()]);
-    await new Promise(r => setTimeout(r, 100));
-    await _watchWrite(_watchRxChar, [0xAB,0x00,0x04,0xFF,0x84,0x01,0x00]); // HR on
-    if (_watchDebug) console.log('[Watch] Handshake enviado');
+  // ── PASO 4: Si no encontramos write char, intentar escribir en CADA char y ver cuál acepta ──
+  if (!_watchRxChar) {
+    if (_watchDebug) console.log('[Watch] No write char — probando escritura forzada en todas…');
+    for (const svc of allSvcs) {
+      if (_watchRxChar) break;
+      const skipSvcs = ['0000180f','0000180a','00001800','00001801'];
+      if (skipSvcs.some(id => svc.uuid.includes(id))) continue;
+      try {
+        const chars = await svc.getCharacteristics();
+        for (const c of chars) {
+          if (_watchRxChar) break;
+          try {
+            await c.writeValueWithoutResponse(new Uint8Array([0x00]));
+            _watchRxChar = c; // si no lanzó, esta char acepta escritura
+            if (_watchDebug) console.log(`[Watch] ✅ Write forzado OK: ${c.uuid}`);
+          } catch(_) {}
+          try {
+            await c.writeValue(new Uint8Array([0x00]));
+            _watchRxChar = c;
+            if (_watchDebug) console.log(`[Watch] ✅ Write forzado OK: ${c.uuid}`);
+          } catch(_) {}
+        }
+      } catch(_) {}
+    }
   }
 
-  if (_watchDebug) console.log('[Watch] Discovery OK. rxChar:', _watchRxChar?.uuid ?? 'ninguno');
+  // ── PASO 5: Handshake Da Fit ──
+  if (_watchRxChar) {
+    const n = new Date();
+    await _watchWrite(_watchRxChar, [0xAB,0x00,0x05,0xFF,0x80,0x00,0x00,0x00]);
+    await new Promise(r => setTimeout(r, 120));
+    await _watchWrite(_watchRxChar, [0xAB,0x00,0x08,0xFF,0x94,
+      n.getFullYear()-2000, n.getMonth()+1, n.getDate(),
+      n.getHours(), n.getMinutes(), n.getSeconds()]);
+    await new Promise(r => setTimeout(r, 120));
+    await _watchWrite(_watchRxChar, [0xAB,0x00,0x04,0xFF,0x84,0x01,0x00]);
+    if (_watchDebug) console.log('[Watch] Handshake Da Fit enviado');
+  } else {
+    if (_watchDebug) console.log('[Watch] ⚠️ Sin write char — el UUID del reloj no está en nuestra lista');
+  }
+
+  if (_watchDebug) console.log('[Watch] Discovery completo. rxChar:', _watchRxChar?.uuid ?? 'ninguno');
 }
 
 // Handler automático que detecta el formato de datos según la característica
