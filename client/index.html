@@ -6799,9 +6799,12 @@ async function _watchGattConnect() {
     }
 
     _watchConnected = true;
-    localStorage.setItem('zyra_watch_name', _watchDevice.name || 'Reloj');
+    const _rawName = _watchDevice.name || '';
+    const _storedName = localStorage.getItem('zyra_watch_name');
+    const _finalName = _storedName || (_rawName && _rawName.toLowerCase() !== 'unknown' ? _rawName : 'Mi Reloj');
+    localStorage.setItem('zyra_watch_name', _finalName);
     localStorage.setItem('zyra_watch_paired', '1');
-    zyraToast(`⌚ ${_watchDevice.name || 'Reloj'} conectado`, 'success', 3500);
+    zyraToast(`⌚ ${_finalName} conectado`, 'success', 3500);
     renderWatchCard();
     renderWatchWidget();
 
@@ -7124,9 +7127,10 @@ function renderWatchCard() {
       </div>` : ''}
 
       <!-- Debug toggle -->
-      <div style="margin-top:12px;text-align:center">
-        <button onclick="_watchDebug=!_watchDebug;zyraToast('Modo debug '+(  _watchDebug?'activado':'desactivado'),'info')" style="background:none;border:none;color:var(--text3);font-size:10px;cursor:pointer;opacity:.5">⚙️ Debug UART</button>
-        <button onclick="localStorage.removeItem('zyra_watch_paired');localStorage.removeItem('zyra_watch_name');_watchDevice=null;renderWatchCard()" style="background:none;border:none;color:var(--text3);font-size:10px;cursor:pointer;opacity:.5;margin-left:12px">✕ Olvidar reloj</button>
+      <div style="margin-top:12px;text-align:center;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button onclick="(()=>{const n=prompt('Nombre del reloj:',localStorage.getItem('zyra_watch_name')||'Mi Reloj');if(n){localStorage.setItem('zyra_watch_name',n);renderWatchCard();}})()" style="background:none;border:1px solid var(--border);color:var(--text3);font-size:10px;cursor:pointer;border-radius:8px;padding:4px 10px">✏️ Renombrar</button>
+        <button onclick="_watchDebug=!_watchDebug;zyraToast('Debug '+(_watchDebug?'ON':'OFF'),'info')" style="background:none;border:none;color:var(--text3);font-size:10px;cursor:pointer;opacity:.5">⚙️ Debug</button>
+        <button onclick="localStorage.removeItem('zyra_watch_paired');localStorage.removeItem('zyra_watch_name');_watchDevice=null;renderWatchCard()" style="background:none;border:none;color:var(--text3);font-size:10px;cursor:pointer;opacity:.5">✕ Olvidar</button>
       </div>
     </div>`;
 }
