@@ -894,6 +894,42 @@ function closeSplash(){
   <button onclick="miniPlayerClose()" title="Cerrar" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:2px;flex-shrink:0;line-height:1">✕</button>
 </div>
 
+<!-- ══ ONBOARDING TOUR ══ -->
+<div id="zyra-tour-overlay" role="dialog" aria-modal="true" style="display:none;position:fixed;inset:0;z-index:10000;pointer-events:none">
+  <div id="zyra-tour-backdrop" style="position:absolute;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(3px);pointer-events:all"></div>
+  <div id="zyra-tour-card" style="position:absolute;bottom:0;left:0;right:0;pointer-events:all;background:var(--bg2,#141624);border-radius:28px 28px 0 0;border-top:1px solid rgba(99,102,241,.25);padding:28px 24px 40px;max-width:520px;margin:0 auto;animation:slideUp .35s cubic-bezier(.16,1,.3,1)">
+    <!-- Progress bar -->
+    <div style="height:3px;background:rgba(255,255,255,.08);border-radius:99px;margin-bottom:24px;overflow:hidden">
+      <div id="zyra-tour-progress" style="height:100%;background:linear-gradient(90deg,#6366f1,#a855f7);border-radius:99px;transition:width .4s ease"></div>
+    </div>
+    <!-- Avatar + Zyra bubble -->
+    <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:22px">
+      <div style="flex-shrink:0">
+        <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 4px 16px rgba(99,102,241,.4)">🧠</div>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11px;font-weight:800;color:#818cf8;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Zyra te explica</div>
+        <div id="zyra-tour-bubble" style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:0 16px 16px 16px;padding:14px 16px;font-size:14px;color:var(--text,#e8eaf6);line-height:1.65"></div>
+      </div>
+    </div>
+    <!-- Feature highlight -->
+    <div id="zyra-tour-feature" style="background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.08));border:1.5px solid rgba(99,102,241,.25);border-radius:18px;padding:16px 18px;margin-bottom:22px;display:flex;align-items:center;gap:14px">
+      <div id="zyra-tour-feat-icon" style="font-size:32px;flex-shrink:0"></div>
+      <div>
+        <div id="zyra-tour-feat-title" style="font-size:15px;font-weight:800;color:var(--text,#e8eaf6);margin-bottom:4px"></div>
+        <div id="zyra-tour-feat-desc" style="font-size:12px;color:rgba(200,205,255,.65);line-height:1.5"></div>
+      </div>
+    </div>
+    <!-- Dots -->
+    <div id="zyra-tour-dots" style="display:flex;justify-content:center;gap:7px;margin-bottom:20px"></div>
+    <!-- Buttons -->
+    <div style="display:flex;gap:10px">
+      <button id="zyra-tour-skip" onclick="tourSkip()" style="background:none;border:1.5px solid rgba(255,255,255,.1);color:rgba(200,205,255,.5);border-radius:14px;padding:13px 20px;font-size:13px;cursor:pointer;flex-shrink:0">Saltar</button>
+      <button id="zyra-tour-next" onclick="tourNext()" style="flex:1;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;border-radius:14px;padding:13px 20px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(99,102,241,.4)">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ SOS CRISIS FAB ══ -->
 <button class="sos-fab" id="sos-fab" onclick="showCrisisOverlay()" style="display:none" title="Apoyo de emergencia · Recursos de crisis">🆘</button>
 
@@ -1708,7 +1744,9 @@ async function b2bSubmitContact() {
 <div id="page-register" class="page">
 <div class="auth-wrap">
 
-  <div class="auth-left">
+  <div class="auth-left" id="auth-left-panel-reg">
+    <div class="auth-slide-overlay"></div>
+    <div class="auth-slide-dots" id="auth-slide-dots-reg"></div>
     <div class="auth-left-brand">
       <img src="Imagenes/1000154669.png" alt="Zyra"/>
       <span class="auth-left-brand-name">Zyra</span>
@@ -2026,6 +2064,9 @@ async function b2bSubmitContact() {
       <div><div style="font-size:15px;font-weight:800;color:var(--text);line-height:1" id="st-journal">0</div><div style="font-size:10px;color:var(--text3);font-weight:600;margin-top:2px">Diario</div></div>
     </div>
   </div>
+
+  <!-- ══ WIDGET RELOJ ══ -->
+  <div id="dash-watch-widget" style="display:none;margin-bottom:16px"></div>
 
   <!-- ══ BIENESTAR DE HOY ══ -->
   <div id="wellbeing-score-wrap" style="display:none;background:var(--surface,#fff);border:1px solid var(--border,rgba(99,102,241,.12));border-radius:18px;padding:16px 20px;margin-bottom:20px">
@@ -2882,6 +2923,9 @@ async function b2bSubmitContact() {
 
   <!-- ══ CARTA DE COMPASIÓN ══ -->
   <div id="prof-compasion-card" style="margin-bottom:20px"></div>
+
+  <!-- ══ MI RELOJ ══ -->
+  <div id="prof-watch-card" style="margin-bottom:20px"></div>
 
   <!-- ══ LOGROS + TIENDA ══ -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
@@ -6060,6 +6104,8 @@ async function loadProfile() {
     renderManifiesto();
     // Carta de compasión semanal
     renderCartaCompasion();
+    // Reloj inteligente
+    renderWatchCard();
   } catch(e) { console.error("loadProfile error:", e); }
 }
 
@@ -6622,6 +6668,400 @@ function _compartirCartaCompasion(weekKey) {
   const full = `💌 Una carta de Zyra para mí:\n\n${text}`;
   if (navigator.share) navigator.share({ title: "Mi carta de Zyra", text: full }).catch(()=>{});
   else navigator.clipboard?.writeText(full).then(() => zyraToast("Carta copiada 📋", "success"));
+}
+
+// ══════════════════════════════════════════
+//  SMARTWATCH — Web Bluetooth BLE Engine
+// ══════════════════════════════════════════
+const _WATCH_SERVICE  = '6e40fc00-b5a3-f393-e0a9-e50e24dcca9e';
+const _WATCH_TX_CHAR  = '6e400003-b5a3-f393-e0a9-e50e24dcca9e'; // watch → phone
+const _WATCH_RX_CHAR  = '6e400002-b5a3-f393-e0a9-e50e24dcca9e'; // phone → watch
+const _WATCH_HR_SVC   = '0000180d-0000-1000-8000-00805f9b34fb'; // BLE Heart Rate std
+const _WATCH_HR_CHAR  = '00002a37-0000-1000-8000-00805f9b34fb';
+
+let _watchDevice = null, _watchRxChar = null, _watchConnected = false;
+let _watchHR = null, _watchSteps = null, _watchBattery = null;
+let _watchHRInterval = null, _watchDebug = false;
+
+/* ── BLE CONNECT ── */
+async function connectSmartwatch() {
+  if (!navigator.bluetooth) {
+    zyraToast('Tu navegador no soporta Bluetooth. Usa Chrome en Android o escritorio.', 'error', 5000);
+    return;
+  }
+  try {
+    zyraToast('Buscando el reloj…', 'info', 2000);
+    _watchDevice = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: false,
+      filters: [{ services: [_WATCH_SERVICE] }],
+      optionalServices: [_WATCH_SERVICE, _WATCH_HR_SVC],
+    });
+    _watchDevice.addEventListener('gattserverdisconnected', _onWatchDisconnected);
+    await _watchGattConnect();
+  } catch(err) {
+    if (err.name !== 'NotFoundError' && err.name !== 'NotAllowedError') {
+      // Si el UUID no coincide, intentar por acceptAllDevices
+      _watchConnectAny();
+    }
+  }
+}
+
+async function _watchConnectAny() {
+  try {
+    _watchDevice = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: [_WATCH_SERVICE, _WATCH_HR_SVC],
+    });
+    _watchDevice.addEventListener('gattserverdisconnected', _onWatchDisconnected);
+    await _watchGattConnect();
+  } catch(err) {
+    if (err.name !== 'NotFoundError' && err.name !== 'NotAllowedError') {
+      zyraToast('No se pudo conectar: ' + err.message, 'error');
+    }
+  }
+}
+
+async function _watchGattConnect() {
+  try {
+    const server = await _watchDevice.gatt.connect();
+    let uartOk = false, hrOk = false;
+
+    // ── Intentar Nordic UART ──
+    try {
+      const svc  = await server.getPrimaryService(_WATCH_SERVICE);
+      // Canal reloj → app
+      try {
+        const tx = await svc.getCharacteristic(_WATCH_TX_CHAR);
+        await tx.startNotifications();
+        tx.addEventListener('characteristicvaluechanged', _onWatchData);
+        uartOk = true;
+      } catch(_) {}
+      // Canal app → reloj
+      try {
+        _watchRxChar = await svc.getCharacteristic(_WATCH_RX_CHAR);
+      } catch(_) {}
+    } catch(_) {}
+
+    // ── Intentar Heart Rate Service estándar BLE ──
+    try {
+      const hrSvc  = await server.getPrimaryService(_WATCH_HR_SVC);
+      const hrChar = await hrSvc.getCharacteristic(_WATCH_HR_CHAR);
+      await hrChar.startNotifications();
+      hrChar.addEventListener('characteristicvaluechanged', _onHRStandard);
+      hrOk = true;
+    } catch(_) {}
+
+    _watchConnected = true;
+    localStorage.setItem('zyra_watch_name', _watchDevice.name || 'Reloj');
+    localStorage.setItem('zyra_watch_paired', '1');
+    zyraToast(`⌚ ${_watchDevice.name || 'Reloj'} conectado`, 'success', 3500);
+    renderWatchCard();
+    renderWatchWidget();
+    // Solicitar datos iniciales vía UART si está disponible
+    if (uartOk) { setTimeout(() => _watchSend('GET:ALL'), 500); }
+  } catch(err) {
+    zyraToast('Error al conectar con el reloj: ' + err.message, 'error');
+    _watchConnected = false;
+    renderWatchCard();
+  }
+}
+
+async function disconnectSmartwatch() {
+  if (_watchDevice && _watchDevice.gatt.connected) {
+    _watchDevice.gatt.disconnect();
+  }
+  _onWatchDisconnected();
+}
+
+function _onWatchDisconnected() {
+  _watchConnected = false;
+  _watchRxChar = null;
+  if (_watchHRInterval) { clearInterval(_watchHRInterval); _watchHRInterval = null; }
+  zyraToast('⌚ Reloj desconectado', 'info');
+  renderWatchCard();
+  renderWatchWidget();
+}
+
+/* ── RECIBIR DATOS (UART) ── */
+function _onWatchData(event) {
+  const raw = new TextDecoder('utf-8').decode(event.target.value);
+  if (_watchDebug) console.log('[Watch UART]', raw,
+    '| HEX:', Array.from(new Uint8Array(event.target.value.buffer)).map(b=>b.toString(16).padStart(2,'0')).join(' '));
+
+  // Formatos comunes de relojes genéricos chinos con Nordic UART
+  const pairs = [
+    [/^HR[=:](\d+)/i,    v => _handleHR(parseInt(v))],
+    [/^HEART[=:](\d+)/i, v => _handleHR(parseInt(v))],
+    [/^STEP[S]?[=:](\d+)/i, v => _handleSteps(parseInt(v))],
+    [/^BATT[ERY]?[=:](\d+)/i, v => _handleBattery(parseInt(v))],
+    [/^SLEEP[=:](.+)/i,  v => _handleSleep(v)],
+    [/^BP[=:](\d+)\/(\d+)/i, () => {}], // blood pressure — solo guardamos
+  ];
+  for (const [rx, fn] of pairs) {
+    const m = raw.match(rx);
+    if (m) { fn(m[1], m[2]); return; }
+  }
+  // Formato binario simple (algunos relojes): byte[0]=tipo, byte[1..]=valor
+  const bytes = new Uint8Array(event.target.value.buffer);
+  if (bytes.length >= 2) {
+    if (bytes[0] === 0x01) _handleHR(bytes[1]);           // tipo 0x01 = HR
+    if (bytes[0] === 0x04) _handleSteps((bytes[1]<<8)|bytes[2]); // tipo 0x04 = pasos
+    if (bytes[0] === 0x0A) _handleBattery(bytes[1]);      // tipo 0x0A = batería
+  }
+}
+
+/* ── RECIBIR HR estándar BLE Heart Rate ── */
+function _onHRStandard(event) {
+  const val = event.target.value;
+  const flags = val.getUint8(0);
+  const hr = (flags & 0x01) ? val.getUint16(1, true) : val.getUint8(1);
+  _handleHR(hr);
+}
+
+/* ── HANDLERS DE DATOS ── */
+function _handleHR(bpm) {
+  if (!bpm || bpm < 30 || bpm > 220) return;
+  _watchHR = bpm;
+  const ts = Date.now();
+  // Guardar historial (últimas 24h)
+  const hrHist = (() => { try { return JSON.parse(localStorage.getItem('zyra_watch_hr_hist') || '[]'); } catch(e) { return []; } })();
+  hrHist.push({ bpm, ts });
+  if (hrHist.length > 288) hrHist.shift(); // 288 = cada 5min × 24h
+  localStorage.setItem('zyra_watch_hr_hist', JSON.stringify(hrHist));
+  localStorage.setItem('zyra_watch_hr', JSON.stringify({ bpm, ts }));
+  _updateWatchUI();
+  // Reacción automática: HR alto → sugerir respiración
+  const lastAlert = parseInt(localStorage.getItem('zyra_watch_hr_alert') || '0');
+  if (bpm > 100 && (ts - lastAlert) > 10 * 60 * 1000) { // cada 10min máximo
+    localStorage.setItem('zyra_watch_hr_alert', String(ts));
+    setTimeout(() => {
+      zyraToast(`💓 Frecuencia cardíaca alta (${bpm} bpm) — ¿Hacemos una respiración 4-7-8?`, 'info', 8000, true);
+      const toastEl = document.querySelector('.zyra-toast:last-child');
+      if (toastEl) {
+        const btn = document.createElement('button');
+        btn.textContent = 'Respirar ahora';
+        btn.style.cssText = 'margin-top:8px;display:block;background:rgba(99,102,241,.25);border:1px solid rgba(99,102,241,.4);color:#c7d2fe;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;width:100%';
+        btn.onclick = () => { showPage('wellness'); setTimeout(() => openWellness('breath'), 100); };
+        toastEl.appendChild(btn);
+      }
+    }, 500);
+  }
+}
+
+function _handleSteps(steps) {
+  if (!steps || steps < 0) return;
+  _watchSteps = steps;
+  localStorage.setItem('zyra_watch_steps', JSON.stringify({ steps, ts: Date.now(), date: new Date().toDateString() }));
+  _updateWatchUI();
+  // Reacción: pocos pasos a las 18h+ → motivar
+  const h = new Date().getHours();
+  if (h >= 18 && steps < 3000) {
+    const lastMotiv = parseInt(localStorage.getItem('zyra_watch_step_alert') || '0');
+    if (Date.now() - lastMotiv > 3 * 60 * 60 * 1000) { // cada 3h
+      localStorage.setItem('zyra_watch_step_alert', String(Date.now()));
+      zyraToast(`👟 Solo ${steps.toLocaleString()} pasos hoy — un pequeño paseo también cuenta 💙`, 'info', 5000);
+    }
+  }
+}
+
+function _handleBattery(pct) {
+  if (pct < 0 || pct > 100) return;
+  _watchBattery = pct;
+  localStorage.setItem('zyra_watch_battery', String(pct));
+  _updateWatchUI();
+  if (pct <= 15) zyraToast(`⌚ Batería del reloj al ${pct}% — cárgalo pronto`, 'info');
+}
+
+function _handleSleep(raw) {
+  // "SLEEP:6.5" o "SLEEP:390" (minutos)
+  let hrs = parseFloat(raw);
+  if (hrs > 24) hrs = hrs / 60; // si venía en minutos
+  if (hrs < 0 || hrs > 24) return;
+  const today = new Date().toDateString();
+  localStorage.setItem('zyra_sleep_' + today, JSON.stringify({ hours: hrs, quality: hrs >= 7 ? 4 : hrs >= 5 ? 3 : 2, fromWatch: true }));
+  zyraToast(`🌙 Zyra guardó tu sueño del reloj: ${hrs.toFixed(1)}h`, 'success');
+}
+
+/* ── ENVIAR AL RELOJ ── */
+async function _watchSend(text) {
+  if (!_watchRxChar) return false;
+  try {
+    const enc = new TextEncoder();
+    const data = enc.encode(text.slice(0, 20)); // BLE UART = 20 bytes/paquete
+    await _watchRxChar.writeValue(data);
+    return true;
+  } catch(e) { return false; }
+}
+
+async function sendWatchAffirmation(text) {
+  await _watchSend('MSG:' + text.slice(0, 16));
+}
+async function sendWatchReminder() {
+  await _watchSend('ZYR:Momento de ti');
+}
+async function sendWatchEmotion(emo) {
+  const MAP = { feliz:'😊', tranquilo:'😌', ansioso:'😰', triste:'😢', motivado:'💪', agotado:'😮' };
+  await _watchSend('EMO:' + (MAP[emo] || emo).slice(0, 8));
+}
+
+/* ── UI HELPERS ── */
+function _updateWatchUI() {
+  renderWatchWidget();
+  // Actualizar mini-stats en tarjeta de perfil si está visible
+  const hEl = document.getElementById('watch-hr-live');
+  const sEl = document.getElementById('watch-steps-live');
+  const bEl = document.getElementById('watch-bat-live');
+  if (hEl && _watchHR) hEl.textContent = _watchHR + ' bpm';
+  if (sEl && _watchSteps) sEl.textContent = _watchSteps.toLocaleString();
+  if (bEl && _watchBattery !== null) bEl.textContent = _watchBattery + '%';
+}
+
+/* ── RENDERIZAR TARJETA PERFIL ── */
+function renderWatchCard() {
+  const card = document.getElementById('prof-watch-card');
+  if (!card) return;
+
+  const watchName  = localStorage.getItem('zyra_watch_name') || 'Reloj';
+  const paired     = !!localStorage.getItem('zyra_watch_paired');
+  const hrData     = (() => { try { return JSON.parse(localStorage.getItem('zyra_watch_hr') || 'null'); } catch(e) { return null; } })();
+  const stepsData  = (() => { try { return JSON.parse(localStorage.getItem('zyra_watch_steps') || 'null'); } catch(e) { return null; } })();
+  const battery    = localStorage.getItem('zyra_watch_battery');
+  const hrHist     = (() => { try { return JSON.parse(localStorage.getItem('zyra_watch_hr_hist') || '[]'); } catch(e) { return []; } })();
+  const avgHR      = hrHist.length ? Math.round(hrHist.reduce((a,b) => a+b.bpm, 0) / hrHist.length) : null;
+
+  // Mini sparkline HR (últimas 12 lecturas)
+  const last12 = hrHist.slice(-12);
+  const maxBPM = Math.max(...last12.map(h => h.bpm), 80);
+  const minBPM = Math.min(...last12.map(h => h.bpm), 60);
+  const sparkline = last12.length > 1 ? (() => {
+    const W = 120, H = 32;
+    const pts = last12.map((h, i) => {
+      const x = (i / (last12.length - 1)) * W;
+      const y = H - ((h.bpm - minBPM) / Math.max(maxBPM - minBPM, 1)) * H;
+      return `${x},${y}`;
+    }).join(' ');
+    return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="overflow:visible">
+      <polyline points="${pts}" fill="none" stroke="#ec4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="${last12.length > 0 ? ((last12.length-1)/(last12.length-1))*W : 0}" cy="${H - ((last12[last12.length-1]?.bpm||70) - minBPM)/Math.max(maxBPM-minBPM,1)*H}" r="3" fill="#ec4899"/>
+    </svg>`;
+  })() : '';
+
+  if (!paired && !_watchConnected) {
+    // Estado: sin reloj configurado
+    card.innerHTML = `
+      <div style="background:linear-gradient(135deg,rgba(16,185,129,.07),rgba(99,102,241,.06));border:1.5px solid rgba(16,185,129,.2);border-radius:20px;padding:20px 22px;text-align:center">
+        <div style="font-size:32px;margin-bottom:10px">⌚</div>
+        <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px">Conecta tu Reloj Inteligente</div>
+        <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:16px">Sincroniza tu frecuencia cardíaca, pasos y sueño. Zyra reacciona automáticamente a tus datos de bienestar.</div>
+        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:16px">
+          ${['💓 Frecuencia cardíaca','👟 Pasos diarios','🌙 Sueño automático','⚡ Alertas inteligentes'].map(f=>`<span style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:#10b981;border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700">${f}</span>`).join('')}
+        </div>
+        ${navigator.bluetooth
+          ? `<button onclick="connectSmartwatch()" style="background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;border-radius:14px;padding:12px 28px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(16,185,129,.35)">⌚ Conectar reloj por Bluetooth</button>`
+          : `<div style="font-size:12px;color:#f59e0b;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);border-radius:12px;padding:10px 14px">Tu navegador no soporta Web Bluetooth. Usa <strong>Chrome</strong> en Android o escritorio.</div>`}
+      </div>`;
+    return;
+  }
+
+  // Estado: reloj emparejado
+  card.innerHTML = `
+    <div style="background:linear-gradient(135deg,rgba(16,185,129,.1),rgba(99,102,241,.07));border:1.5px solid ${_watchConnected ? 'rgba(16,185,129,.3)' : 'rgba(255,255,255,.1)'};border-radius:20px;padding:20px 22px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:40px;height:40px;border-radius:12px;background:${_watchConnected ? 'linear-gradient(135deg,#10b981,#059669)' : 'rgba(255,255,255,.08)'};display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:${_watchConnected ? '0 4px 14px rgba(16,185,129,.35)' : 'none'}">⌚</div>
+          <div>
+            <div style="font-size:13px;font-weight:800;color:var(--text)">${safeHtml(watchName)}</div>
+            <div style="display:flex;align-items:center;gap:5px;margin-top:2px">
+              <span style="width:7px;height:7px;border-radius:50%;background:${_watchConnected ? '#10b981' : '#6b7280'};display:inline-block${_watchConnected ? ';animation:crisis-pulse 2s ease-in-out infinite' : ''}"></span>
+              <span style="font-size:11px;color:${_watchConnected ? '#10b981' : 'var(--text3)'};font-weight:600">${_watchConnected ? 'Conectado' : 'No conectado'}</span>
+              ${battery !== null ? `<span style="font-size:10px;color:var(--text3);margin-left:4px" id="watch-bat-live">🔋 ${battery}%</span>` : ''}
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          ${_watchConnected
+            ? `<button onclick="sendWatchReminder()" style="background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);color:#818cf8;border-radius:10px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer" title="Enviar recordatorio al reloj">📳 Notificar</button>
+               <button onclick="disconnectSmartwatch()" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#f87171;border-radius:10px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer">Desconectar</button>`
+            : `<button onclick="connectSmartwatch()" style="background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;border-radius:10px;padding:7px 16px;font-size:11px;font-weight:700;cursor:pointer">Reconectar</button>`}
+        </div>
+      </div>
+
+      <!-- Stats grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr${battery !== null ? ' 1fr' : ''};gap:10px;margin-bottom:${last12.length > 1 ? '14px' : '0'}">
+        <div style="background:rgba(236,72,153,.08);border:1px solid rgba(236,72,153,.2);border-radius:14px;padding:12px;text-align:center">
+          <div style="font-size:10px;color:#ec4899;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">💓 Frecuencia</div>
+          <div id="watch-hr-live" style="font-size:22px;font-weight:800;color:var(--text)">${hrData ? hrData.bpm + ' bpm' : '—'}</div>
+          ${avgHR ? `<div style="font-size:10px;color:var(--text3);margin-top:2px">Media: ${avgHR} bpm</div>` : ''}
+        </div>
+        <div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:14px;padding:12px;text-align:center">
+          <div style="font-size:10px;color:#6366f1;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">👟 Pasos hoy</div>
+          <div id="watch-steps-live" style="font-size:22px;font-weight:800;color:var(--text)">${stepsData?.date === new Date().toDateString() ? stepsData.steps.toLocaleString() : '—'}</div>
+          ${stepsData ? `<div style="font-size:10px;color:var(--text3);margin-top:2px">Meta: 8.000</div>` : ''}
+        </div>
+        ${battery !== null ? `<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:14px;padding:12px;text-align:center">
+          <div style="font-size:10px;color:#f59e0b;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">🔋 Batería</div>
+          <div style="font-size:22px;font-weight:800;color:var(--text)">${battery}%</div>
+          <div style="height:4px;background:var(--border);border-radius:99px;margin-top:6px;overflow:hidden"><div style="height:100%;width:${battery}%;background:${battery > 30 ? '#f59e0b' : '#ef4444'};border-radius:99px"></div></div>
+        </div>` : ''}
+      </div>
+
+      <!-- Sparkline HR -->
+      ${last12.length > 1 ? `
+      <div style="background:rgba(236,72,153,.05);border:1px solid rgba(236,72,153,.15);border-radius:14px;padding:12px 14px">
+        <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px">💓 Historial de frecuencia cardíaca</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="font-size:11px;color:var(--text3);min-width:32px">${minBPM}</div>
+          ${sparkline}
+          <div style="font-size:11px;color:var(--text3);min-width:32px;text-align:right">${maxBPM}</div>
+        </div>
+      </div>` : ''}
+
+      <!-- Debug toggle -->
+      <div style="margin-top:12px;text-align:center">
+        <button onclick="_watchDebug=!_watchDebug;zyraToast('Modo debug '+(  _watchDebug?'activado':'desactivado'),'info')" style="background:none;border:none;color:var(--text3);font-size:10px;cursor:pointer;opacity:.5">⚙️ Debug UART</button>
+        <button onclick="localStorage.removeItem('zyra_watch_paired');localStorage.removeItem('zyra_watch_name');_watchDevice=null;renderWatchCard()" style="background:none;border:none;color:var(--text3);font-size:10px;cursor:pointer;opacity:.5;margin-left:12px">✕ Olvidar reloj</button>
+      </div>
+    </div>`;
+}
+
+/* ── WIDGET COMPACTO DASHBOARD ── */
+function renderWatchWidget() {
+  const widget = document.getElementById('dash-watch-widget');
+  if (!widget) return;
+  const hrData    = (() => { try { return JSON.parse(localStorage.getItem('zyra_watch_hr') || 'null'); } catch(e) { return null; } })();
+  const stepsData = (() => { try { return JSON.parse(localStorage.getItem('zyra_watch_steps') || 'null'); } catch(e) { return null; } })();
+  const battery   = localStorage.getItem('zyra_watch_battery');
+  const isToday   = stepsData?.date === new Date().toDateString();
+
+  if (!_watchConnected && !hrData && !stepsData) { widget.style.display = 'none'; return; }
+  widget.style.display = 'block';
+
+  const stepsGoal = 8000;
+  const stepsPct  = stepsData && isToday ? Math.min(100, Math.round(stepsData.steps / stepsGoal * 100)) : 0;
+  const hrAge     = hrData ? Math.round((Date.now() - hrData.ts) / 60000) : null;
+
+  widget.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap" onclick="showPage('profile')" style="cursor:pointer">
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <span style="font-size:16px">⌚</span>
+        <span style="width:7px;height:7px;border-radius:50%;background:${_watchConnected ? '#10b981' : '#6b7280'};display:inline-block;flex-shrink:0"></span>
+      </div>
+      ${hrData ? `<div style="display:flex;align-items:baseline;gap:4px">
+        <span style="font-size:16px;font-weight:800;color:#ec4899">${hrData.bpm}</span>
+        <span style="font-size:10px;color:var(--text3)">bpm${hrAge !== null && hrAge > 0 ? ' · hace '+hrAge+'min' : ''}</span>
+      </div>` : ''}
+      ${stepsData && isToday ? `<div style="flex:1;min-width:80px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+          <span style="font-size:10px;color:var(--text3)">👟 ${stepsData.steps.toLocaleString()} pasos</span>
+          <span style="font-size:10px;color:var(--text3)">${stepsPct}%</span>
+        </div>
+        <div style="height:3px;background:var(--border);border-radius:99px;overflow:hidden">
+          <div style="height:100%;width:${stepsPct}%;background:linear-gradient(90deg,#6366f1,#8b5cf6);border-radius:99px;transition:width .6s"></div>
+        </div>
+      </div>` : ''}
+      ${battery ? `<span style="font-size:11px;color:var(--text3);flex-shrink:0">🔋${battery}%</span>` : ''}
+      <span style="font-size:10px;color:var(--text3);flex-shrink:0;margin-left:auto">Ver reloj →</span>
+    </div>`;
 }
 
 function renderConnectedAccounts(u) {
@@ -7187,6 +7627,7 @@ async function loadDashboard() {
   renderTodayOverview();
   renderWellbeingScore();
   _renderMorningNote();
+  renderWatchWidget();
 }
 
 function renderActiveProgramBanner() {
@@ -13663,6 +14104,9 @@ async function checkOnboarding() {
 
       const el = document.getElementById("zyra-onboarding");
       if (el) el.style.display = "flex";
+    } else {
+      // Usuario que ya completó el perfil — mostrar tour si no lo ha visto
+      setTimeout(_checkShowTour, 1000);
     }
   } catch (e) {
     console.error("checkOnboarding error:", e);
@@ -13789,6 +14233,8 @@ function _obWelcomeMessage(firstName, reason) {
 
     const text = WELCOME[reason] || WELCOME.default;
     appendBotMessage(text, null, null);
+    // Tour for new users — after the welcome message settles
+    setTimeout(_checkShowTour, 4000);
   } catch(e) {}
 }
 
@@ -15988,48 +16434,50 @@ function vcSetBodyClass(speaking) {
   let dotEls   = [];
   let timer    = null;
 
-  function buildSlideshow() {
-    const panel = document.getElementById('auth-left-panel');
-    const dotsEl = document.getElementById('auth-slide-dots');
+  function _buildPanel(panelId, dotsId, startIdx) {
+    const panel = document.getElementById(panelId);
+    const dotsEl = document.getElementById(dotsId);
     if (!panel || !dotsEl) return;
-
-    // Crear slides
     SLIDES.forEach((s, i) => {
       const div = document.createElement('div');
-      div.className = 'auth-slide' + (i === 0 ? ' active' : '');
+      div.className = 'auth-slide' + (i === startIdx ? ' active' : '');
       div.style.backgroundImage = 'url(' + s.url + ')';
-      // Insertar antes del overlay (primer hijo)
       panel.insertBefore(div, panel.firstChild);
       slideEls.push(div);
-
-      // Punto de navegación
       const dot = document.createElement('button');
-      dot.className = 'auth-slide-dot' + (i === 0 ? ' active' : '');
+      dot.className = 'auth-slide-dot' + (i === startIdx ? ' active' : '');
       dot.setAttribute('aria-label', 'Imagen ' + (i + 1));
       dot.addEventListener('click', () => goToSlide(i));
       dotsEl.appendChild(dot);
       dotEls.push(dot);
     });
+  }
 
+  function buildSlideshow() {
+    _buildPanel('auth-left-panel',     'auth-slide-dots',     0);
+    _buildPanel('auth-left-panel-reg', 'auth-slide-dots-reg', 2);
     startTimer();
   }
 
   function goToSlide(idx) {
     if (idx === currentSlide) return;
-
-    // Marcar anterior como prev para transición suave
-    slideEls[currentSlide].classList.remove('active');
-    slideEls[currentSlide].classList.add('prev');
-    dotEls[currentSlide].classList.remove('active');
-
-    setTimeout(() => {
-      slideEls[currentSlide] && slideEls[currentSlide].classList.remove('prev');
-    }, 1500);
-
+    const n = SLIDES.length;
+    // Drive both panels (login slides are [0..n-1], register slides are [n..2n-1])
+    [currentSlide, currentSlide + n].forEach(si => {
+      if (!slideEls[si]) return;
+      slideEls[si].classList.remove('active');
+      slideEls[si].classList.add('prev');
+      setTimeout(() => slideEls[si] && slideEls[si].classList.remove('prev'), 1500);
+    });
+    [currentSlide, currentSlide + n].forEach(si => {
+      if (!dotEls[si]) return;
+      dotEls[si].classList.remove('active');
+    });
     currentSlide = idx;
-    slideEls[currentSlide].classList.add('active');
-    dotEls[currentSlide].classList.add('active');
-
+    [currentSlide, currentSlide + n].forEach(si => {
+      if (slideEls[si]) slideEls[si].classList.add('active');
+      if (dotEls[si])   dotEls[si].classList.add('active');
+    });
     resetTimer();
   }
 
@@ -18377,6 +18825,157 @@ async function processPayment() {
     if (btn) { btn.disabled = false; btn.textContent = '🔒 Pagar ahora'; }
     zyraToast('Error al procesar pago. Intenta de nuevo.', 'error');
   }
+}
+
+// ══════════════════════════════════════════
+//  ONBOARDING TOUR — Zyra te guía la primera vez
+// ══════════════════════════════════════════
+const _TOUR_STEPS = [
+  {
+    emoji: '🧠',
+    bubble: '¡Hola! Soy Zyra, tu acompañante de bienestar emocional. En 5 pasos te muestro todo lo que puedes hacer aquí. ¿Listo?',
+    feat_icon: '💙',
+    feat_title: 'Tu espacio seguro',
+    feat_desc: 'Zyra combina inteligencia artificial con herramientas reales de psicología para acompañarte cada día.',
+    action: null,
+  },
+  {
+    emoji: '💬',
+    bubble: 'Empieza siempre desde aquí: el chat. Puedes contarme cómo te sientes y yo te escucho, te apoyo y te propongo actividades.',
+    feat_icon: '💬',
+    feat_title: 'Chat principal',
+    feat_desc: 'Tu espacio de conversación con Zyra. Cuéntame cualquier cosa: estrés, alegrías, dudas, todo.',
+    action: () => showPage('chat'),
+  },
+  {
+    emoji: '📓',
+    bubble: 'El diario es tuyo. Escribe cómo te sientes cada día, responde preguntas profundas o registra tu estado emocional con colores.',
+    feat_icon: '📓',
+    feat_title: 'Diario Emocional',
+    feat_desc: 'Registro diario de emociones, preguntas de reflexión profunda y seguimiento de tu historial.',
+    action: () => showPage('journal'),
+  },
+  {
+    emoji: '🎮',
+    bubble: 'Cuando necesites un descanso mental, los juegos de bienestar son perfectos. ¡Hay respiración guiada, meditación y más!',
+    feat_icon: '🌈',
+    feat_title: 'Bienestar & Juegos',
+    feat_desc: 'Ejercicios de respiración, meditación guiada, mapas emocionales y actividades terapéuticas.',
+    action: () => showPage('wellness'),
+  },
+  {
+    emoji: '🌟',
+    bubble: 'En tu perfil encuentras tus logros, tu historial de bienestar y la carta semanal que te escribo solo para ti. ¡Te cuido!',
+    feat_icon: '👤',
+    feat_title: 'Tu Perfil & Progreso',
+    feat_desc: 'Estadísticas de bienestar, logros desbloqueables, carta de compasión semanal y configuración.',
+    action: () => showPage('profile'),
+  },
+];
+
+let _tourStep  = 0;
+let _tourActive = false;
+
+function startTour() {
+  if (_tourActive) return;
+  _tourActive = true;
+  _tourStep   = 0;
+  const overlay = document.getElementById('zyra-tour-overlay');
+  if (!overlay) return;
+  overlay.style.display = 'block';
+  overlay.style.pointerEvents = 'all';
+  document.body.style.overflow = 'hidden';
+  _renderTourStep();
+}
+
+function _renderTourStep() {
+  const s = _TOUR_STEPS[_tourStep];
+  if (!s) { tourSkip(); return; }
+  const n = _TOUR_STEPS.length;
+
+  // Progress bar
+  const prog = document.getElementById('zyra-tour-progress');
+  if (prog) prog.style.width = ((_tourStep + 1) / n * 100) + '%';
+
+  // Emoji
+  const emoEl = document.querySelector('#zyra-tour-card > div:nth-child(2) > div:first-child > div');
+  if (emoEl) emoEl.textContent = s.emoji;
+
+  // Bubble text (typewriter)
+  const bubble = document.getElementById('zyra-tour-bubble');
+  if (bubble) {
+    bubble.textContent = '';
+    let ci = 0;
+    const txt = s.bubble;
+    const typ = setInterval(() => {
+      bubble.textContent += txt[ci++];
+      if (ci >= txt.length) clearInterval(typ);
+    }, 18);
+  }
+
+  // Feature card
+  const featIcon  = document.getElementById('zyra-tour-feat-icon');
+  const featTitle = document.getElementById('zyra-tour-feat-title');
+  const featDesc  = document.getElementById('zyra-tour-feat-desc');
+  if (featIcon)  featIcon.textContent  = s.feat_icon;
+  if (featTitle) featTitle.textContent = s.feat_title;
+  if (featDesc)  featDesc.textContent  = s.feat_desc;
+
+  // Dots
+  const dots = document.getElementById('zyra-tour-dots');
+  if (dots) {
+    dots.innerHTML = '';
+    for (let i = 0; i < n; i++) {
+      const d = document.createElement('div');
+      d.style.cssText = `width:${i===_tourStep?20:7}px;height:7px;border-radius:99px;background:${i===_tourStep?'#6366f1':'rgba(255,255,255,.2)'};transition:all .3s`;
+      dots.appendChild(d);
+    }
+  }
+
+  // Next button label
+  const nextBtn = document.getElementById('zyra-tour-next');
+  if (nextBtn) {
+    nextBtn.textContent = _tourStep === n - 1 ? '¡Comenzar! 🚀' : 'Siguiente →';
+  }
+
+  // Navigate to relevant page (gentle preview)
+  if (s.action && _tourStep > 0) {
+    setTimeout(s.action, 400);
+  }
+}
+
+function tourNext() {
+  _tourStep++;
+  if (_tourStep >= _TOUR_STEPS.length) {
+    tourSkip();
+    return;
+  }
+  _renderTourStep();
+}
+
+function tourSkip() {
+  const overlay = document.getElementById('zyra-tour-overlay');
+  if (overlay) {
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity .4s';
+    setTimeout(() => {
+      overlay.style.display = 'none';
+      overlay.style.opacity = '';
+      overlay.style.transition = '';
+    }, 400);
+  }
+  document.body.style.overflow = '';
+  _tourActive = false;
+  localStorage.setItem('zyra_tour_done', '1');
+  // Después del tour, llevar al chat (la pantalla principal)
+  setTimeout(() => showPage('chat'), 200);
+}
+
+function _checkShowTour() {
+  if (!token) return;
+  if (localStorage.getItem('zyra_tour_done')) return;
+  // Solo mostrar si es usuario nuevo (no tiene diario ni chats)
+  setTimeout(startTour, 1200);
 }
 
 function launchConfetti() {
