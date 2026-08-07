@@ -18889,7 +18889,7 @@ const _TOUR_STEPS = [
     feat_icon: '💬',
     feat_title: 'Chat principal',
     feat_desc: 'Tu espacio de conversación con Zyra. Cuéntame cualquier cosa: estrés, alegrías, dudas, todo.',
-    action: () => showPage('chat'),
+    action: () => showPage('assistant'),
   },
   {
     emoji: '📓',
@@ -19012,7 +19012,7 @@ function tourSkip() {
   _tourActive = false;
   localStorage.setItem('zyra_tour_done', '1');
   // Después del tour, llevar al chat (la pantalla principal)
-  setTimeout(() => showPage('chat'), 200);
+  setTimeout(() => showPage('assistant'), 200);
 }
 
 function _checkShowTour() {
