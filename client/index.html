@@ -6708,68 +6708,100 @@ function _compartirCartaCompasion(weekKey) {
 // ══════════════════════════════════════════
 //  SENSOR CELULAR — Pasos (acelerómetro)
 // ══════════════════════════════════════════
-let _stepCount     = 0;
-let _stepActive    = false;
-let _stepBaseline  = 10;   // ~gravedad m/s²
-let _stepAbove     = false;
-let _stepLastTs    = 0;
-let _stepSaveTimer = null;
+let _stepCount       = 0;
+let _stepActive      = false;
+let _stepLastTs      = 0;
+let _stepAbove       = false;
+let _stepBaseline    = 9.8;
+let _stepSamples     = [];        // buffer deslizante para filtro
+let _stepUseNoGrav   = false;     // true si el OS ya quitó la gravedad
+let _stepCalibrating = true;      // true durante los primeros 2s
+let _stepCalTs       = 0;
 
 async function startPhoneSteps() {
   if (!window.DeviceMotionEvent) {
-    zyraToast('Tu celular no tiene acelerómetro accesible.', 'error', 4000);
+    zyraToast('Tu celular no tiene acelerómetro.', 'error', 4000);
     return;
   }
-  // iOS 13+ requiere permiso explícito
   if (typeof DeviceMotionEvent.requestPermission === 'function') {
     try {
       const r = await DeviceMotionEvent.requestPermission();
-      if (r !== 'granted') { zyraToast('Permiso de movimiento denegado.', 'error', 3000); return; }
-    } catch(e) { zyraToast('No se pudo pedir permiso de movimiento.', 'error', 3000); return; }
+      if (r !== 'granted') { zyraToast('Permiso denegado — habilítalo en Ajustes.', 'error', 4000); return; }
+    } catch(e) { zyraToast('Error pidiendo permiso de movimiento.', 'error', 3000); return; }
   }
-  // Cargar pasos del día guardados
   const today = new Date().toDateString();
   const saved = (() => { try { return JSON.parse(localStorage.getItem('zyra_phone_steps') || '{}'); } catch(_) { return {}; } })();
-  _stepCount  = saved.date === today ? (saved.steps || 0) : 0;
-  _stepBaseline = 10;
-  _stepAbove    = false;
-  _stepActive   = true;
+  _stepCount       = saved.date === today ? (saved.steps || 0) : 0;
+  _stepBaseline    = 9.8;
+  _stepAbove       = false;
+  _stepSamples     = [];
+  _stepCalibrating = true;
+  _stepCalTs       = Date.now();
+  _stepActive      = true;
   window.addEventListener('devicemotion', _onPhoneMotion, { passive: true });
   localStorage.setItem('zyra_steps_active', '1');
   renderWatchCard();
   renderWatchWidget();
-  zyraToast('👟 Contando pasos con el celular…', 'success', 2500);
+  zyraToast('👟 Calibrando acelerómetro…', 'info', 1800);
+  setTimeout(() => { if (_stepActive) zyraToast('👟 Contando pasos — lleva el celular contigo', 'success', 3000); }, 2000);
 }
 
 function stopPhoneSteps() {
   _stepActive = false;
   window.removeEventListener('devicemotion', _onPhoneMotion);
+  _savePhoneSteps();
   localStorage.removeItem('zyra_steps_active');
   renderWatchCard();
   renderWatchWidget();
-  zyraToast('👟 Contador de pasos pausado', 'info', 2000);
+  zyraToast(`👟 Pasos guardados: ${_stepCount.toLocaleString()}`, 'info', 3000);
 }
 
 function _onPhoneMotion(evt) {
   if (!_stepActive) return;
-  const a = evt.accelerationIncludingGravity || evt.acceleration;
+
+  // Preferir acceleration (sin gravedad) si el dispositivo la soporta
+  const rawNoGrav = evt.acceleration;
+  const rawGrav   = evt.accelerationIncludingGravity;
+  _stepUseNoGrav  = rawNoGrav && rawNoGrav.x != null && (Math.abs(rawNoGrav.x) + Math.abs(rawNoGrav.y) + Math.abs(rawNoGrav.z)) > 0.01;
+  const a = _stepUseNoGrav ? rawNoGrav : rawGrav;
   if (!a || a.x == null) return;
+
   const mag = Math.sqrt((a.x||0)**2 + (a.y||0)**2 + (a.z||0)**2);
-  // Baseline adaptativa (promedio lento = gravedad + movimiento estacionario)
-  _stepBaseline = _stepBaseline * 0.97 + mag * 0.03;
-  const delta = mag - _stepBaseline;
-  // Detección de pico: sube sobre umbral → baja → cuenta paso
-  if (!_stepAbove && delta > 1.8) {
+
+  // Buffer deslizante de 20 muestras (~0.4s a 50hz) para suavizar
+  _stepSamples.push(mag);
+  if (_stepSamples.length > 20) _stepSamples.shift();
+  const smooth = _stepSamples.reduce((a,b)=>a+b,0) / _stepSamples.length;
+
+  // Fase de calibración: primeros 2 segundos establecen baseline
+  if (_stepCalibrating) {
+    _stepBaseline = _stepBaseline * 0.85 + smooth * 0.15;
+    if (Date.now() - _stepCalTs > 2000) _stepCalibrating = false;
+    return;
+  }
+
+  // Baseline adaptativa muy lenta (solo cambia con reposo prolongado)
+  _stepBaseline = _stepBaseline * 0.995 + smooth * 0.005;
+
+  // Umbrales: con gravedad ~1.5-2.5 sobre baseline; sin gravedad ~1.5-3.0 absoluto
+  const threshold = _stepUseNoGrav ? 1.2 : 1.5;
+  const delta     = _stepUseNoGrav ? smooth : smooth - _stepBaseline;
+
+  if (!_stepAbove && delta > threshold) {
     _stepAbove = true;
-  } else if (_stepAbove && delta < 0.2) {
+  } else if (_stepAbove && delta < threshold * 0.3) {
     _stepAbove = false;
     const now = Date.now();
-    if (now - _stepLastTs > 280) { // mínimo 280ms entre pasos (~214 pasos/min máx)
+    // Entre 250ms (240 ppm max) y 2500ms (24 ppm min = muy lento)
+    if (now - _stepLastTs > 250 && now - _stepLastTs < 2500) {
       _stepLastTs = now;
       _stepCount++;
       _handleSteps(_stepCount);
-      // Guardar cada 10 pasos para no sobrecargar localStorage
-      if (_stepCount % 10 === 0) _savePhoneSteps();
+      if (_stepCount % 5 === 0) _savePhoneSteps(); // guardar cada 5 pasos
+    } else if (_stepLastTs === 0) {
+      _stepLastTs = now; // primer paso
+      _stepCount++;
+      _handleSteps(_stepCount);
     }
   }
 }
@@ -6778,15 +6810,12 @@ function _savePhoneSteps() {
   localStorage.setItem('zyra_phone_steps', JSON.stringify({ date: new Date().toDateString(), steps: _stepCount }));
 }
 
-// Restaurar contador si la página se recarga con pasos activos
+// Restaurar contador guardado al cargar la página
 (function _restoreStepCounter() {
-  if (localStorage.getItem('zyra_steps_active')) {
-    const today = new Date().toDateString();
-    const saved = (() => { try { return JSON.parse(localStorage.getItem('zyra_phone_steps') || '{}'); } catch(_) { return {}; } })();
-    _stepCount = saved.date === today ? (saved.steps || 0) : 0;
-    _stepActive = false; // No auto-reactivar (requiere gesto del usuario en iOS)
-    localStorage.removeItem('zyra_steps_active');
-  }
+  const today = new Date().toDateString();
+  const saved = (() => { try { return JSON.parse(localStorage.getItem('zyra_phone_steps') || '{}'); } catch(_) { return {}; } })();
+  if (saved.date === today) _stepCount = saved.steps || 0;
+  localStorage.removeItem('zyra_steps_active'); // no auto-reactivar (iOS requiere gesto)
 })();
 
 // Resetear pasos a medianoche
@@ -7476,28 +7505,47 @@ function renderWatchCard() {
   })();
   const displaySteps = (stepsData?.date === new Date().toDateString() ? stepsData.steps : null) ?? phoneStepsToday;
 
+  const stepsDisplay = displaySteps != null ? displaySteps.toLocaleString()
+                      : _stepActive ? '0'
+                      : '—';
+  const stepsMeta = _stepActive
+    ? (_stepCalibrating ? '<span style="color:#f59e0b">⏳ Calibrando…</span>' : '<span style="color:#10b981">● Contando</span>')
+    : displaySteps != null ? `<span style="color:var(--text3)">Meta: 8.000</span>` : '<span style="color:var(--text3)">Inactivo</span>';
+
+  const hrAge = hrData ? Math.round((Date.now() - hrData.ts) / 60000) : null;
+  const hrMeta = hrData
+    ? `<span style="color:var(--text3)">Hace ${hrAge > 0 ? hrAge + 'min' : 'ahora'}</span>`
+    : '<span style="color:var(--text3)">Sin medición</span>';
+
   // ── Panel de sensores del celular (siempre visible arriba) ──
   const sensorPanel = `
     <div style="background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(236,72,153,.07));border:1.5px solid rgba(99,102,241,.2);border-radius:20px;padding:18px 20px;margin-bottom:14px">
-      <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:4px">📱 Sensores del celular</div>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:14px">Sin reloj — tu celular mide pulso y pasos</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+        <span style="font-size:13px;font-weight:800;color:var(--text)">📱 Sensores del celular</span>
+        <span style="font-size:10px;background:rgba(99,102,241,.15);color:#818cf8;border-radius:99px;padding:2px 8px;font-weight:700">SIN RELOJ</span>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:14px;line-height:1.5">
+        Tu celular ya tiene sensores integrados — acelerómetro para pasos, cámara para pulso
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
         <div style="background:rgba(236,72,153,.08);border:1px solid rgba(236,72,153,.2);border-radius:14px;padding:12px;text-align:center">
           <div style="font-size:10px;color:#ec4899;font-weight:700;margin-bottom:4px">💓 PULSO</div>
-          <div id="watch-hr-live" style="font-size:22px;font-weight:800;color:var(--text)">${hrData ? hrData.bpm + ' bpm' : '—'}</div>
-          ${avgHR ? `<div style="font-size:10px;color:var(--text3);margin-top:2px">Media: ${avgHR} bpm</div>` : '<div style="font-size:10px;color:var(--text3);margin-top:2px">Toca "Medir"</div>'}
+          <div id="watch-hr-live" style="font-size:22px;font-weight:800;color:var(--text);line-height:1">${hrData ? hrData.bpm : '—'}</div>
+          <div style="font-size:10px;margin-top:3px">${hrData ? '<span style="color:var(--text3)">bpm · ' + (hrAge > 0 ? 'hace '+hrAge+'min' : 'ahora') + '</span>' : '<span style="color:var(--text3)">Toca Medir ↓</span>'}</div>
+          ${avgHR ? `<div style="font-size:10px;color:var(--text3)">Media: ${avgHR} bpm</div>` : ''}
         </div>
         <div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:14px;padding:12px;text-align:center">
           <div style="font-size:10px;color:#6366f1;font-weight:700;margin-bottom:4px">👟 PASOS HOY</div>
-          <div id="watch-steps-live" style="font-size:22px;font-weight:800;color:var(--text)">${displaySteps != null ? displaySteps.toLocaleString() : '—'}</div>
-          <div style="font-size:10px;color:${_stepActive ? '#10b981' : 'var(--text3)'};margin-top:2px">${_stepActive ? '● Activo' : 'Toca "Activar"'}</div>
+          <div id="watch-steps-live" style="font-size:22px;font-weight:800;color:var(--text);line-height:1">${stepsDisplay}</div>
+          <div style="font-size:10px;margin-top:3px">${stepsMeta}</div>
+          ${displaySteps != null ? `<div style="height:3px;background:rgba(99,102,241,.15);border-radius:99px;margin-top:6px;overflow:hidden"><div style="height:100%;width:${Math.min(100,Math.round((displaySteps/8000)*100))}%;background:linear-gradient(90deg,#6366f1,#8b5cf6);border-radius:99px"></div></div>` : ''}
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <button onclick="startCameraHR()" style="background:linear-gradient(135deg,#ec4899,#f43f5e);border:none;color:#fff;border-radius:12px;padding:11px 8px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(236,72,153,.3)">💓 Medir pulso</button>
+        <button onclick="startCameraHR()" style="background:linear-gradient(135deg,#ec4899,#f43f5e);border:none;color:#fff;border-radius:12px;padding:12px 8px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(236,72,153,.3)">💓 Medir pulso</button>
         ${_stepActive
-          ? `<button onclick="stopPhoneSteps()" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:#818cf8;border-radius:12px;padding:11px 8px;font-size:12px;font-weight:700;cursor:pointer">⏹ Pausar pasos</button>`
-          : `<button onclick="startPhoneSteps()" style="background:linear-gradient(135deg,#6366f1,#4f46e5);border:none;color:#fff;border-radius:12px;padding:11px 8px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(99,102,241,.3)">👟 Activar pasos</button>`}
+          ? `<button onclick="stopPhoneSteps()" style="background:rgba(16,185,129,.12);border:1.5px solid rgba(16,185,129,.3);color:#10b981;border-radius:12px;padding:12px 8px;font-size:12px;font-weight:700;cursor:pointer">⏹ Pausar pasos</button>`
+          : `<button onclick="startPhoneSteps()" style="background:linear-gradient(135deg,#6366f1,#4f46e5);border:none;color:#fff;border-radius:12px;padding:12px 8px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(99,102,241,.3)">👟 Activar pasos</button>`}
       </div>
     </div>`;
 
