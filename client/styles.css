@@ -3876,6 +3876,7 @@ body {
 
   /* Hide top nav — bottom tabbar handles all mobile navigation */
   .page > nav:not(.lp-nav) { display: none; }
+  #app-shared-nav { display: none !important; }
 
   /* A bit more top breathing room now that the nav is gone */
   .container { padding-top: 16px; }

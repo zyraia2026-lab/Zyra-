@@ -676,25 +676,6 @@ function closeSplash(){
      ZYRA PLANES — PÁGINA DE PAQUETES
 ══════════════════════════════════════════ -->
 <div class="page" id="page-planes">
-<nav>
-  <div class="nav-inner">
-    <div class="nav-logo" onclick="showPage('dashboard')"><img src="/Imagenes/1000154669.png" class="nav-logo-img" alt="Zyra"/><span class="nav-brand">Zyra</span></div>
-    <div class="nav-links">
-      <button class="nav-btn" onclick="showPage('dashboard')">🏠 Inicio</button>
-      <button class="nav-btn" onclick="showPage('wellness')">🧘 Bienestar</button>
-      <button class="nav-btn" onclick="showPage('games')">🎮 Juegos</button>
-      <button class="nav-btn" onclick="showPage('goals')">🎯 Metas</button>
-      <button class="nav-btn active" onclick="showPage('planes')">✦ Planes</button>
-      <button class="nav-btn" onclick="showPage('journal')">📔 Diario</button>
-      <button class="nav-btn" onclick="showPage('assistant')">💬 Zyra IA</button>
-    </div>
-    <div class="nav-right">
-      <button class="btn-sm" onclick="showPage('analytics')" style="font-size:11px" title="Mi progreso">📊</button>
-      <div class="avatar" id="nav-avatar-planes" onclick="showPage('profile')" style="cursor:pointer" title="Mi perfil">?</div>
-      <button class="btn-logout" onclick="doLogout()">Salir</button>
-    </div>
-  </div>
-</nav>
 <div class="container">
   <div class="page-header">
     <h1 class="page-title">✦ Planes Zyra</h1>
@@ -1135,6 +1116,42 @@ function closeSplash(){
     <span class="mnb-label">Perfil</span>
   </button>
 </div>
+
+<!-- ══ NAV COMPARTIDO — un solo nav para todas las páginas del app ══ -->
+<nav id="app-shared-nav" style="display:none">
+  <div class="nav-inner">
+    <div class="nav-logo" onclick="showPage('dashboard')" style="cursor:pointer">
+      <img src="/Imagenes/1000154669.png" class="nav-logo-img" alt="Zyra"/>
+      <span class="nav-brand">Zyra</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <div class="nav-links">
+        <button class="nav-btn" data-page="dashboard" onclick="showPage('dashboard')">🏠 Inicio</button>
+        <button class="nav-btn" data-page="assistant" onclick="showPage('assistant')">💬 Chat</button>
+        <button class="nav-btn" data-page="journal" onclick="showPage('journal')">📓 Diario</button>
+        <button class="nav-btn" data-page="wellness" onclick="showPage('wellness')">🧘 Bienestar</button>
+      </div>
+      <div style="position:relative" id="nav-more-wrap">
+        <button class="nav-btn" id="nav-more-btn" onclick="(function(e){e.stopPropagation();var m=document.getElementById('nav-more-menu');m.style.display=m.style.display==='block'?'none':'block';})(event)">Más ▾</button>
+        <div id="nav-more-menu" style="display:none;position:absolute;top:calc(100% + 8px);right:0;background:var(--surface,#fff);border:1px solid var(--border,rgba(99,102,241,.15));border-radius:16px;padding:8px;min-width:170px;z-index:9999;box-shadow:0 12px 40px rgba(0,0,0,.15)">
+          <button onclick="showPage('games');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">🎮 Juegos</button>
+          <button onclick="showPage('goals');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">🎯 Metas</button>
+          <button onclick="showPage('analytics');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">📊 Analítica</button>
+          <button onclick="showPage('planes');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">✦ Planes</button>
+          <button onclick="showPage('profile');document.getElementById('nav-more-menu').style.display='none';setTimeout(()=>{const s=document.getElementById('section-reloj');if(s)s.scrollIntoView({behavior:'smooth'})},300)" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">📱 Sensores</button>
+          <button onclick="startTest();document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">✨ Test Emocional</button>
+        </div>
+      </div>
+    </div>
+    <div class="nav-right">
+      <div class="nav-streak-badge" id="nav-streak-badge" onclick="showPage('dashboard')" title="Racha de días" style="display:none"><span>🔥</span><span id="nav-streak-count">0</span></div>
+      <div class="nav-coins-badge" id="nav-coins-badge" onclick="showPage('profile')" title="Monedas Zyra" style="display:none"><span>🪙</span><span id="nav-coins-count">0</span></div>
+      <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Modo oscuro">🌙</button>
+      <div class="avatar" id="nav-avatar" onclick="showPage('profile')" style="cursor:pointer" title="Mi perfil">?</div>
+      <button class="btn-logout" onclick="doLogout()">Salir</button>
+    </div>
+  </div>
+</nav>
 
 <!-- ══════════════════════════════════════════════
      LANDING PAGE — Página de bienvenida pública
@@ -1921,44 +1938,6 @@ async function b2bSubmitContact() {
 
 <!-- ══════ DASHBOARD ══════ -->
 <div id="page-dashboard" class="page">
-<nav>
-  <div class="nav-inner">
-    <div class="nav-logo" onclick="showPage('dashboard')">
-      <img src="/Imagenes/1000154669.png" class="nav-logo-img" alt="Zyra"/>
-      <span class="nav-brand">Zyra</span>
-    </div>
-    <div style="display:flex;align-items:center;gap:6px">
-      <div class="nav-links">
-        <button class="nav-btn active" onclick="showPage('dashboard')">🏠 Inicio</button>
-        <button class="nav-btn" onclick="showPage('assistant')">💬 Chat</button>
-        <button class="nav-btn" onclick="showPage('journal')">📓 Diario</button>
-        <button class="nav-btn" onclick="showPage('wellness')">🧘 Bienestar</button>
-      </div>
-      <div style="position:relative" id="nav-more-wrap">
-        <button class="nav-btn" id="nav-more-btn" onclick="(function(e){e.stopPropagation();var m=document.getElementById('nav-more-menu');m.style.display=m.style.display==='block'?'none':'block';})(event)">Más ▾</button>
-        <div id="nav-more-menu" style="display:none;position:absolute;top:calc(100% + 8px);right:0;background:var(--surface,#fff);border:1px solid var(--border,rgba(99,102,241,.15));border-radius:16px;padding:8px;min-width:170px;z-index:9999;box-shadow:0 12px 40px rgba(0,0,0,.15)">
-          <button onclick="showPage('games');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">🎮 Juegos</button>
-          <button onclick="showPage('goals');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">🎯 Metas</button>
-          <button onclick="showPage('analytics');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">📊 Analítica</button>
-          <button onclick="showPage('planes');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">✦ Planes</button>
-          <button onclick="startTest();document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">✨ Test Emocional</button>
-          <button onclick="showPage('watch');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">📱 Sensores</button>
-        </div>
-      </div>
-    </div>
-    <div class="nav-right">
-      <div class="nav-streak-badge" id="nav-streak-badge" onclick="showPage('dashboard')" title="Racha de días" style="display:none">
-        <span>🔥</span><span id="nav-streak-count">0</span>
-      </div>
-      <div class="nav-coins-badge" id="nav-coins-badge" onclick="showPage('profile')" title="Monedas Zyra" style="display:none">
-        <span>🪙</span><span id="nav-coins-count">0</span>
-      </div>
-      <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Modo oscuro">🌙</button>
-      <div class="avatar" id="nav-avatar" onclick="showPage('profile')" style="cursor:pointer" title="Mi perfil">?</div>
-      <button class="btn-logout" onclick="doLogout()">Salir</button>
-    </div>
-  </div>
-</nav>
 <div class="container db-container">
 
   <!-- ══ HERO ══ -->
@@ -2373,25 +2352,6 @@ async function b2bSubmitContact() {
 
 <!-- ══════ JUEGOS ══════ -->
 <div id="page-games" class="page">
-<nav>
-  <div class="nav-inner">
-    <div class="nav-logo" onclick="showPage('dashboard')"><img src="/Imagenes/1000154669.png" class="nav-logo-img" alt="Zyra"/><span class="nav-brand">Zyra</span></div>
-    <div class="nav-links">
-      <button class="nav-btn" onclick="showPage('dashboard')">🏠 Inicio</button>
-      <button class="nav-btn" onclick="showPage('wellness')">🧘 Bienestar</button>
-      <button class="nav-btn active" onclick="showPage('games')">🎮 Juegos</button>
-      <button class="nav-btn" onclick="showPage('goals')">🎯 Metas</button>
-      <button class="nav-btn" onclick="showPage('planes')">✦ Planes</button>
-      <button class="nav-btn" onclick="showPage('journal')">📔 Diario</button>
-      <button class="nav-btn" onclick="showPage('assistant')">💬 Zyra IA</button>
-    </div>
-    <div class="nav-right">
-      <button class="btn-sm" onclick="showPage('analytics')" style="font-size:11px" title="Mi progreso">📊</button>
-      <div class="avatar" id="nav-avatar-games" onclick="showPage('profile')" style="cursor:pointer">?</div>
-      <button class="btn-logout" onclick="doLogout()">Salir</button>
-    </div>
-  </div>
-</nav>
 <div class="container">
   <!-- Header con stats -->
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
@@ -2475,25 +2435,6 @@ async function b2bSubmitContact() {
 
 <!-- ══════ WELLNESS ══════ -->
 <div id="page-wellness" class="page">
-<nav>
-  <div class="nav-inner">
-    <div class="nav-logo" onclick="showPage('dashboard')"><img src="/Imagenes/1000154669.png" class="nav-logo-img" alt="Zyra"/><span class="nav-brand">Zyra</span></div>
-    <div class="nav-links">
-      <button class="nav-btn" onclick="showPage('dashboard')">🏠 Inicio</button>
-      <button class="nav-btn active" onclick="showPage('wellness')">🧘 Bienestar</button>
-      <button class="nav-btn" onclick="showPage('games')">🎮 Juegos</button>
-      <button class="nav-btn" onclick="showPage('goals')">🎯 Metas</button>
-      <button class="nav-btn" onclick="showPage('planes')">✦ Planes</button>
-      <button class="nav-btn" onclick="showPage('journal')">📔 Diario</button>
-      <button class="nav-btn" onclick="showPage('assistant')">💬 Zyra IA</button>
-    </div>
-    <div class="nav-right">
-      <button class="btn-sm" onclick="showPage('analytics')" style="font-size:11px" title="Mi progreso">📊</button>
-      <div class="avatar" id="nav-avatarw">?</div>
-      <button class="btn-logout" onclick="doLogout()">Salir</button>
-    </div>
-  </div>
-</nav>
 <div class="container">
   <div class="section-title">🌿 Herramientas de Bienestar</div>
   <div class="wellness-tabs">
@@ -2517,25 +2458,6 @@ async function b2bSubmitContact() {
 
 <!-- ══════ GOALS ══════ -->
 <div id="page-goals" class="page">
-<nav>
-  <div class="nav-inner">
-    <div class="nav-logo" onclick="showPage('dashboard')"><img src="/Imagenes/1000154669.png" class="nav-logo-img" alt="Zyra"/><span class="nav-brand">Zyra</span></div>
-    <div class="nav-links">
-      <button class="nav-btn" onclick="showPage('dashboard')">🏠 Inicio</button>
-      <button class="nav-btn" onclick="showPage('wellness')">🧘 Bienestar</button>
-      <button class="nav-btn" onclick="showPage('games')">🎮 Juegos</button>
-      <button class="nav-btn active" onclick="showPage('goals')">🎯 Metas</button>
-      <button class="nav-btn" onclick="showPage('planes')">✦ Planes</button>
-      <button class="nav-btn" onclick="showPage('journal')">📔 Diario</button>
-      <button class="nav-btn" onclick="showPage('assistant')">💬 Zyra IA</button>
-    </div>
-    <div class="nav-right">
-      <button class="btn-sm" onclick="showPage('analytics')" style="font-size:11px" title="Mi progreso">📊</button>
-      <div class="avatar" id="nav-avatar3">?</div>
-      <button class="btn-logout" onclick="doLogout()">Salir</button>
-    </div>
-  </div>
-</nav>
 <div class="container">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px">
     <div class="section-title" style="margin:0">🎯 Mis Metas Personales</div>
@@ -2587,25 +2509,6 @@ async function b2bSubmitContact() {
 
 <!-- ══════ JOURNAL ══════ -->
 <div id="page-journal" class="page">
-<nav>
-  <div class="nav-inner">
-    <div class="nav-logo" onclick="showPage('dashboard')"><img src="/Imagenes/1000154669.png" class="nav-logo-img" alt="Zyra"/><span class="nav-brand">Zyra</span></div>
-    <div class="nav-links">
-      <button class="nav-btn" onclick="showPage('dashboard')">🏠 Inicio</button>
-      <button class="nav-btn" onclick="showPage('wellness')">🧘 Bienestar</button>
-      <button class="nav-btn" onclick="showPage('games')">🎮 Juegos</button>
-      <button class="nav-btn" onclick="showPage('goals')">🎯 Metas</button>
-      <button class="nav-btn" onclick="showPage('planes')">✦ Planes</button>
-      <button class="nav-btn active" onclick="showPage('journal')">📔 Diario</button>
-      <button class="nav-btn" onclick="showPage('assistant')">💬 Zyra IA</button>
-    </div>
-    <div class="nav-right">
-      <button class="btn-sm" onclick="showPage('analytics')" style="font-size:11px" title="Mi progreso">📊</button>
-      <div class="avatar" id="nav-avatar4">?</div>
-      <button class="btn-logout" onclick="doLogout()">Salir</button>
-    </div>
-  </div>
-</nav>
 <div class="container">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
@@ -2776,26 +2679,6 @@ async function b2bSubmitContact() {
 
 <!-- ══════ ASSISTANT ══════ -->
 <div id="page-assistant" class="page">
-<nav>
-  <div class="nav-inner">
-    <div class="nav-logo" onclick="showPage('dashboard')"><img src="/Imagenes/1000154669.png" class="nav-logo-img" alt="Zyra"/><span class="nav-brand">Zyra</span></div>
-    <div class="nav-links">
-      <button class="nav-btn" onclick="showPage('dashboard')">🏠 Inicio</button>
-      <button class="nav-btn" onclick="showPage('wellness')">🧘 Bienestar</button>
-      <button class="nav-btn" onclick="showPage('games')">🎮 Juegos</button>
-      <button class="nav-btn" onclick="showPage('goals')">🎯 Metas</button>
-      <button class="nav-btn" onclick="showPage('planes')">✦ Planes</button>
-      <button class="nav-btn" onclick="showPage('journal')">📔 Diario</button>
-      <button class="nav-btn active" onclick="showPage('assistant')">💬 Zyra IA</button>
-    </div>
-    <div class="nav-right">
-      <button class="btn-sm" onclick="showPage('analytics')" style="font-size:11px" title="Mi progreso">📊</button>
-      <button class="theme-toggle" onclick="toggleTheme()" title="Cambiar tema">🌙</button>
-      <div class="avatar" id="nav-avatar2" onclick="showPage('profile')" style="cursor:pointer" title="Mi perfil">?</div>
-      <button class="btn-logout" onclick="doLogout()">Salir</button>
-    </div>
-  </div>
-</nav>
 <div class="assistant-body">
   <div class="sidebar">
     <button class="btn-new" onclick="newChat()">✦ Nueva sesión</button>
@@ -2860,25 +2743,6 @@ async function b2bSubmitContact() {
 
 <!-- ══════ PROFILE ══════ -->
 <div id="page-profile" class="page">
-<nav>
-  <div class="nav-inner">
-    <div class="nav-logo" onclick="showPage('dashboard')"><img src="/Imagenes/1000154669.png" class="nav-logo-img" alt="Zyra"/><span class="nav-brand">Zyra</span></div>
-    <div class="nav-links">
-      <button class="nav-btn" onclick="showPage('dashboard')">🏠 Inicio</button>
-      <button class="nav-btn" onclick="showPage('wellness')">🧘 Bienestar</button>
-      <button class="nav-btn" onclick="showPage('games')">🎮 Juegos</button>
-      <button class="nav-btn" onclick="showPage('goals')">🎯 Metas</button>
-      <button class="nav-btn" onclick="showPage('planes')">✦ Planes</button>
-      <button class="nav-btn" onclick="showPage('journal')">📔 Diario</button>
-      <button class="nav-btn" onclick="showPage('assistant')">💬 Zyra IA</button>
-    </div>
-    <div class="nav-right">
-      <button class="btn-sm" onclick="showPage('analytics')" style="font-size:11px" title="Mi progreso">📊</button>
-      <div class="avatar" id="nav-avatarp">?</div>
-      <button class="btn-logout" onclick="doLogout()">Salir</button>
-    </div>
-  </div>
-</nav>
 <div class="container" style="max-width:720px">
   <div class="section-title">👤 Mi Perfil</div>
 
@@ -3216,18 +3080,6 @@ async function b2bSubmitContact() {
 </div>
 <!-- ══════ ANALYTICS ══════ -->
 <div id="page-analytics" class="page">
-<nav>
-  <div class="nav-inner">
-    <div class="nav-left">
-      <button class="back-btn" onclick="showPage('dashboard')" aria-label="Volver al inicio">←</button>
-      <span class="nav-title">📊 Mi Progreso</span>
-    </div>
-    <div class="nav-right">
-      <div class="avatar" id="nav-avatar-analytics">?</div>
-      <button class="btn-logout" onclick="doLogout()">Salir</button>
-    </div>
-  </div>
-</nav>
 <div class="page-content" id="analytics-content">
   <div class="empty" style="padding:40px 0;text-align:center">
     <div style="font-size:40px;margin-bottom:12px;opacity:.4">📊</div>
@@ -4166,8 +4018,23 @@ function showPage(name) {
   const pg = document.getElementById("page-" + name);
   if(pg) pg.classList.add("active");
   window.scrollTo({ top: 0, behavior: "instant" });
+
+  // ── Nav compartido: mostrar en páginas autenticadas, ocultar en auth/landing ──
+  const authPages = ['landing','login','register','verify-login','verify-register','forgot-password','reset-password','voice-call'];
+  const sharedNav = document.getElementById('app-shared-nav');
+  if (sharedNav) {
+    const hideNav = authPages.includes(name) || name === 'admin';
+    sharedNav.style.display = hideNav ? 'none' : '';
+    // Cerrar dropdown Más si está abierto
+    const moreMenu = document.getElementById('nav-more-menu');
+    if (moreMenu) moreMenu.style.display = 'none';
+    // Marcar botón activo
+    sharedNav.querySelectorAll('.nav-btn[data-page]').forEach(b => {
+      b.classList.toggle('active', b.dataset.page === name);
+    });
+  }
+
   // FAB quick note: show on logged-in pages, hide on auth/onboarding pages
-  const authPages = ['landing','login','register','verify-login','verify-register','forgot-password','reset-password'];
   const fab = document.getElementById("fab-qn");
   if (fab) fab.classList.toggle("visible", !authPages.includes(name));
   if(name === "dashboard")    { loadDashboard(); setTimeout(loadGamification, 300); setTimeout(updateNotifBadge, 600); }
@@ -5791,7 +5658,7 @@ function applyAvatarEverywhere(photoUrl, emoji, color) {
   const colorAv = color    || localStorage.getItem("zyra_avatar_color") || "var(--grad)";
   const init    = user ? user.name.charAt(0).toUpperCase() : "?";
 
-  ["nav-avatar","nav-avatar2","nav-avatar3","nav-avatar4","nav-avatarw","nav-avatarp","nav-avatar-planes","nav-avatar-games","nav-avatar-analytics"].forEach(id => {
+  ["nav-avatar"].forEach(id => {
     const el = document.getElementById(id);
     if(!el) return;
     if(photo) {
@@ -5840,7 +5707,7 @@ function applyAvatarEverywhere(photoUrl, emoji, color) {
 
 function applyStreakBadge(streakDays) {
   const ring = streakDays >= 30 ? '#f59e0b' : streakDays >= 14 ? '#f97316' : streakDays >= 7 ? '#6366f1' : null;
-  ["nav-avatar","nav-avatar2","nav-avatar3","nav-avatar4","nav-avatarw","nav-avatarp","nav-avatar-planes","nav-avatar-games","nav-avatar-analytics"].forEach(id => {
+  ["nav-avatar"].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     if (ring) {
