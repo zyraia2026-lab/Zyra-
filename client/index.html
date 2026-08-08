@@ -7421,11 +7421,10 @@ function renderWatchCard() {
 
   if (!paired && !_watchConnected) {
     card.innerHTML = sensorPanel + `
-      <div style="border:1px dashed rgba(99,102,241,.25);border-radius:16px;padding:12px 16px;text-align:center;background:rgba(99,102,241,.03)">
-        <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:8px">Opcional — ¿también tienes reloj inteligente?</div>
-        ${navigator.bluetooth
-          ? `<button onclick="connectSmartwatch()" style="background:none;border:1px solid rgba(99,102,241,.3);color:var(--text3);border-radius:10px;padding:7px 18px;font-size:11px;font-weight:600;cursor:pointer">⌚ Agregar reloj BLE</button>`
-          : `<div style="font-size:10px;color:var(--text3);opacity:.6">Bluetooth no disponible en este navegador</div>`}
+      <div style="border:1.5px solid rgba(99,102,241,.25);border-radius:16px;padding:16px;background:rgba(99,102,241,.04)">
+        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px">⌚ ¿Tienes reloj inteligente?</div>
+        <button onclick="connectSmartwatch()" style="width:100%;background:linear-gradient(135deg,#6366f1,#4f46e5);border:none;color:#fff;border-radius:12px;padding:13px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(99,102,241,.3)">⌚ Conectar reloj Bluetooth</button>
+        ${!navigator.bluetooth ? `<div style="font-size:10px;color:#f59e0b;margin-top:8px;text-align:center">⚠ Usa Chrome para conectar por Bluetooth</div>` : ''}
       </div>`;
     return;
   }
