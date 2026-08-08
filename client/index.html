@@ -7344,7 +7344,7 @@ function renderWatchCard() {
 
   const watchName  = localStorage.getItem('zyra_watch_name') || 'Reloj';
   const paired     = !!localStorage.getItem('zyra_watch_paired');
-  const hrData     = (() => { try { return JSON.parse(localStorage.getItem('zyra_watch_hr') || 'null'); } catch(e) { return null; } })();
+  const hrData     = (() => { try { const d = JSON.parse(localStorage.getItem('zyra_watch_hr') || 'null'); if (!d) return null; return (Date.now() - d.ts) > 60*60000 ? null : d; } catch(e) { return null; } })();
   const stepsData  = (() => { try { return JSON.parse(localStorage.getItem('zyra_watch_steps') || 'null'); } catch(e) { return null; } })();
   const battery    = localStorage.getItem('zyra_watch_battery');
   const hrHist     = (() => { try { return JSON.parse(localStorage.getItem('zyra_watch_hr_hist') || '[]'); } catch(e) { return []; } })();
@@ -7467,7 +7467,7 @@ function renderWatchCard() {
 function renderWatchWidget() {
   const widget = document.getElementById('dash-watch-widget');
   if (!widget) return;
-  const hrData     = (() => { try { return JSON.parse(localStorage.getItem('zyra_watch_hr') || 'null'); } catch(e) { return null; } })();
+  const hrData     = (() => { try { const d = JSON.parse(localStorage.getItem('zyra_watch_hr') || 'null'); if (!d) return null; return (Date.now() - d.ts) > 60*60000 ? null : d; } catch(e) { return null; } })();
   const stepsWatch = (() => { try { return JSON.parse(localStorage.getItem('zyra_watch_steps') || 'null'); } catch(e) { return null; } })();
   const stepsPhone = (() => { try { return JSON.parse(localStorage.getItem('zyra_phone_steps') || '{}'); } catch(e) { return {}; } })();
   const today      = new Date().toDateString();
