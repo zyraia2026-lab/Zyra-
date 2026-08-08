@@ -1313,11 +1313,12 @@ Usa este contexto con naturalidad — no lo menciones todo de golpe. El historia
 ════════════════════════════════════════ */
 exports.sendMessage = async (req, res) => {
   try {
-    let { message, conversationId, history, mode, noSave, dailyContext } = req.body;
+    let { message, conversationId, history, mode, noSave, dailyContext, healthContext } = req.body;
     const isVoice = mode === 'voice';
     if (!message?.trim()) return res.status(400).json({ message: "Mensaje vacío" });
     message = message.trim().substring(0, 2000);
-    if (dailyContext) dailyContext = String(dailyContext).substring(0, 500);
+    if (dailyContext) dailyContext = String(dailyContext).substring(0, 600);
+    if (healthContext) healthContext = String(healthContext).substring(0, 300);
     const musicReq           = wantsMusic(message);
     const musicFollowUp      = !musicReq && isMusicFollowUp(message, history);
     const effectiveMusicReq  = musicReq || musicFollowUp;
@@ -1343,7 +1344,10 @@ exports.sendMessage = async (req, res) => {
     }
 
     if (dailyContext) {
-      systemPrompt += `\n\n📅 LO QUE PASÓ HOY (usa esto si viene al caso — no lo menciones de golpe): ${dailyContext}`;
+      systemPrompt += `\n\n📅 CONTEXTO DE HOY: ${dailyContext}`;
+    }
+    if (healthContext) {
+      systemPrompt += `\n\n💓 DATOS DE SALUD EN TIEMPO REAL: ${healthContext}. Úsalos activamente: si el pulso es alto sugiere respiración, si los pasos son pocos sugiere moverse, si van bien reconócelo. Intégralos de forma natural en tu respuesta cuando sea relevante.`;
     }
 
     // Modo voz: respuestas MUY cortas, naturales, como en llamada real
@@ -1672,10 +1676,11 @@ exports.streamMessage = async (req, res) => {
   const send = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`);
 
   try {
-    let { message, conversationId, history, noSave, dailyContext } = req.body;
+    let { message, conversationId, history, noSave, dailyContext, healthContext } = req.body;
     if (!message?.trim()) { send({ error: "empty" }); return res.end(); }
     message = message.trim().substring(0, 2000);
-    if (dailyContext) dailyContext = String(dailyContext).substring(0, 500);
+    if (dailyContext) dailyContext = String(dailyContext).substring(0, 600);
+    if (healthContext) healthContext = String(healthContext).substring(0, 300);
 
     const musicReq           = wantsMusic(message);
     const musicFollowUp      = !musicReq && isMusicFollowUp(message, history);
@@ -1700,7 +1705,10 @@ exports.streamMessage = async (req, res) => {
     } catch(e) { console.error("buildSystemPrompt/stream error:", e.message); }
 
     if (dailyContext) {
-      systemPrompt += `\n\n📅 LO QUE PASÓ HOY (usa esto si viene al caso — no lo menciones de golpe): ${dailyContext}`;
+      systemPrompt += `\n\n📅 CONTEXTO DE HOY: ${dailyContext}`;
+    }
+    if (healthContext) {
+      systemPrompt += `\n\n💓 DATOS DE SALUD EN TIEMPO REAL: ${healthContext}. Úsalos activamente: si el pulso es alto sugiere respiración, si los pasos son pocos sugiere moverse, si van bien reconócelo. Intégralos de forma natural en tu respuesta cuando sea relevante.`;
     }
 
     if (req.safetyWarning) {

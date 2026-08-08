@@ -15509,13 +15509,23 @@ async function sendMsg() {
   if (_intention) _dcParts.push(`Su intención de hoy: "${_intention}"`);
   const _todayTrigger = localStorage.getItem(getTriggerKey?.() || ("zyra_trigger_" + _today));
   if (_todayTrigger) { try { const _tObj = JSON.parse(_todayTrigger); if (_tObj?.trigger && _tObj.trigger !== "ninguno") { const _TLAB = {trabajo:"trabajo",familia:"su familia",pareja:"su pareja/amor",salud:"su salud",dinero:"dinero/finanzas",soledad:"soledad",estres:"estrés general",sueno:"falta de sueño"}; _dcParts.push(`El detonante de su emoción de hoy fue: ${_TLAB[_tObj.trigger] || _tObj.trigger}`); } } catch(e) {} }
-  // Datos de salud física: pulso y pasos
+  const dailyContext = _dcParts.join(". ");
+
+  // Datos de salud física — campo separado para que la IA los use activamente
+  const _healthParts = [];
   try {
     const _hrRaw = localStorage.getItem('zyra_watch_hr');
     if (_hrRaw) {
       const _hr = JSON.parse(_hrRaw);
       const _hrAge = Math.round((Date.now() - _hr.ts) / 60000);
-      if (_hrAge < 120) _dcParts.push(`Frecuencia cardíaca: ${_hr.bpm} bpm (medida hace ${_hrAge > 0 ? _hrAge + ' min' : 'ahora'})`);
+      if (_hrAge < 120) {
+        _healthParts.push(`frecuencia cardíaca: ${_hr.bpm} bpm (hace ${_hrAge > 0 ? _hrAge + ' min' : 'ahora'})`);
+        const _hrHist = JSON.parse(localStorage.getItem('zyra_watch_hr_hist') || '[]');
+        if (_hrHist.length >= 3) {
+          const _avg = Math.round(_hrHist.reduce((a,b)=>a+b.bpm,0)/_hrHist.length);
+          _healthParts.push(`promedio del día: ${_avg} bpm`);
+        }
+      }
     }
   } catch(e) {}
   try {
@@ -15524,9 +15534,11 @@ async function sendMsg() {
     let _stepsVal = null;
     if (_stpW) { const d = JSON.parse(_stpW); if (d.date === _today) _stepsVal = d.steps; }
     if (_stpP && !_stepsVal) { const d = JSON.parse(_stpP); if (d.date === _today) _stepsVal = d.steps; }
-    if (_stepsVal != null) _dcParts.push(`Pasos de hoy: ${_stepsVal.toLocaleString()} pasos`);
+    if (_stepsVal != null) {
+      _healthParts.push(`pasos hoy: ${_stepsVal.toLocaleString()} de 8.000 meta (${Math.round((_stepsVal/8000)*100)}%)`);
+    }
   } catch(e) {}
-  const dailyContext = _dcParts.join(". ");
+  const healthContext = _healthParts.length ? _healthParts.join(", ") : undefined;
 
   try {
     const r = await fetch("/api/chat/stream", {
@@ -15535,7 +15547,7 @@ async function sendMsg() {
         "Content-Type": "application/json",
         ...(token ? {Authorization: "Bearer " + token} : {})
       },
-      body: JSON.stringify({message:msg, conversationId:currentConvId, history:historyPayload, dailyContext: dailyContext || undefined})
+      body: JSON.stringify({message:msg, conversationId:currentConvId, history:historyPayload, dailyContext: dailyContext || undefined, healthContext})
     });
 
     // Si el servidor respondió con JSON (crisis / rate limit / error middleware)
@@ -16548,18 +16560,20 @@ async function vcSendMessage(text) {
     if (localStorage.getItem("zyra_journal_saved_" + _vcToday)) _vcDcParts.push("Escribió en el diario hoy");
     const _vcIntention = localStorage.getItem("zyra_intention_" + _vcToday);
     if (_vcIntention) _vcDcParts.push(`Su intención de hoy: "${_vcIntention}"`);
+    const vcDailyCtx = _vcDcParts.join(". ") || undefined;
+    const _vcHealthParts = [];
     try {
       const _vcHr = localStorage.getItem('zyra_watch_hr');
-      if (_vcHr) { const h = JSON.parse(_vcHr); const age = Math.round((Date.now()-h.ts)/60000); if (age<120) _vcDcParts.push(`Frecuencia cardíaca: ${h.bpm} bpm`); }
+      if (_vcHr) { const h = JSON.parse(_vcHr); const age = Math.round((Date.now()-h.ts)/60000); if (age<120) _vcHealthParts.push(`frecuencia cardíaca: ${h.bpm} bpm`); }
       const _vcStpW = localStorage.getItem('zyra_watch_steps');
       const _vcStpP = localStorage.getItem('zyra_phone_steps');
       let _vcSteps = null;
       if (_vcStpW) { const d2 = JSON.parse(_vcStpW); if (d2.date===_vcToday) _vcSteps = d2.steps; }
       if (_vcStpP && !_vcSteps) { const d2 = JSON.parse(_vcStpP); if (d2.date===_vcToday) _vcSteps = d2.steps; }
-      if (_vcSteps != null) _vcDcParts.push(`Pasos de hoy: ${_vcSteps.toLocaleString()}`);
+      if (_vcSteps != null) _vcHealthParts.push(`pasos hoy: ${_vcSteps.toLocaleString()}`);
     } catch(e) {}
-    const vcDailyCtx = _vcDcParts.join(". ") || undefined;
-    const d = await api('/chat','POST',{message:text,conversationId:vcConvId,history:vcHistoryPayload,mode:'voice',dailyContext:vcDailyCtx});
+    const vcHealthCtx = _vcHealthParts.length ? _vcHealthParts.join(", ") : undefined;
+    const d = await api('/chat','POST',{message:text,conversationId:vcConvId,history:vcHistoryPayload,mode:'voice',dailyContext:vcDailyCtx,healthContext:vcHealthCtx});
 
     // Crisis detectada durante llamada de voz
     if (d.crisis) {
