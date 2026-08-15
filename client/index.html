@@ -9186,6 +9186,15 @@ function renderDashMoodCalendar(history) {
     side.innerHTML = statsHtml + legendHtml;
   }
 }
+async function refreshMoodWidgets() {
+  try {
+    const hd = await api("/profile/history");
+    window._dashHistory = hd.history || [];
+    renderChart(hd.history);
+    renderMoodMiniTrend(hd.history || []);
+    renderDashMoodCalendar(hd.history || []);
+  } catch (e) {}
+}
 
 function selectIntention(btn) {
   const inp = document.getElementById("daily-intention-input");
@@ -9231,6 +9240,7 @@ async function quickLogEmotion(key) {
     if (dot) dot.style.display = 'none';
     renderQuickEmoPicker(key);
     renderParaTiHoy(key, [], _gamifStatus?.streak || 0);
+    refreshMoodWidgets();
     if (typeof triggerMission === 'function') triggerMission('log_emotion');
     zyraToast(em.emoji + ' ' + em.label + ' registrado', 'success');
     setTimeout(() => showZyraEmotionReaction(key), 800);
@@ -11421,7 +11431,7 @@ function showTestResult() {
     enojado:   {emoji:"🔥",title:"Algo te está molestando",desc:"El enojo te dice que algo importante para ti está siendo afectado. No tienes que aguantarlo callado/a. Cuéntame qué pasó.",color:"#ef4444"},
   };
   const r = results[mood] || results.tranquilo;
-  if(token) api("/profile/emotion","POST",{emotion:mood,intensity:5}).catch(()=>{});
+  if(token) { api("/profile/emotion","POST",{emotion:mood,intensity:5}).catch(()=>{}); if (typeof refreshMoodWidgets === "function") refreshMoodWidgets(); }
   const actions = {
     talk:       `<button class="btn-primary" style="width:auto;padding:13px 28px" onclick="showPage('assistant')">💬 Hablar con Zyra ahora</button>`,
     rest:       `<button class="btn-primary" style="width:auto;padding:13px 28px" onclick="showPage('wellness')">🧘 Ir a Bienestar</button>`,
@@ -15562,6 +15572,7 @@ async function submitMoodCheckin() {
     await api("/profile/mood-checkin", "POST", { emotion: _selectedMood, note });
     closeMoodCheckin();
     zyraToast(`✨ Registrado — hoy te sientes ${_selectedMood}`, "success");
+    if (typeof refreshMoodWidgets === "function") refreshMoodWidgets();
     if (_selectedMood === "triste" || _selectedMood === "ansioso" || _selectedMood === "agotado") {
       const inp = document.getElementById("chat-input");
       if (inp && !inp.value) inp.value = `Me siento ${_selectedMood} hoy`;
@@ -17120,6 +17131,7 @@ async function quickEmotionSelect(emotion) {
     const dot=document.getElementById('emotion-checkin-dot'); if(dot) dot.style.display='none';
     renderQuickEmoPicker(emotion);
     renderParaTiHoy(emotion, [], _gamifStatus?.streak || 0);
+    refreshMoodWidgets();
     setTimeout(() => _zyraEmotionReaction(emotion, _gamifStatus?.streak || 0), 1200);
   } catch(e){}
 }
@@ -22936,6 +22948,7 @@ function submitCheckin(emotion) {
   // Persiste en el servidor (emotionHistory) — fire & forget
   if (token) {
     api("/profile/mood-checkin", "POST", { emotion }).catch(() => {});
+    if (typeof refreshMoodWidgets === "function") refreshMoodWidgets();
     triggerMission("log_emotion");
   }
   setTimeout(() => showZyraEmotionReaction(emotion), 1000);
