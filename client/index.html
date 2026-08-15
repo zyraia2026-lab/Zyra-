@@ -9142,9 +9142,13 @@ function renderDashMoodCalendar(history) {
     const emo = getDayEmo(d);
     if (emo) usedEmos.add(emo);
     const isToday = d === today;
-    const emoji = emo ? EMO_EMOJI[emo] || "•" : (d < today ? "·" : "");
+    const emoji = emo ? EMO_EMOJI[emo] || "•" : "";
     const bg = isToday ? "background:rgba(99,102,241,.15);border:1.5px solid rgba(99,102,241,.4)" : emo ? "background:var(--surface)" : "";
-    html += `<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:${emo?15:11}px;color:${emo?"inherit":"var(--text3)"};${bg};cursor:default" title="${emo||""}">${emoji}</div>`;
+    const numColor = isToday ? "var(--accent)" : "var(--text3)";
+    html += `<div style="aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-radius:8px;${bg};cursor:default" title="${d} de ${monthNames[month]}${emo ? " · " + emo : ""}">
+      <span style="font-size:10px;font-weight:${isToday ? 800 : 600};color:${numColor};line-height:1">${d}</span>
+      ${emo ? `<span style="font-size:14px;line-height:1.1">${emoji}</span>` : ""}
+    </div>`;
   }
   grid.innerHTML = html;
   if (legend) {
