@@ -882,7 +882,7 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
   z-index: 1;
   background: white;
   border-radius: 24px;
-  padding: clamp(16px,2.4vh,28px) clamp(28px,4.2vw,44px) clamp(10px,1.8vh,20px);
+  padding: clamp(18px,2.8vh,32px) clamp(28px,4.2vw,44px) clamp(12px,2.2vh,24px);
   box-shadow:
     0 4px 6px rgba(99,102,241,0.04),
     0 20px 60px rgba(99,102,241,0.12),
@@ -896,7 +896,7 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: clamp(8px,1.4vh,14px);
+  margin-bottom: clamp(8px,1.6vh,18px);
 }
 .auth-logo-img {
   width: clamp(32px,4vh,42px);
@@ -926,12 +926,12 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
 .auth-sub {
   color: #64748b;
   font-size: 13.5px;
-  margin-bottom: clamp(8px,1.4vh,15px);
+  margin-bottom: clamp(8px,1.6vh,18px);
   line-height: 1.5;
 }
 
 /* Inputs con ícono */
-.form-group { margin-bottom: clamp(7px,1.2vh,11px); position: relative; }
+.form-group { margin-bottom: clamp(8px,1.6vh,15px); position: relative; }
 .form-group label {
   display: block;
   font-size: 11px;
@@ -957,7 +957,7 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
 }
 .form-group input {
   width: 100%;
-  padding: clamp(8px,1.3vh,10px) 18px clamp(8px,1.3vh,10px) 44px;
+  padding: clamp(9px,1.6vh,13px) 18px clamp(9px,1.6vh,13px) 44px;
   border: 2px solid #e8ecf8;
   border-radius: 14px;
   font-size: 14px;
@@ -1002,7 +1002,7 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
   font-size: 15px;
   font-weight: 800;
   cursor: pointer;
-  margin-top: clamp(4px,0.8vh,8px);
+  margin-top: clamp(6px,1.2vh,12px);
   transition: all .25s;
   position: relative;
   overflow: hidden;
