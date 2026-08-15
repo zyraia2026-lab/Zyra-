@@ -17,6 +17,80 @@ try {
   }
 } catch(e) { console.log("Groq no disponible:", e.message); }
 
+/* ════════════════════════════════════════
+   GEMINI (segundo proveedor — se reparte la carga con Groq
+   para que ninguno de los dos se quede sin cupo a mitad de charla)
+════════════════════════════════════════ */
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+const GEMINI_MODEL = "gemini-flash-latest";
+if (GEMINI_API_KEY.length > 10) console.log("✨ Gemini conectado correctamente");
+
+// Umbral permisivo: Zyra ya tiene su propio manejo de crisis/seguridad en el
+// system prompt y el safetyGuard de la ruta — no queremos que el filtro por
+// defecto de Gemini bloquee conversaciones legítimas sobre tristeza, ansiedad
+// o angustia emocional (justo el tipo de mensaje que más recibe esta app).
+const GEMINI_SAFETY = ["HARASSMENT", "HATE_SPEECH", "SEXUALLY_EXPLICIT", "DANGEROUS_CONTENT"]
+  .map(category => ({ category: `HARM_CATEGORY_${category}`, threshold: "BLOCK_ONLY_HIGH" }));
+
+function toGeminiPayload(messages, temperature, maxTokens) {
+  const systemMsg = messages.find(m => m.role === "system");
+  const contents = messages
+    .filter(m => m.role !== "system" && m.content)
+    .map(m => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }));
+  return {
+    systemInstruction: systemMsg ? { parts: [{ text: systemMsg.content }] } : undefined,
+    contents,
+    generationConfig: { temperature, maxOutputTokens: maxTokens },
+    safetySettings: GEMINI_SAFETY,
+  };
+}
+
+async function callGemini(messages, temperature, maxTokens) {
+  if (!GEMINI_API_KEY) throw new Error("Gemini no configurado");
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(toGeminiPayload(messages, temperature, maxTokens)),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data?.error?.message || `Gemini ${r.status}`);
+  const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
+  return text.trim();
+}
+
+async function* callGeminiStream(messages, temperature, maxTokens) {
+  if (!GEMINI_API_KEY) throw new Error("Gemini no configurado");
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(toGeminiPayload(messages, temperature, maxTokens)),
+  });
+  if (!r.ok) {
+    const errText = await r.text().catch(() => "");
+    throw new Error(errText || `Gemini ${r.status}`);
+  }
+  const reader = r.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    const lines = buf.split("\n");
+    buf = lines.pop();
+    for (const line of lines) {
+      if (!line.startsWith("data: ")) continue;
+      const jsonStr = line.slice(6).trim();
+      if (!jsonStr) continue;
+      try {
+        const chunk = JSON.parse(jsonStr);
+        const t = chunk?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
+        if (t) yield t;
+      } catch (_) {}
+    }
+  }
+}
+
 // Modelos con cupo de tokens por minuto muy bajo en la cuenta gratuita: cuando se
 // usan como último recurso, se les manda un prompt reducido para que no fallen
 // por exceder su propio límite (en vez de simplemente sumarse al conteo de fallos).
@@ -1431,10 +1505,25 @@ exports.sendMessage = async (req, res) => {
       }
     }
 
+    // Reparto entre proveedores: la llamada de voz prioriza a Groq (más rápido,
+    // clave para que se sienta como una llamada real); el resto de mensajes
+    // priorizan a Gemini (cupo gratuito mucho más grande). Cada uno cae al otro
+    // si falla o se queda sin cupo — así ninguno de los dos deja el chat
+    // colgado a mitad de conversación.
+    const groqAttempts   = MODEL_ORDER.map(model => ({ provider: "groq", model }));
+    const geminiAttempt  = { provider: "gemini" };
+    const attemptOrder   = isVoice ? [...groqAttempts, geminiAttempt] : [geminiAttempt, ...groqAttempts];
+
     let rawResponse = "";
-    if (groq) {
-      for (const model of MODEL_ORDER) {
-        try {
+    for (const attempt of attemptOrder) {
+      try {
+        if (attempt.provider === "gemini") {
+          if (!GEMINI_API_KEY) continue;
+          rawResponse = await callGemini(aiMessages, TEMPERATURE, MAX_TOKENS);
+          if (rawResponse) { console.log(`✅ Gemini OK [${userPlan}]`); break; }
+        } else {
+          if (!groq) continue;
+          const model = attempt.model;
           const messagesForModel = LOW_TPM_MODELS.has(model)
             ? [{ role: "system", content: FALLBACK_SYSTEM_PROMPT }, ...aiMessages.slice(-3)]
             : aiMessages;
@@ -1447,9 +1536,9 @@ exports.sendMessage = async (req, res) => {
           });
           rawResponse = completion.choices[0]?.message?.content?.trim() || "";
           if (rawResponse) { console.log(`✅ Groq OK [${userPlan}] con ${model}`); break; }
-        } catch(e) {
-          console.error(`❌ Groq ${model}:`, e.message);
         }
+      } catch(e) {
+        console.error(`❌ ${attempt.provider === "gemini" ? "Gemini" : "Groq " + attempt.model}:`, e.message);
       }
     }
 
@@ -1789,28 +1878,42 @@ exports.streamMessage = async (req, res) => {
 
     let rawResponse = "";
 
-    // ── Stream Groq — skip si es petición de música con artista conocido ──
+    // ── Stream — skip si es petición de música con artista conocido ──
+    // Este endpoint es solo para el chat normal en vivo (no la llamada de
+    // voz), así que siempre prioriza Gemini (cupo gratuito más grande) y cae
+    // a la cadena de Groq si Gemini falla o se agota.
     if (_earlyMusicOverride) {
       rawResponse = _earlyMusicOverride;
       send({ t: _earlyMusicOverride });
-    } else if (groq) {
-      for (const model of MODEL_ORDER) {
+    } else {
+      const attemptOrder = [{ provider: "gemini" }, ...MODEL_ORDER.map(model => ({ provider: "groq", model }))];
+      for (const attempt of attemptOrder) {
         try {
-          const messagesForModel = LOW_TPM_MODELS.has(model)
-            ? [{ role: "system", content: FALLBACK_SYSTEM_PROMPT }, ...aiMessages.slice(-3)]
-            : aiMessages;
-          const stream = await groq.chat.completions.create({
-            model, messages: messagesForModel, temperature: TEMPERATURE,
-            max_tokens: MAX_TOKENS, stream: true,
-            ...(REASONING_EFFORT_MODELS.has(model) ? { reasoning_effort: "low" } : {}),
-          });
-          for await (const chunk of stream) {
-            const delta = chunk.choices[0]?.delta?.content || "";
-            if (delta) { rawResponse += delta; send({ t: delta }); }
+          if (attempt.provider === "gemini") {
+            if (!GEMINI_API_KEY) continue;
+            for await (const piece of callGeminiStream(aiMessages, TEMPERATURE, MAX_TOKENS)) {
+              rawResponse += piece; send({ t: piece });
+            }
+            if (rawResponse.length > 0) { console.log(`✅ Gemini stream [${userPlan}]`); break; }
+          } else {
+            if (!groq) continue;
+            const model = attempt.model;
+            const messagesForModel = LOW_TPM_MODELS.has(model)
+              ? [{ role: "system", content: FALLBACK_SYSTEM_PROMPT }, ...aiMessages.slice(-3)]
+              : aiMessages;
+            const stream = await groq.chat.completions.create({
+              model, messages: messagesForModel, temperature: TEMPERATURE,
+              max_tokens: MAX_TOKENS, stream: true,
+              ...(REASONING_EFFORT_MODELS.has(model) ? { reasoning_effort: "low" } : {}),
+            });
+            for await (const chunk of stream) {
+              const delta = chunk.choices[0]?.delta?.content || "";
+              if (delta) { rawResponse += delta; send({ t: delta }); }
+            }
+            if (rawResponse.length > 0) { console.log(`✅ Groq stream [${userPlan}] ${model}`); break; }
           }
-          if (rawResponse.length > 0) { console.log(`✅ Groq stream [${userPlan}] ${model}`); break; }
         } catch(e) {
-          console.error(`❌ Groq stream ${model}:`, e.message);
+          console.error(`❌ ${attempt.provider === "gemini" ? "Gemini stream" : "Groq stream " + attempt.model}:`, e.message);
         }
       }
     }
