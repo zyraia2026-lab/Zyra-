@@ -2697,7 +2697,7 @@ async function b2bSubmitContact() {
         <div class="chat-name">Zyra</div>
         <div class="chat-status"><span class="chat-dot"></span>Tu acompañante emocional · IA con memoria</div>
       </div>
-      <div class="ai-badge" style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><span style="font-size:10px;font-weight:800;color:var(--accent);letter-spacing:.3px">✦ ZYRA IA</span><span style="font-size:9px;color:var(--text3);white-space:nowrap">≠ ChatGPT</span></div>
+      <div class="ai-badge" style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><span style="font-size:10px;font-weight:800;color:var(--accent);letter-spacing:.3px">✦ ZYRA IA</span><span style="font-size:9px;color:var(--text3);white-space:nowrap">Con memoria real</span></div>
       <button class="btn-tts" id="btn-tts-toggle" onclick="toggleAutoSpeak()" title="Activar voz">🔇</button>
       <button class="btn-feedback" onclick="showSavedMsgs()" title="Ver mensajes guardados" style="font-size:16px;opacity:.6">🔖</button>
       <button class="btn-feedback" onclick="exportCurrentChat()" title="Exportar conversación" style="font-size:16px;opacity:.5">💾</button>
@@ -2715,7 +2715,7 @@ async function b2bSubmitContact() {
     <button id="btn-scroll-bottom" class="btn-scroll-bottom" onclick="scrollChatBottom()" title="Ir al final" style="display:none">↓</button>
     <div class="chat-input" style="position:relative">
       <div id="cmd-autocomplete" style="display:none;position:absolute;bottom:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.3);max-height:240px;overflow-y:auto;z-index:200"></div>
-      <!-- Diferenciadores vs ChatGPT -->
+      <!-- Accesos rápidos a lo que hace único a Zyra -->
       <div style="display:flex;gap:6px;overflow-x:auto;padding:6px 4px 8px;scrollbar-width:none;-ms-overflow-style:none" id="zyra-diff-pills">
         <span style="flex-shrink:0;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:var(--accent);white-space:nowrap;cursor:pointer" onclick="showPage('journal')" title="Tu diario emocional conectado">📓 Lee tu diario</span>
         <span style="flex-shrink:0;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:#10b981;white-space:nowrap;cursor:pointer" onclick="showPage('wellness');setTimeout(()=>openWellness('breath'),100)" title="Respiración guiada integrada">🌬️ /respirar</span>
@@ -4012,6 +4012,7 @@ function hideError(id) { const e = document.getElementById(id); if(e) { e.style.
 /* ── PAGES ── */
 function showPage(name) {
   window._zyraCurrentPage = name;
+  document.body.dataset.page = name;
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
   const pg = document.getElementById("page-" + name);
   if(pg) pg.classList.add("active");

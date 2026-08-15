@@ -2041,7 +2041,7 @@ textarea.chat-ta::placeholder{color:var(--placeholder);-webkit-text-fill-color:v
 @media(max-width:768px){
   .zyra-notif-fab{bottom:116px;right:12px;width:38px;height:38px;font-size:15px}
   .fab-qn{bottom:calc(70px + env(safe-area-inset-bottom,0px));right:12px;width:38px;height:38px;font-size:15px}
-  .btn-scroll-bottom{position:fixed!important;bottom:162px;left:50%;transform:translateX(-50%);margin:0;width:30px;height:30px;font-size:13px}
+  .btn-scroll-bottom{width:30px;height:30px;font-size:13px}
 }
 .zyra-notif-count{position:absolute;top:-5px;right:-5px;background:#ef4444;color:#fff;font-size:9px;font-weight:800;min-width:18px;height:18px;border-radius:9px;padding:0 4px;display:none;align-items:center;justify-content:center;border:2px solid var(--bg,#fff);box-shadow:0 2px 8px rgba(0,0,0,.2)}
 @media(max-width:380px){
@@ -2796,7 +2796,7 @@ body {
   }
   .chat-header > div:nth-child(2) { flex: 1; min-width: 0; overflow: hidden; }
   .chat-name   { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .chat-status { font-size: 11px; }
+  .chat-status { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
   .ai-badge    { display: none !important; }
 
   /* ── Botones TTS y Llamada en header ── */
@@ -3888,6 +3888,14 @@ body {
     max-height: calc(100vh  - 60px - env(safe-area-inset-bottom, 0px)) !important;
     max-height: calc(100dvh - 60px - env(safe-area-inset-bottom, 0px)) !important;
   }
+
+  /* The chat input block (input row + suggestion pills + disclaimer) is taller
+     than on other pages and sits flush above the tabbar with no gap, so the
+     speed-dial FAB needs to float above the whole block instead of just above
+     the tabbar or it visually sits on top of the disclaimer text. */
+  body[data-page="assistant"] .mob-speed-dial {
+    bottom: calc(270px + env(safe-area-inset-bottom, 0px)) !important;
+  }
 }
 
 /* ══════════════════════════════════════════
@@ -3920,13 +3928,17 @@ body {
   }
   .mob-speed-dial.visible { display: flex; }
 
-  /* Sub-items list — slides up on open */
+  /* Sub-items list — slides up on open. Positioned absolute so the closed
+     (invisible) state doesn't reserve layout space and silently block taps
+     on whatever is underneath it. */
   .mob-sd-items {
+    position: absolute;
+    bottom: calc(100% + 14px);
+    right: 0;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
     gap: 14px;
-    margin-bottom: 14px;
     opacity: 0;
     transform: translateY(10px) scale(0.9);
     transform-origin: bottom right;
