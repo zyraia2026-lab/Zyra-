@@ -8,27 +8,32 @@ function esc(str) {
 }
 
 const BRAND_HEADER = `
-  <div style="background:linear-gradient(135deg,#7c5cfc,#4a9eff);padding:32px;text-align:center;">
-    <h1 style="color:white;margin:0;font-size:28px;letter-spacing:-1px;">🌊 Zyra</h1>
-    <p style="color:rgba(255,255,255,0.8);margin:8px 0 0;font-size:14px;">Bienestar Emocional con IA</p>
+  <div style="background:linear-gradient(135deg,#7c5cfc 0%,#6d5ef0 45%,#4a9eff 100%);padding:38px 32px 32px;text-align:center;">
+    <div style="display:inline-block;width:52px;height:52px;background:rgba(255,255,255,0.16);border:1px solid rgba(255,255,255,0.25);border-radius:16px;line-height:52px;font-size:24px;margin-bottom:14px;">🌊</div>
+    <h1 style="color:#ffffff;margin:0;font-size:24px;font-weight:800;letter-spacing:-0.3px;font-family:Georgia,'Times New Roman',serif;">Zyra</h1>
+    <p style="color:rgba(255,255,255,0.85);margin:6px 0 0;font-size:11.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">Bienestar emocional con IA</p>
   </div>`;
 
 const BRAND_FOOTER = `
-  <div style="padding:20px 32px;border-top:1px solid rgba(255,255,255,0.05);text-align:center;">
-    <p style="color:#3a3a5a;font-size:12px;margin:0;">© 2026 Zyra — Bienestar Emocional</p>
-    <p style="color:#3a3a5a;font-size:11px;margin:6px 0 0;">
-      <a href="mailto:zyra.ia.2026@gmail.com" style="color:#5a5a8a;text-decoration:none;">zyra.ia.2026@gmail.com</a> ·
-      <a href="https://zyra-app.onrender.com/legal" style="color:#5a5a8a;text-decoration:none;">Términos y Privacidad</a>
+  <div style="padding:24px 32px 30px;border-top:1px solid rgba(255,255,255,0.07);text-align:center;">
+    <p style="color:#4a4a6a;font-size:11.5px;margin:0 0 10px;line-height:1.6;">Este es un mensaje automático — no hace falta que respondas.</p>
+    <p style="color:#5a5a8a;font-size:11.5px;margin:0;">
+      <a href="mailto:zyra.ia.2026@gmail.com" style="color:#9b9bd8;text-decoration:none;font-weight:600;">Soporte</a>
+      <span style="color:#2a2a40;margin:0 8px;">·</span>
+      <a href="https://zyra-app-8qva.onrender.com/legal" style="color:#9b9bd8;text-decoration:none;font-weight:600;">Términos y Privacidad</a>
     </p>
+    <p style="color:#33334d;font-size:10.5px;margin:16px 0 0;letter-spacing:.2px;">© 2026 Zyra — Hecho con 💜 para Latinoamérica</p>
   </div>`;
 
 function wrap(body) {
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"/></head>
-  <body style="margin:0;padding:0;background:#09090f;font-family:'Segoe UI',sans-serif;">
-    <div style="max-width:480px;margin:40px auto;background:#12121e;border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.07);">
-      ${BRAND_HEADER}
-      <div style="padding:36px 32px;">${body}</div>
-      ${BRAND_FOOTER}
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
+  <body style="margin:0;padding:0;background:#050508;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+    <div style="max-width:480px;margin:32px auto;padding:0 16px;">
+      <div style="background:#12121e;border-radius:22px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);box-shadow:0 24px 60px rgba(0,0,0,0.45);">
+        ${BRAND_HEADER}
+        <div style="padding:34px 32px;">${body}</div>
+        ${BRAND_FOOTER}
+      </div>
     </div>
   </body></html>`;
 }
@@ -56,16 +61,27 @@ async function sendBrevoEmail({ to, subject, html }) {
 
 const sendVerificationCode = async (toEmail, code, userName = "") => {
   const nameHtml = userName ? ` <strong style="color:#f0f0ff">${esc(userName)}</strong>` : "";
+  const codeSpaced = String(code).split("").join(" ");
   await sendBrevoEmail({
     to: toEmail,
-    subject: "Tu código de verificación — Zyra",
+    subject: `${code} es tu código de verificación — Zyra`,
     html: wrap(`
-      <p style="color:#a8a8c8;font-size:15px;margin:0 0 8px;text-align:center;">Hola${nameHtml}, tu código de verificación es:</p>
-      <div style="background:rgba(124,92,252,0.1);border:2px solid rgba(124,92,252,0.4);border-radius:16px;padding:24px;margin:24px 0;text-align:center;">
-        <span style="font-size:42px;font-weight:800;letter-spacing:12px;color:#f0f0ff;">${code}</span>
+      <div style="text-align:center;margin:0 0 4px;">
+        <span style="display:inline-block;width:40px;height:40px;background:rgba(124,92,252,0.14);border-radius:12px;line-height:40px;font-size:19px;">🔐</span>
       </div>
-      <p style="color:#5a5a7a;font-size:13px;margin:0;text-align:center;">Este código expira en <strong style="color:#a8a8c8;">10 minutos</strong>.</p>
-      <p style="color:#5a5a7a;font-size:13px;margin:8px 0 0;text-align:center;">Si no solicitaste este código, ignora este mensaje.</p>
+      <h2 style="color:#f0f0ff;font-size:19px;font-weight:800;text-align:center;margin:16px 0 6px;letter-spacing:-.2px;">Confirma que eres tú</h2>
+      <p style="color:#8a8ab0;font-size:14px;margin:0 0 26px;text-align:center;line-height:1.6;">Hola${nameHtml}, usa este código para continuar:</p>
+      <div style="background:linear-gradient(160deg,rgba(124,92,252,0.16),rgba(74,158,255,0.08));border:1.5px solid rgba(124,92,252,0.4);border-radius:18px;padding:26px 20px;margin:0 0 24px;text-align:center;">
+        <p style="color:#8b8bc4;font-size:10.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin:0 0 14px;">Tu código de verificación</p>
+        <div style="font-size:38px;font-weight:800;letter-spacing:6px;color:#ffffff;font-family:'Courier New',Consolas,monospace;">${codeSpaced}</div>
+      </div>
+      <table role="presentation" width="100%" style="border-collapse:collapse;">
+        <tr>
+          <td style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:13px 16px;text-align:center;">
+            <span style="color:#7a7a9a;font-size:12.5px;">⏱ Expira en <strong style="color:#c0c0e0;">10 minutos</strong> · Si no fuiste tú, ignora este correo</span>
+          </td>
+        </tr>
+      </table>
     `),
   });
 };
@@ -108,16 +124,27 @@ const sendWelcomeEmail = async (toEmail, userName = "") => {
 
 const sendPasswordResetCode = async (toEmail, code, userName = "") => {
   const nameHtml = userName ? ` <strong style="color:#f0f0ff">${esc(userName)}</strong>` : "";
+  const codeSpaced = String(code).split("").join(" ");
   await sendBrevoEmail({
     to: toEmail,
-    subject: "Restablecer contraseña — Zyra",
+    subject: `${code} — Restablecer tu contraseña de Zyra`,
     html: wrap(`
-      <p style="color:#a8a8c8;font-size:15px;margin:0 0 8px;text-align:center;">Hola${nameHtml}, recibimos una solicitud para restablecer tu contraseña.</p>
-      <div style="background:rgba(239,68,68,0.1);border:2px solid rgba(239,68,68,0.3);border-radius:16px;padding:24px;margin:24px 0;text-align:center;">
-        <span style="font-size:42px;font-weight:800;letter-spacing:12px;color:#f0f0ff;">${code}</span>
+      <div style="text-align:center;margin:0 0 4px;">
+        <span style="display:inline-block;width:40px;height:40px;background:rgba(239,68,68,0.14);border-radius:12px;line-height:40px;font-size:19px;">🔑</span>
       </div>
-      <p style="color:#5a5a7a;font-size:13px;margin:0;text-align:center;">Este código expira en <strong style="color:#a8a8c8;">10 minutos</strong>.</p>
-      <p style="color:#5a5a7a;font-size:13px;margin:8px 0 0;text-align:center;">Si no solicitaste este cambio, ignora este mensaje y tu contraseña seguirá siendo la misma.</p>
+      <h2 style="color:#f0f0ff;font-size:19px;font-weight:800;text-align:center;margin:16px 0 6px;letter-spacing:-.2px;">Restablecer contraseña</h2>
+      <p style="color:#8a8ab0;font-size:14px;margin:0 0 26px;text-align:center;line-height:1.6;">Hola${nameHtml}, recibimos una solicitud para cambiar tu contraseña. Usa este código:</p>
+      <div style="background:linear-gradient(160deg,rgba(239,68,68,0.14),rgba(239,68,68,0.05));border:1.5px solid rgba(239,68,68,0.35);border-radius:18px;padding:26px 20px;margin:0 0 24px;text-align:center;">
+        <p style="color:#f0a0a0;font-size:10.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin:0 0 14px;">Código de restablecimiento</p>
+        <div style="font-size:38px;font-weight:800;letter-spacing:6px;color:#ffffff;font-family:'Courier New',Consolas,monospace;">${codeSpaced}</div>
+      </div>
+      <table role="presentation" width="100%" style="border-collapse:collapse;">
+        <tr>
+          <td style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:13px 16px;text-align:center;">
+            <span style="color:#7a7a9a;font-size:12.5px;">⏱ Expira en <strong style="color:#c0c0e0;">10 minutos</strong> · Si no fuiste tú, tu contraseña sigue igual</span>
+          </td>
+        </tr>
+      </table>
     `),
   });
 };
