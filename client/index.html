@@ -2266,8 +2266,10 @@ async function b2bSubmitContact() {
       <div style="font-size:14px;font-weight:800;color:var(--text)" id="mood-cal-title"></div>
       <div style="font-size:11px;color:var(--text3)">Cada día = tu emoción registrada</div>
     </div>
-    <div id="mood-calendar-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;max-width:380px;margin:0 auto"></div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;justify-content:center" id="mood-cal-legend-dash"></div>
+    <div style="display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start">
+      <div id="mood-calendar-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;width:100%;max-width:380px;flex-shrink:0"></div>
+      <div style="flex:1;min-width:200px;display:flex;flex-direction:column;gap:18px" id="mood-cal-side"></div>
+    </div>
   </div>
 
   <!-- ══ SESIONES + METAS ══ -->
@@ -9112,7 +9114,7 @@ function _closeMorningRitual() {
 function renderDashMoodCalendar(history) {
   const titleEl = document.getElementById("mood-cal-title");
   const grid = document.getElementById("mood-calendar-grid");
-  const legend = document.getElementById("mood-cal-legend-dash");
+  const side = document.getElementById("mood-cal-side");
   if (!grid) return;
   const now = new Date();
   const year = now.getFullYear();
@@ -9151,8 +9153,37 @@ function renderDashMoodCalendar(history) {
     </div>`;
   }
   grid.innerHTML = html;
-  if (legend) {
-    legend.innerHTML = [...usedEmos].map(e=>`<span style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px">${EMO_EMOJI[e]||""} <span style="text-transform:capitalize">${e}</span></span>`).join("");
+  if (side) {
+    const daysLogged = Object.keys(dayMap).length;
+    const monthTally = {};
+    Object.keys(dayMap).forEach(day => {
+      const e = getDayEmo(Number(day));
+      if (e) monthTally[e] = (monthTally[e] || 0) + 1;
+    });
+    const topEmo = Object.entries(monthTally).sort((a, b) => b[1] - a[1])[0];
+    const pct = Math.round((daysLogged / daysInMonth) * 100);
+    const statsHtml = `
+      <div>
+        <div style="font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Resumen del mes</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <span style="font-size:13px;color:var(--text3)">Días registrados</span>
+            <span style="font-size:14px;font-weight:800;color:var(--text)">${daysLogged}/${daysInMonth} <span style="font-size:11px;font-weight:600;color:var(--text3)">(${pct}%)</span></span>
+          </div>
+          ${topEmo ? `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <span style="font-size:13px;color:var(--text3)">Más frecuente</span>
+            <span style="font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:5px">${EMO_EMOJI[topEmo[0]] || ""} <span style="text-transform:capitalize">${topEmo[0]}</span></span>
+          </div>` : ""}
+        </div>
+      </div>`;
+    const legendHtml = usedEmos.size ? `
+      <div>
+        <div style="font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Leyenda</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          ${[...usedEmos].map(e => `<span style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px">${EMO_EMOJI[e] || ""} <span style="text-transform:capitalize">${e}</span></span>`).join("")}
+        </div>
+      </div>` : "";
+    side.innerHTML = statsHtml + legendHtml;
   }
 }
 
