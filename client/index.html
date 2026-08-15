@@ -2271,7 +2271,7 @@ async function b2bSubmitContact() {
       <div style="font-size:11px;color:var(--text3)">Cada día = tu emoción registrada</div>
     </div>
     <div id="mood-calendar-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center"></div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px" id="mood-cal-legend"></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px" id="mood-cal-legend-dash"></div>
   </div>
 
   <!-- ══ SESIONES + METAS ══ -->
@@ -7972,7 +7972,7 @@ async function loadDashboard() {
     renderDashConvs(cd.conversations || []);
     renderDashGoals(goals);
     renderMoodMiniTrend(hd.history || []);
-    renderMoodCalendar(hd.history || []);
+    renderDashMoodCalendar(hd.history || []);
     renderJournalMemory(entries);
     window._journalCacheForHeatmap = entries;
     renderWeeklySummary(entries);
@@ -8715,7 +8715,7 @@ function renderMoodPrediction(history) {
   card.innerHTML = `<div style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.18);border-radius:16px;padding:12px 16px;display:flex;align-items:center;gap:12px">
     <span style="font-size:22px;flex-shrink:0">🔮</span>
     <div style="flex:1;font-size:12px;color:var(--text2);line-height:1.55">${txt}</div>
-    <button onclick="openQuickEmotion()" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:var(--accent);border-radius:10px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">¿Y hoy?</button>
+    <button onclick="openQuickEmotionModal()" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:var(--accent);border-radius:10px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">¿Y hoy?</button>
   </div>`;
   section.style.display = "block";
 }
@@ -9113,10 +9113,10 @@ function _closeMorningRitual() {
   localStorage.setItem("zyra_morning_ritual_" + new Date().toDateString(), "dismissed");
 }
 
-function renderMoodCalendar(history) {
+function renderDashMoodCalendar(history) {
   const titleEl = document.getElementById("mood-cal-title");
   const grid = document.getElementById("mood-calendar-grid");
-  const legend = document.getElementById("mood-cal-legend");
+  const legend = document.getElementById("mood-cal-legend-dash");
   if (!grid) return;
   const now = new Date();
   const year = now.getFullYear();
@@ -15150,7 +15150,7 @@ function _breathDone(card) {
   setTimeout(() => {
     addBotMsg("✅ **3 ciclos completos.** Tu sistema nervioso lo agradeció.\n\n¿Cómo te sientes ahora?");
     if (!localStorage.getItem("zyra_checkin_emotion_" + today)) {
-      setTimeout(() => openQuickEmotion(), 1800);
+      setTimeout(() => showQuickEmotion(), 1800);
     }
   }, 400);
 }
@@ -16307,7 +16307,7 @@ function endVoiceCall() {
   showPage('assistant');
   const _vcToday = new Date().toDateString();
   if (!localStorage.getItem("zyra_checkin_emotion_" + _vcToday) && _endedHistory.length >= 2) {
-    setTimeout(() => { if (typeof openQuickEmotion === 'function') openQuickEmotion(); }, 2200);
+    setTimeout(() => showQuickEmotion(), 2200);
   }
   // Post-call summary: if the call was meaningful, inject a recap card
   const _userTurns = _endedHistory.filter(m => m.role === 'user').length;
@@ -17044,6 +17044,13 @@ initTheme();
 /* ════════════════════════════════════════
    2. QUICK EMOTION MODAL
 ════════════════════════════════════════ */
+// Apertura directa (sin throttle) para clics explícitos del usuario — botón "¿Y hoy?" y panel de comandos
+function openQuickEmotionModal() {
+  const ob = document.getElementById('zyra-onboarding');
+  if (ob && ob.style.display === 'flex') return;
+  const m = document.getElementById('quick-emotion-modal');
+  if (m) m.style.display = 'flex';
+}
 let quickEmotionShown = false;
 function showQuickEmotion() {
   if (quickEmotionShown) return;
@@ -24083,7 +24090,7 @@ const _CMD_ITEMS = [
   { group:"Navegar", icon:"🌿", bg:"rgba(16,185,129,.15)", label:"Bienestar", sub:"Hábitos, agua, sueño, meditación", action:()=>showPage("wellness") },
   { group:"Navegar", icon:"🎮", bg:"rgba(139,92,246,.15)", label:"Juegos", sub:"Actividades y retos", action:()=>showPage("games") },
   { group:"Navegar", icon:"👤", bg:"rgba(236,72,153,.15)", label:"Perfil", sub:"Configuración y logros", action:()=>showPage("profile") },
-  { group:"Acción", icon:"😊", bg:"rgba(99,102,241,.15)", label:"Registrar emoción", sub:"¿Cómo te sientes ahora?", action:()=>openQuickEmotion() },
+  { group:"Acción", icon:"😊", bg:"rgba(99,102,241,.15)", label:"Registrar emoción", sub:"¿Cómo te sientes ahora?", action:()=>openQuickEmotionModal() },
   { group:"Acción", icon:"🫁", bg:"rgba(99,102,241,.15)", label:"Respiración guiada", sub:"Ejercicio 4-4-6 en el chat", action:()=>{ showPage("assistant"); setTimeout(_breathChatStart, 300); } },
   { group:"Acción", icon:"✍️", bg:"rgba(16,185,129,.15)", label:"Nota rápida", sub:"Escribir sin guardar aún", action:()=>openQuickNote() },
   { group:"Acción", icon:"💭", bg:"rgba(139,92,246,.15)", label:"Modo Desahogo", sub:"Escribe libremente, Zyra escucha", action:()=>{ showPage("assistant"); setTimeout(_desahogoStart, 300); } },
