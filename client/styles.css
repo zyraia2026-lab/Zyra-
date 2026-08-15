@@ -989,6 +989,25 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
   -webkit-text-fill-color: #94a3b8;
   font-weight: 400;
 }
+/* Chrome/Edge auto-rellenan con su propio estilo y dejan el texto casi
+   invisible — forzar nuestro color y fondo con el truco del box-shadow */
+.form-group input:-webkit-autofill,
+.form-group input:-webkit-autofill:hover,
+.form-group input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #0f172a !important;
+  -webkit-box-shadow: 0 0 0px 1000px #fafbff inset !important;
+  box-shadow: 0 0 0px 1000px #fafbff inset !important;
+  caret-color: #0f172a;
+  transition: background-color 5000s ease-in-out 0s;
+}
+[data-theme="dark"] .form-group input:-webkit-autofill,
+[data-theme="dark"] .form-group input:-webkit-autofill:hover,
+[data-theme="dark"] .form-group input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text) !important;
+  -webkit-box-shadow: 0 0 0px 1000px var(--surface) inset !important;
+  box-shadow: 0 0 0px 1000px var(--surface) inset !important;
+  caret-color: var(--text);
+}
 
 /* Botón principal */
 .btn-primary {
