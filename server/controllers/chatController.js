@@ -17,6 +17,17 @@ try {
   }
 } catch(e) { console.log("Groq no disponible:", e.message); }
 
+// Modelos con cupo de tokens por minuto muy bajo en la cuenta gratuita: cuando se
+// usan como último recurso, se les manda un prompt reducido para que no fallen
+// por exceder su propio límite (en vez de simplemente sumarse al conteo de fallos).
+const LOW_TPM_MODELS = new Set(["llama-3.1-8b-instant"]);
+const FALLBACK_SYSTEM_PROMPT = "Eres Zyra, una amiga cercana y cálida que acompaña emocionalmente. Hablas en español latinoamericano, natural y cercano, en 2-3 oraciones máximo. No eres una IA genérica, eres Zyra.";
+// Los modelos gpt-oss gastan parte del presupuesto de tokens en un razonamiento
+// interno oculto antes de escribir la respuesta visible; sin bajar el esfuerzo
+// de razonamiento, con presupuestos cortos (ej. llamada de voz) el "content"
+// puede salir vacío aunque la llamada a la API sea exitosa.
+const REASONING_EFFORT_MODELS = new Set(["openai/gpt-oss-120b", "openai/gpt-oss-20b"]);
+
 /* ════════════════════════════════════════
    SERVICIOS AUXILIARES
 ════════════════════════════════════════ */
@@ -1404,7 +1415,7 @@ exports.sendMessage = async (req, res) => {
       { role: "user", content: message }
     ];
     // 70b para todos: Groq es rápido, la diferencia de calidad vale más que los ms ahorrados
-    const MODEL_ORDER = ["llama-3.3-70b-versatile", "llama-3.1-70b-versatile", "llama3-70b-8192", "llama-3.1-8b-instant"];
+    const MODEL_ORDER = ["llama-3.3-70b-versatile", "openai/gpt-oss-120b", "openai/gpt-oss-20b", "llama-3.1-8b-instant"];
 
     const MAX_TOKENS = isVoice ? 90 : (userPlan === "premium" ? 1000 : msgMode === "factual" ? 800 : userPlan === "basic" ? 650 : 500);
     const TEMPERATURE = isVoice ? 0.97 : msgMode === "factual" ? 0.60 : msgMode === "emotional" ? 0.93 : 0.95;
@@ -1424,11 +1435,15 @@ exports.sendMessage = async (req, res) => {
     if (groq) {
       for (const model of MODEL_ORDER) {
         try {
+          const messagesForModel = LOW_TPM_MODELS.has(model)
+            ? [{ role: "system", content: FALLBACK_SYSTEM_PROMPT }, ...aiMessages.slice(-3)]
+            : aiMessages;
           const completion = await groq.chat.completions.create({
             model,
-            messages: aiMessages,
+            messages: messagesForModel,
             temperature: TEMPERATURE,
             max_tokens: MAX_TOKENS,
+            ...(REASONING_EFFORT_MODELS.has(model) ? { reasoning_effort: "low" } : {}),
           });
           rawResponse = completion.choices[0]?.message?.content?.trim() || "";
           if (rawResponse) { console.log(`✅ Groq OK [${userPlan}] con ${model}`); break; }
@@ -1733,7 +1748,7 @@ exports.streamMessage = async (req, res) => {
       }
     }
     // 70b para todos: Groq es rápido, la diferencia de calidad vale más que los ms ahorrados
-    const MODEL_ORDER = ["llama-3.3-70b-versatile", "llama-3.1-70b-versatile", "llama3-70b-8192", "llama-3.1-8b-instant"];
+    const MODEL_ORDER = ["llama-3.3-70b-versatile", "openai/gpt-oss-120b", "openai/gpt-oss-20b", "llama-3.1-8b-instant"];
 
     const MAX_TOKENS  = userPlan === "premium" ? 1000 : msgMode === "factual" ? 800 : userPlan === "basic" ? 650 : 500;
     const TEMPERATURE = msgMode === "factual" ? 0.60 : msgMode === "emotional" ? 0.93 : 0.95;
@@ -1781,9 +1796,13 @@ exports.streamMessage = async (req, res) => {
     } else if (groq) {
       for (const model of MODEL_ORDER) {
         try {
+          const messagesForModel = LOW_TPM_MODELS.has(model)
+            ? [{ role: "system", content: FALLBACK_SYSTEM_PROMPT }, ...aiMessages.slice(-3)]
+            : aiMessages;
           const stream = await groq.chat.completions.create({
-            model, messages: aiMessages, temperature: TEMPERATURE,
+            model, messages: messagesForModel, temperature: TEMPERATURE,
             max_tokens: MAX_TOKENS, stream: true,
+            ...(REASONING_EFFORT_MODELS.has(model) ? { reasoning_effort: "low" } : {}),
           });
           for await (const chunk of stream) {
             const delta = chunk.choices[0]?.delta?.content || "";
