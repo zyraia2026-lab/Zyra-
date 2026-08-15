@@ -7,6 +7,10 @@ require("dotenv").config({ path: require("path").join(__dirname, ".env") });
 const mongoose  = require("mongoose");
 const bcrypt    = require("bcryptjs");
 
+if (process.env.NODE_ENV !== "production") {
+  require("dns").setServers(["8.8.8.8", "1.1.1.1"]);
+}
+
 const User         = require("./models/User");
 const Profile      = require("./models/Profile");
 const Goal         = require("./models/Goal");
@@ -37,16 +41,22 @@ async function seed() {
   }
 
   // Crear usuario demo
+  // _prehashed debe asignarse como propiedad directa, no dentro de create({...}):
+  // el schema es strict por defecto y descarta silenciosamente campos no declarados,
+  // así que el hook pre-save nunca veía la bandera y volvía a hashear la contraseña.
   const hash = await bcrypt.hash(DEMO_PASSWORD, 10);
-  const user = await User.create({
+  const userDoc = new User({
     name:     DEMO_NAME,
     email:    DEMO_EMAIL,
     password: hash,
     plan:     "premium",
     planExpiresAt: new Date(Date.now() + 365 * 86400000),
     planActivatedAt: new Date(),
-    _prehashed: true,
+    termsAcceptedAt: new Date(),
+    termsAcceptedVersion: "v1.1-2026-07",
   });
+  userDoc._prehashed = true;
+  const user = await userDoc.save();
   console.log(`👤 Usuario: ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
 
   // ── Historial emocional (últimos 45 días) ──
