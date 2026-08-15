@@ -567,7 +567,7 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
   display: flex;
   align-items: flex-end;
   justify-content: flex-start;
-  padding: 60px;
+  padding: 110px 56px 48px;
   overflow: hidden;
   background: #08080f;
 }
@@ -708,16 +708,16 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
 
 /* Texto principal sobre imagen */
 .auth-hero-text {
-  margin-bottom: 28px;
+  margin-bottom: 20px;
 }
 .auth-hero-text h2 {
   font-family: 'Playfair Display', serif;
-  font-size: clamp(32px, 3.8vw, 50px);
+  font-size: clamp(28px, 3.2vw, 42px);
   font-weight: 800;
   color: white;
-  line-height: 1.18;
+  line-height: 1.2;
   letter-spacing: -1px;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
   text-shadow: 0 2px 20px rgba(0,0,0,0.4);
 }
 .auth-hero-text h2 em {
@@ -728,9 +728,9 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
   background-clip: text;
 }
 .auth-hero-text p {
-  font-size: 15px;
+  font-size: 14px;
   color: rgba(255,255,255,0.75);
-  line-height: 1.75;
+  line-height: 1.6;
   max-width: 380px;
   font-weight: 400;
   text-shadow: 0 1px 8px rgba(0,0,0,0.5);
@@ -740,26 +740,26 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
 .auth-stats {
   display: flex;
   gap: 0;
-  margin-top: 28px;
+  margin-top: 18px;
   background: rgba(0,0,0,0.3);
   border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 18px;
-  padding: 18px 24px;
+  border-radius: 16px;
+  padding: 13px 22px;
   backdrop-filter: blur(12px);
   width: fit-content;
 }
 .auth-stat {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 0 24px;
+  gap: 3px;
+  padding: 0 20px;
 }
 .auth-stat:first-child { padding-left: 0; }
 .auth-stat:last-child  { padding-right: 0; }
 
 .auth-stat-num {
   font-family: 'Playfair Display', serif;
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 800;
   color: white;
   line-height: 1;
@@ -777,7 +777,7 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
 .auth-stat-sep {
   width: 1px;
   background: rgba(255,255,255,0.15);
-  height: 40px;
+  height: 34px;
   align-self: center;
 }
 
@@ -785,8 +785,8 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
 .auth-features {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 24px;
+  gap: 7px;
+  margin-top: 18px;
 }
 .auth-feat {
   display: flex;
@@ -794,8 +794,8 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
   gap: 14px;
   background: rgba(0,0,0,0.35);
   border: 1px solid rgba(255,255,255,0.12);
-  padding: 13px 18px;
-  border-radius: 16px;
+  padding: 11px 16px;
+  border-radius: 14px;
   backdrop-filter: blur(16px);
   transition: all 0.22s;
   animation: featIn .5s ease both;
@@ -812,10 +812,10 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
   transform: translateX(5px);
 }
 .auth-feat-icon {
-  font-size: 20px;
+  font-size: 18px;
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   background: rgba(255,255,255,0.1);
   border-radius: 10px;
   display: flex;
@@ -823,10 +823,10 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
   justify-content: center;
 }
 .auth-feat-text {
-  font-size: 13.5px;
+  font-size: 13px;
   color: rgba(255,255,255,0.9);
   font-weight: 600;
-  line-height: 1.4;
+  line-height: 1.35;
   text-shadow: 0 1px 4px rgba(0,0,0,0.4);
 }
 
