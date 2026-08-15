@@ -29,6 +29,15 @@ exports.applyCode = async (req, res) => {
     const referrer = await User.findOne({ referralCode: code.trim().toUpperCase() }).select("_id name planExpiresAt planActivatedAt").lean();
     if (!referrer) return res.status(404).json({ message: "Código no encontrado" });
 
+    // Atómico: solo marca referredBy si sigue en null — evita que peticiones
+    // concurrentes con códigos distintos acumulen premium gratis varias veces.
+    const claimed = await User.findOneAndUpdate(
+      { _id: req.user._id, referredBy: null },
+      { referredBy: referrer._id, referralRewardUsed: true },
+      { new: false }
+    );
+    if (!claimed) return res.status(400).json({ message: "Ya aplicaste un código de referido anteriormente" });
+
     const giveReward = async (u) => {
       const expires = new Date(u.planExpiresAt && u.planExpiresAt > new Date() ? u.planExpiresAt : new Date());
       expires.setDate(expires.getDate() + REWARD_DAYS);
@@ -39,10 +48,9 @@ exports.applyCode = async (req, res) => {
       });
     };
 
-    await Promise.all([giveReward(me), giveReward(referrer)]);
-
     await Promise.all([
-      User.findByIdAndUpdate(req.user._id, { referredBy: referrer._id, referralRewardUsed: true }),
+      giveReward(me),
+      giveReward(referrer),
       User.findByIdAndUpdate(referrer._id, { $inc: { referralCount: 1 } }),
     ]);
 
