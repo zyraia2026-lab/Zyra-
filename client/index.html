@@ -2266,8 +2266,8 @@ async function b2bSubmitContact() {
       <div style="font-size:14px;font-weight:800;color:var(--text)" id="mood-cal-title"></div>
       <div style="font-size:11px;color:var(--text3)">Cada día = tu emoción registrada</div>
     </div>
-    <div id="mood-calendar-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center"></div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px" id="mood-cal-legend-dash"></div>
+    <div id="mood-calendar-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;max-width:380px;margin:0 auto"></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;justify-content:center" id="mood-cal-legend-dash"></div>
   </div>
 
   <!-- ══ SESIONES + METAS ══ -->
@@ -5727,10 +5727,10 @@ function applyStreakBadge(streakDays) {
       const emo = localStorage.getItem("zyra_checkin_emotion_"+ds);
       const active = !!emo;
       const isToday = i === 6;
-      const col = active ? (EMO_COLOR[emo]||"#6366f1") : "rgba(255,255,255,.08)";
+      const col = active ? (EMO_COLOR[emo]||"#6366f1") : "var(--border)";
       return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
-        <div style="width:26px;height:26px;border-radius:50%;background:${col};transition:all .4s;box-shadow:${active?"0 0 8px "+col+"66":"none"};${isToday&&!active?"border:1.5px dashed rgba(255,255,255,.25)":""}"></div>
-        <span style="font-size:9px;color:${isToday?"var(--accent)":"rgba(255,255,255,.35)"};font-weight:${isToday?700:400}">${DAY[d.getDay()]}</span>
+        <div style="width:26px;height:26px;border-radius:50%;background:${col};transition:all .4s;box-shadow:${active?"0 0 8px "+col+"66":"none"};${isToday&&!active?"border:1.5px dashed var(--text4)":""}"></div>
+        <span style="font-size:9px;color:${isToday?"var(--accent)":"var(--text4)"};font-weight:${isToday?700:400}">${DAY[d.getDay()]}</span>
       </div>`;
     }).join("");
   }
@@ -9173,7 +9173,9 @@ function renderQuickEmoPicker(currentEmotion) {
   }).join('');
   if (label) {
     const cur = EMOTIONS.find(e => e.key === currentEmotion);
-    label.textContent = cur ? `Hoy: ${cur.emoji} ${cur.label} · toca para cambiar` : '¿Cómo te sientes ahora?';
+    const checkedInToday = !!localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString());
+    const prefix = checkedInToday ? "Hoy" : "Tu ánimo";
+    label.textContent = cur ? `${prefix}: ${cur.emoji} ${cur.label} · toca para cambiar` : '¿Cómo te sientes ahora?';
   }
 }
 
