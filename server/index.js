@@ -37,9 +37,6 @@ connectDB();
 // ── Confiar en el proxy de Render/Nginx para rate limiting correcto
 app.set("trust proxy", 1);
 
-// ── Sentry request tracking (debe ir antes de los otros middlewares)
-if (Sentry) app.use(Sentry.Handlers.requestHandler());
-
 // ── Seguridad: cabeceras HTTP
 app.use(helmet({
   crossOriginEmbedderPolicy: false,
@@ -256,7 +253,7 @@ app.get("*", (req, res) => {
 });
 
 // ── Sentry error handler (debe ir ANTES del error handler propio)
-if (Sentry) app.use(Sentry.Handlers.errorHandler());
+if (Sentry) Sentry.setupExpressErrorHandler(app);
 
 // ── Error handler global
 app.use((err, req, res, next) => {
