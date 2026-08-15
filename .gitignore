@@ -11,3 +11,4 @@ apk-build/
 .zyra-screenshots/
 scripts/zyra-test.js
 scripts/test-edge.js
+DEMO_LOGIN.md
