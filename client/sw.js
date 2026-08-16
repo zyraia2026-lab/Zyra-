@@ -1,5 +1,5 @@
-// ══ ZYRA SERVICE WORKER v5.3 ══
-const CACHE_NAME = 'zyra-v5.3';
+// ══ ZYRA SERVICE WORKER v5.4 ══
+const CACHE_NAME = 'zyra-v5.4';
 const STATIC_ASSETS = [
   '/', '/index.html', '/styles.css', '/manifest.json',
   '/Imagenes/1000154669.png',
@@ -56,7 +56,14 @@ self.addEventListener('fetch', e => {
   if (isAppShell) {
     e.respondWith(
       fetch(request).then(res => {
-        if (res.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, res.clone()));
+        // clone() debe llamarse aqui, de forma sincrona, apenas llega la respuesta —
+        // si se llama dentro del .then() de caches.open() (async), para cuando corre
+        // el navegador ya empezo a consumir el body de "res" para pintar la pagina,
+        // y clone() truena con "Response body is already used".
+        if (res.ok) {
+          const resToCache = res.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(request, resToCache));
+        }
         return res;
       }).catch(() => caches.match(request).then(cached => cached || caches.match('/index.html')))
     );
