@@ -3723,6 +3723,11 @@ const LOGO = "/Imagenes/zyra-avatar.png";
 let token = localStorage.getItem("zyra_token");
 let user  = (() => { try { return JSON.parse(localStorage.getItem("zyra_user") || "null"); } catch(e) { localStorage.removeItem("zyra_user"); return null; } })();
 
+// En celular el chat es la funcion central de la app, asi que aterriza ahi
+// en vez del dashboard (que en pantallas chicas viene con varias tarjetas
+// y avisos antes de llegar a lo importante). En desktop se queda igual.
+function _homePage() { return window.innerWidth <= 768 ? "assistant" : "dashboard"; }
+
 // Manejar redirect de OAuth (Google, Spotify, Facebook)
 (() => {
   const p = new URLSearchParams(location.search);
@@ -4168,10 +4173,10 @@ async function doLoginVerify() {
     setTimeout(updateNotifBadge, 1500);
     if (d.user.termsAcceptedAt) localStorage.setItem("zyra_terms_accepted", TERMS_VER);
     if (!d.user.termsAcceptedAt) {
-      _termsNextAction = "dashboard";
+      _termsNextAction = _homePage();
       showTermsOverlay();
     } else {
-      showPage("dashboard");
+      showPage(_homePage());
       setTimeout(() => checkOnboarding(), 800);
     }
   } catch(e) { showError("vl-error", e.message); shakeCode("vl"); }
@@ -4267,7 +4272,7 @@ async function acceptTermsAndContinue() {
   const overlay = document.getElementById("zyra-terms-overlay");
   if(overlay) overlay.style.display = "none";
   document.body.style.overflow = "";
-  if(_termsNextAction === "test") { startTest(true); } else { showPage("dashboard"); setTimeout(() => checkOnboarding(), 800); }
+  if(_termsNextAction === "test") { startTest(true); } else { showPage(_termsNextAction || _homePage()); setTimeout(() => checkOnboarding(), 800); }
 }
 function acceptGdpr() {
   localStorage.setItem("zyra_gdpr", "1");
@@ -9154,6 +9159,13 @@ function renderDashMoodCalendar(history) {
       <span style="font-size:10px;font-weight:${isToday ? 800 : 600};color:${numColor};line-height:1">${d}</span>
       ${emo ? `<span style="font-size:14px;line-height:1.1">${emoji}</span>` : ""}
     </div>`;
+  }
+  // Rellena la última fila con los primeros días del mes siguiente en gris
+  // (como Google Calendar) en vez de dejarla con celdas vacías sueltas.
+  const usedCells = startPad + daysInMonth;
+  const trailing = (7 - (usedCells % 7)) % 7;
+  for (let d = 1; d <= trailing; d++) {
+    html += `<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;opacity:.3"><span style="font-size:10px;font-weight:600;color:var(--text3)">${d}</span></div>`;
   }
   grid.innerHTML = html;
   if (side) {
@@ -16113,7 +16125,7 @@ function _initApp() {
     // Respetar deep link (?p=) o ir al dashboard
     const urlPage = _urlPs.get('p');
     const authPages = ['login','register','verify-login','verify-register'];
-    const startPage = (urlPage && !authPages.includes(urlPage)) ? urlPage : 'dashboard';
+    const startPage = (urlPage && !authPages.includes(urlPage)) ? urlPage : _homePage();
     showPage(startPage);
     setTimeout(() => checkOnboarding(), 1000);
   } else {
