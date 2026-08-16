@@ -35,7 +35,7 @@ Qué NO extraer:
 - Cosas ya guardadas en memorias existentes
 
 REGLAS DE FORMATO:
-- Máximo 2 memorias por turno, mínimo 0
+- Máximo 4 memorias por turno, mínimo 0 (si el mensaje trae varios datos nuevos distintos, ej. nombre + ciudad + trabajo + mascota, extráelos TODOS por separado — no elijas solo algunos)
 - Tipos: personal, emotional, preference, relationship, goal, event, situation
 - Importancia 1-5: 5=dato clave (trabajo, familia, situación crítica), 3=útil (gustos), 1=menor
 - Si menciona un evento futuro con fecha (examen el viernes, presentación mañana, cita el lunes, reunión esta semana), añade "followUpDate" con la fecha ISO estimada basándote en que hoy es ${new Date(new Date().getTime() - 5 * 60 * 60 * 1000).toISOString().slice(0,10)} (hora Colombia)
@@ -47,7 +47,7 @@ REGLAS DE FORMATO:
       model: "llama-3.1-8b-instant",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.1,
-      max_tokens: 300,
+      max_tokens: 450,
     });
 
     const raw = r.choices[0]?.message?.content?.trim() || "[]";
@@ -67,7 +67,7 @@ REGLAS DE FORMATO:
     }
     if (!Array.isArray(memories) || !memories.length) return;
 
-    for (const m of memories.slice(0, 2)) {
+    for (const m of memories.slice(0, 4)) {
       if (!m.content || typeof m.content !== "string") continue;
       const dup = await Memory.exists({ user: userId, content: { $regex: m.content.substring(0, 30), $options: "i" } });
       if (!dup) {
