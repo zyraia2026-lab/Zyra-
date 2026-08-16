@@ -1805,6 +1805,9 @@ nav {
 .hist-del:hover{color:var(--red)}
 .chat-box{flex:1;background:var(--bg2);border:2px solid var(--border);border-radius:var(--r-lg);display:flex;flex-direction:column;max-height:calc(100vh - 116px);overflow:hidden;box-shadow:var(--shadow-xs)}
 .chat-header{padding:18px 24px;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:16px;background:white}
+.mob-hist-toggle{display:none}
+.mob-sidebar-backdrop{display:none}
+.mob-sidebar-close{display:none}
 .chat-zyra-avatar{width:48px;height:48px;border-radius:var(--r-md);overflow:hidden;flex-shrink:0;background:var(--grad-soft);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm);border:2px solid var(--border)}
 .chat-zyra-avatar img{width:100%;height:100%;object-fit:contain;padding:5px}
 .chat-name{font-size:16px;font-weight:800;color:var(--text);letter-spacing:-.2px}
@@ -3922,6 +3925,53 @@ body {
      the tabbar or it visually sits on top of the disclaimer text. */
   body[data-page="assistant"] .mob-speed-dial {
     bottom: calc(270px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* ══════════════════════════════════════════
+   HISTORIAL DE CONVERSACIONES EN MÓVIL
+   El chat ahora es la pantalla de entrada en celular, pero el historial
+   (.sidebar) estaba completamente oculto ahí sin ninguna forma de verlo.
+   Se reutiliza el mismo .sidebar (mismos datos, sin duplicar nada) como
+   un cajón deslizable, igual al patrón de ChatGPT/apps de chat móviles.
+══════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .mob-hist-toggle {
+    display: flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; flex-shrink: 0;
+    background: none; border: none; cursor: pointer;
+    font-size: 18px; color: var(--text2, #c0c4d8);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mob-sidebar-close { display: none; }
+  .sidebar.mob-sidebar-open .mob-sidebar-close { display: flex; }
+  .mob-sidebar-backdrop {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.55);
+    z-index: 1999;
+  }
+  .mob-sidebar-backdrop.show { display: block; animation: mobSbFade .2s ease; }
+  @keyframes mobSbFade { from { opacity: 0 } to { opacity: 1 } }
+
+  .sidebar.mob-sidebar-open {
+    display: flex !important;
+    position: fixed;
+    top: 0; bottom: 0; left: 0;
+    width: 82vw; max-width: 320px;
+    max-height: 100vh;
+    border-radius: 0 20px 20px 0;
+    z-index: 2000;
+    animation: mobSbSlide .25s cubic-bezier(.16,1,.3,1);
+    padding-top: calc(20px + env(safe-area-inset-top, 0px));
+  }
+  @keyframes mobSbSlide { from { transform: translateX(-100%) } to { transform: translateX(0) } }
+  .mob-sidebar-close {
+    display: flex; align-items: center; justify-content: center;
+    position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); right: 14px;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--surface2, rgba(255,255,255,.06)); border: none;
+    color: var(--text2, #c0c4d8); font-size: 16px; cursor: pointer;
   }
 }
 

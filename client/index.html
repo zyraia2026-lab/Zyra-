@@ -2678,7 +2678,9 @@ async function b2bSubmitContact() {
 <!-- ══════ ASSISTANT ══════ -->
 <div id="page-assistant" class="page">
 <div class="assistant-body">
-  <div class="sidebar">
+  <div class="mob-sidebar-backdrop" id="mob-sidebar-backdrop" onclick="closeMobileHistory()"></div>
+  <div class="sidebar" id="chat-sidebar">
+    <button class="mob-sidebar-close" onclick="closeMobileHistory()" aria-label="Cerrar historial">✕</button>
     <button class="btn-new" onclick="newChat()">✦ Nueva sesión</button>
     <div class="history-label">Sesiones anteriores</div>
     <div style="padding:0 0 8px">
@@ -2688,6 +2690,7 @@ async function b2bSubmitContact() {
   </div>
   <div class="chat-box">
     <div class="chat-header">
+      <button class="mob-hist-toggle" onclick="openMobileHistory()" aria-label="Ver conversaciones anteriores" title="Conversaciones">☰</button>
       <div class="chat-zyra-avatar" id="chat-zyra-av" style="position:relative;overflow:visible">
         <img src="/Imagenes/1000154669.png" alt="Zyra" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
         <div id="chat-zyra-svg-fb" style="display:none"></div>
@@ -12804,6 +12807,20 @@ function _startPlaceholderRotation() {
     inp.setAttribute("placeholder", _PLACEHOLDERS[_phIdx]);
   }, 6000); // 6s en vez de 4s — menos ansioso
 }
+function openMobileHistory() {
+  const sb = document.getElementById("chat-sidebar");
+  const bd = document.getElementById("mob-sidebar-backdrop");
+  if (sb) sb.classList.add("mob-sidebar-open");
+  if (bd) bd.classList.add("show");
+  document.body.style.overflow = "hidden";
+}
+function closeMobileHistory() {
+  const sb = document.getElementById("chat-sidebar");
+  const bd = document.getElementById("mob-sidebar-backdrop");
+  if (sb) sb.classList.remove("mob-sidebar-open");
+  if (bd) bd.classList.remove("show");
+  document.body.style.overflow = "";
+}
 let _allConversations = [];
 async function loadHistory() {
   const el = document.getElementById("hist-list");
@@ -12872,6 +12889,7 @@ async function startRenameConv(e, id, span) {
   inp.addEventListener("keydown", ev => { if(ev.key==="Enter"){ev.preventDefault();inp.blur();} if(ev.key==="Escape"){inp.value=oldTitle;inp.blur();} });
 }
 function newChat() {
+  closeMobileHistory();
   currentConvId = null; chatHistory = [];
   _clearChatSearch();
   const msgs = document.getElementById("messages");
@@ -13019,6 +13037,7 @@ function fillPrompt(text) {
   setTimeout(() => sendMsg(), 50);
 }
 async function openConv(id) {
+  closeMobileHistory();
   currentConvId = id; chatHistory = [];
   _clearChatSearch();
   try {
