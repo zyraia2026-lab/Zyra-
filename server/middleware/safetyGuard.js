@@ -1,9 +1,19 @@
 const WARNING_PATTERNS = [
-  /me quiero morir/i, /quisiera no existir/i, /ya no quiero vivir/i,
+  /me quiero morir(?!\s*(de\s*(la\s*)?(risa|verguenza|pena|envidia|celos)|jaja|jsjs|xd))/i,
+  /quisiera no existir/i, /ya no quiero vivir/i,
   /no tiene sentido seguir/i, /todo sería mejor sin mí/i, /todo seria mejor sin mi/i,
   /hacerme daño/i, /lastimarme/i, /me odio/i, /nadie me quiere/i,
   /soy un fracaso/i, /no puedo más/i, /no puedo mas/i, /estoy desesperado/i,
   /estoy desesperada/i, /ya no aguanto/i, /no veo salida/i,
+  // Variantes adicionales — formas reales, indirectas o coloquiales de pedir ayuda
+  /quiero desaparecer/i, /no quiero existir/i, /no quiero estar aqui/i,
+  /siento que soy una carga/i, /ya no le importo a nadie/i, /a nadie le importaria/i,
+  /todo estaria mejor sin mi/i, /no aguanto esta vida/i, /estoy al limite/i,
+  /no le encuentro sentido a nada/i, /no quiero despertar/i, /ojala no despertara/i,
+  /no quiero seguir asi/i, /ya no doy mas/i, /estoy vacio por dentro/i,
+  /estoy vacia por dentro/i, /me siento atrapado/i, /me siento atrapada/i,
+  /no valgo nada/i, /nada tiene sentido/i, /quiero que esto se acabe/i,
+  /quiero que todo acabe/i, /estoy pensando en hacerme dano/i,
 ];
 
 const CRISIS_PATTERNS = [
@@ -15,6 +25,17 @@ const CRISIS_PATTERNS = [
   /quiero matar (?:a )?(?:alguien|una persona|mi|el|la|los|las)/i,
   /voy a atacar/i, /voy a lastimar (?:a )?(?:alguien|otra persona)/i,
   /tengo ganas de matar/i, /voy a disparar/i, /voy a apuñalar/i,
+  // Variantes adicionales de intención explícita — mismo nivel de severidad
+  // "quiero morirme" es tambien un modismo comun ("me muero de la risa/verguenza/pena")
+  // que no indica riesgo real — se excluye esa continuacion para evitar falsos positivos.
+  /quiero morirme(?!\s*(de\s*(la\s*)?(risa|verguenza|pena|envidia|celos)|jaja|jsjs|xd))/i,
+  /me quiero suicidar/i, /voy a acabar con (?:mi vida|todo)/i,
+  /voy a terminar con (?:mi vida|todo)/i, /planeo quitarme la vida/i,
+  /ya tengo todo listo para (?:morir|matarme|suicidarme)/i,
+  /no quiero seguir viviendo/i, /quiero terminar con mi vida/i,
+  /me voy a ahorcar/i, /me voy a envenenar/i, /voy a saltar (?:del|desde)/i,
+  /quiero quitarme la vida/i, /ya no quiero seguir aqui/i,
+  /tengo (?:las )?pastillas listas/i, /ya escribi (?:la )?carta de despedida/i,
 ];
 
 function classifyMessage(text) {
@@ -37,18 +58,23 @@ async function notifyEmergencyContact(userId, userName, message) {
 
     const contact = profile?.emergencyContact;
 
-    // Notificar al contacto de emergencia si tiene email propio
+    // Notificar al contacto de emergencia si tiene email propio.
+    // El envío puede fallar (ej. proveedor de correo caído o IP no autorizada) —
+    // esto es una alerta de seguridad, así que un fallo silencioso es peor que
+    // ruido en el log: si falla, debe quedar visible para poder actuar.
     if (contact?.name && contact?.email) {
-      await sendCrisisAlert(contact.email, contact.name, userName, message).catch(() => {});
+      await sendCrisisAlert(contact.email, contact.name, userName, message)
+        .catch(e => console.error(`🚨 [CRISIS] Fallo enviando alerta al contacto de emergencia de ${userId}:`, e.message));
     }
 
     // Siempre notificar al propio usuario
     if (user?.email) {
-      await sendCrisisAlert(user.email, userName, userName, message).catch(() => {});
+      await sendCrisisAlert(user.email, userName, userName, message)
+        .catch(e => console.error(`🚨 [CRISIS] Fallo enviando alerta al propio usuario ${userId}:`, e.message));
     }
 
-    console.log(`🚨 [CRISIS] Alerta enviada para usuario ${userId} (${userName})`);
-  } catch(_) {}
+    console.log(`🚨 [CRISIS] Proceso de alerta completado para usuario ${userId} (${userName})`);
+  } catch(e) { console.error(`🚨 [CRISIS] Error inesperado notificando crisis para ${userId}:`, e.message); }
 }
 
 function safetyGuard(req, res, next) {
