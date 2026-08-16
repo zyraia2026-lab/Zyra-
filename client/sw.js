@@ -1,5 +1,5 @@
-// ══ ZYRA SERVICE WORKER v5.2 ══
-const CACHE_NAME = 'zyra-v5.2';
+// ══ ZYRA SERVICE WORKER v5.3 ══
+const CACHE_NAME = 'zyra-v5.3';
 const STATIC_ASSETS = [
   '/', '/index.html', '/styles.css', '/manifest.json',
   '/Imagenes/1000154669.png',
@@ -47,7 +47,23 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Assets estáticos — stale-while-revalidate con fallback seguro (nunca null)
+  // App shell (HTML/CSS): la app entera vive en index.html + styles.css, así que
+  // servir una copia vieja en caché mientras hay conexión es lo que dejaba a
+  // usuarios reales corriendo versiones de días atrás sin saberlo (sin ver los
+  // arreglos ya subidos). Red primero siempre que haya conexión; caché solo
+  // como respaldo si está offline.
+  const isAppShell = url.pathname === '/' || url.pathname === '/index.html' || url.pathname === '/styles.css';
+  if (isAppShell) {
+    e.respondWith(
+      fetch(request).then(res => {
+        if (res.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, res.clone()));
+        return res;
+      }).catch(() => caches.match(request).then(cached => cached || caches.match('/index.html')))
+    );
+    return;
+  }
+
+  // Resto de assets estáticos (imágenes, manifest) — casi no cambian, stale-while-revalidate está bien.
   e.respondWith(
     caches.open(CACHE_NAME).then(cache =>
       cache.match(request).then(cached => {
