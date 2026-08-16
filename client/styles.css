@@ -3943,10 +3943,15 @@ body {
   .container { padding-top: 16px; }
   .db-container { padding-top: 16px; }
 
-  /* Speed-dial container */
+  /* Speed-dial container. bottom:72px used to put its 50px-tall trigger
+     button almost flush with (and even slightly overlapping) the 78px-tall
+     bottom tabbar, and since most pages have real content near the bottom
+     on mobile, it ended up sitting on top of cards/buttons on nearly every
+     page (dashboard, bienestar, perfil, chat). Comfortable clearance above
+     the tabbar fixes it everywhere in one place. */
   .mob-speed-dial {
     position: fixed;
-    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
     right: 16px;
     z-index: 700;
     display: none;
