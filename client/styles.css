@@ -992,6 +992,33 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
   -webkit-text-fill-color: #94a3b8;
   font-weight: 400;
 }
+.form-group textarea {
+  width: 100%;
+  padding: clamp(9px,1.6vh,13px) 16px;
+  border: 2px solid #e8ecf8;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  line-height: 1.5;
+  color: #0f172a;
+  background: #fafbff;
+  outline: none;
+  transition: all .2s;
+  box-shadow: inset 0 2px 4px rgba(99,102,241,0.04);
+  box-sizing: border-box;
+}
+.form-group textarea:focus {
+  border-color: var(--accent);
+  background: white;
+  box-shadow: 0 0 0 4px rgba(99,102,241,0.12);
+}
+.form-group textarea::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+[data-theme="dark"] .form-group textarea { background: var(--surface) !important; border-color: var(--border) !important; color: var(--text) !important; }
+[data-theme="dark"] .form-group textarea::placeholder { color: var(--text4) !important; }
 /* Chrome/Edge auto-rellenan con su propio estilo y dejan el texto casi
    invisible — forzar nuestro color y fondo con el truco del box-shadow */
 .form-group input:-webkit-autofill,

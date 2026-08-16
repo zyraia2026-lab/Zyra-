@@ -4162,6 +4162,7 @@ async function doLoginVerify() {
       if (p.theme)       applyColorTheme(p.theme);
       applyAvatarEverywhere(p.photoUrl, p.avatarEmoji, p.avatarColor);
     } catch(e) {}
+    loadFeatureConfig();
     loadPlanStatus();
     loadGamification();
     setTimeout(updateNotifBadge, 1500);
@@ -4217,6 +4218,7 @@ async function doRegisterVerify() {
     if (user?.name) {
       api("/auth/update-profile", "PUT", { name: user.name }).catch(() => {});
     }
+    loadFeatureConfig();
     if (d.user.termsAcceptedAt) localStorage.setItem("zyra_terms_accepted", TERMS_VER);
     if (!d.user.termsAcceptedAt) {
       _termsNextAction = "test";
@@ -7595,7 +7597,7 @@ async function saveProfileInfo() {
   try {
     await Promise.all([
       api("/auth/update-profile","PUT",{name}),
-      api("/profile","PATCH",{bio}),
+      api("/profile","PUT",{bio}),
     ]);
     user.name = name;
     localStorage.setItem("zyra_user", JSON.stringify(user));
@@ -16036,6 +16038,11 @@ window.addEventListener("load", () => {
   try { _initApp(); } catch(e) { console.error("Init error:", e); }
   _updateTabTitle(); _initEmotionAccent();
 });
+function loadFeatureConfig() {
+  api("/config")
+    .then(d=>{ window.YT_ENABLED = !!d.ytEnabled; window.SPOTIFY_ENABLED = !!d.spotifyEnabled; })
+    .catch(()=>{});
+}
 function _initApp() {
   // Manejar redirect de Stripe después de pago
   const urlParams = new URLSearchParams(window.location.search);
@@ -16061,9 +16068,7 @@ function _initApp() {
   }
 
   if(token){
-    api("/config")
-      .then(d=>{ window.YT_ENABLED = !!d.ytEnabled; window.SPOTIFY_ENABLED = !!d.spotifyEnabled; })
-      .catch(()=>{});
+    loadFeatureConfig();
     loadPlanStatus();
     loadGamification();
   }
