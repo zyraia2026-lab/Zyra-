@@ -234,6 +234,19 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
 [data-theme="dark"] .form-group label { color: var(--text3); }
 [data-theme="dark"] .form-group input { background: var(--surface) !important; border-color: var(--border) !important; color: var(--text) !important; -webkit-text-fill-color: var(--text) !important; }
 [data-theme="dark"] .form-group input::placeholder { color: var(--text4) !important; -webkit-text-fill-color: var(--text4) !important; }
+
+/* Login/registro SIEMPRE claros, sin importar el modo oscuro -- si alguien
+   activaba modo oscuro y cerraba sesión, esta pantalla se quedaba en negro
+   porque heredaba data-theme="dark" del <html>, que persiste en localStorage
+   más allá del logout. Se anulan las reglas oscuras de arriba solo para estos
+   componentes (auth-card/verify-card son exclusivos de estas páginas). */
+[data-theme="dark"] .auth-right { background: #f0f2ff !important; background-image: radial-gradient(circle, rgba(99,102,241,0.12) 1px, transparent 1px) !important; background-size: 28px 28px !important; background-color: #f0f2ff !important; }
+[data-theme="dark"] .auth-card { background: white !important; border-color: transparent !important; box-shadow: 0 4px 6px rgba(99,102,241,0.04), 0 20px 60px rgba(99,102,241,0.12), 0 0 0 1.5px rgba(99,102,241,0.08) !important; }
+[data-theme="dark"] .auth-card h1 { color: #0f172a !important; }
+[data-theme="dark"] .auth-sub { color: #64748b !important; }
+[data-theme="dark"] .auth-card .form-group label { color: #475569 !important; }
+[data-theme="dark"] .auth-card .form-group input { background: #fafbff !important; border-color: #e8ecf8 !important; color: #0f172a !important; -webkit-text-fill-color: #0f172a !important; }
+[data-theme="dark"] .auth-card .form-group input::placeholder { color: #94a3b8 !important; -webkit-text-fill-color: #94a3b8 !important; }
 [data-theme="dark"] .conv-item { background: var(--surface); }
 [data-theme="dark"] .journal-item { background: var(--bg2); border-color: var(--border); }
 [data-theme="dark"] .emotion-btn { background: var(--surface); border-color: var(--border); }
@@ -833,6 +846,18 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
   text-shadow: 0 1px 4px rgba(0,0,0,0.4);
 }
 
+/* En ventanas no muy altas (navegador sin pantalla completa, laptop chico) el
+   contenido de abajo (hero + stats + features) es más alto que el espacio
+   disponible y termina montándose sobre el logo de arriba-izquierda. El
+   padding-top de .auth-left solo reserva espacio, no limita la altura real
+   del contenido -- así que si no entra, sube igual y choca. Se ocultan las
+   features (lo menos esencial) para que el resto siempre quepa sin chocar. */
+@media (max-height: 820px) {
+  .auth-features { display: none; }
+}
+@media (max-height: 620px) {
+  .auth-stats { display: none; }
+}
 
 /* ══ LADO DERECHO — Formulario Premium ══ */
 .auth-right {
@@ -1425,6 +1450,15 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
 .resend-row{margin-top:18px;font-size:13px;color:#64748b}
 .resend-row a{color:var(--accent);cursor:pointer;font-weight:800;text-decoration:none;transition:color .2s}
 .resend-row a:hover{color:#0ea5e9}
+
+/* Verificación por código SIEMPRE clara -- misma razón que el login/registro arriba. */
+[data-theme="dark"] .verify-card { background: white !important; border-color: rgba(99,102,241,0.12) !important; }
+[data-theme="dark"] .verify-card h2 { color: #1e1b4b !important; }
+[data-theme="dark"] .verify-card p { color: #64748b !important; }
+[data-theme="dark"] .resend-row { color: #64748b !important; }
+[data-theme="dark"] .code-input { background: #f8f9ff !important; border-color: #e0e4ff !important; color: #1e1b4b !important; -webkit-text-fill-color: #1e1b4b !important; }
+[data-theme="dark"] .code-input:focus { background: #fff !important; color: #1e1b4b !important; -webkit-text-fill-color: #1e1b4b !important; }
+[data-theme="dark"] .code-input.filled { background: #eef2ff !important; color: var(--accent) !important; -webkit-text-fill-color: var(--accent) !important; }
 .resend-timer{color:var(--text3)}
 .back-link{display:inline-flex;align-items:center;gap:6px;margin-top:24px;font-size:13px;color:var(--text3);cursor:pointer;transition:all .2s;padding:8px 18px;border-radius:var(--r-full)}
 .back-link:hover{color:var(--sky);background:#f0f9ff}

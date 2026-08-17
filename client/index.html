@@ -672,195 +672,10 @@ function closeSplash(){
 </style>
 
 
-<!-- ══════════════════════════════════════════
-     ZYRA PLANES — PÁGINA DE PAQUETES
-══════════════════════════════════════════ -->
-<div class="page" id="page-planes">
-<div class="container">
-  <div class="page-header">
-    <h1 class="page-title">✦ Planes Zyra</h1>
-    <p class="page-subtitle">Elige el plan perfecto para tu bienestar</p>
-  </div>
-
-  <!-- Badge plan actual -->
-  <div id="plan-actual-badge" style="text-align:center;margin-bottom:24px">
-    <span style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.4);color:#a78bfa;padding:6px 18px;border-radius:20px;font-size:13px;font-weight:700">
-      ✦ Tu plan actual: <span id="plan-actual-nombre">Gratis</span>
-    </span>
-  </div>
-
-  <!-- Toggle Mensual / Anual -->
-  <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:28px">
-    <span id="billing-label-m" style="font-size:13px;font-weight:700;color:var(--text)">Mensual</span>
-    <button id="billing-toggle" onclick="toggleBilling()" aria-label="Cambiar periodo de facturación" style="width:52px;height:28px;border-radius:99px;background:#6366f1;border:none;cursor:pointer;position:relative;transition:background .3s;flex-shrink:0">
-      <span id="billing-toggle-dot" style="position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:white;transition:transform .3s;display:block"></span>
-    </button>
-    <span id="billing-label-y" style="font-size:13px;font-weight:700;color:var(--text3)">Anual
-      <span style="background:#10b981;color:white;font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px;margin-left:6px">Ahorra 17%</span>
-    </span>
-  </div>
-
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;max-width:900px;margin:0 auto 32px">
-
-    <!-- ── PLAN GRATIS ── -->
-    <div class="plan-card" id="plan-free" onclick="selectPlan('free')">
-      <div class="plan-badge">Actual</div>
-      <div class="plan-icon">🌱</div>
-      <div class="plan-name">Gratis</div>
-      <div class="plan-price"><span class="plan-amount">$0</span><span class="plan-period">/mes</span></div>
-      <div class="plan-desc">Perfecto para empezar tu viaje de bienestar</div>
-      <ul class="plan-features">
-        <li class="feat-ok">✓ Registro y acceso completo</li>
-        <li class="feat-ok">✓ 15 mensajes con Zyra IA al día</li>
-        <li class="feat-ok">✓ 3 metas activas</li>
-        <li class="feat-ok">✓ Diario emocional ilimitado</li>
-        <li class="feat-ok">✓ Test emocional</li>
-        <li class="feat-ok">✓ Modo crisis ilimitado</li>
-        <li class="feat-ok">✓ Sin anuncios</li>
-        <li class="feat-no">🔒 Llamadas de voz con Zyra</li>
-        <li class="feat-no">🔒 Contacto de emergencia</li>
-        <li class="feat-no">🔒 Exportar mis datos</li>
-      </ul>
-      <button class="plan-btn plan-btn-outline" id="btn-plan-free" disabled>Plan actual</button>
-    </div>
-
-    <!-- ── PLAN BÁSICO ── -->
-    <div class="plan-card" id="plan-basic" onclick="selectPlan('basic')">
-      <div class="plan-badge plan-badge-blue">⚡ Popular</div>
-      <div class="plan-icon">⚡</div>
-      <div class="plan-name">Básico</div>
-      <div class="plan-price">
-        <span class="plan-amount" id="price-basic-amount">$9.900</span><span class="plan-period" id="price-basic-period"> COP/mes</span>
-        <div id="price-basic-alt" style="font-size:11px;color:#818cf8;margin-top:3px">o $99.000 COP/año</div>
-      </div>
-      <div class="plan-desc">Más mensajes, más metas, funciones avanzadas</div>
-      <ul class="plan-features">
-        <li class="feat-ok">✓ 100 mensajes con Zyra IA al día</li>
-        <li class="feat-ok">✓ 10 metas activas</li>
-        <li class="feat-ok">✓ 30 entradas de diario al mes</li>
-        <li class="feat-ok">✓ Contacto de emergencia</li>
-        <li class="feat-ok">✓ Exportar mis datos (JSON)</li>
-        <li class="feat-ok">✓ Música y ejercicios guiados</li>
-        <li class="feat-ok">✓ Modo crisis ilimitado</li>
-        <li class="feat-ok">✓ Sin anuncios</li>
-        <li class="feat-no">🔒 Llamadas de voz con Zyra</li>
-        <li class="feat-no">🔒 Reportes en PDF</li>
-      </ul>
-      <button class="plan-btn plan-btn-primary" id="btn-plan-basic" onclick="event.stopPropagation();upgradePlan('basic')">Elegir Básico →</button>
-    </div>
-
-    <!-- ── PLAN PREMIUM ── -->
-    <div class="plan-card plan-card-premium" id="plan-premium" onclick="selectPlan('premium')">
-      <div class="plan-badge plan-badge-gold">✦ Mejor valor</div>
-      <div class="plan-icon">👑</div>
-      <div class="plan-name">Premium</div>
-      <div class="plan-price">
-        <span class="plan-amount" id="price-premium-amount">$39.900</span><span class="plan-period" id="price-premium-period"> COP/mes</span>
-        <div id="price-premium-alt" style="font-size:11px;color:#fbbf24;margin-top:3px">o $399.000 COP/año (ahorra 17%)</div>
-      </div>
-      <div class="plan-desc">La experiencia Zyra completa, sin límites</div>
-      <ul class="plan-features">
-        <li class="feat-ok feat-gold">★ Mensajes ilimitados con Zyra IA</li>
-        <li class="feat-ok feat-gold">★ Metas ilimitadas</li>
-        <li class="feat-ok feat-gold">★ Diario ilimitado</li>
-        <li class="feat-ok feat-gold">★ Llamadas de voz con Zyra</li>
-        <li class="feat-ok feat-gold">★ Contacto de emergencia</li>
-        <li class="feat-ok feat-gold">★ Exportar datos + Reportes PDF</li>
-        <li class="feat-ok feat-gold">★ IA con modelo avanzado (Llama 70B)</li>
-        <li class="feat-ok feat-gold">★ Música ilimitada por ánimo</li>
-        <li class="feat-ok feat-gold">★ Modo crisis ilimitado</li>
-        <li class="feat-ok feat-gold">★ Sin anuncios</li>
-      </ul>
-      <button class="plan-btn plan-btn-gold" id="btn-plan-premium" onclick="event.stopPropagation();upgradePlan('premium')">Elegir Premium ✦</button>
-    </div>
-
-  </div>
-
-  <!-- Garantía -->
-  <div style="text-align:center;padding:20px;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);border-radius:16px;max-width:500px;margin:0 auto 24px">
-    <div style="font-size:28px;margin-bottom:8px">🔒</div>
-    <p style="color:var(--text2);font-size:14px;margin:0;line-height:1.6">
-      <strong style="color:var(--text)">Garantía de 7 días.</strong><br>
-      Si no estás satisfecho, te devolvemos el dinero. Sin preguntas.
-    </p>
-  </div>
-
-  <!-- FAQ -->
-  <div class="card" style="max-width:700px;margin:0 auto">
-    <div class="card-header"><span class="card-title">💬 Preguntas frecuentes</span></div>
-    <div class="plan-faq-item" onclick="toggleFaq(0)">
-      <div class="plan-faq-q" id="faq-q0">¿Puedo cambiar de plan en cualquier momento? <span>▾</span></div>
-      <div class="plan-faq-a" id="faq-a0" style="display:none">Sí, puedes subir o bajar de plan en cualquier momento. Los cambios se aplican inmediatamente y el cobro se ajusta proporcionalmente.</div>
-    </div>
-    <div class="plan-faq-item" onclick="toggleFaq(1)">
-      <div class="plan-faq-q" id="faq-q1">¿Qué métodos de pago aceptan? <span>▾</span></div>
-      <div class="plan-faq-a" id="faq-a1" style="display:none">Aceptamos tarjetas de crédito y débito (Visa, Mastercard, American Express) procesadas de forma segura a través de Stripe. El pago es 100% seguro y encriptado.</div>
-    </div>
-    <div class="plan-faq-item" onclick="toggleFaq(2)">
-      <div class="plan-faq-q" id="faq-q2">¿Es segura mi información personal? <span>▾</span></div>
-      <div class="plan-faq-a" id="faq-a2" style="display:none">Absolutamente. Tu información está cifrada end-to-end. Nunca compartimos tus datos con terceros. Tu privacidad es nuestra prioridad.</div>
-    </div>
-    <div class="plan-faq-item" onclick="toggleFaq(3)">
-      <div class="plan-faq-q" id="faq-q3">¿Cómo cancelo mi suscripción? <span>▾</span></div>
-      <div class="plan-faq-a" id="faq-a3" style="display:none">Puedes cancelar desde tu perfil en "Gestionar suscripción" o contactándonos. La cancelación es inmediata y no hay penalizaciones.</div>
-    </div>
-  </div>
-
-</div>
-
-<style>
-/* ══ ZYRA PLANES CSS ══ */
-.plan-card {
-  background: var(--surface);
-  border: 1.5px solid var(--border);
-  border-radius: 20px;
-  padding: 28px 24px;
-  position: relative;
-  cursor: pointer;
-  transition: all .25s ease;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.plan-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(99,102,241,.18); border-color: rgba(99,102,241,.5); }
-.plan-card.selected { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.2); }
-.plan-card-premium { background: linear-gradient(145deg, rgba(99,102,241,.12), rgba(167,139,250,.08)); border-color: rgba(167,139,250,.4); }
-.plan-card-premium:hover { box-shadow: 0 16px 40px rgba(167,139,250,.3); border-color: #a78bfa; }
-
-.plan-badge { position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.1);border:1px solid var(--border);color:var(--text3);font-size:11px;font-weight:700;padding:3px 14px;border-radius:20px;white-space:nowrap;backdrop-filter:blur(8px) }
-.plan-badge-blue { background:rgba(99,102,241,.2);border-color:rgba(99,102,241,.5);color:#818cf8 }
-.plan-badge-gold { background:linear-gradient(135deg,rgba(251,191,36,.2),rgba(245,158,11,.1));border-color:rgba(251,191,36,.5);color:#fbbf24 }
-
-.plan-icon { font-size:36px;text-align:center }
-.plan-name { font-size:22px;font-weight:800;color:var(--text);text-align:center }
-.plan-price { text-align:center }
-.plan-amount { font-size:36px;font-weight:800;color:var(--text) }
-.plan-period { font-size:14px;color:var(--text3) }
-.plan-desc { font-size:13px;color:var(--text3);text-align:center;line-height:1.5 }
-
-.plan-features { list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;flex:1 }
-.feat-ok { color:var(--text2);font-size:13px }
-.feat-no { color:var(--text3);font-size:13px;opacity:.6 }
-.feat-gold { color:#fbbf24 }
-
-.plan-btn { width:100%;padding:13px;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;margin-top:8px }
-.plan-btn-outline { background:transparent;border:1.5px solid var(--border);color:var(--text3) }
-.plan-btn-primary { background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff }
-.plan-btn-primary:hover { transform:translateY(-1px);box-shadow:0 8px 20px rgba(99,102,241,.4) }
-.plan-btn-gold { background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#1c1100 }
-.plan-btn-gold:hover { transform:translateY(-1px);box-shadow:0 8px 20px rgba(251,191,36,.4) }
-
-.plan-faq-item { border-bottom:1px solid var(--border);padding:14px 0;cursor:pointer }
-.plan-faq-item:last-child { border-bottom:none }
-.plan-faq-q { color:var(--text);font-size:14px;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:8px }
-.plan-faq-a { color:var(--text3);font-size:13px;line-height:1.6;padding-top:10px }
-
-@media(max-width:768px) {
-  .plan-card { padding:24px 18px }
-  .plan-amount { font-size:30px }
-}
-</style>
-</div><!-- /page-planes -->
+<!-- (página de Planes movida después del <nav> -- ver #page-planes más abajo.
+     Estaba antes del nav en el DOM y por eso el nav "sticky" aparecía hasta
+     el final de esta página en vez de quedarse pegado arriba, como en las
+     demás páginas que sí están después del nav.) -->
 
 <!-- ══ MINI MUSIC PLAYER ══ -->
 <div id="zyra-mini-player" style="display:none;position:fixed;bottom:72px;left:50%;transform:translateX(-50%);z-index:450;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:10px 16px;box-shadow:0 8px 32px rgba(0,0,0,.4);display:none;align-items:center;gap:12px;max-width:340px;width:calc(100vw - 40px);backdrop-filter:blur(12px);animation:fadeUp .25s ease">
@@ -1152,6 +967,200 @@ function closeSplash(){
     </div>
   </div>
 </nav>
+
+<!-- ══════════════════════════════════════════
+     ZYRA PLANES — PÁGINA DE PAQUETES
+     (después del <nav> a propósito -- el nav es position:sticky y solo se
+     queda pegado arriba si está antes que el contenido en el DOM; si el
+     div de la página va antes que el nav, el nav termina apareciendo hasta
+     el final de esa página en vez de quedarse fijo arriba.)
+══════════════════════════════════════════ -->
+<div class="page" id="page-planes">
+<div class="container">
+  <div class="page-header">
+    <h1 class="page-title">✦ Planes Zyra</h1>
+    <p class="page-subtitle">Elige el plan perfecto para tu bienestar</p>
+  </div>
+
+  <!-- Badge plan actual -->
+  <div id="plan-actual-badge" style="text-align:center;margin-bottom:24px">
+    <span style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.4);color:#a78bfa;padding:6px 18px;border-radius:20px;font-size:13px;font-weight:700">
+      ✦ Tu plan actual: <span id="plan-actual-nombre">Gratis</span>
+    </span>
+  </div>
+
+  <!-- Toggle Mensual / Anual -->
+  <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:28px">
+    <span id="billing-label-m" style="font-size:13px;font-weight:700;color:var(--text)">Mensual</span>
+    <button id="billing-toggle" onclick="toggleBilling()" aria-label="Cambiar periodo de facturación" style="width:52px;height:28px;border-radius:99px;background:#6366f1;border:none;cursor:pointer;position:relative;transition:background .3s;flex-shrink:0">
+      <span id="billing-toggle-dot" style="position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:white;transition:transform .3s;display:block"></span>
+    </button>
+    <span id="billing-label-y" style="font-size:13px;font-weight:700;color:var(--text3)">Anual
+      <span style="background:#10b981;color:white;font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px;margin-left:6px">Ahorra 17%</span>
+    </span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;max-width:900px;margin:0 auto 32px">
+
+    <!-- ── PLAN GRATIS ── -->
+    <div class="plan-card" id="plan-free" onclick="selectPlan('free')">
+      <div class="plan-badge">Actual</div>
+      <div class="plan-icon">🌱</div>
+      <div class="plan-name">Gratis</div>
+      <div class="plan-price"><span class="plan-amount">$0</span><span class="plan-period">/mes</span></div>
+      <div class="plan-desc">Perfecto para empezar tu viaje de bienestar</div>
+      <ul class="plan-features">
+        <li class="feat-ok">✓ Registro y acceso completo</li>
+        <li class="feat-ok">✓ 15 mensajes con Zyra IA al día</li>
+        <li class="feat-ok">✓ 3 metas activas</li>
+        <li class="feat-ok">✓ Diario emocional ilimitado</li>
+        <li class="feat-ok">✓ Test emocional</li>
+        <li class="feat-ok">✓ Modo crisis ilimitado</li>
+        <li class="feat-ok">✓ Sin anuncios</li>
+        <li class="feat-no">🔒 Llamadas de voz con Zyra</li>
+        <li class="feat-no">🔒 Contacto de emergencia</li>
+        <li class="feat-no">🔒 Exportar mis datos</li>
+      </ul>
+      <button class="plan-btn plan-btn-outline" id="btn-plan-free" disabled>Plan actual</button>
+    </div>
+
+    <!-- ── PLAN BÁSICO ── -->
+    <div class="plan-card" id="plan-basic" onclick="selectPlan('basic')">
+      <div class="plan-badge plan-badge-blue">⚡ Popular</div>
+      <div class="plan-icon">⚡</div>
+      <div class="plan-name">Básico</div>
+      <div class="plan-price">
+        <span class="plan-amount" id="price-basic-amount">$9.900</span><span class="plan-period" id="price-basic-period"> COP/mes</span>
+        <div id="price-basic-alt" style="font-size:11px;color:#818cf8;margin-top:3px">o $99.000 COP/año</div>
+      </div>
+      <div class="plan-desc">Más mensajes, más metas, funciones avanzadas</div>
+      <ul class="plan-features">
+        <li class="feat-ok">✓ 100 mensajes con Zyra IA al día</li>
+        <li class="feat-ok">✓ 10 metas activas</li>
+        <li class="feat-ok">✓ 30 entradas de diario al mes</li>
+        <li class="feat-ok">✓ Contacto de emergencia</li>
+        <li class="feat-ok">✓ Exportar mis datos (JSON)</li>
+        <li class="feat-ok">✓ Música y ejercicios guiados</li>
+        <li class="feat-ok">✓ Modo crisis ilimitado</li>
+        <li class="feat-ok">✓ Sin anuncios</li>
+        <li class="feat-no">🔒 Llamadas de voz con Zyra</li>
+        <li class="feat-no">🔒 Reportes en PDF</li>
+      </ul>
+      <button class="plan-btn plan-btn-primary" id="btn-plan-basic" onclick="event.stopPropagation();upgradePlan('basic')">Elegir Básico →</button>
+    </div>
+
+    <!-- ── PLAN PREMIUM ── -->
+    <div class="plan-card plan-card-premium" id="plan-premium" onclick="selectPlan('premium')">
+      <div class="plan-badge plan-badge-gold">✦ Mejor valor</div>
+      <div class="plan-icon">👑</div>
+      <div class="plan-name">Premium</div>
+      <div class="plan-price">
+        <span class="plan-amount" id="price-premium-amount">$39.900</span><span class="plan-period" id="price-premium-period"> COP/mes</span>
+        <div id="price-premium-alt" style="font-size:11px;color:#fbbf24;margin-top:3px">o $399.000 COP/año (ahorra 17%)</div>
+      </div>
+      <div class="plan-desc">La experiencia Zyra completa, sin límites</div>
+      <ul class="plan-features">
+        <li class="feat-ok feat-gold">★ Mensajes ilimitados con Zyra IA</li>
+        <li class="feat-ok feat-gold">★ Metas ilimitadas</li>
+        <li class="feat-ok feat-gold">★ Diario ilimitado</li>
+        <li class="feat-ok feat-gold">★ Llamadas de voz con Zyra</li>
+        <li class="feat-ok feat-gold">★ Contacto de emergencia</li>
+        <li class="feat-ok feat-gold">★ Exportar datos + Reportes PDF</li>
+        <li class="feat-ok feat-gold">★ IA con modelo avanzado (Llama 70B)</li>
+        <li class="feat-ok feat-gold">★ Música ilimitada por ánimo</li>
+        <li class="feat-ok feat-gold">★ Modo crisis ilimitado</li>
+        <li class="feat-ok feat-gold">★ Sin anuncios</li>
+      </ul>
+      <button class="plan-btn plan-btn-gold" id="btn-plan-premium" onclick="event.stopPropagation();upgradePlan('premium')">Elegir Premium ✦</button>
+    </div>
+
+  </div>
+
+  <!-- Garantía -->
+  <div style="text-align:center;padding:20px;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);border-radius:16px;max-width:500px;margin:0 auto 24px">
+    <div style="font-size:28px;margin-bottom:8px">🔒</div>
+    <p style="color:var(--text2);font-size:14px;margin:0;line-height:1.6">
+      <strong style="color:var(--text)">Garantía de 7 días.</strong><br>
+      Si no estás satisfecho, te devolvemos el dinero. Sin preguntas.
+    </p>
+  </div>
+
+  <!-- FAQ -->
+  <div class="card" style="max-width:700px;margin:0 auto">
+    <div class="card-header"><span class="card-title">💬 Preguntas frecuentes</span></div>
+    <div class="plan-faq-item" onclick="toggleFaq(0)">
+      <div class="plan-faq-q" id="faq-q0">¿Puedo cambiar de plan en cualquier momento? <span>▾</span></div>
+      <div class="plan-faq-a" id="faq-a0" style="display:none">Sí, puedes subir o bajar de plan en cualquier momento. Los cambios se aplican inmediatamente y el cobro se ajusta proporcionalmente.</div>
+    </div>
+    <div class="plan-faq-item" onclick="toggleFaq(1)">
+      <div class="plan-faq-q" id="faq-q1">¿Qué métodos de pago aceptan? <span>▾</span></div>
+      <div class="plan-faq-a" id="faq-a1" style="display:none">Aceptamos tarjetas de crédito y débito (Visa, Mastercard, American Express) procesadas de forma segura a través de Stripe. El pago es 100% seguro y encriptado.</div>
+    </div>
+    <div class="plan-faq-item" onclick="toggleFaq(2)">
+      <div class="plan-faq-q" id="faq-q2">¿Es segura mi información personal? <span>▾</span></div>
+      <div class="plan-faq-a" id="faq-a2" style="display:none">Absolutamente. Tu información está cifrada end-to-end. Nunca compartimos tus datos con terceros. Tu privacidad es nuestra prioridad.</div>
+    </div>
+    <div class="plan-faq-item" onclick="toggleFaq(3)">
+      <div class="plan-faq-q" id="faq-q3">¿Cómo cancelo mi suscripción? <span>▾</span></div>
+      <div class="plan-faq-a" id="faq-a3" style="display:none">Puedes cancelar desde tu perfil en "Gestionar suscripción" o contactándonos. La cancelación es inmediata y no hay penalizaciones.</div>
+    </div>
+  </div>
+
+</div>
+
+<style>
+/* ══ ZYRA PLANES CSS ══ */
+.plan-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  padding: 28px 24px;
+  position: relative;
+  cursor: pointer;
+  transition: all .25s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.plan-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(99,102,241,.18); border-color: rgba(99,102,241,.5); }
+.plan-card.selected { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.2); }
+.plan-card-premium { background: linear-gradient(145deg, rgba(99,102,241,.12), rgba(167,139,250,.08)); border-color: rgba(167,139,250,.4); }
+.plan-card-premium:hover { box-shadow: 0 16px 40px rgba(167,139,250,.3); border-color: #a78bfa; }
+
+.plan-badge { position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.1);border:1px solid var(--border);color:var(--text3);font-size:11px;font-weight:700;padding:3px 14px;border-radius:20px;white-space:nowrap;backdrop-filter:blur(8px) }
+.plan-badge-blue { background:rgba(99,102,241,.2);border-color:rgba(99,102,241,.5);color:#818cf8 }
+.plan-badge-gold { background:linear-gradient(135deg,rgba(251,191,36,.2),rgba(245,158,11,.1));border-color:rgba(251,191,36,.5);color:#fbbf24 }
+
+.plan-icon { font-size:36px;text-align:center }
+.plan-name { font-size:22px;font-weight:800;color:var(--text);text-align:center }
+.plan-price { text-align:center }
+.plan-amount { font-size:36px;font-weight:800;color:var(--text) }
+.plan-period { font-size:14px;color:var(--text3) }
+.plan-desc { font-size:13px;color:var(--text3);text-align:center;line-height:1.5 }
+
+.plan-features { list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;flex:1 }
+.feat-ok { color:var(--text2);font-size:13px }
+.feat-no { color:var(--text3);font-size:13px;opacity:.6 }
+.feat-gold { color:#fbbf24 }
+
+.plan-btn { width:100%;padding:13px;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;margin-top:8px }
+.plan-btn-outline { background:transparent;border:1.5px solid var(--border);color:var(--text3) }
+.plan-btn-primary { background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff }
+.plan-btn-primary:hover { transform:translateY(-1px);box-shadow:0 8px 20px rgba(99,102,241,.4) }
+.plan-btn-gold { background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#1c1100 }
+.plan-btn-gold:hover { transform:translateY(-1px);box-shadow:0 8px 20px rgba(251,191,36,.4) }
+
+.plan-faq-item { border-bottom:1px solid var(--border);padding:14px 0;cursor:pointer }
+.plan-faq-item:last-child { border-bottom:none }
+.plan-faq-q { color:var(--text);font-size:14px;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:8px }
+.plan-faq-a { color:var(--text3);font-size:13px;line-height:1.6;padding-top:10px }
+
+@media(max-width:768px) {
+  .plan-card { padding:24px 18px }
+  .plan-amount { font-size:30px }
+}
+</style>
+</div><!-- /page-planes -->
 
 <!-- ══════════════════════════════════════════════
      LANDING PAGE — Página de bienvenida pública
