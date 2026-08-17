@@ -18919,8 +18919,10 @@ document.addEventListener('DOMContentLoaded', () => {
     @media(min-width:769px) { #pwa-install-banner { bottom: 24px; } }
     /* En la pagina de chat en movil, bottom:80px queda encima de la fila de
        pildoras/entrada de texto y del boton flotante (+) -- se sube para que
-       no se encimen con nada. */
-    body[data-page="assistant"] #pwa-install-banner { bottom: 330px; }
+       no se encimen con nada. Con @media(max-width:768px) para que NO se
+       cuele en desktop (sin esto, esta regla le gana por especificidad al
+       bottom:24px de arriba y el aviso queda flotando a mitad del chat en PC). */
+    @media(max-width:768px) { body[data-page="assistant"] #pwa-install-banner { bottom: 330px; } }
   `;
   document.head.appendChild(style);
 });

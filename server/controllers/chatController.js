@@ -99,7 +99,9 @@ async function* callGeminiStream(messages, temperature, maxTokens) {
 // Modelos con cupo de tokens por minuto muy bajo en la cuenta gratuita: cuando se
 // usan como último recurso, se les manda un prompt reducido para que no fallen
 // por exceder su propio límite (en vez de simplemente sumarse al conteo de fallos).
-const LOW_TPM_MODELS = new Set(["llama-3.1-8b-instant"]);
+// Groq va dando de baja modelos con el tiempo (ver MODEL_ORDER) — si vuelve a haber
+// un modelo "instant" pequeño disponible, agregarlo aquí.
+const LOW_TPM_MODELS = new Set([]);
 const FALLBACK_SYSTEM_PROMPT = "Eres Zyra, una amiga cercana y cálida que acompaña emocionalmente. Hablas en español latinoamericano, natural y cercano, en 2-3 oraciones máximo. No eres una IA genérica, eres Zyra.";
 // Los modelos gpt-oss gastan parte del presupuesto de tokens en un razonamiento
 // interno oculto antes de escribir la respuesta visible; sin bajar el esfuerzo
@@ -1122,7 +1124,7 @@ async function buildSystemPrompt(userId, userName, message = "") {
     ? await getContextualMemories(userId, message)
     : await getMemoriesForPrompt(userId);
   if (persistentMemories) {
-    memoryBlock += `\n\n════ LO QUE RECUERDAS DE ${firstName.toUpperCase()} ════\n${persistentMemories}`;
+    memoryBlock += `\n\n════ LO QUE RECUERDAS DE ${firstName.toUpperCase()} ════\n${persistentMemories}\nCada recuerdo trae entre corchetes hace cuánto se guardó. Los [event] son momentos puntuales (un partido, una cita, un examen, un viaje) — si pasaron hace más de 1-2 semanas YA TERMINARON: no preguntes por ellos como si siguieran pendientes ni des a entender que son de ahora; si vienen al caso, menciónalos en pasado. Los [situation] (ruptura, trabajo nuevo, duelo) pueden seguir vigentes semanas pero también se resuelven, usa criterio según la fecha. Los [personal], [relationship], [preference] y [goal] normalmente son datos permanentes, esos sí los das por vigentes.`;
   }
 
   // ── Hora, fecha y momento del día (zona horaria Colombia UTC-5) ──
@@ -1453,7 +1455,7 @@ exports.sendMessage = async (req, res) => {
       { role: "user", content: message }
     ];
     // 70b para todos: Groq es rápido, la diferencia de calidad vale más que los ms ahorrados
-    const MODEL_ORDER = ["llama-3.3-70b-versatile", "openai/gpt-oss-120b", "openai/gpt-oss-20b", "llama-3.1-8b-instant"];
+    const MODEL_ORDER = ["openai/gpt-oss-120b", "openai/gpt-oss-20b"];
 
     const MAX_TOKENS = isVoice ? 90 : (userPlan === "premium" ? 1000 : msgMode === "factual" ? 800 : userPlan === "basic" ? 650 : 500);
     const TEMPERATURE = isVoice ? 0.97 : msgMode === "factual" ? 0.60 : msgMode === "emotional" ? 0.93 : 0.95;
@@ -1709,7 +1711,7 @@ async function generateConvTitle(convId, userMsg, botReply) {
   try {
     const snippet = botReply.substring(0, 150).replace(/\n/g, " ");
     const r = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+      model: "openai/gpt-oss-20b",
       messages: [{
         role: "user",
         content: `Eres un asistente que genera títulos cortos para conversaciones de bienestar emocional.
@@ -1726,13 +1728,14 @@ REGLAS:
 Responde SOLO con el título, nada más.`
       }],
       temperature: 0.4,
-      max_tokens: 30,
+      max_tokens: 200,
+      reasoning_effort: "low",
     });
     const title = (r.choices[0]?.message?.content || "").trim().replace(/^["']|["']$/g, "").substring(0, 80);
     if (title.length > 3) {
       await Conversation.updateOne({ _id: convId }, { title }).catch(() => {});
     }
-  } catch (_) {}
+  } catch (e) { console.error("generateConvTitle:", e.message); }
 }
 
 /* ════════════════════════════════════════
@@ -1805,7 +1808,7 @@ exports.streamMessage = async (req, res) => {
       }
     }
     // 70b para todos: Groq es rápido, la diferencia de calidad vale más que los ms ahorrados
-    const MODEL_ORDER = ["llama-3.3-70b-versatile", "openai/gpt-oss-120b", "openai/gpt-oss-20b", "llama-3.1-8b-instant"];
+    const MODEL_ORDER = ["openai/gpt-oss-120b", "openai/gpt-oss-20b"];
 
     const MAX_TOKENS  = userPlan === "premium" ? 1000 : msgMode === "factual" ? 800 : userPlan === "basic" ? 650 : 500;
     const TEMPERATURE = msgMode === "factual" ? 0.60 : msgMode === "emotional" ? 0.93 : 0.95;

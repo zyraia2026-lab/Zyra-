@@ -1,5 +1,19 @@
 const Memory = require("../models/Memory");
 
+/* ── Antigüedad legible de una memoria, para que la IA sepa si un dato ya pasó ── */
+function ageLabel(createdAt) {
+  const days = Math.floor((Date.now() - new Date(createdAt)) / 86400000);
+  if (days < 1) return "hoy";
+  if (days === 1) return "ayer";
+  if (days < 7) return `hace ${days} días`;
+  if (days < 30) { const w = Math.floor(days / 7); return `hace ${w} semana${w > 1 ? "s" : ""}`; }
+  if (days < 365) { const m = Math.floor(days / 30); return `hace ${m} mes${m > 1 ? "es" : ""}`; }
+  const y = Math.floor(days / 365); return `hace ${y} año${y > 1 ? "s" : ""}`;
+}
+function formatMemory(m) {
+  return `• [${m.type}, ${ageLabel(m.createdAt)}] ${m.content}`;
+}
+
 let groq = null;
 try {
   const Groq = require("groq-sdk");
@@ -36,6 +50,7 @@ Qué NO extraer:
 
 REGLAS DE FORMATO:
 - Máximo 4 memorias por turno, mínimo 0 (si el mensaje trae varios datos nuevos distintos, ej. nombre + ciudad + trabajo + mascota, extráelos TODOS por separado — no elijas solo algunos)
+- "content" siempre en frase corta y natural, nunca una palabra suelta (ej: "Vive en Medellín", no "Medellín"; "Trabaja como ingeniero", no "Ingeniero")
 - Tipos: personal, emotional, preference, relationship, goal, event, situation
 - Importancia 1-5: 5=dato clave (trabajo, familia, situación crítica), 3=útil (gustos), 1=menor
 - Si menciona un evento futuro con fecha (examen el viernes, presentación mañana, cita el lunes, reunión esta semana), añade "followUpDate" con la fecha ISO estimada basándote en que hoy es ${new Date(new Date().getTime() - 5 * 60 * 60 * 1000).toISOString().slice(0,10)} (hora Colombia)
@@ -44,10 +59,11 @@ REGLAS DE FORMATO:
 [{"content":"...","type":"...","importance":N,"tags":["..."],"followUpDate":"YYYY-MM-DD o null"}]`;
 
     const r = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+      model: "openai/gpt-oss-20b",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.1,
-      max_tokens: 450,
+      max_tokens: 700,
+      reasoning_effort: "low",
     });
 
     const raw = r.choices[0]?.message?.content?.trim() || "[]";
@@ -93,7 +109,7 @@ exports.getMemoriesForPrompt = async (userId) => {
     const memories = await Memory.find({ user: userId })
       .sort({ importance: -1, lastReferencedAt: -1 })
       .limit(15)
-      .select("type content importance _id")
+      .select("type content importance createdAt _id")
       .lean();
 
     if (!memories.length) return "";
@@ -103,7 +119,7 @@ exports.getMemoriesForPrompt = async (userId) => {
       { $inc: { timesReferenced: 1 }, lastReferencedAt: new Date() }
     );
 
-    return memories.map(m => `• [${m.type}] ${m.content}`).join("\n");
+    return memories.map(formatMemory).join("\n");
   } catch(e) { return ""; }
 };
 
@@ -113,7 +129,7 @@ exports.getContextualMemories = async (userId, message = "") => {
     const all = await Memory.find({ user: userId })
       .sort({ importance: -1 })
       .limit(50)
-      .select("type content importance lastReferencedAt _id")
+      .select("type content importance lastReferencedAt createdAt _id")
       .lean();
 
     if (!all.length) return "";
@@ -129,11 +145,20 @@ exports.getContextualMemories = async (userId, message = "") => {
     const scored = all.map(m => {
       const content = m.content.toLowerCase();
       let score = m.importance * 10;
-      keywords.forEach(kw => { if (content.includes(kw)) score += 15; });
+      let keywordHit = false;
+      keywords.forEach(kw => { if (content.includes(kw)) { score += 15; keywordHit = true; } });
       // Bonus por referenciada recientemente
       if (m.lastReferencedAt) {
         const daysSince = (Date.now() - new Date(m.lastReferencedAt)) / 86400000;
         if (daysSince < 7) score += 5;
+      }
+      // Los recuerdos puntuales (un partido, una cita, un examen) caducan solos si nadie
+      // vuelve a sacar el tema — si no, se quedan compitiendo por importancia para siempre
+      // y la IA los saca a colación como si fueran de ahora (ej: preguntar por un partido de hace meses).
+      if (!keywordHit) {
+        const ageDays = (Date.now() - new Date(m.createdAt)) / 86400000;
+        if (m.type === "event" && ageDays > 14) score *= 0.15;
+        else if (m.type === "situation" && ageDays > 45) score *= 0.4;
       }
       return { ...m, _score: score };
     });
@@ -145,7 +170,7 @@ exports.getContextualMemories = async (userId, message = "") => {
       { $inc: { timesReferenced: 1 }, lastReferencedAt: new Date() }
     ).catch(() => {});
 
-    return top.map(m => `• [${m.type}] ${m.content}`).join("\n");
+    return top.map(formatMemory).join("\n");
   } catch(e) { return ""; }
 };
 
