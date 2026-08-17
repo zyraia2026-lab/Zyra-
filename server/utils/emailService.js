@@ -82,6 +82,7 @@ const sendVerificationCode = async (toEmail, code, userName = "") => {
           </td>
         </tr>
       </table>
+      <p style="color:#5a5a7a;font-size:11.5px;text-align:center;margin:16px 0 0;">💡 ¿No lo ves en tu bandeja principal? Revisa "Otros" o Spam — y muévelo a la principal para que los próximos lleguen ahí directo.</p>
     `),
   });
 };
@@ -145,6 +146,7 @@ const sendPasswordResetCode = async (toEmail, code, userName = "") => {
           </td>
         </tr>
       </table>
+      <p style="color:#5a5a7a;font-size:11.5px;text-align:center;margin:16px 0 0;">💡 ¿No lo ves en tu bandeja principal? Revisa "Otros" o Spam.</p>
     `),
   });
 };
