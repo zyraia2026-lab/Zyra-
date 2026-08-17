@@ -1,5 +1,5 @@
-// ══ ZYRA SERVICE WORKER v5.4 ══
-const CACHE_NAME = 'zyra-v5.4';
+// ══ ZYRA SERVICE WORKER v5.5 ══
+const CACHE_NAME = 'zyra-v5.5';
 const STATIC_ASSETS = [
   '/', '/index.html', '/styles.css', '/manifest.json',
   '/Imagenes/1000154669.png',
