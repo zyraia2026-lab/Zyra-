@@ -726,7 +726,7 @@ async function getSongsViaGroq(artistName) {
   if (!groq) return null;
   try {
     const r = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-oss-120b",
       messages: [{
         role: "user",
         content: `Eres una base de datos musical. Lista EXACTAMENTE los 5 títulos de canciones más famosas y conocidas del artista "${artistName}".
@@ -739,7 +739,8 @@ REGLAS ABSOLUTAS:
 Si el artista no existe como músico: []`
       }],
       temperature: 0.0,
-      max_tokens: 150
+      max_tokens: 350,
+      reasoning_effort: "low",
     });
     const raw = r.choices[0]?.message?.content?.trim() || "[]";
     const match = raw.match(/\[[\s\S]*?\]/);
@@ -895,13 +896,14 @@ async function compressOldHistory(history) {
   const text = older.map(m => `${m.role === "user" ? "U" : "Z"}: ${(m.content || "").substring(0, 250)}`).join("\n");
   try {
     const r = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+      model: "openai/gpt-oss-20b",
       messages: [{
         role: "user",
         content: `Resume en máximo 80 palabras este inicio de conversación. Captura: los temas tratados, lo que el usuario contó de su situación, el tono emocional. Solo el resumen, sin introducción ni cierre:\n\n${text.substring(0, 3000)}`
       }],
       temperature: 0.1,
-      max_tokens: 160,
+      max_tokens: 320,
+      reasoning_effort: "low",
     });
     return r.choices[0]?.message?.content?.trim() || null;
   } catch(e) { return null; }
@@ -939,13 +941,14 @@ async function getReasoningContext(message) {
   if (!groq) return null;
   try {
     const r = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+      model: "openai/gpt-oss-120b",
       messages: [{
         role: "user",
         content: `Analiza esta pregunta/solicitud en máximo 3 puntos muy breves:\n1) Qué se está preguntando exactamente\n2) Cuál es la información clave que necesita la respuesta\n3) Si hay algún matiz o trampa importante a no pasar por alto\n\nSolo los puntos, sin intro ni conclusión:\n\n"${message.substring(0, 400)}"`
       }],
       temperature: 0.1,
-      max_tokens: 110,
+      max_tokens: 300,
+      reasoning_effort: "low",
     });
     return r.choices[0]?.message?.content?.trim() || null;
   } catch(e) { return null; }
@@ -1437,7 +1440,9 @@ exports.sendMessage = async (req, res) => {
     let historySummary = null;
     if (recentMsgs.length > 20) {
       historySummary = await compressOldHistory(recentMsgs).catch(() => null);
-      recentMsgs = recentMsgs.slice(-10);
+      // Si el resumen falló, no hay con qué compensar lo que se recorta —
+      // mejor mandar más mensajes crudos que perder el inicio sin dejar rastro.
+      recentMsgs = recentMsgs.slice(historySummary ? -10 : -20);
     } else {
       recentMsgs = recentMsgs.slice(-15);
     }
@@ -1818,7 +1823,9 @@ exports.streamMessage = async (req, res) => {
     let historySummary = null;
     if (recentMsgs.length > 20) {
       historySummary = await compressOldHistory(recentMsgs).catch(() => null);
-      recentMsgs = recentMsgs.slice(-10);
+      // Si el resumen falló, no hay con qué compensar lo que se recorta —
+      // mejor mandar más mensajes crudos que perder el inicio sin dejar rastro.
+      recentMsgs = recentMsgs.slice(historySummary ? -10 : -20);
     } else {
       recentMsgs = recentMsgs.slice(-15);
     }
@@ -2091,9 +2098,9 @@ exports.journalPrompt = async (req, res) => {
 
 Escríbele a ${name} una nota de buenos días de 2-3 oraciones. Directa, sin rodeos, como alguien que la/lo conoce bien. Sin saludos genéricos, sin frases de autoayuda. Habla en segunda persona a ${name}. Solo el texto, sin comillas.`;
       const r = await groq.chat.completions.create({
-        model: "llama-3.1-8b-instant",
+        model: "openai/gpt-oss-20b",
         messages: [{ role: "user", content: letterPrompt }],
-        temperature: 0.85, max_tokens: 100,
+        temperature: 0.85, max_tokens: 260, reasoning_effort: "low",
       });
       const letter = r.choices[0]?.message?.content?.trim().replace(/^["']|["']$/g, "") || null;
       return res.json({ letter });
@@ -2102,9 +2109,9 @@ Escríbele a ${name} una nota de buenos días de 2-3 oraciones. Directa, sin rod
       const ctx = emotion ? (EMO_CTX[emotion] || "un estado de ánimo particular") : "un estado de ánimo";
       const insightPrompt = `Eres Zyra, la mejor amiga de quien escribe. Leíste esta entrada de diario:\n\n"${content.substring(0,450)}"\n\nDa una sola observación concisa y empática — algo que la persona quizás no se dijo a sí misma pero que es verdad. Sin consejo genérico. Máximo 30 palabras. Solo la observación, sin introducción ni comillas.`;
       const r = await groq.chat.completions.create({
-        model: "llama-3.1-8b-instant",
+        model: "openai/gpt-oss-20b",
         messages: [{ role: "user", content: insightPrompt }],
-        temperature: 0.8, max_tokens: 70,
+        temperature: 0.8, max_tokens: 230, reasoning_effort: "low",
       });
       const insight = r.choices[0]?.message?.content?.trim().replace(/^["']|["']$/g, "") || null;
       return res.json({ insight });
@@ -2113,9 +2120,9 @@ Escríbele a ${name} una nota de buenos días de 2-3 oraciones. Directa, sin rod
     const recent = recentTitles.slice(0, 3).filter(Boolean).join(", ");
     const userPrompt = `Genera una sola pregunta o frase de apertura para un diario personal. El usuario ${ctx}.${recent ? ` Sus últimas entradas fueron sobre: ${recent}.` : ""} La pregunta debe ser concreta, personal y que invite a reflexión auténtica. Máximo 28 palabras. Sin comillas, sin explicación extra — solo la pregunta o frase.`;
     const r = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+      model: "openai/gpt-oss-20b",
       messages: [{ role: "user", content: userPrompt }],
-      temperature: 0.95, max_tokens: 65,
+      temperature: 0.95, max_tokens: 230, reasoning_effort: "low",
     });
     const prompt = r.choices[0]?.message?.content?.trim().replace(/^["']|["']$/g, "") || null;
     res.json({ prompt });

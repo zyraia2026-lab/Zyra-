@@ -153,7 +153,9 @@ exports.moodCheckin = async (req, res) => {
       {
         currentEmotion: emotion,
         negativeStreakCount: negativeStreak,
-        $push: { emotionHistory: { emotion, note: note.slice(0, 200), intensity: Math.min(10, Math.max(1, intensity)), date: new Date() } },
+        // $slice:-90 -- sin esto este historial crece para siempre (a diferencia de logEmotion,
+        // que sí lo limita); Profile con emotionHistory completo se lee en cada mensaje del chat.
+        $push: { emotionHistory: { $each: [{ emotion, note: note.slice(0, 200), intensity: Math.min(10, Math.max(1, intensity)), date: new Date() }], $slice: -90 } },
       },
       { upsert: true }
     );

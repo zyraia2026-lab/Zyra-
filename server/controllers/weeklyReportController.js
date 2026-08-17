@@ -111,10 +111,11 @@ REGLAS DE VOZ (críticas):
 - Máximo 400 palabras en total`;
 
   const r = await groq.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
+    model: "openai/gpt-oss-120b",
     messages: [{ role: "user", content: prompt }],
     temperature: 0.7,
-    max_tokens: 800,
+    max_tokens: 1100,
+    reasoning_effort: "low",
   });
 
   return r.choices[0]?.message?.content?.trim() || null;
