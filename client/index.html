@@ -923,47 +923,120 @@ function closeSplash(){
   <button class="mobile-nav-btn" onclick="showPage('journal')" data-page="journal">
     <span class="mnb-icon">📔</span><span class="mnb-label">Diario</span>
   </button>
-  <button class="mobile-nav-btn" onclick="showPage('wellness')" data-page="wellness">
-    <span class="mnb-icon">🧘</span><span class="mnb-label">Bienestar</span>
+  <button class="mobile-nav-btn" onclick="showPage('wellness');setTimeout(()=>openWellness('breath'),100)" data-page="wellness">
+    <span class="mnb-icon">🌬️</span><span class="mnb-label">Respirar</span>
   </button>
-  <button class="mobile-nav-btn" onclick="showPage('profile');clearProfileDot()" data-page="profile">
-    <span class="mnb-icon-wrap"><span class="mnb-icon">👤</span><span class="mnb-profile-dot" id="tab-profile-dot" style="display:none"></span></span>
-    <span class="mnb-label">Perfil</span>
+  <button class="mobile-nav-btn" onclick="openMobileMoreSheet();clearProfileDot()" id="mnb-more-btn">
+    <span class="mnb-icon-wrap"><span class="mnb-icon">⋯</span><span class="mnb-profile-dot" id="tab-profile-dot" style="display:none"></span></span>
+    <span class="mnb-label">Más</span>
   </button>
 </div>
 
+<!-- ══ HOJA "MÁS" MÓVIL — mismos accesos que la barra lateral de escritorio ══ -->
+<div id="mobile-more-backdrop" onclick="closeMobileMoreSheet()" style="display:none;position:fixed;inset:0;z-index:2990;background:rgba(15,15,30,.55);backdrop-filter:blur(2px)"></div>
+<div id="mobile-more-sheet" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:3000;background:var(--bg2,#fff);border-radius:24px 24px 0 0;padding:10px 16px calc(20px + env(safe-area-inset-bottom));max-height:82vh;overflow-y:auto;box-shadow:0 -12px 40px rgba(0,0,0,.25);animation:slideUp .3s cubic-bezier(.16,1,.3,1)">
+  <div style="width:36px;height:4px;background:var(--border,#e2e8f0);border-radius:99px;margin:4px auto 14px"></div>
+
+  <div class="sb-streak-card" id="m-streak-card" onclick="closeMobileMoreSheet();showPage('dashboard')" style="margin-top:0">
+    <div class="sb-streak-top"><span>🔥 Racha actual</span><strong id="m-streak-days">0 días</strong></div>
+    <div class="sb-streak-bar"><div class="sb-streak-bar-fill" id="m-streak-bar-fill" style="width:0%"></div></div>
+    <div class="sb-streak-sub">¡Sigue así!</div>
+  </div>
+
+  <div onclick="closeMobileMoreSheet();openRewardsShop()" style="display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,rgba(251,191,36,.12),rgba(245,158,11,.06));border:1px solid rgba(251,191,36,.25);border-radius:16px;padding:12px 14px;margin-top:10px;cursor:pointer">
+    <span style="font-size:20px">🪙</span>
+    <div style="flex:1"><strong id="m-coins-count" style="color:var(--text);font-size:15px">0</strong> <span style="font-size:12px;color:var(--text3)">Monedas Zyra</span></div>
+    <span style="background:var(--accent);color:#fff;font-size:11px;font-weight:800;padding:6px 12px;border-radius:20px">Ir a la tienda</span>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:2px;margin-top:14px">
+    <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('assistant')"><span class="nav-btn-ic">💬</span>Chat con Zyra</button>
+    <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('journal')"><span class="nav-btn-ic">📓</span>Diario</button>
+    <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('wellness');setTimeout(()=>openWellness('breath'),100)"><span class="nav-btn-ic">🌬️</span>Respiración</button>
+    <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('wellness');setTimeout(()=>openWellness('habits'),100)"><span class="nav-btn-ic">✅</span>Hábitos</button>
+    <button class="nav-btn" onclick="closeMobileMoreSheet();openRewardsShop()"><span class="nav-btn-ic">🛍️</span>Tienda<span class="nav-btn-tag">NUEVO</span></button>
+    <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('planes')"><span class="nav-btn-ic">✦</span>Premium</button>
+    <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('profile');setTimeout(()=>document.getElementById('referral-code-display')?.scrollIntoView({behavior:'smooth',block:'center'}),400)"><span class="nav-btn-ic">🎁</span>Amigos</button>
+    <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('profile');clearProfileDot()"><span class="nav-btn-ic">👤</span>Mi perfil</button>
+    <div style="border-top:1px solid var(--border,#eef0ff);margin:8px 0"></div>
+    <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('goals')"><span class="nav-btn-ic">🎯</span>Metas</button>
+    <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('games')"><span class="nav-btn-ic">🎮</span>Juegos</button>
+    <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('analytics')"><span class="nav-btn-ic">📊</span>Analítica</button>
+    <button class="nav-btn" onclick="closeMobileMoreSheet();startTest()"><span class="nav-btn-ic">✨</span>Test Emocional</button>
+  </div>
+</div>
+<script>
+function openMobileMoreSheet() {
+  document.getElementById('mobile-more-backdrop').style.display = 'block';
+  document.getElementById('mobile-more-sheet').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+function closeMobileMoreSheet() {
+  document.getElementById('mobile-more-backdrop').style.display = 'none';
+  document.getElementById('mobile-more-sheet').style.display = 'none';
+  document.body.style.overflow = '';
+}
+</script>
+
 <!-- ══ NAV COMPARTIDO — un solo nav para todas las páginas del app ══ -->
+<!-- ══ Barra superior mini (desktop) -- fuera del <nav> para que abarque todo el ancho
+     restante (a la derecha de la barra lateral), no solo la columna angosta ══ -->
+<div id="app-shared-topbar" style="display:none">
+  <button class="sb-topbar-pill" id="sb-water-pill" onclick="showPage('wellness')" style="display:none">
+    <span>💧</span><span id="sb-water-text">Recordatorios de hoy</span>
+  </button>
+  <div style="flex:1"></div>
+  <div class="nav-streak-badge" id="nav-streak-badge" onclick="showPage('dashboard')" title="Racha de días" style="display:none"><span>🔥</span><span id="nav-streak-count">0</span></div>
+  <div class="nav-coins-badge" id="nav-coins-badge" onclick="openRewardsShop()" title="Monedas Zyra" style="display:none"><span>🪙</span><span id="nav-coins-count">0</span></div>
+  <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Modo oscuro">🌙</button>
+  <div class="avatar" id="nav-avatar" onclick="showPage('profile')" style="cursor:pointer" title="Mi perfil">?</div>
+  <button class="btn-logout" onclick="doLogout()">Salir</button>
+</div>
+
 <nav id="app-shared-nav" style="display:none">
+  <!-- ══ Barra lateral (desktop) ══ -->
   <div class="nav-inner">
     <div class="nav-logo" onclick="showPage('dashboard')" style="cursor:pointer">
       <img src="/Imagenes/1000154669.png" class="nav-logo-img" alt="Zyra"/>
       <span class="nav-brand">Zyra</span>
     </div>
-    <div style="display:flex;align-items:center;gap:6px">
-      <div class="nav-links">
-        <button class="nav-btn" data-page="dashboard" onclick="showPage('dashboard')">🏠 Inicio</button>
-        <button class="nav-btn" data-page="assistant" onclick="showPage('assistant')">💬 Chat</button>
-        <button class="nav-btn" data-page="journal" onclick="showPage('journal')">📓 Diario</button>
-        <button class="nav-btn" data-page="wellness" onclick="showPage('wellness')">🧘 Bienestar</button>
-      </div>
-      <div style="position:relative" id="nav-more-wrap">
-        <button class="nav-btn" id="nav-more-btn" onclick="(function(e){e.stopPropagation();var m=document.getElementById('nav-more-menu');m.style.display=m.style.display==='block'?'none':'block';})(event)">Más ▾</button>
-        <div id="nav-more-menu" style="display:none;position:absolute;top:calc(100% + 8px);right:0;background:var(--surface,#fff);border:1px solid var(--border,rgba(99,102,241,.15));border-radius:16px;padding:8px;min-width:170px;z-index:9999;box-shadow:0 12px 40px rgba(0,0,0,.15)">
-          <button onclick="showPage('games');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">🎮 Juegos</button>
-          <button onclick="showPage('goals');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">🎯 Metas</button>
-          <button onclick="showPage('analytics');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">📊 Analítica</button>
-          <button onclick="showPage('planes');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">✦ Planes</button>
-          <button onclick="showPage('profile');document.getElementById('nav-more-menu').style.display='none';setTimeout(()=>{const s=document.getElementById('section-reloj');if(s)s.scrollIntoView({behavior:'smooth'})},300)" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">📱 Sensores</button>
-          <button onclick="startTest();document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">✨ Test Emocional</button>
-        </div>
+
+    <div class="nav-links">
+      <button class="nav-btn" data-page="dashboard" onclick="showPage('dashboard')"><span class="nav-btn-ic">🏠</span>Inicio</button>
+      <button class="nav-btn" data-page="assistant" onclick="showPage('assistant')"><span class="nav-btn-ic">💬</span>Chat con Zyra</button>
+      <button class="nav-btn" data-page="journal" onclick="showPage('journal')"><span class="nav-btn-ic">📓</span>Diario</button>
+      <button class="nav-btn" data-page="wellness" onclick="showPage('wellness');setTimeout(()=>openWellness('breath'),100)"><span class="nav-btn-ic">🌬️</span>Respiración</button>
+      <button class="nav-btn" data-page="wellness" onclick="showPage('wellness');setTimeout(()=>openWellness('habits'),100)"><span class="nav-btn-ic">✅</span>Hábitos</button>
+      <button class="nav-btn" onclick="openRewardsShop()"><span class="nav-btn-ic">🛍️</span>Tienda<span class="nav-btn-tag">NUEVO</span></button>
+      <button class="nav-btn" data-page="planes" onclick="showPage('planes')"><span class="nav-btn-ic">✦</span>Premium</button>
+      <button class="nav-btn" onclick="showPage('profile');setTimeout(()=>document.getElementById('referral-code-display')?.scrollIntoView({behavior:'smooth',block:'center'}),400)"><span class="nav-btn-ic">🎁</span>Amigos</button>
+    </div>
+
+    <div style="position:relative;margin-top:auto" id="nav-more-wrap">
+      <button class="nav-btn" id="nav-more-btn" onclick="(function(e){e.stopPropagation();var m=document.getElementById('nav-more-menu');m.style.display=m.style.display==='block'?'none':'block';})(event)"><span class="nav-btn-ic">⋯</span>Más</button>
+      <div id="nav-more-menu" style="display:none;position:absolute;bottom:calc(100% + 8px);left:0;background:var(--surface,#fff);border:1px solid var(--border,rgba(99,102,241,.15));border-radius:16px;padding:8px;min-width:190px;z-index:9999;box-shadow:0 12px 40px rgba(0,0,0,.15)">
+        <button onclick="showPage('games');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">🎮 Juegos</button>
+        <button onclick="showPage('goals');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">🎯 Metas</button>
+        <button onclick="showPage('analytics');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">📊 Analítica</button>
+        <button onclick="showPage('profile');document.getElementById('nav-more-menu').style.display='none';setTimeout(()=>{const s=document.getElementById('section-reloj');if(s)s.scrollIntoView({behavior:'smooth'})},300)" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">📱 Sensores</button>
+        <button onclick="startTest();document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">✨ Test Emocional</button>
       </div>
     </div>
-    <div class="nav-right">
-      <div class="nav-streak-badge" id="nav-streak-badge" onclick="showPage('dashboard')" title="Racha de días" style="display:none"><span>🔥</span><span id="nav-streak-count">0</span></div>
-      <div class="nav-coins-badge" id="nav-coins-badge" onclick="showPage('profile')" title="Monedas Zyra" style="display:none"><span>🪙</span><span id="nav-coins-count">0</span></div>
-      <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Modo oscuro">🌙</button>
-      <div class="avatar" id="nav-avatar" onclick="showPage('profile')" style="cursor:pointer" title="Mi perfil">?</div>
-      <button class="btn-logout" onclick="doLogout()">Salir</button>
+
+    <!-- Racha -->
+    <div class="sb-streak-card" id="sb-streak-card" onclick="showPage('dashboard')">
+      <div class="sb-streak-top"><span>🔥 Racha actual</span><strong id="sb-streak-days">0 días</strong></div>
+      <div class="sb-streak-bar"><div class="sb-streak-bar-fill" id="sb-streak-bar-fill" style="width:0%"></div></div>
+      <div class="sb-streak-sub">¡Sigue así!</div>
+    </div>
+
+    <!-- Perfil -->
+    <div class="sb-profile-card" id="sb-profile-card" onclick="showPage('profile')">
+      <div class="avatar" id="sb-avatar-mini">?</div>
+      <div style="flex:1;min-width:0">
+        <div class="sb-profile-name" id="sb-profile-name">—</div>
+        <div class="sb-profile-level" id="sb-profile-level">Nivel 1</div>
+      </div>
     </div>
   </div>
 </nav>
@@ -4041,6 +4114,7 @@ function hideError(id) { const e = document.getElementById(id); if(e) { e.style.
 function showPage(name) {
   window._zyraCurrentPage = name;
   document.body.dataset.page = name;
+  if (typeof closeMobileMoreSheet === "function") closeMobileMoreSheet();
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
   const pg = document.getElementById("page-" + name);
   if(pg) pg.classList.add("active");
@@ -4049,8 +4123,9 @@ function showPage(name) {
   // ── Nav compartido: mostrar en páginas autenticadas, ocultar en auth/landing ──
   const authPages = ['landing','login','register','verify-login','verify-register','forgot-password','reset-password','voice-call'];
   const sharedNav = document.getElementById('app-shared-nav');
+  const sharedTopbar = document.getElementById('app-shared-topbar');
+  const hideNav = authPages.includes(name) || name === 'admin';
   if (sharedNav) {
-    const hideNav = authPages.includes(name) || name === 'admin';
     sharedNav.style.display = hideNav ? 'none' : '';
     // Cerrar dropdown Más si está abierto
     const moreMenu = document.getElementById('nav-more-menu');
@@ -4060,6 +4135,7 @@ function showPage(name) {
       b.classList.toggle('active', b.dataset.page === name);
     });
   }
+  if (sharedTopbar) sharedTopbar.style.display = hideNav ? 'none' : '';
 
   // FAB quick note: show on logged-in pages, hide on auth/onboarding pages
   const fab = document.getElementById("fab-qn");
@@ -5687,7 +5763,7 @@ function applyAvatarEverywhere(photoUrl, emoji, color) {
   const colorAv = color    || localStorage.getItem("zyra_avatar_color") || "var(--grad)";
   const init    = user ? user.name.charAt(0).toUpperCase() : "?";
 
-  ["nav-avatar"].forEach(id => {
+  ["nav-avatar", "sb-avatar-mini"].forEach(id => {
     const el = document.getElementById(id);
     if(!el) return;
     if(photo) {
@@ -5736,7 +5812,7 @@ function applyAvatarEverywhere(photoUrl, emoji, color) {
 
 function applyStreakBadge(streakDays) {
   const ring = streakDays >= 30 ? '#f59e0b' : streakDays >= 14 ? '#f97316' : streakDays >= 7 ? '#6366f1' : null;
-  ["nav-avatar"].forEach(id => {
+  ["nav-avatar", "sb-avatar-mini"].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     if (ring) {
@@ -7979,6 +8055,22 @@ async function loadDashboard() {
     animateCount("st-sessions", p.sessionsCount || 0);
     animateCount("st-goals", goals.filter(g => !g.completed).length);
     animateCount("st-journal", entries.length);
+
+    // Barra lateral: nivel/XP (misma fórmula que en Perfil) + racha + nombre
+    const _sbLevels = [ { min:0, label:"Nivel 1" }, { min:20, label:"Nivel 2" }, { min:60, label:"Nivel 3" }, { min:120, label:"Nivel 4" }, { min:250, label:"Nivel 5" } ];
+    const _sbActivity = (p.sessionsCount||0) + entries.length + goals.length + (hd.history?.length||0);
+    const _sbLevelIdx = _sbLevels.reduce((acc,l,i) => _sbActivity >= l.min ? i : acc, 0);
+    const _sbLevel = _sbLevels[_sbLevelIdx], _sbNext = _sbLevels[_sbLevelIdx+1];
+    const sbName = document.getElementById('sb-profile-name');
+    const sbLvl  = document.getElementById('sb-profile-level');
+    if (sbName) sbName.textContent = user?.name || '';
+    if (sbLvl)  sbLvl.textContent = _sbNext ? `${_sbLevel.label} · ${_sbActivity}/${_sbNext.min} XP` : `${_sbLevel.label} · Máximo`;
+    const _sbStreakDays = p.streakDays || 0;
+    const sbDays = document.getElementById('sb-streak-days');
+    const sbFill = document.getElementById('sb-streak-bar-fill');
+    if (sbDays) sbDays.textContent = `${_sbStreakDays} día${_sbStreakDays!==1?'s':''}`;
+    if (sbFill) sbFill.style.width = Math.min(100, (_sbStreakDays/30)*100) + '%';
+
     renderEmotions(p.currentEmotion);
     renderParaTiHoy(p.currentEmotion, hd.history || [], p.streakDays || 0);
     renderMoodPrediction(hd.history || []);
@@ -16137,6 +16229,12 @@ function _initApp() {
     loadFeatureConfig();
     loadPlanStatus();
     loadGamification();
+    // Nombre en la barra lateral: no depende de datos pesados, se puede
+    // poner apenas hay usuario -- la app ahora puede entrar directo al Chat
+    // sin pasar nunca por Inicio, y loadDashboard() (que llena esto) solo
+    // corre si se visita esa página.
+    const sbName0 = document.getElementById('sb-profile-name');
+    if (sbName0 && user?.name) sbName0.textContent = user.name;
   }
   loadTTSVoice();
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -19690,6 +19788,22 @@ function renderGamification(s) {
   const coinsCount = document.getElementById('nav-coins-count');
   if (nbStreak) { nbStreak.style.display = 'flex'; if (ncCount) ncCount.textContent = s.streak; }
   if (nbCoins)  { nbCoins.style.display  = 'flex'; if (coinsCount) coinsCount.textContent = s.coins; }
+
+  // Tarjeta de racha en la barra lateral -- se llena aquí (no solo en
+  // loadDashboard()) porque esto sí corre apenas arranca la app, sin
+  // importar en qué página se entre primero.
+  const sbDays0 = document.getElementById('sb-streak-days');
+  const sbFill0 = document.getElementById('sb-streak-bar-fill');
+  if (sbDays0) sbDays0.textContent = `${s.streak} día${s.streak!==1?'s':''}`;
+  if (sbFill0) sbFill0.style.width = Math.min(100, (s.streak/30)*100) + '%';
+
+  // Misma tarjeta, versión de la hoja "Más" en móvil
+  const mDays0 = document.getElementById('m-streak-days');
+  const mFill0 = document.getElementById('m-streak-bar-fill');
+  const mCoins0 = document.getElementById('m-coins-count');
+  if (mDays0) mDays0.textContent = `${s.streak} día${s.streak!==1?'s':''}`;
+  if (mFill0) mFill0.style.width = Math.min(100, (s.streak/30)*100) + '%';
+  if (mCoins0) mCoins0.textContent = s.coins;
 
   // Tira de estado del chat en móvil (mismos datos, sin pedirlos de nuevo)
   const cssStreak = document.getElementById('css-streak-n');

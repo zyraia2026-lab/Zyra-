@@ -1466,40 +1466,80 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
 /* ═══════════════════════════════════════════
    NAV — Rediseño Premium
 ═══════════════════════════════════════════ */
-nav {
-  background: rgba(255,255,255,0.92);
-  border-bottom: 1px solid rgba(99,102,241,0.1);
-  padding: 0 40px;
-  position: sticky; top: 0; z-index: 200;
+/* ══ Barra lateral (desktop) -- reemplaza la barra horizontal de arriba ══ */
+nav#app-shared-nav {
+  background: rgba(255,255,255,0.96);
+  border-right: 1px solid rgba(99,102,241,0.1);
+  position: fixed; top: 0; left: 0; bottom: 0; z-index: 200;
+  width: 240px;
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  box-shadow: 0 1px 24px rgba(99,102,241,0.07);
+  box-shadow: 1px 0 24px rgba(99,102,241,0.06);
+  overflow-y: auto;
 }
 .nav-inner {
-  max-width: 1400px; margin: 0 auto;
-  display: flex; align-items: center; justify-content: space-between;
-  height: 64px;
+  display: flex; flex-direction: column;
+  min-height: 100%;
+  padding: 22px 16px 18px;
+  gap: 6px;
 }
-.nav-logo { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.nav-logo { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 0 8px; margin-bottom: 18px; }
 .nav-logo-img { width: 34px; height: 34px; object-fit: contain; border-radius: 10px; box-shadow: 0 4px 12px rgba(99,102,241,0.2); }
 .nav-brand { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 800; background: linear-gradient(135deg,var(--accent),#0ea5e9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 
-.nav-links { display: flex; gap: 4px; background: #f1f2ff; border-radius: 14px; padding: 5px; overflow-x: auto; scrollbar-width: none; }
-.nav-links::-webkit-scrollbar { display: none; }
+.nav-links { display: flex; flex-direction: column; gap: 2px; }
 .nav-btn {
-  background: transparent; border: none; flex-shrink: 0;
-  padding: 9px 20px; border-radius: 10px;
-  cursor: pointer; color: #64748b; font-weight: 600; font-size: 13px;
-  transition: background .12s var(--ease), color .12s var(--ease), transform .1s var(--ease); white-space: nowrap;
+  background: transparent; border: none; width: 100%;
+  padding: 11px 12px; border-radius: 12px;
+  cursor: pointer; color: #64748b; font-weight: 600; font-size: 13.5px;
+  transition: background .12s var(--ease), color .12s var(--ease), transform .1s var(--ease);
   font-family: 'Plus Jakarta Sans', sans-serif;
+  display: flex; align-items: center; gap: 12px; text-align: left;
 }
-.nav-btn:hover { background: rgba(255,255,255,0.8); color: #374151; }
-.nav-btn:active { transform: scale(0.94) !important; }
+.nav-btn-ic { font-size: 17px; width: 20px; text-align: center; flex-shrink: 0; }
+.nav-btn-tag { margin-left: auto; background: linear-gradient(135deg,#10b981,#34d399); color: #fff; font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 20px; letter-spacing: .3px; }
+.nav-btn:hover { background: #f1f2ff; color: #374151; }
+.nav-btn:active { transform: scale(0.97) !important; }
 .nav-btn.active {
-  background: white;
+  background: linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.08));
   color: var(--accent);
   font-weight: 700;
-  box-shadow: 0 2px 12px rgba(99,102,241,0.15);
+}
+
+/* Tarjeta de racha, al fondo de la barra lateral */
+.sb-streak-card {
+  background: linear-gradient(135deg,rgba(249,115,22,.1),rgba(251,191,36,.06));
+  border: 1px solid rgba(249,115,22,.2);
+  border-radius: 16px; padding: 14px; margin-top: 14px; cursor: pointer;
+}
+.sb-streak-top { display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; font-weight: 700; color: #78716c; margin-bottom: 8px; }
+.sb-streak-top strong { color: #ea580c; font-size: 13px; }
+.sb-streak-bar { height: 5px; background: rgba(249,115,22,.15); border-radius: 99px; overflow: hidden; }
+.sb-streak-bar-fill { height: 100%; background: linear-gradient(90deg,#f97316,#fbbf24); border-radius: 99px; transition: width .4s ease; }
+.sb-streak-sub { font-size: 10.5px; color: #a8a29e; margin-top: 7px; font-weight: 600; }
+
+/* Tarjeta de perfil mini, al fondo de la barra lateral */
+.sb-profile-card { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 10px; border-radius: 14px; cursor: pointer; transition: background .15s; }
+.sb-profile-card:hover { background: #f1f2ff; }
+.sb-profile-card .avatar { width: 34px; height: 34px; font-size: 12.5px; }
+.sb-profile-name { font-size: 13px; font-weight: 800; color: var(--text, #0f172a); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-profile-level { font-size: 10.5px; color: #94a3b8; font-weight: 600; }
+
+/* Barra superior mini (desktop) -- ocupa el ancho a la derecha de la barra lateral */
+#app-shared-topbar {
+  position: fixed; top: 0; left: 240px; right: 0; height: 60px; z-index: 190;
+  background: rgba(255,255,255,0.85);
+  border-bottom: 1px solid rgba(99,102,241,0.08);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 28px;
+}
+.sb-topbar-pill {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(56,189,248,.1); border: 1px solid rgba(56,189,248,.25);
+  color: #0284c7; font-size: 12.5px; font-weight: 700;
+  padding: 8px 16px; border-radius: 20px; cursor: pointer;
+  font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
 .nav-right { display: flex; align-items: center; gap: 10px; }
@@ -1536,6 +1576,17 @@ nav {
    LAYOUT
 ═══════════════════════════════════════════ */
 .container { max-width: 1400px; margin: 0 auto; padding: 36px 40px 60px; }
+
+/* Desplaza el contenido de cada página autenticada para que no quede debajo
+   de la barra lateral (240px) ni de la barra superior mini (60px). Usa la
+   misma lista de páginas de auth/landing que ya usa showPage() en JS -- esas
+   páginas no tienen barra lateral, así que no llevan el margen. */
+@media (min-width: 769px) {
+  body:not([data-page="landing"]):not([data-page="login"]):not([data-page="register"]):not([data-page="verify-login"]):not([data-page="verify-register"]):not([data-page="forgot-password"]):not([data-page="reset-password"]):not([data-page="voice-call"]):not([data-page="admin"]) .page.active {
+    margin-left: 240px;
+    padding-top: 60px;
+  }
+}
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .grid3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
 .grid4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
@@ -4057,6 +4108,7 @@ body {
   /* Hide top nav — bottom tabbar handles all mobile navigation */
   .page > nav:not(.lp-nav) { display: none; }
   #app-shared-nav { display: none !important; }
+  #app-shared-topbar { display: none !important; }
 
   /* A bit more top breathing room now that the nav is gone */
   .container { padding-top: 16px; }
