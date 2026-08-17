@@ -217,6 +217,7 @@ exports.updatePassword = async (req, res) => {
     if (!(await user.matchPassword(currentPassword)))
       return res.status(401).json({ message: "Contraseña actual incorrecta" });
     user.password = password;
+    user.passwordChangedAt = new Date();
     await user.save();
     res.json({ success: true });
   } catch(e) { res.status(500).json({ message: "Error al actualizar la contraseña. Inténtalo de nuevo." }); }
@@ -257,6 +258,7 @@ exports.forgotPasswordReset = async (req, res) => {
     const user = await User.findById(result.data.userId).select("+password");
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
     user.password = password;
+    user.passwordChangedAt = new Date();
     await user.save();
     res.json({ success: true, message: "Contraseña actualizada correctamente" });
   } catch(e) {

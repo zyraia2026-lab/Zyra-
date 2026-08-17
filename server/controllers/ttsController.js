@@ -10,8 +10,18 @@ function normalizeTTSText(text) {
     .trim();
 }
 
+// Corta en el último punto/signo de cierre antes del límite en vez de partir
+// a media palabra/oración — si no hay ninguno cerca, corta duro como respaldo.
+function truncateAtSentence(text, maxLen) {
+  if (text.length <= maxLen) return text;
+  const slice = text.slice(0, maxLen);
+  const lastEnd = Math.max(slice.lastIndexOf(". "), slice.lastIndexOf("! "), slice.lastIndexOf("? "), slice.lastIndexOf(".\n"));
+  if (lastEnd > maxLen * 0.4) return slice.slice(0, lastEnd + 1);
+  return slice;
+}
+
 async function streamElementsAudio(text) {
-  const clean = normalizeTTSText(text).substring(0, 280);
+  const clean = truncateAtSentence(normalizeTTSText(text), 320);
   const url = `https://api.streamelements.com/kappa/v2/speech?voice=es-MX-DaliaNeural&text=${encodeURIComponent(clean)}`;
   const r = await fetch(url, {
     signal: AbortSignal.timeout(8000),
@@ -25,7 +35,7 @@ async function streamElementsAudio(text) {
 }
 
 async function googleTTSAudio(text) {
-  const short = normalizeTTSText(text).substring(0, 200);
+  const short = truncateAtSentence(normalizeTTSText(text), 200);
   const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(short)}&tl=es&total=1&idx=0&textlen=${short.length}&client=tw-ob`;
   const r = await fetch(url, {
     signal: AbortSignal.timeout(8000),

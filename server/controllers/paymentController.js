@@ -43,7 +43,12 @@ exports.createCheckout = async (req, res) => {
     const isAnnual = period === "annual";
 
     if (!stripe) {
-      // Modo demo: actualizar plan directamente (para pruebas sin Stripe)
+      // Modo demo: actualizar plan directamente (para pruebas sin Stripe).
+      // Restringido al admin -- sin esto, cualquier usuario real podía llamar
+      // este endpoint y quedar en plan pago gratis mientras Stripe no esté configurado.
+      if (!process.env.ADMIN_EMAIL || req.user.email !== process.env.ADMIN_EMAIL) {
+        return res.status(503).json({ message: "Los pagos aún no están disponibles. Intenta más tarde." });
+      }
       const duration = isAnnual ? PLANS[plan].durationAnnual : PLANS[plan].durationMonthly;
       const expires = new Date();
       expires.setDate(expires.getDate() + duration);

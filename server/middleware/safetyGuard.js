@@ -14,6 +14,10 @@ const WARNING_PATTERNS = [
   /estoy vacia por dentro/i, /me siento atrapado/i, /me siento atrapada/i,
   /no valgo nada/i, /nada tiene sentido/i, /quiero que esto se acabe/i,
   /quiero que todo acabe/i, /estoy pensando en hacerme dano/i,
+  /no le veo futuro a esto/i, /quisiera dormir y no despertar/i,
+  /ya no tengo ganas de nada/i, /me quiero ir de este mundo/i,
+  /estoy roto por dentro/i, /estoy rota por dentro/i, /no aguanto mas esto/i,
+  /ya no puedo con esto/i, /siento que no pertenezco a este mundo/i,
 ];
 
 const CRISIS_PATTERNS = [
@@ -36,6 +40,8 @@ const CRISIS_PATTERNS = [
   /me voy a ahorcar/i, /me voy a envenenar/i, /voy a saltar (?:del|desde)/i,
   /quiero quitarme la vida/i, /ya no quiero seguir aqui/i,
   /tengo (?:las )?pastillas listas/i, /ya escribi (?:la )?carta de despedida/i,
+  /tengo el metodo listo/i, /ya decidi como hacerlo/i,
+  /esta va a ser mi despedida/i, /esto es un adios/i,
 ];
 
 function classifyMessage(text) {
@@ -77,7 +83,38 @@ async function notifyEmergencyContact(userId, userName, message) {
   } catch(e) { console.error(`🚨 [CRISIS] Error inesperado notificando crisis para ${userId}:`, e.message); }
 }
 
-function safetyGuard(req, res, next) {
+// Vocabulario emocional amplio (no crisis explícita) — filtro barato para decidir
+// si vale la pena gastar una llamada de IA como segunda opinión. La mayoría de
+// mensajes (casuales, factuales) nunca llegan a esta capa.
+const EMOTIONAL_TONE_RE = /\b(triste|ansios|deprimid|angustia|desesperad|solo|sola|vac[ií]o|vac[ií]a|cansad|agotad|dolor|llorar|llorando|miedo|p[aá]nico|abrumad|frustrad|perdid|harta|harto|rota|roto|carga|fracas)\w*\b/i;
+
+// Segunda opinión por IA — SOLO puede subir el nivel a "warning" (tono más
+// cuidadoso en la respuesta). Nunca dispara el aviso al contacto de emergencia:
+// eso queda reservado a coincidencias exactas del regex, para no arriesgarnos a
+// notificar a alguien por una alucinación o falso positivo del modelo.
+async function aiSecondOpinion(message) {
+  try {
+    const Groq = require("groq-sdk");
+    if (!process.env.GROQ_API_KEY || process.env.GROQ_API_KEY.length < 10) return false;
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    const r = await groq.chat.completions.create({
+      model: "openai/gpt-oss-20b",
+      messages: [{
+        role: "user",
+        content: `¿Este mensaje muestra angustia emocional real que merece una respuesta especialmente cuidadosa (no necesariamente riesgo de vida, solo dolor genuino)? Responde SOLO "si" o "no", nada más.\n\nMensaje: "${message.substring(0, 300)}"`,
+      }],
+      temperature: 0,
+      max_tokens: 150,
+      reasoning_effort: "low",
+    });
+    const answer = (r.choices[0]?.message?.content || "").trim().toLowerCase();
+    return answer.startsWith("si") || answer.startsWith("sí");
+  } catch (e) {
+    return false; // falla silenciosa — el regex ya corrió, esto es solo un plus
+  }
+}
+
+async function safetyGuard(req, res, next) {
   const { message } = req.body;
   if (!message?.trim()) return next();
 
@@ -110,6 +147,23 @@ function safetyGuard(req, res, next) {
     console.warn(`⚠️  [WARNING] usuario: ${req.user?._id}`);
     req.safetyWarning = true;
     req.safetyLevel   = "warning";
+    return next();
+  }
+
+  // "safe" según el regex — como red de apoyo, si el mensaje trae carga emocional
+  // real pero está frased distinto a los patrones conocidos, se le da una segunda
+  // mirada rápida antes de seguir. No bloquea mucho (~modelo chico) y nunca sube
+  // a nivel crisis por sí sola.
+  if (EMOTIONAL_TONE_RE.test(message) && message.trim().length > 12) {
+    const flagged = await Promise.race([
+      aiSecondOpinion(message),
+      new Promise(resolve => setTimeout(() => resolve(false), 2500)), // no retrasar el chat más de 2.5s
+    ]);
+    if (flagged) {
+      console.warn(`⚠️  [WARNING-IA] usuario: ${req.user?._id} — regex dio "safe" pero la IA detectó angustia real`);
+      req.safetyWarning = true;
+      req.safetyLevel   = "warning";
+    }
   }
 
   next();

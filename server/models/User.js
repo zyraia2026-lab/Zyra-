@@ -5,6 +5,7 @@ const S = new mongoose.Schema({
   name:      { type: String, required: true, trim: true },
   email:     { type: String, required: true, unique: true, lowercase: true },
   password:  { type: String, minlength: 8, select: false }, // opcional para usuarios OAuth
+  passwordChangedAt: { type: Date, default: null, select: false }, // invalida JWTs viejos si la contraseña cambió después de emitidos
   darkMode:  { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now },
 
