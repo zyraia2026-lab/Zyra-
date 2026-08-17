@@ -2707,6 +2707,12 @@ async function b2bSubmitContact() {
       <button class="btn-feedback" id="btn-chat-search-toggle" onclick="toggleChatSearch()" title="Buscar en esta conversación" style="font-size:16px;opacity:.5">🔍</button>
       <button class="btn-call" id="btn-voice-call" onclick="openVoiceCall()" title="Llamada de voz con Zyra (Premium)">📞 Llamada 🔒</button>
     </div>
+    <div class="chat-status-strip" id="chat-status-strip">
+      <span class="css-item" title="Racha de días">🔥 <b id="css-streak-n">0</b></span>
+      <span class="css-item" title="Monedas Zyra">🪙 <b id="css-coins-n">0</b></span>
+      <span class="css-item css-mood" id="css-mood-item" title="Tu ánimo de hoy" onclick="toggleEmotionForm();showPage('dashboard')">···</span>
+      <button class="css-more" onclick="showPage('dashboard')">Ver progreso →</button>
+    </div>
     <div id="chat-search-bar" style="display:none;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--surface2);gap:6px;align-items:center">
       <input id="chat-search-input" type="search" placeholder="Buscar en esta conversación..." oninput="doChatSearch(this.value)" onkeydown="if(event.key==='Escape')toggleChatSearch()" style="flex:1;padding:7px 11px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;outline:none;min-width:0"/>
       <button onclick="chatSearchNav(-1)" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--text3);padding:4px" title="Anterior">▲</button>
@@ -3729,7 +3735,12 @@ let user  = (() => { try { return JSON.parse(localStorage.getItem("zyra_user") |
 // En celular el chat es la funcion central de la app, asi que aterriza ahi
 // en vez del dashboard (que en pantallas chicas viene con varias tarjetas
 // y avisos antes de llegar a lo importante). En desktop se queda igual.
-function _homePage() { return window.innerWidth <= 768 ? "assistant" : "dashboard"; }
+// El chat es el punto de entrada en todos los tamaños de pantalla — no solo
+// celular. En desktop la racha/monedas ya se ven siempre en el nav superior;
+// en celular se agrega una tira de estado propia dentro del chat (ver
+// .chat-status-strip) para no perder esa visibilidad al quitar el dashboard
+// como pantalla de entrada.
+function _homePage() { return "assistant"; }
 
 // Manejar redirect de OAuth (Google, Spotify, Facebook)
 (() => {
@@ -12777,10 +12788,25 @@ async function loadAssistant() {
   zyraMaybeShowWelcome();
   setTimeout(restoreChatDraft, 200);
   _startPlaceholderRotation();
+  updateChatStatusStrip();
   // Auto-focus chat input on desktop
   if (!('ontouchstart' in window)) {
     setTimeout(() => document.getElementById("chat-input")?.focus(), 350);
   }
+}
+async function updateChatStatusStrip() {
+  const moodEl = document.getElementById("css-mood-item");
+  if (!moodEl) return;
+  try {
+    const { profile: p } = await api("/profile");
+    const em = EMOTIONS.find(e => e.key === p.currentEmotion);
+    const checkedInToday = !!localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString());
+    moodEl.textContent = em ? `${em.emoji} ${checkedInToday ? "Hoy" : "Tu ánimo"}: ${em.label}` : "😊 ¿Cómo estás?";
+  } catch (e) {}
+  // Racha/monedas: si ya se cargaron antes en esta sesion, reflejalas de una
+  // vez sin esperar a que loadGamification() (llamada aparte al iniciar
+  // sesion) termine otra vez.
+  if (_gamifStatus) renderGamification(_gamifStatus);
 }
 
 const _PLACEHOLDERS = [
@@ -19653,6 +19679,12 @@ function renderGamification(s) {
   const coinsCount = document.getElementById('nav-coins-count');
   if (nbStreak) { nbStreak.style.display = 'flex'; if (ncCount) ncCount.textContent = s.streak; }
   if (nbCoins)  { nbCoins.style.display  = 'flex'; if (coinsCount) coinsCount.textContent = s.coins; }
+
+  // Tira de estado del chat en móvil (mismos datos, sin pedirlos de nuevo)
+  const cssStreak = document.getElementById('css-streak-n');
+  const cssCoins  = document.getElementById('css-coins-n');
+  if (cssStreak) cssStreak.textContent = s.streak;
+  if (cssCoins)  cssCoins.textContent  = s.coins;
 
   // Big streak display
   const sn = document.getElementById('streak-number-big');

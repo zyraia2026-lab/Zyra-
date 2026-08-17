@@ -1808,6 +1808,12 @@ nav {
 .mob-hist-toggle{display:none}
 .mob-sidebar-backdrop{display:none}
 .mob-sidebar-close{display:none}
+/* Tira de estado (racha/monedas/animo) dentro del chat — solo en movil.
+   En desktop el nav superior ya muestra racha y monedas siempre, asi que
+   duplicarla ahi seria ruido; en movil ese nav esta oculto, y como el chat
+   ahora es la pantalla de entrada, sin esto no habia forma de ver el
+   progreso sin ir aparte al dashboard. */
+.chat-status-strip{display:none}
 .chat-zyra-avatar{width:48px;height:48px;border-radius:var(--r-md);overflow:hidden;flex-shrink:0;background:var(--grad-soft);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm);border:2px solid var(--border)}
 .chat-zyra-avatar img{width:100%;height:100%;object-fit:contain;padding:5px}
 .chat-name{font-size:16px;font-weight:800;color:var(--text);letter-spacing:-.2px}
@@ -2828,6 +2834,33 @@ body {
   .chat-name   { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .chat-status { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
   .ai-badge    { display: none !important; }
+
+  /* Tira de estado — racha/monedas/animo, siempre visible mientras chateas,
+     estilo Duolingo (la accion principal al frente, el progreso de reojo). */
+  .chat-status-strip {
+    display: flex !important;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2, rgba(99,102,241,.04));
+    flex-shrink: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .chat-status-strip::-webkit-scrollbar { display: none; }
+  .chat-status-strip .css-item {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 12px; font-weight: 700; color: var(--text2, #4b5563);
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .chat-status-strip .css-mood { cursor: pointer; }
+  .chat-status-strip .css-more {
+    margin-left: auto; flex-shrink: 0;
+    background: none; border: none; cursor: pointer;
+    font-size: 11px; font-weight: 700; color: var(--accent, #6366f1);
+    padding: 4px 0 4px 8px; white-space: nowrap;
+  }
 
   /* ── Botones TTS y Llamada en header ── */
   .btn-tts  { padding: 7px 8px; font-size: 14px; min-width: 34px; }
