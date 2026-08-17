@@ -1014,7 +1014,7 @@ function closeMobileMoreSheet() {
 
     <div style="position:relative;margin-top:auto" id="nav-more-wrap">
       <button class="nav-btn" id="nav-more-btn" onclick="(function(e){e.stopPropagation();var m=document.getElementById('nav-more-menu');m.style.display=m.style.display==='block'?'none':'block';})(event)"><span class="nav-btn-ic">⋯</span>Más</button>
-      <div id="nav-more-menu" style="display:none;position:absolute;bottom:calc(100% + 8px);left:0;background:var(--surface,#fff);border:1px solid var(--border,rgba(99,102,241,.15));border-radius:16px;padding:8px;min-width:190px;z-index:9999;box-shadow:0 12px 40px rgba(0,0,0,.15)">
+      <div id="nav-more-menu" style="display:none;position:absolute;bottom:0;left:calc(100% + 24px);background:var(--surface,#fff);border:1px solid var(--border,rgba(99,102,241,.15));border-radius:16px;padding:8px;min-width:190px;z-index:9999;box-shadow:0 12px 40px rgba(0,0,0,.15)">
         <button onclick="showPage('games');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">🎮 Juegos</button>
         <button onclick="showPage('goals');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">🎯 Metas</button>
         <button onclick="showPage('analytics');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">📊 Analítica</button>
@@ -1023,20 +1023,15 @@ function closeMobileMoreSheet() {
       </div>
     </div>
 
-    <!-- Racha -->
+    <!-- Racha -- el perfil ya vive arriba a la derecha (avatar de la barra
+         superior), no se repite acá para no duplicar ni estorbar. -->
     <div class="sb-streak-card" id="sb-streak-card" onclick="showPage('dashboard')">
       <div class="sb-streak-top"><span>🔥 Racha actual</span><strong id="sb-streak-days">0 días</strong></div>
       <div class="sb-streak-bar"><div class="sb-streak-bar-fill" id="sb-streak-bar-fill" style="width:0%"></div></div>
       <div class="sb-streak-sub">¡Sigue así!</div>
     </div>
-
-    <!-- Perfil -->
-    <div class="sb-profile-card" id="sb-profile-card" onclick="showPage('profile')">
-      <div class="avatar" id="sb-avatar-mini">?</div>
-      <div style="flex:1;min-width:0">
-        <div class="sb-profile-name" id="sb-profile-name">—</div>
-        <div class="sb-profile-level" id="sb-profile-level">Nivel 1</div>
-      </div>
+    <div style="display:none">
+      <span id="sb-avatar-mini"></span><span id="sb-profile-name"></span><span id="sb-profile-level"></span>
     </div>
   </div>
 </nav>
@@ -2017,6 +2012,7 @@ async function b2bSubmitContact() {
 <!-- ══════ DASHBOARD ══════ -->
 <div id="page-dashboard" class="page">
 <div class="container db-container">
+<div class="db-main">
 
   <!-- ══ HERO ══ -->
   <div id="db-hero-card" style="background:var(--surface,#fff);border:1.5px solid var(--border,rgba(99,102,241,.12));border-radius:24px;padding:26px 30px 20px;margin-bottom:28px;box-shadow:0 2px 24px rgba(99,102,241,.07)">
@@ -2123,7 +2119,8 @@ async function b2bSubmitContact() {
   </div>
 
   <!-- ══ WIDGET REFERRAL ══ -->
-  <div id="dash-referral-widget" style="margin-bottom:28px;background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(52,211,153,.04));border:1.5px solid rgba(16,185,129,.25);border-radius:18px;padding:18px 20px;display:flex;align-items:center;gap:16px;cursor:pointer" onclick="showPage('profile');setTimeout(()=>document.getElementById('referral-code-display')?.scrollIntoView({behavior:'smooth',block:'center'}),400)">
+  <!-- Oculto: ahora vive en la columna derecha (.db-rail-referral) para no repetirlo -->
+  <div id="dash-referral-widget" style="display:none;margin-bottom:28px;background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(52,211,153,.04));border:1.5px solid rgba(16,185,129,.25);border-radius:18px;padding:18px 20px;align-items:center;gap:16px;cursor:pointer" onclick="showPage('profile');setTimeout(()=>document.getElementById('referral-code-display')?.scrollIntoView({behavior:'smooth',block:'center'}),400)">
     <div style="width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#10b981,#34d399);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🎁</div>
     <div style="flex:1;min-width:0">
       <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:2px">Invita amigos — gana Premium gratis</div>
@@ -2427,6 +2424,70 @@ async function b2bSubmitContact() {
     <div id="today-overview-wrap"><div id="today-overview-content"></div></div>
   </div>
 
+</div>
+<!-- ══ COLUMNA DERECHA (desktop) -- Progreso, monedas, invitar, resumen del día, recordatorios ══ -->
+<div class="db-rail">
+  <div class="db-rail-card">
+    <div class="db-rail-head"><span>Tu progreso</span><a onclick="showPage('profile')">Ver todo →</a></div>
+    <div class="db-rail-level-row">
+      <span class="db-rail-level-ic">💎</span>
+      <div style="flex:1;min-width:0">
+        <div class="db-rail-level-name" id="rail-level-name">Nivel 1</div>
+      </div>
+      <div class="db-rail-level-xp" id="rail-level-xp">0/20 XP</div>
+    </div>
+    <div class="db-rail-bar"><div class="db-rail-bar-fill" id="rail-level-bar" style="width:0%"></div></div>
+  </div>
+
+  <div class="db-rail-card" style="display:flex;align-items:center;gap:12px;cursor:pointer" onclick="openRewardsShop()">
+    <span style="font-size:20px">🪙</span>
+    <div style="flex:1"><strong id="rail-coins" style="font-size:16px;color:var(--text)">0</strong> <span style="font-size:12px;color:var(--text3)">Monedas Zyra</span></div>
+    <span class="db-rail-btn">Ir a la tienda</span>
+  </div>
+
+  <div class="db-rail-card db-rail-referral" onclick="shareReferral()">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="font-size:26px">🎁</span>
+      <div>
+        <div style="font-weight:800;color:#7c3aed;font-size:13.5px">Invita amigos</div>
+        <div style="font-size:11.5px;color:#8b7bb8">y gana Premium gratis</div>
+      </div>
+    </div>
+    <button class="db-rail-btn db-rail-btn-purple" onclick="event.stopPropagation();shareReferral()">Invitar ahora</button>
+  </div>
+
+  <div class="db-rail-card">
+    <div class="db-rail-head"><span>Resumen diario</span></div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <div style="position:relative;width:70px;height:70px;flex-shrink:0">
+        <svg width="70" height="70" viewBox="0 0 70 70" style="transform:rotate(-90deg)">
+          <circle cx="35" cy="35" r="29" fill="none" stroke="rgba(99,102,241,.12)" stroke-width="8"/>
+          <circle id="rail-summary-ring" cx="35" cy="35" r="29" fill="none" stroke="var(--accent,#6366f1)" stroke-width="8" stroke-linecap="round" stroke-dasharray="182.2" stroke-dashoffset="182.2" style="transition:stroke-dashoffset .8s cubic-bezier(.34,1.56,.64,1)"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:var(--text)" id="rail-summary-pct">0%</div>
+      </div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:7px;font-size:12px">
+        <div style="display:flex;justify-content:space-between;gap:8px"><span>📓 Diario</span><span id="rail-summary-journal" style="color:var(--text3)">—</span></div>
+        <div style="display:flex;justify-content:space-between;gap:8px"><span>🌬️ Respiración</span><span id="rail-summary-breath" style="color:var(--text3)">—</span></div>
+        <div style="display:flex;justify-content:space-between;gap:8px"><span>✅ Hábitos</span><span id="rail-summary-habits" style="color:var(--text3)">—</span></div>
+      </div>
+    </div>
+    <div id="rail-summary-msg" style="margin-top:10px;font-size:12px;font-weight:700;color:#10b981">Sigamos así 🌱</div>
+  </div>
+
+  <div class="db-rail-card">
+    <div class="db-rail-head"><span>Recordatorios</span><a onclick="showPage('profile');setTimeout(()=>document.getElementById('section-reloj')?.scrollIntoView({behavior:'smooth'}),300)">Ver todos →</a></div>
+    <div class="db-rail-reminder">
+      <span style="font-size:18px">💧</span>
+      <div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700;color:var(--text)">Tomar agua</div><div style="font-size:10.5px;color:var(--text3)">Cada 2 horas</div></div>
+      <label class="db-rail-toggle"><input type="checkbox" id="rail-remind-water" checked onchange="localStorage.setItem('zyra_rail_remind_water', this.checked?'1':'0')"/><span></span></label>
+    </div>
+    <div class="db-rail-reminder">
+      <span style="font-size:18px">🌬️</span>
+      <div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700;color:var(--text)">Respirar</div><div style="font-size:10.5px;color:var(--text3)">Ejercicio 4-7-8</div></div>
+      <label class="db-rail-toggle"><input type="checkbox" id="rail-remind-breath" onchange="localStorage.setItem('zyra_rail_remind_breath', this.checked?'1':'0')"/><span></span></label>
+    </div>
+  </div>
 </div>
 </div>
 
@@ -8070,6 +8131,38 @@ async function loadDashboard() {
     const sbFill = document.getElementById('sb-streak-bar-fill');
     if (sbDays) sbDays.textContent = `${_sbStreakDays} día${_sbStreakDays!==1?'s':''}`;
     if (sbFill) sbFill.style.width = Math.min(100, (_sbStreakDays/30)*100) + '%';
+
+    // Columna derecha: mismo nivel/XP que la barra lateral
+    const railName = document.getElementById('rail-level-name');
+    const railXp   = document.getElementById('rail-level-xp');
+    const railBar  = document.getElementById('rail-level-bar');
+    if (railName) railName.textContent = _sbLevel.label;
+    if (railXp)   railXp.textContent = _sbNext ? `${_sbActivity}/${_sbNext.min} XP` : 'Máximo';
+    if (railBar)  railBar.style.width = _sbNext ? Math.min(100, ((_sbActivity - _sbLevel.min) / (_sbNext.min - _sbLevel.min)) * 100) + '%' : '100%';
+
+    // Columna derecha: Resumen diario (Diario/Respiración/Hábitos de HOY)
+    const _today = new Date().toDateString();
+    const journalToday = entries.filter(e => new Date(e.createdAt).toDateString() === _today).length;
+    const breathToday = parseInt(localStorage.getItem('zyra_breath_' + _today) || '0');
+    const habitsToday = (typeof getHabits === 'function') ? getHabits() : [];
+    const habitsDoneToday = habitsToday.filter(h => isHabitDone(h.id)).length;
+    const rJournal = document.getElementById('rail-summary-journal');
+    const rBreath  = document.getElementById('rail-summary-breath');
+    const rHabits  = document.getElementById('rail-summary-habits');
+    if (rJournal) rJournal.textContent = journalToday > 0 ? `${journalToday} entrada${journalToday!==1?'s':''}` : 'Sin registrar';
+    if (rBreath)  rBreath.textContent  = breathToday > 0 ? `${breathToday} sesión${breathToday!==1?'es':''}` : 'Sin registrar';
+    if (rHabits)  rHabits.textContent  = `${habitsDoneToday}/${habitsToday.length || 0}`;
+    const _summaryScore = Math.round((
+      (journalToday > 0 ? 100 : 0) +
+      (breathToday > 0 ? 100 : 0) +
+      (habitsToday.length ? (habitsDoneToday / habitsToday.length) * 100 : 0)
+    ) / 3);
+    const rRing = document.getElementById('rail-summary-ring');
+    const rPct  = document.getElementById('rail-summary-pct');
+    const rMsg  = document.getElementById('rail-summary-msg');
+    if (rRing) rRing.style.strokeDashoffset = (182.2 - (182.2 * Math.min(100,_summaryScore) / 100)).toFixed(1);
+    if (rPct)  rPct.textContent = `${_summaryScore}%`;
+    if (rMsg)  rMsg.textContent = _summaryScore >= 60 ? 'Bien hecho ⭐' : _summaryScore >= 30 ? 'Vas por buen camino 🌱' : 'Aún queda el día 💜';
 
     renderEmotions(p.currentEmotion);
     renderParaTiHoy(p.currentEmotion, hd.history || [], p.streakDays || 0);
@@ -16235,6 +16328,11 @@ function _initApp() {
     // corre si se visita esa página.
     const sbName0 = document.getElementById('sb-profile-name');
     if (sbName0 && user?.name) sbName0.textContent = user.name;
+    // Restaurar toggles de recordatorios de la columna derecha
+    const rw = document.getElementById('rail-remind-water');
+    const rb = document.getElementById('rail-remind-breath');
+    if (rw) rw.checked = localStorage.getItem('zyra_rail_remind_water') !== '0';
+    if (rb) rb.checked = localStorage.getItem('zyra_rail_remind_breath') === '1';
   }
   loadTTSVoice();
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -19804,6 +19902,9 @@ function renderGamification(s) {
   if (mDays0) mDays0.textContent = `${s.streak} día${s.streak!==1?'s':''}`;
   if (mFill0) mFill0.style.width = Math.min(100, (s.streak/30)*100) + '%';
   if (mCoins0) mCoins0.textContent = s.coins;
+
+  const railCoins = document.getElementById('rail-coins');
+  if (railCoins) railCoins.textContent = s.coins;
 
   // Tira de estado del chat en móvil (mismos datos, sin pedirlos de nuevo)
   const cssStreak = document.getElementById('css-streak-n');
