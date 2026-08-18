@@ -19153,6 +19153,11 @@ document.addEventListener('DOMContentLoaded', () => {
        cuele en desktop (sin esto, esta regla le gana por especificidad al
        bottom:24px de arriba y el aviso queda flotando a mitad del chat en PC). */
     @media(max-width:768px) { body[data-page="assistant"] #pwa-install-banner { bottom: 330px; } }
+    /* En desktop, la caja del chat llega casi hasta el borde inferior de la
+       ventana (deja solo ~32px libres) -- con bottom:24px el aviso terminaba
+       encima del aviso legal y las pildoras de entrada. Se sube lo suficiente
+       para que quede arriba de toda la caja del chat, no solo del input. */
+    @media(min-width:769px) { body[data-page="assistant"] #pwa-install-banner { bottom: 130px; } }
   `;
   document.head.appendChild(style);
 });
