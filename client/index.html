@@ -1035,7 +1035,7 @@ function closeMobileMoreSheet() {
         <button onclick="showPage('games');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">🎮 Juegos</button>
         <button onclick="showPage('goals');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">🎯 Metas</button>
         <button onclick="showPage('analytics');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">📊 Analítica</button>
-        <button onclick="showPage('profile');document.getElementById('nav-more-menu').style.display='none';setTimeout(()=>{const s=document.getElementById('section-reloj');if(s)s.scrollIntoView({behavior:'smooth'})},300)" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">📱 Sensores</button>
+        <button onclick="showPage('profile');document.getElementById('nav-more-menu').style.display='none';setTimeout(()=>{const s=document.getElementById('prof-watch-card');if(s)s.scrollIntoView({behavior:'smooth'})},300)" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">📱 Sensores</button>
         <button onclick="startTest();document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">✨ Test Emocional</button>
       </div>
     </div>
@@ -2588,7 +2588,7 @@ async function b2bSubmitContact() {
   </div>
 
   <div class="db-rail-card">
-    <div class="db-rail-head"><span>Recordatorios</span><a onclick="showPage('profile');setTimeout(()=>document.getElementById('section-reloj')?.scrollIntoView({behavior:'smooth'}),300)">Ver todos →</a></div>
+    <div class="db-rail-head"><span>Recordatorios</span><a onclick="showPage('profile');setTimeout(()=>document.getElementById('section-recordatorios')?.scrollIntoView({behavior:'smooth'}),300)">Ver todos →</a></div>
     <div class="db-rail-reminder">
       <span style="font-size:18px">💧</span>
       <div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700;color:var(--text)">Tomar agua</div><div style="font-size:10.5px;color:var(--text3)">Cada 2 horas</div></div>
@@ -3165,7 +3165,7 @@ async function b2bSubmitContact() {
   </div>
 
   <!-- ══ NOTIFICACIONES PUSH ══ -->
-  <div class="card" style="margin-bottom:20px">
+  <div class="card" id="section-recordatorios" style="margin-bottom:20px">
     <div class="card-header"><span class="card-title">🔔 Recordatorios diarios</span></div>
     <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.6">Zyra te manda un mensaje a la hora que elijas. Solo para saber cómo estás.</p>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
