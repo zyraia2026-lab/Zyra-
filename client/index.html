@@ -1016,28 +1016,11 @@ function closeMobileMoreSheet() {
       <button class="nav-btn" data-page="shop" onclick="openRewardsShop()"><span class="nav-btn-ic">🛍️</span>Tienda<span class="nav-btn-tag">NUEVO</span></button>
       <button class="nav-btn" data-page="planes" onclick="showPage('planes')"><span class="nav-btn-ic">✦</span>Premium</button>
       <button class="nav-btn" data-page="friends" onclick="showPage('friends')"><span class="nav-btn-ic">🎁</span>Amigos</button>
-    </div>
-
-    <div style="position:relative;margin-top:auto" id="nav-more-wrap">
-      <button class="nav-btn" id="nav-more-btn" onclick="(function(e){
-        e.stopPropagation();
-        var m=document.getElementById('nav-more-menu');
-        if (m.style.display==='block') { m.style.display='none'; return; }
-        // position:fixed + calculado en JS -- la barra lateral tiene overflow-y:auto,
-        // y eso hace que el navegador recorte cualquier hijo absolute que se salga
-        // hacia los lados (mismo elemento, mismo bug que con position:absolute).
-        var r = e.currentTarget.getBoundingClientRect();
-        m.style.left = (r.right + 12) + 'px';
-        m.style.bottom = (window.innerHeight - r.bottom) + 'px';
-        m.style.display='block';
-      })(event)"><span class="nav-btn-ic">⋯</span>Más</button>
-      <div id="nav-more-menu" style="display:none;position:fixed;background:var(--surface,#fff);border:1px solid var(--border,rgba(99,102,241,.15));border-radius:16px;padding:8px;min-width:190px;z-index:9999;box-shadow:0 12px 40px rgba(0,0,0,.15)">
-        <button onclick="showPage('games');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">🎮 Juegos</button>
-        <button onclick="showPage('goals');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">🎯 Metas</button>
-        <button onclick="showPage('analytics');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">📊 Analítica</button>
-        <button onclick="showPage('profile');document.getElementById('nav-more-menu').style.display='none';setTimeout(()=>{const s=document.getElementById('prof-watch-card');if(s)s.scrollIntoView({behavior:'smooth'})},300)" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">📱 Sensores</button>
-        <button onclick="startTest();document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">✨ Test Emocional</button>
-      </div>
+      <button class="nav-btn" data-page="games" onclick="showPage('games')"><span class="nav-btn-ic">🎮</span>Juegos</button>
+      <button class="nav-btn" data-page="goals" onclick="showPage('goals')"><span class="nav-btn-ic">🎯</span>Metas</button>
+      <button class="nav-btn" data-page="analytics" onclick="showPage('analytics')"><span class="nav-btn-ic">📊</span>Analítica</button>
+      <button class="nav-btn" data-page="profile" onclick="showPage('profile');setTimeout(()=>{const s=document.getElementById('prof-watch-card');if(s)s.scrollIntoView({behavior:'smooth'})},300)"><span class="nav-btn-ic">📱</span>Sensores</button>
+      <button class="nav-btn" onclick="startTest()"><span class="nav-btn-ic">✨</span>Test Emocional</button>
     </div>
 
     <!-- Racha -->
@@ -4272,9 +4255,6 @@ function showPage(name) {
   const hideNav = authPages.includes(name) || name === 'admin';
   if (sharedNav) {
     sharedNav.style.display = hideNav ? 'none' : '';
-    // Cerrar dropdown Más si está abierto
-    const moreMenu = document.getElementById('nav-more-menu');
-    if (moreMenu) moreMenu.style.display = 'none';
     // Marcar botón activo
     sharedNav.querySelectorAll('.nav-btn[data-page]').forEach(b => {
       b.classList.toggle('active', b.dataset.page === name);
@@ -18850,13 +18830,6 @@ loadDashboard = async function() {
   setTimeout(()=>{ if(_noModalOpen()) checkMorning(); }, 8000);
   setTimeout(()=>{ if(_noModalOpen()) checkWeeklyReport(); }, 12000);
 };
-
-// Cerrar menú "Más" al hacer click fuera
-document.addEventListener('click', e => {
-  const wrap = document.getElementById('nav-more-wrap');
-  const menu = document.getElementById('nav-more-menu');
-  if (menu && wrap && !wrap.contains(e.target)) menu.style.display = 'none';
-});
 
 // Atajos de teclado globales
 document.addEventListener('keydown', e => {
