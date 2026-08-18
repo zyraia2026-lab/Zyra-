@@ -1145,8 +1145,8 @@ function closeMobileMoreSheet() {
       <div class="plan-icon">👑</div>
       <div class="plan-name">Premium</div>
       <div class="plan-price">
-        <span class="plan-amount" id="price-premium-amount">$39.900</span><span class="plan-period" id="price-premium-period"> COP/mes</span>
-        <div id="price-premium-alt" style="font-size:11px;color:#fbbf24;margin-top:3px">o $399.000 COP/año (ahorra 17%)</div>
+        <span class="plan-amount" id="price-premium-amount">$24.900</span><span class="plan-period" id="price-premium-period"> COP/mes</span>
+        <div id="price-premium-alt" style="font-size:11px;color:#fbbf24;margin-top:3px">o $249.000 COP/año (ahorra 17%)</div>
       </div>
       <div class="plan-desc">La experiencia Zyra completa, sin límites</div>
       <ul class="plan-features">
@@ -1214,12 +1214,26 @@ function closeMobileMoreSheet() {
 }
 .plan-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(99,102,241,.18); border-color: rgba(99,102,241,.5); }
 .plan-card.selected { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.2); }
-.plan-card-premium { background: linear-gradient(145deg, rgba(99,102,241,.12), rgba(167,139,250,.08)); border-color: rgba(167,139,250,.4); }
-.plan-card-premium:hover { box-shadow: 0 16px 40px rgba(167,139,250,.3); border-color: #a78bfa; }
+.plan-card-premium {
+  background: linear-gradient(145deg, rgba(99,102,241,.14), rgba(167,139,250,.1));
+  border: 2px solid transparent;
+  background-clip: padding-box, border-box;
+  background-origin: padding-box, border-box;
+  background-image: linear-gradient(145deg, rgba(99,102,241,.14), rgba(167,139,250,.1)), linear-gradient(135deg, #f59e0b, #a78bfa, #6366f1, #f59e0b);
+  background-size: 100% 100%, 300% 300%;
+  animation: planPremiumGlow 6s ease infinite;
+  box-shadow: 0 12px 36px rgba(167,139,250,.22);
+  transform: scale(1.035);
+  z-index: 1;
+}
+@keyframes planPremiumGlow { 0%,100% { background-position: 0 0, 0% 50% } 50% { background-position: 0 0, 100% 50% } }
+.plan-card-premium:hover { box-shadow: 0 20px 48px rgba(167,139,250,.38); transform: translateY(-4px) scale(1.035); }
+@media(max-width:900px) { .plan-card-premium { transform: none; } .plan-card-premium:hover { transform: translateY(-4px); } }
 
 .plan-badge { position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.1);border:1px solid var(--border);color:var(--text3);font-size:11px;font-weight:700;padding:3px 14px;border-radius:20px;white-space:nowrap;backdrop-filter:blur(8px) }
 .plan-badge-blue { background:rgba(99,102,241,.2);border-color:rgba(99,102,241,.5);color:#818cf8 }
-.plan-badge-gold { background:linear-gradient(135deg,rgba(251,191,36,.2),rgba(245,158,11,.1));border-color:rgba(251,191,36,.5);color:#fbbf24 }
+.plan-badge-gold { background:linear-gradient(135deg,#f59e0b,#fbbf24);border-color:rgba(251,191,36,.6);color:#1c1100;font-weight:800;box-shadow:0 4px 16px rgba(245,158,11,.4);animation:planBadgePulse 2.4s ease-in-out infinite }
+@keyframes planBadgePulse { 0%,100% { box-shadow:0 4px 16px rgba(245,158,11,.4) } 50% { box-shadow:0 4px 22px rgba(245,158,11,.7) } }
 
 .plan-icon { font-size:36px;text-align:center }
 .plan-name { font-size:22px;font-weight:800;color:var(--text);text-align:center }
@@ -1266,7 +1280,7 @@ function closeMobileMoreSheet() {
     <span style="font-size:18px;font-weight:800;color:var(--text)" id="shop-coins-display">0</span>
     <span style="font-size:13px;color:var(--text3)">monedas disponibles</span>
   </div>
-  <div class="rewards-grid" id="rewards-grid"></div>
+  <div id="rewards-sections"></div>
 </div>
 </div>
 
@@ -20171,42 +20185,68 @@ function closeStreakCelebration() {
 function openRewardsShop() {
   showPage('shop'); // el dispatch de showPage() llama loadShopPage()
 }
+const SHOP_CATEGORIES = {
+  badge:      { title: "Insignias",      sub: "Muestra tu logro junto a tu nombre", icon: "🏅", grad: "linear-gradient(160deg, rgba(245,158,11,.16), transparent)", accent: "#f59e0b", shadow: "rgba(245,158,11,.3)", iconBg: "rgba(245,158,11,.14)" },
+  theme:      { title: "Temas",          sub: "Cambia los colores de toda la app",  icon: "🎨", grad: "linear-gradient(160deg, rgba(14,165,233,.16), transparent)",  accent: "#0ea5e9", shadow: "rgba(14,165,233,.3)",  iconBg: "rgba(14,165,233,.14)" },
+  frame:      { title: "Marcos de perfil", sub: "Decora tu avatar",                 icon: "🖼️", grad: "linear-gradient(160deg, rgba(168,85,247,.16), transparent)",  accent: "#a855f7", shadow: "rgba(168,85,247,.3)",  iconBg: "rgba(168,85,247,.14)" },
+  consumable: { title: "Protecciones",   sub: "Ayuditas para tu racha",             icon: "🛡️", grad: "linear-gradient(160deg, rgba(6,182,212,.16), transparent)",   accent: "#06b6d4", shadow: "rgba(6,182,212,.3)",   iconBg: "rgba(6,182,212,.14)" },
+};
 async function loadShopPage() {
   try {
     const s = await api('/gamification/status');
     _gamifStatus = s;
     const sc = document.getElementById('shop-coins-display');
     if (sc) sc.textContent = s.coins;
-    const grid = document.getElementById('rewards-grid');
-    if (grid) {
-      const equipped = s.equippedBadge || "";
-      const freezeCount = s.streakFreezes || 0;
-      grid.innerHTML = s.rewards.map(r => {
+    const wrap = document.getElementById('rewards-sections');
+    if (!wrap) return;
+    const equipped = s.equippedBadge || "";
+    const freezeCount = s.streakFreezes || 0;
+    const coins = s.coins || 0;
+
+    const byType = {};
+    s.rewards.forEach(r => { (byType[r.type] ||= []).push(r); });
+
+    wrap.innerHTML = Object.keys(SHOP_CATEGORIES).filter(t => byType[t]?.length).map(type => {
+      const cat = SHOP_CATEGORIES[type];
+      const cardsHtml = byType[type].map(r => {
         const isEquipped = r.type === "badge" && equipped === r.id;
+        const cantAfford = !r.unlocked && coins < r.cost && r.type !== "consumable";
+        const cardStyle = `--rcard-grad:${cat.grad};--rcard-accent:${cat.accent};--rcard-shadow:${cat.shadow}`;
         if (r.type === "consumable") {
           return `
-          <div class="reward-card" onclick="redeemReward('${r.id}')" style="cursor:pointer;position:relative">
-            ${freezeCount > 0 ? `<div style="position:absolute;top:6px;right:8px;background:var(--accent);color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:8px">×${freezeCount}</div>` : ""}
-            <div class="r-emoji">${r.emoji}</div>
+          <div class="reward-card" style="${cardStyle}" onclick="redeemReward('${r.id}')">
+            ${freezeCount > 0 ? `<div style="position:absolute;top:8px;right:8px;background:${cat.accent};color:#fff;font-size:9px;font-weight:800;padding:2px 7px;border-radius:8px;z-index:1">×${freezeCount}</div>` : ""}
+            <div class="r-emoji-wrap" style="background:${cat.iconBg}">${r.emoji}</div>
             <div class="r-name">${r.label}</div>
-            <div style="font-size:10px;color:var(--text3);margin:3px 0 6px;line-height:1.4">${r.desc || ''}</div>
+            <div style="font-size:10px;color:var(--text3);margin:-4px 0 8px;line-height:1.4;position:relative;z-index:1">${r.desc || ''}</div>
             <div class="r-cost">🪙 ${r.cost}</div>
           </div>`;
         }
         return `
-        <div class="reward-card ${r.unlocked ? 'owned' : ''}" onclick="${r.unlocked ? '' : `redeemReward('${r.id}')`}" style="${r.unlocked ? 'cursor:default' : 'cursor:pointer'}">
-          <div class="r-emoji">${r.emoji}</div>
+        <div class="reward-card ${r.unlocked ? 'owned' : ''} ${cantAfford ? 'cant-afford' : ''}" style="${cardStyle}" onclick="${r.unlocked ? '' : `redeemReward('${r.id}')`}">
+          <div class="r-emoji-wrap" style="background:${cat.iconBg}">${r.emoji}</div>
           <div class="r-name">${r.label}</div>
           ${r.unlocked
             ? (r.type === 'badge'
-                ? `<button onclick="equipReward('${r.id}')" style="margin-top:6px;padding:4px 10px;font-size:11px;font-weight:700;border:none;border-radius:8px;cursor:pointer;background:${isEquipped ? 'var(--accent)' : 'rgba(99,102,241,.15)'};color:${isEquipped ? '#fff' : 'var(--accent)'}">
+                ? `<button onclick="event.stopPropagation();equipReward('${r.id}')" style="position:relative;z-index:1;margin-top:2px;padding:4px 10px;font-size:11px;font-weight:700;border:none;border-radius:8px;cursor:pointer;background:${isEquipped ? cat.accent : 'rgba(99,102,241,.15)'};color:${isEquipped ? '#fff' : cat.accent}">
                     ${isEquipped ? '✓ Puesto' : 'Equipar'}
                    </button>`
                 : '<div class="r-owned">✓ Activo</div>')
             : `<div class="r-cost">🪙 ${r.cost}</div>`}
         </div>`;
       }).join('');
-    }
+      return `
+      <div class="reward-section">
+        <div class="reward-section-head">
+          <div class="reward-section-ic" style="background:${cat.iconBg};color:${cat.accent}">${cat.icon}</div>
+          <div>
+            <div class="reward-section-title">${cat.title}</div>
+            <div class="reward-section-sub">${cat.sub}</div>
+          </div>
+        </div>
+        <div class="rewards-grid">${cardsHtml}</div>
+      </div>`;
+    }).join('');
   } catch(e) {}
 }
 function closeRewardsShop() {
