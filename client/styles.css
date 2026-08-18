@@ -462,59 +462,34 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
 .ambient-item-icon { font-size: 20px; flex-shrink:0; }
 .ambient-item-name { font-size: 13px; font-weight: 600; color: var(--text2); flex:1; }
 .ambient-item-vol { width: 60px; accent-color: var(--accent); cursor:pointer; }
-.ambient-fab {
-  position: fixed; bottom: 26px; right: 20px; z-index: 400;
-  width: 50px; height: 50px; border-radius: 50%;
+/* ══ Botones de acción rápida (SOS/sonidos/nota/notificaciones/calma) ══
+   Antes cada uno vivía flotando con position:fixed en una esquina propia,
+   pegados a right:20px sin saber que ahora hay una barra lateral fija a la
+   izquierda y una columna de progreso a la derecha en el Dashboard -- por
+   eso terminaban tapando contenido en casi cualquier página. Ahora viven
+   DENTRO de la barra superior (#app-shared-topbar), que nunca se superpone
+   con nada porque el resto del contenido ya le deja espacio (padding-top). */
+.sb-topbar-icons { display: flex; align-items: center; gap: 8px; }
+.sb-topbar-icon-btn {
+  position: relative; width: 36px; height: 36px; border-radius: 50%;
+  border: none; color: white; font-size: 15px;
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  transition: transform .12s var(--ease);
   background: linear-gradient(135deg,var(--accent),var(--accent2));
-  border: none; color: white; font-size: 20px;
-  cursor: pointer; box-shadow: 0 8px 24px rgba(99,102,241,.4);
-  display: flex; align-items: center; justify-content: center;
-  transition: transform .12s var(--ease), box-shadow .12s var(--ease);
 }
-.ambient-fab:hover { transform: scale(1.1); }
-.ambient-fab:active { transform: scale(0.88) !important; }
+.sb-topbar-icon-btn:hover { transform: scale(1.1); }
+.sb-topbar-icon-btn:active { transform: scale(0.88) !important; }
 .ambient-fab.playing { animation: ambientPulse 2s ease-in-out infinite; }
-@keyframes ambientPulse { 0%,100%{box-shadow:0 8px 24px rgba(99,102,241,.4)} 50%{box-shadow:0 8px 32px rgba(99,102,241,.7),0 0 0 8px rgba(99,102,241,.1)} }
+@keyframes ambientPulse { 0%,100%{box-shadow:0 0 0 rgba(99,102,241,.4)} 50%{box-shadow:0 0 0 6px rgba(99,102,241,.15)} }
 
-/* ══ SOS CRISIS FAB ══ */
 .sos-fab {
-  position: fixed; bottom: 24px; left: 20px; z-index: 401;
-  width: 48px; height: 48px; border-radius: 50%;
   background: linear-gradient(135deg,#dc2626,#9f1239);
-  border: 2px solid rgba(255,255,255,.15); color: white; font-size: 20px;
-  cursor: pointer; box-shadow: 0 6px 20px rgba(220,38,38,.45);
-  display: flex; align-items: center; justify-content: center;
-  transition: transform .12s, box-shadow .12s;
   animation: sosPulse 4s ease-in-out infinite;
 }
-.sos-fab:hover { transform: scale(1.1); box-shadow: 0 10px 28px rgba(220,38,38,.65); animation: none; }
-.sos-fab:active { transform: scale(0.88) !important; }
+.sos-fab:hover { animation: none; }
 @keyframes sosPulse {
-  0%,80%,100% { box-shadow: 0 6px 20px rgba(220,38,38,.45); }
-  90% { box-shadow: 0 6px 24px rgba(220,38,38,.7), 0 0 0 8px rgba(220,38,38,.1); }
-}
-@media (max-width:768px) { .sos-fab { bottom: 70px; left: 12px; width: 38px; height: 38px; font-size: 15px; } }
-/* En desktop la barra lateral ocupa los primeros 240px -- sin esto el SOS
-   quedaba encimado justo sobre la tarjeta de racha/perfil de la barra. */
-@media (min-width: 769px) { .sos-fab { left: 256px; } }
-
-/* En el Dashboard de escritorio, la columna de progreso de la derecha
-   (.db-rail) queda muy cerca del borde en anchos no tan grandes y los
-   botones flotantes (ambiente/notificaciones/nota rápida/calma), que
-   siempre vivieron pegados a right:20px, terminaban encimados encima.
-   Se recentran abajo, lejos de la barra lateral y de la columna nueva. */
-@media (min-width: 1080px) {
-  body[data-page="dashboard"] .ambient-fab,
-  body[data-page="dashboard"] .zyra-notif-fab,
-  body[data-page="dashboard"] .fab-qn,
-  body[data-page="dashboard"] #calm-fab {
-    right: auto !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-  }
-  body[data-page="dashboard"] .ambient-fab:hover { transform: translateX(-50%) scale(1.1) !important; }
-  body[data-page="dashboard"] .fab-qn:hover { transform: translateX(-50%) scale(1.12) !important; }
-  body[data-page="dashboard"] .zyra-notif-fab:hover { transform: translateX(-50%) scale(1.12) !important; }
+  0%,80%,100% { box-shadow: 0 0 0 rgba(220,38,38,.45); }
+  90% { box-shadow: 0 0 0 6px rgba(220,38,38,.2); }
 }
 
 /* ══ SAVED MESSAGES MODAL ══ */
@@ -2014,10 +1989,8 @@ textarea.chat-ta::placeholder{color:var(--placeholder);-webkit-text-fill-color:v
 @keyframes fadeInUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .btn-scroll-bottom{position:sticky;bottom:8px;left:50%;transform:translateX(-50%);z-index:10;width:36px;height:36px;border-radius:50%;background:var(--purple);color:#fff;border:none;font-size:18px;cursor:pointer;box-shadow:0 4px 16px rgba(99,102,241,.35);display:flex;align-items:center;justify-content:center;transition:opacity .2s,transform .2s;margin:0 auto -44px}
 /* Floating Quick Note Button */
-.fab-qn{position:fixed;bottom:calc(106px + env(safe-area-inset-bottom, 0px));right:20px;z-index:800;width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;font-size:20px;cursor:pointer;box-shadow:0 6px 24px rgba(99,102,241,.45);display:none;align-items:center;justify-content:center;transition:all .2s cubic-bezier(.34,1.56,.64,1)}
-.fab-qn.visible{display:flex}
-.fab-qn:hover{transform:scale(1.12);box-shadow:0 10px 32px rgba(99,102,241,.55)}
-.fab-qn:active{transform:scale(.95)}
+.fab-qn{display:none}
+.fab-qn.visible{display:inline-flex}
 /* Daily challenge card */
 .daily-challenge-card{background:linear-gradient(135deg,rgba(16,185,129,.1),rgba(5,150,105,.05));border:1.5px solid rgba(16,185,129,.25);border-radius:16px;padding:14px 18px;display:flex;gap:12px;align-items:center;margin-bottom:16px;transition:border-color .2s}
 .daily-challenge-card:hover{border-color:rgba(16,185,129,.45)}
@@ -2205,12 +2178,8 @@ textarea.chat-ta::placeholder{color:var(--placeholder);-webkit-text-fill-color:v
 }
 
 /* ══ NOTIFICATION BELL FAB ══ */
-.zyra-notif-fab{position:fixed;bottom:162px;right:20px;z-index:800;width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#f97316);border:none;color:#fff;font-size:20px;cursor:pointer;box-shadow:0 6px 24px rgba(245,158,11,.45);align-items:center;justify-content:center;transition:all .2s cubic-bezier(.34,1.56,.64,1)}
-.zyra-notif-fab:hover{transform:scale(1.12);box-shadow:0 10px 32px rgba(245,158,11,.55)}
-.zyra-notif-fab:active{transform:scale(.95)}
+.zyra-notif-fab{background:linear-gradient(135deg,#f59e0b,#f97316)}
 @media(max-width:768px){
-  .zyra-notif-fab{bottom:116px;right:12px;width:38px;height:38px;font-size:15px}
-  .fab-qn{bottom:calc(70px + env(safe-area-inset-bottom,0px));right:12px;width:38px;height:38px;font-size:15px}
   .btn-scroll-bottom{width:30px;height:30px;font-size:13px}
 }
 .zyra-notif-count{position:absolute;top:-5px;right:-5px;background:#ef4444;color:#fff;font-size:9px;font-weight:800;min-width:18px;height:18px;border-radius:9px;padding:0 4px;display:none;align-items:center;justify-content:center;border:2px solid var(--bg,#fff);box-shadow:0 2px 8px rgba(0,0,0,.2)}

@@ -724,11 +724,7 @@ function closeSplash(){
   </div>
 </div>
 
-<!-- ══ SOS CRISIS FAB ══ -->
-<button class="sos-fab" id="sos-fab" onclick="showCrisisOverlay()" style="display:none" title="Apoyo de emergencia · Recursos de crisis">🆘</button>
-
-<!-- ══ QUICK CALM FAB ══ -->
-<button id="calm-fab" onclick="openCalmOverlay()" style="display:none;position:fixed;bottom:228px;right:20px;z-index:8900;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:50%;width:50px;height:50px;font-size:22px;cursor:pointer;box-shadow:0 4px 20px rgba(99,102,241,.4);align-items:center;justify-content:center;transition:transform .15s" title="Momento de calma — 60 segundos" onmouseenter="this.style.transform='scale(1.1)'" onmouseleave="this.style.transform='scale(1)'">🧘</button>
+<!-- SOS/Calm FABs movidos a la barra superior (#app-shared-topbar), ver .sb-topbar-icons -->
 <!-- ══ CALM OVERLAY ══ -->
 <div id="calm-overlay" style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(10,10,30,0.92);backdrop-filter:blur(16px);align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:24px">
   <button onclick="closeCalmOverlay()" style="position:absolute;top:20px;right:20px;background:rgba(255,255,255,.1);border:none;color:#fff;border-radius:50%;width:40px;height:40px;font-size:18px;cursor:pointer">×</button>
@@ -743,8 +739,7 @@ function closeSplash(){
   <div id="calm-rounds-display" style="font-size:13px;color:rgba(255,255,255,.5)">Ronda 1 de 4</div>
 </div>
 
-<!-- ══ AMBIENT SOUND FAB ══ -->
-<button class="ambient-fab" id="ambient-fab" onclick="toggleAmbientPanel()" style="display:none" title="Sonidos ambientales">🎧</button>
+<!-- Ambient FAB movido a la barra superior -->
 <div class="ambient-panel" id="ambient-panel" style="display:none">
   <h4>🎧 Sonidos Ambientales</h4>
   <div class="ambient-item" onclick="playAmbient('rain')" id="amb-rain">
@@ -985,6 +980,19 @@ function closeMobileMoreSheet() {
   <button class="sb-topbar-pill" id="sb-water-pill" onclick="showPage('wellness')" style="display:none">
     <span>💧</span><span id="sb-water-text">Recordatorios de hoy</span>
   </button>
+
+  <!-- Botones de acción rápida -- antes flotaban sueltos por la pantalla
+       (position:fixed en distintas esquinas) y terminaban tapando contenido
+       en varias páginas. Viven aquí porque la barra superior nunca se
+       superpone con nada: el resto del contenido siempre le deja espacio. -->
+  <div class="sb-topbar-icons">
+    <button class="sb-topbar-icon-btn sos-fab" id="sos-fab" onclick="showCrisisOverlay()" style="display:none" title="Apoyo de emergencia · Recursos de crisis">🆘</button>
+    <button class="sb-topbar-icon-btn ambient-fab" id="ambient-fab" onclick="toggleAmbientPanel()" style="display:none" title="Sonidos ambientales">🎧</button>
+    <button class="sb-topbar-icon-btn fab-qn" id="fab-qn" onclick="openQuickNote()" aria-label="Nota rápida en diario" title="Nota rápida">✏️</button>
+    <button class="sb-topbar-icon-btn zyra-notif-fab" id="zyra-notif-fab" onclick="openNotifPanel()" title="Notificaciones" style="display:none" aria-label="Notificaciones">🔔<span class="zyra-notif-count" id="zyra-notif-count">0</span></button>
+    <button class="sb-topbar-icon-btn" id="calm-fab" onclick="openCalmOverlay()" style="display:none" title="Momento de calma — 60 segundos">🧘</button>
+  </div>
+
   <div style="flex:1"></div>
   <div class="nav-streak-badge" id="nav-streak-badge" onclick="showPage('dashboard')" title="Racha de días" style="display:none"><span>🔥</span><span id="nav-streak-count">0</span></div>
   <div class="nav-coins-badge" id="nav-coins-badge" onclick="openRewardsShop()" title="Monedas Zyra" style="display:none"><span>🪙</span><span id="nav-coins-count">0</span></div>
@@ -24625,10 +24633,7 @@ document.addEventListener("keydown", e => {
   </div>
 </div>
 
-<!-- ══ NOTIFICATION BELL FAB ══ -->
-<button class="zyra-notif-fab" id="zyra-notif-fab" onclick="openNotifPanel()" title="Notificaciones" style="display:none" aria-label="Notificaciones">
-  🔔<span class="zyra-notif-count" id="zyra-notif-count">0</span>
-</button>
+<!-- Notif FAB movido a la barra superior -->
 
 <!-- ══ NOTIFICATION PANEL ══ -->
 <div id="zyra-notif-panel" style="display:none;position:fixed;inset:0;z-index:9850;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);align-items:flex-end;justify-content:center;padding:0" onclick="if(event.target===this)closeNotifPanel()">
@@ -24667,8 +24672,7 @@ document.addEventListener("keydown", e => {
   </div>
 </div>
 
-<!-- ══ FLOATING QUICK NOTE ══ -->
-<button class="fab-qn" id="fab-qn" onclick="openQuickNote()" aria-label="Nota rápida en diario" title="Nota rápida">✏️</button>
+<!-- Quick-note FAB movido a la barra superior -->
 
 <!-- ══ MOBILE SPEED-DIAL FAB ══ (replaces all individual FABs on mobile) -->
 <div class="mob-speed-dial" id="mob-speed-dial">
