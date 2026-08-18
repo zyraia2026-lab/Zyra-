@@ -4225,7 +4225,10 @@ function showPage(name) {
   window.scrollTo({ top: 0, behavior: "instant" });
 
   // ── Nav compartido: mostrar en páginas autenticadas, ocultar en auth/landing ──
-  const authPages = ['landing','login','register','verify-login','verify-register','forgot-password','reset-password','voice-call'];
+  // Lista compartida (window.ZYRA_AUTH_PAGES) para que otros lugares que
+  // necesiten "es pagina autenticada?" (ej. los botones flotantes de la barra
+  // superior) no se desincronicen de esta si se agrega una pagina nueva.
+  const authPages = window.ZYRA_AUTH_PAGES || (window.ZYRA_AUTH_PAGES = ['landing','login','register','verify-login','verify-register','forgot-password','reset-password','voice-call']);
   const sharedNav = document.getElementById('app-shared-nav');
   const sharedTopbar = document.getElementById('app-shared-topbar');
   const hideNav = authPages.includes(name) || name === 'admin';
@@ -17615,11 +17618,14 @@ function toggleNightAmbient(type) {
 const _origShowPage = typeof showPage === 'function' ? showPage : null;
 if(_origShowPage) {
   window._showPagePatched = true;
-  const logged=['dashboard','wellness','goals','journal','assistant','profile'];
   const origFn = showPage;
   showPage = function(name) {
     origFn(name);
-    const isLogged = logged.includes(name);
+    // Misma lista que usa showPage() para decidir si hay barra lateral --
+    // así estos botones no se quedan desactualizados cuando se agrega una
+    // página nueva (pasó con Tienda/Amigos: se ocultaban ahí sin querer).
+    const authPages = window.ZYRA_AUTH_PAGES || [];
+    const isLogged = !authPages.includes(name) && name !== 'admin';
     const fab=document.getElementById('ambient-fab');
     if(fab) fab.style.display=isLogged?'flex':'none';
     const sosFab=document.getElementById('sos-fab');
