@@ -947,11 +947,10 @@ function closeSplash(){
   <div style="display:flex;flex-direction:column;gap:2px;margin-top:14px">
     <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('assistant')"><span class="nav-btn-ic">💬</span>Chat con Zyra</button>
     <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('journal')"><span class="nav-btn-ic">📓</span>Diario</button>
-    <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('wellness');setTimeout(()=>openWellness('breath'),100)"><span class="nav-btn-ic">🌬️</span>Respiración</button>
-    <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('wellness');setTimeout(()=>openWellness('habits'),100)"><span class="nav-btn-ic">✅</span>Hábitos</button>
+    <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('wellness')"><span class="nav-btn-ic">🧘</span>Bienestar</button>
     <button class="nav-btn" onclick="closeMobileMoreSheet();openRewardsShop()"><span class="nav-btn-ic">🛍️</span>Tienda<span class="nav-btn-tag">NUEVO</span></button>
     <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('planes')"><span class="nav-btn-ic">✦</span>Premium</button>
-    <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('profile');setTimeout(()=>document.getElementById('referral-code-display')?.scrollIntoView({behavior:'smooth',block:'center'}),400)"><span class="nav-btn-ic">🎁</span>Amigos</button>
+    <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('friends')"><span class="nav-btn-ic">🎁</span>Amigos</button>
     <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('profile');clearProfileDot()"><span class="nav-btn-ic">👤</span>Mi perfil</button>
     <div style="border-top:1px solid var(--border,#eef0ff);margin:8px 0"></div>
     <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('goals')"><span class="nav-btn-ic">🎯</span>Metas</button>
@@ -1013,11 +1012,10 @@ function closeMobileMoreSheet() {
       <button class="nav-btn" data-page="dashboard" onclick="showPage('dashboard')"><span class="nav-btn-ic">🏠</span>Inicio</button>
       <button class="nav-btn" data-page="assistant" onclick="showPage('assistant')"><span class="nav-btn-ic">💬</span>Chat con Zyra</button>
       <button class="nav-btn" data-page="journal" onclick="showPage('journal')"><span class="nav-btn-ic">📓</span>Diario</button>
-      <button class="nav-btn" data-page="wellness" onclick="showPage('wellness');setTimeout(()=>openWellness('breath'),100)"><span class="nav-btn-ic">🌬️</span>Respiración</button>
-      <button class="nav-btn" data-page="wellness" onclick="showPage('wellness');setTimeout(()=>openWellness('habits'),100)"><span class="nav-btn-ic">✅</span>Hábitos</button>
-      <button class="nav-btn" onclick="openRewardsShop()"><span class="nav-btn-ic">🛍️</span>Tienda<span class="nav-btn-tag">NUEVO</span></button>
+      <button class="nav-btn" data-page="wellness" onclick="showPage('wellness')"><span class="nav-btn-ic">🧘</span>Bienestar</button>
+      <button class="nav-btn" data-page="shop" onclick="openRewardsShop()"><span class="nav-btn-ic">🛍️</span>Tienda<span class="nav-btn-tag">NUEVO</span></button>
       <button class="nav-btn" data-page="planes" onclick="showPage('planes')"><span class="nav-btn-ic">✦</span>Premium</button>
-      <button class="nav-btn" onclick="showPage('profile');setTimeout(()=>document.getElementById('referral-code-display')?.scrollIntoView({behavior:'smooth',block:'center'}),400)"><span class="nav-btn-ic">🎁</span>Amigos</button>
+      <button class="nav-btn" data-page="friends" onclick="showPage('friends')"><span class="nav-btn-ic">🎁</span>Amigos</button>
     </div>
 
     <div style="position:relative;margin-top:auto" id="nav-more-wrap">
@@ -1253,6 +1251,55 @@ function closeMobileMoreSheet() {
 }
 </style>
 </div><!-- /page-planes -->
+
+<!-- ══════════════════════════════════════════
+     ZYRA TIENDA — página normal, ya no modal
+══════════════════════════════════════════ -->
+<div id="page-shop" class="page">
+<div class="container">
+  <div class="page-header">
+    <h1 class="page-title">🛍️ Tienda Zyra</h1>
+    <p class="page-subtitle">Canjea tus monedas por recompensas exclusivas</p>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;background:rgba(99,102,241,.1);border-radius:12px;padding:10px 16px;margin-bottom:24px;max-width:340px">
+    <span style="font-size:22px">🪙</span>
+    <span style="font-size:18px;font-weight:800;color:var(--text)" id="shop-coins-display">0</span>
+    <span style="font-size:13px;color:var(--text3)">monedas disponibles</span>
+  </div>
+  <div class="rewards-grid" id="rewards-grid"></div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     ZYRA AMIGOS — solo la info de referidos, ya
+     no la página completa de Perfil
+══════════════════════════════════════════ -->
+<div id="page-friends" class="page">
+<div class="container" style="max-width:640px">
+  <div class="page-header">
+    <h1 class="page-title">🎁 Amigos</h1>
+    <p class="page-subtitle">Invita y gana Premium gratis</p>
+  </div>
+  <div class="card" id="friends-referral-card" style="background:linear-gradient(135deg,rgba(16,185,129,.07),rgba(5,150,105,.04));border:1.5px solid rgba(16,185,129,.2)">
+    <div class="card-header"><span class="card-title">🎁 Invita amigos y gana</span></div>
+    <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.6">Comparte tu código único y tú y tu amigo reciben <strong style="color:#34d399">7 días de Premium gratis</strong>.</p>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <div id="referral-code-display" style="flex:1;padding:12px 16px;background:var(--surface2);border:1.5px solid rgba(16,185,129,.3);border-radius:12px;font-family:monospace;font-size:17px;font-weight:800;color:#34d399;letter-spacing:3px;text-align:center" aria-label="Tu código de referido" aria-live="polite">––––––</div>
+      <button onclick="copyReferralCode()" aria-label="Copiar código de referido" style="padding:10px 14px;background:var(--grad);border:none;border-radius:10px;color:white;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">📋 Copiar</button>
+      <button onclick="shareReferral()" aria-label="Compartir código de referido" style="padding:10px 14px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:10px;color:#34d399;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">📤 Compartir</button>
+    </div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:16px">👥 Amigos invitados: <strong id="referral-count" style="color:var(--text)">0</strong></div>
+    <div id="referral-apply-section" style="border-top:1px solid var(--border);padding-top:16px">
+      <p style="font-size:13px;color:var(--text3);margin-bottom:10px">¿Tienes el código de un amigo? Úsalo para activar tu recompensa:</p>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="referral-apply-input" placeholder="ZYRAXXXXXX" maxlength="12" aria-label="Código de referido de un amigo" style="flex:1;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;text-transform:uppercase;letter-spacing:1px;font-family:monospace" oninput="this.value=this.value.toUpperCase()"/>
+        <button onclick="applyReferral()" style="padding:10px 20px;background:linear-gradient(135deg,#10b981,#059669);border:none;border-radius:10px;color:white;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">Aplicar</button>
+      </div>
+    </div>
+    <div id="referral-used-msg" style="display:none;border-top:1px solid var(--border);padding-top:12px;font-size:12px;color:#34d399">✅ Ya usaste un código de referido — ¡gracias por unirte!</div>
+  </div>
+</div>
+</div>
 
 <!-- ══════════════════════════════════════════════
      LANDING PAGE — Página de bienvenida pública
@@ -2144,7 +2191,7 @@ async function b2bSubmitContact() {
 
   <!-- ══ WIDGET REFERRAL ══ -->
   <!-- Oculto: ahora vive en la columna derecha (.db-rail-referral) para no repetirlo -->
-  <div id="dash-referral-widget" style="display:none;margin-bottom:28px;background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(52,211,153,.04));border:1.5px solid rgba(16,185,129,.25);border-radius:18px;padding:18px 20px;align-items:center;gap:16px;cursor:pointer" onclick="showPage('profile');setTimeout(()=>document.getElementById('referral-code-display')?.scrollIntoView({behavior:'smooth',block:'center'}),400)">
+  <div id="dash-referral-widget" style="display:none;margin-bottom:28px;background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(52,211,153,.04));border:1.5px solid rgba(16,185,129,.25);border-radius:18px;padding:18px 20px;align-items:center;gap:16px;cursor:pointer" onclick="showPage('friends')">
     <div style="width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#10b981,#34d399);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🎁</div>
     <div style="flex:1;min-width:0">
       <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:2px">Invita amigos — gana Premium gratis</div>
@@ -2328,7 +2375,7 @@ async function b2bSubmitContact() {
 
   <!-- ══ EMOCIONES + HISTORIAL ══ -->
   <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">Bienestar emocional</div>
-  <div class="grid2" style="margin-bottom:32px">
+  <div style="margin-bottom:32px">
     <div class="card">
       <div class="card-header">
         <span class="card-title">¿Cómo te sientes ahora?</span>
@@ -2348,18 +2395,8 @@ async function b2bSubmitContact() {
         <button class="btn-primary" style="padding:11px;font-size:13px" onclick="saveEmotion()">Guardar Registro</button>
       </div>
     </div>
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Historial Emocional</span>
-        <span class="badge blue">Últimos 14 días</span>
-      </div>
-      <div class="chart-wrap" id="emotion-chart"></div>
-      <!-- Mood trend embebido aquí -->
-      <div id="mood-mini-trend" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
-        <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Tendencia — 7 días</div>
-        <div id="mood-mini-trend-bars" style="display:flex;gap:6px;align-items:flex-end;min-height:70px"></div>
-      </div>
-    </div>
+    <!-- La tarjeta "Historial Emocional" (chart-wrap #emotion-chart + mood-mini-trend)
+         se movió a la columna derecha (.db-rail) -- ver más abajo. -->
   </div>
 
   <!-- ══ CALENDARIO EMOCIONAL ══ -->
@@ -2452,21 +2489,23 @@ async function b2bSubmitContact() {
 <!-- ══ COLUMNA DERECHA (desktop) -- Progreso, monedas, invitar, resumen del día, recordatorios ══ -->
 <div class="db-rail">
   <div class="db-rail-card">
-    <div class="db-rail-head"><span>Tu progreso</span><a onclick="showPage('profile')">Ver todo →</a></div>
-    <div class="db-rail-stats-grid">
-      <div class="db-rail-stat"><span class="db-rail-stat-ic" id="rail-st-em-icon">😌</span><div><div class="db-rail-stat-val" id="rail-st-emotion">—</div><div class="db-rail-stat-lbl">Emoción</div></div></div>
-      <div class="db-rail-stat"><span class="db-rail-stat-ic">💬</span><div><div class="db-rail-stat-val" id="rail-st-sessions">0</div><div class="db-rail-stat-lbl">Sesiones</div></div></div>
-      <div class="db-rail-stat"><span class="db-rail-stat-ic">🎯</span><div><div class="db-rail-stat-val" id="rail-st-goals">0</div><div class="db-rail-stat-lbl">Metas activas</div></div></div>
-      <div class="db-rail-stat"><span class="db-rail-stat-ic">📔</span><div><div class="db-rail-stat-val" id="rail-st-journal">0</div><div class="db-rail-stat-lbl">Diario</div></div></div>
+    <div class="card-header" style="margin-bottom:12px">
+      <span class="card-title">Historial Emocional</span>
+      <span class="badge blue">Últimos 14 días</span>
     </div>
-    <div class="db-rail-level-row" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border,rgba(99,102,241,.08))">
-      <span class="db-rail-level-ic">💎</span>
-      <div style="flex:1;min-width:0">
-        <div class="db-rail-level-name" id="rail-level-name">Nivel 1</div>
-      </div>
-      <div class="db-rail-level-xp" id="rail-level-xp">0/20 XP</div>
+    <div class="chart-wrap" id="emotion-chart"></div>
+    <div id="mood-mini-trend" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+      <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Tendencia — 7 días</div>
+      <div id="mood-mini-trend-bars" style="display:flex;gap:6px;align-items:flex-end;min-height:70px"></div>
     </div>
-    <div class="db-rail-bar"><div class="db-rail-bar-fill" id="rail-level-bar" style="width:0%"></div></div>
+  </div>
+
+  <!-- IDs ocultos que ya usa loadDashboard() (nivel/XP) -- sin tarjeta visible,
+       para no duplicar "Tu progreso" que el usuario pidió quitar de aquí. -->
+  <div style="display:none">
+    <span id="rail-st-em-icon"></span><span id="rail-st-emotion"></span>
+    <span id="rail-st-sessions"></span><span id="rail-st-goals"></span><span id="rail-st-journal"></span>
+    <span id="rail-level-name"></span><span id="rail-level-xp"></span><span id="rail-level-bar"></span>
   </div>
 
   <div class="db-rail-card" style="display:flex;align-items:center;gap:12px;cursor:pointer" onclick="openRewardsShop()">
@@ -2561,20 +2600,7 @@ async function b2bSubmitContact() {
 </div>
 </div>
 
-<!-- ══ MODAL TIENDA DE RECOMPENSAS ══ -->
-<div id="rewards-shop-modal" role="dialog" aria-modal="true" aria-labelledby="rewards-shop-title" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:9000;overflow-y:auto;padding:20px">
-  <div style="max-width:600px;margin:0 auto;background:var(--surface);border-radius:24px;padding:28px;position:relative">
-    <button onclick="closeRewardsShop()" aria-label="Cerrar tienda" style="position:absolute;top:16px;right:16px;background:var(--surface2);border:none;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;color:var(--text)">×</button>
-    <h2 id="rewards-shop-title" style="margin:0 0 4px;font-size:20px">🛍️ Tienda Zyra</h2>
-    <p style="color:var(--text3);font-size:13px;margin-bottom:20px">Canjea tus monedas por recompensas exclusivas</p>
-    <div style="display:flex;align-items:center;gap:8px;background:rgba(99,102,241,.1);border-radius:12px;padding:10px 16px;margin-bottom:20px">
-      <span style="font-size:22px">🪙</span>
-      <span style="font-size:18px;font-weight:800;color:var(--text)" id="shop-coins-display">0</span>
-      <span style="font-size:13px;color:var(--text3)">monedas disponibles</span>
-    </div>
-    <div class="rewards-grid" id="rewards-grid"></div>
-  </div>
-</div>
+<!-- Tienda de recompensas: ya no es un modal, ver #page-shop más arriba -->
 
 <!-- ══ OVERLAY CELEBRACIÓN RACHA ══ -->
 <div id="streak-celebration-overlay" role="dialog" aria-modal="true" aria-label="Celebración de racha" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.75);backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:20px">
@@ -2898,8 +2924,8 @@ async function b2bSubmitContact() {
     <button id="btn-scroll-bottom" class="btn-scroll-bottom" onclick="scrollChatBottom()" title="Ir al final" style="display:none">↓</button>
     <div class="chat-input" style="position:relative">
       <div id="cmd-autocomplete" style="display:none;position:absolute;bottom:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.3);max-height:240px;overflow-y:auto;z-index:200"></div>
-      <!-- Accesos rápidos a lo que hace único a Zyra -->
-      <div style="display:flex;gap:6px;overflow-x:auto;padding:6px 4px 8px;scrollbar-width:none;-ms-overflow-style:none" id="zyra-diff-pills">
+      <!-- Accesos rápidos a lo que hace único a Zyra -- ocultos para un chat más limpio -->
+      <div style="display:none;gap:6px;overflow-x:auto;padding:6px 4px 8px;scrollbar-width:none;-ms-overflow-style:none" id="zyra-diff-pills">
         <span style="flex-shrink:0;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:var(--accent);white-space:nowrap;cursor:pointer" onclick="showPage('journal')" title="Tu diario emocional conectado">📓 Lee tu diario</span>
         <span style="flex-shrink:0;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:#10b981;white-space:nowrap;cursor:pointer" onclick="showPage('wellness');setTimeout(()=>openWellness('breath'),100)" title="Respiración guiada integrada">🌬️ /respirar</span>
         <span style="flex-shrink:0;background:rgba(236,72,153,.1);border:1px solid rgba(236,72,153,.2);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:#ec4899;white-space:nowrap;cursor:default" title="Memoria de tus conversaciones">🧠 Memoria</span>
@@ -3187,25 +3213,7 @@ async function b2bSubmitContact() {
     <div id="payment-history-list" style="margin-top:4px"></div>
   </div>
 
-  <!-- ══ REFERIDOS ══ -->
-  <div class="card" id="referral-card" style="margin-bottom:20px;background:linear-gradient(135deg,rgba(16,185,129,.07),rgba(5,150,105,.04));border:1.5px solid rgba(16,185,129,.2)">
-    <div class="card-header"><span class="card-title">🎁 Invita amigos y gana</span></div>
-    <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.6">Comparte tu código único y tú y tu amigo reciben <strong style="color:#34d399">7 días de Premium gratis</strong>.</p>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-      <div id="referral-code-display" style="flex:1;padding:12px 16px;background:var(--surface2);border:1.5px solid rgba(16,185,129,.3);border-radius:12px;font-family:monospace;font-size:17px;font-weight:800;color:#34d399;letter-spacing:3px;text-align:center" aria-label="Tu código de referido" aria-live="polite">––––––</div>
-      <button onclick="copyReferralCode()" aria-label="Copiar código de referido" style="padding:10px 14px;background:var(--grad);border:none;border-radius:10px;color:white;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">📋 Copiar</button>
-      <button onclick="shareReferral()" aria-label="Compartir código de referido" style="padding:10px 14px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:10px;color:#34d399;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">📤 Compartir</button>
-    </div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:16px">👥 Amigos invitados: <strong id="referral-count" style="color:var(--text)">0</strong></div>
-    <div id="referral-apply-section" style="border-top:1px solid var(--border);padding-top:16px">
-      <p style="font-size:13px;color:var(--text3);margin-bottom:10px">¿Tienes el código de un amigo? Úsalo para activar tu recompensa:</p>
-      <div style="display:flex;gap:8px">
-        <input type="text" id="referral-apply-input" placeholder="ZYRAXXXXXX" maxlength="12" aria-label="Código de referido de un amigo" style="flex:1;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;text-transform:uppercase;letter-spacing:1px;font-family:monospace" oninput="this.value=this.value.toUpperCase()"/>
-        <button onclick="applyReferral()" style="padding:10px 20px;background:linear-gradient(135deg,#10b981,#059669);border:none;border-radius:10px;color:white;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">Aplicar</button>
-      </div>
-    </div>
-    <div id="referral-used-msg" style="display:none;border-top:1px solid var(--border);padding-top:12px;font-size:12px;color:#34d399">✅ Ya usaste un código de referido — ¡gracias por unirte!</div>
-  </div>
+  <!-- La tarjeta de Referidos se movió a su propia página (#page-friends) -->
 
   <!-- ══ MIS DATOS ══ -->
   <div class="card" style="margin-bottom:20px">
@@ -4061,7 +4069,6 @@ document.addEventListener("keydown", function(e) {
     { id: "edit-journal-modal",   close: () => { const m=document.getElementById("edit-journal-modal"); if(m&&m.style.display!=="none"){ m.style.display="none"; document.body.style.overflow=""; } } },
     { id: "zyra-payment-modal",   close: () => { const m=document.getElementById("zyra-payment-modal"); if(m&&m.style.display!=="none") closePaymentModal(); } },
     { id: "quick-emotion-modal",  close: () => { const m=document.getElementById("quick-emotion-modal"); if(m&&m.style.display!=="none") closeQuickEmotion(); } },
-    { id: "rewards-shop-modal",   close: () => { const m=document.getElementById("rewards-shop-modal"); if(m&&m.style.display!=="none") closeRewardsShop(); } },
     { id: "achievements-modal",   close: () => { const m=document.getElementById("achievements-modal"); if(m&&m.style.display!=="none") closeAchievements(); } },
     { id: "weekly-report-modal",  close: () => { const m=document.getElementById("weekly-report-modal"); if(m&&m.style.display!=="none") closeWeeklyReport(); } },
     { id: "quick-note-modal",             close: () => { const m=document.getElementById("quick-note-modal"); if(m&&m.style.display!=="none") closeQuickNote(); } },
@@ -4236,6 +4243,7 @@ function showPage(name) {
   if(name === "assistant")    { loadAssistant(); setTimeout(showDailyCheckin, 900); setTimeout(updateNotifBadge, 600); }
   if(name === "goals")        { loadGoals(); }
   if(name === "planes")       setTimeout(function(){ if(typeof loadPlanesPage==="function") loadPlanesPage(); }, 150);
+  if(name === "shop")         loadShopPage();
   if(name === "journal")      { loadJournal(); loadFutureNotes(); }
   if(name === "wellness")     loadWellness();
   else if (_pomoAmbType && typeof _pomoStopAmbient === "function") { _pomoStopAmbient(); }
@@ -14222,6 +14230,7 @@ function _chipHTML(chips) {
   ).join("");
 }
 function showResponseChips(text) {
+  return; // Chat más limpio: sin chips de sugerencia después de cada respuesta.
   const msgs = document.getElementById("messages"); if (!msgs) return;
   const old = document.getElementById("prompt-chips"); if (old) old.remove();
   const tl = (text || "").toLowerCase();
@@ -20114,12 +20123,10 @@ function closeStreakCelebration() {
   setTimeout(() => { overlay.style.display = 'none'; }, 350);
 }
 
-async function openRewardsShop() {
-  const modal = document.getElementById('rewards-shop-modal');
-  if (!modal) return;
-  modal.style.display = 'block';
-  trapFocus(modal);
-  // Refresh status
+function openRewardsShop() {
+  showPage('shop'); // el dispatch de showPage() llama loadShopPage()
+}
+async function loadShopPage() {
   try {
     const s = await api('/gamification/status');
     _gamifStatus = s;
@@ -20158,8 +20165,7 @@ async function openRewardsShop() {
   } catch(e) {}
 }
 function closeRewardsShop() {
-  const m = document.getElementById('rewards-shop-modal');
-  if (m) { m.style.display = 'none'; releaseFocus(); }
+  showPage('dashboard'); // la tienda ya es una página normal, no un modal
 }
 
 async function redeemReward(rewardId) {
