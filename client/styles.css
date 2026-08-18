@@ -471,12 +471,13 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
    con nada porque el resto del contenido ya le deja espacio (padding-top). */
 .sb-topbar-icons { display: flex; align-items: center; gap: 8px; }
 .sb-topbar-icon-btn {
-  position: relative; width: 36px; height: 36px; border-radius: 50%;
-  border: none; color: white; font-size: 15px;
+  position: relative; width: 36px; height: 36px; border-radius: 11px;
+  border: none; color: white; font-size: 15px; padding: 0;
   cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
   transition: transform .12s var(--ease);
   background: linear-gradient(135deg,var(--accent),var(--accent2));
 }
+.topbar-icon-img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; border-radius: 11px; }
 .sb-topbar-icon-btn:hover { transform: scale(1.1); }
 .sb-topbar-icon-btn:active { transform: scale(0.88) !important; }
 .ambient-fab.playing { animation: ambientPulse 2s ease-in-out infinite; }
