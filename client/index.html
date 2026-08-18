@@ -3947,15 +3947,7 @@ const LOGO = "/Imagenes/zyra-avatar.png";
 let token = localStorage.getItem("zyra_token");
 let user  = (() => { try { return JSON.parse(localStorage.getItem("zyra_user") || "null"); } catch(e) { localStorage.removeItem("zyra_user"); return null; } })();
 
-// En celular el chat es la funcion central de la app, asi que aterriza ahi
-// en vez del dashboard (que en pantallas chicas viene con varias tarjetas
-// y avisos antes de llegar a lo importante). En desktop se queda igual.
-// El chat es el punto de entrada en todos los tamaños de pantalla — no solo
-// celular. En desktop la racha/monedas ya se ven siempre en el nav superior;
-// en celular se agrega una tira de estado propia dentro del chat (ver
-// .chat-status-strip) para no perder esa visibilidad al quitar el dashboard
-// como pantalla de entrada.
-function _homePage() { return "assistant"; }
+function _homePage() { return "dashboard"; }
 
 // Manejar redirect de OAuth (Google, Spotify, Facebook)
 (() => {
@@ -19903,8 +19895,7 @@ function tourSkip() {
   document.body.style.overflow = '';
   _tourActive = false;
   localStorage.setItem('zyra_tour_done', '1');
-  // Después del tour, llevar al chat (la pantalla principal)
-  setTimeout(() => showPage('assistant'), 200);
+  setTimeout(() => showPage(_homePage()), 200);
 }
 
 function _checkShowTour() {
