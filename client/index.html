@@ -2453,7 +2453,13 @@ async function b2bSubmitContact() {
 <div class="db-rail">
   <div class="db-rail-card">
     <div class="db-rail-head"><span>Tu progreso</span><a onclick="showPage('profile')">Ver todo →</a></div>
-    <div class="db-rail-level-row">
+    <div class="db-rail-stats-grid">
+      <div class="db-rail-stat"><span class="db-rail-stat-ic" id="rail-st-em-icon">😌</span><div><div class="db-rail-stat-val" id="rail-st-emotion">—</div><div class="db-rail-stat-lbl">Emoción</div></div></div>
+      <div class="db-rail-stat"><span class="db-rail-stat-ic">💬</span><div><div class="db-rail-stat-val" id="rail-st-sessions">0</div><div class="db-rail-stat-lbl">Sesiones</div></div></div>
+      <div class="db-rail-stat"><span class="db-rail-stat-ic">🎯</span><div><div class="db-rail-stat-val" id="rail-st-goals">0</div><div class="db-rail-stat-lbl">Metas activas</div></div></div>
+      <div class="db-rail-stat"><span class="db-rail-stat-ic">📔</span><div><div class="db-rail-stat-val" id="rail-st-journal">0</div><div class="db-rail-stat-lbl">Diario</div></div></div>
+    </div>
+    <div class="db-rail-level-row" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border,rgba(99,102,241,.08))">
       <span class="db-rail-level-ic">💎</span>
       <div style="flex:1;min-width:0">
         <div class="db-rail-level-name" id="rail-level-name">Nivel 1</div>
@@ -8133,6 +8139,10 @@ async function loadDashboard() {
     document.getElementById("hero-emoji").textContent = em.emoji;
     document.getElementById("st-emotion").textContent = em.label;
     document.getElementById("st-em-icon").textContent = em.emoji;
+    const railEmEl = document.getElementById("rail-st-emotion");
+    const railEmIcEl = document.getElementById("rail-st-em-icon");
+    if (railEmEl) railEmEl.textContent = em.label;
+    if (railEmIcEl) railEmIcEl.textContent = em.emoji;
     renderQuickEmoPicker(p.currentEmotion);
     applyStreakBadge(p.streakDays || 0);
     const goals = Array.isArray(gd?.goals) ? gd.goals : (Array.isArray(gd) ? gd : []);
@@ -8141,6 +8151,10 @@ async function loadDashboard() {
     animateCount("st-sessions", p.sessionsCount || 0);
     animateCount("st-goals", goals.filter(g => !g.completed).length);
     animateCount("st-journal", entries.length);
+    ["rail-st-sessions","rail-st-goals","rail-st-journal"].forEach((id, i) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = [p.sessionsCount || 0, goals.filter(g => !g.completed).length, entries.length][i];
+    });
 
     // Barra lateral: nivel/XP (misma fórmula que en Perfil) + racha + nombre
     const _sbLevels = [ { min:0, label:"Nivel 1" }, { min:20, label:"Nivel 2" }, { min:60, label:"Nivel 3" }, { min:120, label:"Nivel 4" }, { min:250, label:"Nivel 5" } ];
