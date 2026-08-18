@@ -956,6 +956,7 @@ function closeSplash(){
     <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('goals')"><span class="nav-btn-ic">🎯</span>Metas</button>
     <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('games')"><span class="nav-btn-ic">🎮</span>Juegos</button>
     <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('analytics')"><span class="nav-btn-ic">📊</span>Analítica</button>
+    <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('sensors')"><span class="nav-btn-ic">📱</span>Sensores</button>
     <button class="nav-btn" onclick="closeMobileMoreSheet();startTest()"><span class="nav-btn-ic">✨</span>Test Emocional</button>
   </div>
 </div>
@@ -996,7 +997,6 @@ function closeMobileMoreSheet() {
   <div class="nav-streak-badge" id="nav-streak-badge" onclick="showPage('dashboard')" title="Racha de días" style="display:none"><span>🔥</span><span id="nav-streak-count">0</span></div>
   <div class="nav-coins-badge" id="nav-coins-badge" onclick="openRewardsShop()" title="Monedas Zyra" style="display:none"><span>🪙</span><span id="nav-coins-count">0</span></div>
   <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Modo oscuro">🌙</button>
-  <div class="avatar" id="nav-avatar" onclick="showPage('profile')" style="cursor:pointer" title="Mi perfil">?</div>
   <button class="btn-logout" onclick="doLogout()">Salir</button>
 </div>
 
@@ -1019,7 +1019,7 @@ function closeMobileMoreSheet() {
       <button class="nav-btn" data-page="games" onclick="showPage('games')"><span class="nav-btn-ic">🎮</span>Juegos</button>
       <button class="nav-btn" data-page="goals" onclick="showPage('goals')"><span class="nav-btn-ic">🎯</span>Metas</button>
       <button class="nav-btn" data-page="analytics" onclick="showPage('analytics')"><span class="nav-btn-ic">📊</span>Analítica</button>
-      <button class="nav-btn" data-page="profile" onclick="showPage('profile');setTimeout(()=>{const s=document.getElementById('prof-watch-card');if(s)s.scrollIntoView({behavior:'smooth'})},300)"><span class="nav-btn-ic">📱</span>Sensores</button>
+      <button class="nav-btn" data-page="sensors" onclick="showPage('sensors')"><span class="nav-btn-ic">📱</span>Sensores</button>
       <button class="nav-btn" onclick="startTest()"><span class="nav-btn-ic">✨</span>Test Emocional</button>
     </div>
 
@@ -3059,9 +3059,6 @@ async function b2bSubmitContact() {
   <!-- ══ CARTA DE COMPASIÓN ══ -->
   <div id="prof-compasion-card" style="margin-bottom:20px"></div>
 
-  <!-- ══ MI RELOJ ══ -->
-  <div id="prof-watch-card" style="margin-bottom:20px"></div>
-
   <!-- ══ LOGROS + TIENDA ══ -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
     <button onclick="openAchievements()" class="card" style="text-align:center;padding:18px;cursor:pointer;border:none;transition:transform .15s;display:block" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
@@ -3293,6 +3290,16 @@ async function b2bSubmitContact() {
 
 </div>
 </div>
+
+<!-- ══════ SENSORES ══════ -->
+<div id="page-sensors" class="page">
+<div class="container" style="max-width:720px">
+  <div class="section-title">📱 Sensores</div>
+  <p style="font-size:13px;color:var(--text3);margin:-10px 0 18px">Pulso y pasos desde tu celular, o conecta tu reloj inteligente.</p>
+  <div id="prof-watch-card" style="margin-bottom:20px"></div>
+</div>
+</div>
+
 <!-- ══════ ANALYTICS ══════ -->
 <div id="page-analytics" class="page">
 <div class="page-content" id="analytics-content">
@@ -4275,6 +4282,7 @@ function showPage(name) {
   if(name === "wellness")     loadWellness();
   else if (_pomoAmbType && typeof _pomoStopAmbient === "function") { _pomoStopAmbient(); }
   if(name === "profile")      loadProfile();
+  if(name === "sensors")      renderWatchCard();
   if(name === "analytics")    loadAnalytics();
   if(name === "admin")        loadAdminPanel();
   if(name === "games")        { setTimeout(() => openGame(window._currentGame || 'breath'), 50); }
@@ -5890,7 +5898,7 @@ function applyAvatarEverywhere(photoUrl, emoji, color) {
   const colorAv = color    || localStorage.getItem("zyra_avatar_color") || "var(--grad)";
   const init    = user ? user.name.charAt(0).toUpperCase() : "?";
 
-  ["nav-avatar", "sb-avatar-mini"].forEach(id => {
+  ["sb-avatar-mini"].forEach(id => {
     const el = document.getElementById(id);
     if(!el) return;
     if(photo) {
@@ -5939,7 +5947,7 @@ function applyAvatarEverywhere(photoUrl, emoji, color) {
 
 function applyStreakBadge(streakDays) {
   const ring = streakDays >= 30 ? '#f59e0b' : streakDays >= 14 ? '#f97316' : streakDays >= 7 ? '#6366f1' : null;
-  ["nav-avatar", "sb-avatar-mini"].forEach(id => {
+  ["sb-avatar-mini"].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     if (ring) {
@@ -6241,8 +6249,6 @@ async function loadProfile() {
     renderManifiesto();
     // Carta de compasión semanal
     renderCartaCompasion();
-    // Reloj inteligente
-    renderWatchCard();
   } catch(e) { console.error("loadProfile error:", e); }
 }
 
