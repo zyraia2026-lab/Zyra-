@@ -71,6 +71,8 @@ const S = new mongoose.Schema({
     sleepHours:   { type: Number, default: null },
     sleepDate:    { type: String, default: null },
     updatedAt:    { type: Date, default: null },
+    // Resumen diario (últimos ~90 días) — lo que le da a Zyra una tendencia real, no solo el momento
+    history: [new mongoose.Schema({ date: String, avgHR: Number, minHR: Number, maxHR: Number, hrCount: Number, steps: Number }, { _id: false })],
   }
 });
 

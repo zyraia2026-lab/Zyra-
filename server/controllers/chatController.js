@@ -1122,6 +1122,29 @@ async function buildSystemPrompt(userId, userName, message = "") {
     memoryBlock += `\n- Ha logrado: ${earnedAch.join(", ")}`;
   }
 
+  // ── Salud (pulso/pasos) conectada desde celular o reloj — tendencia, no solo el momento ──
+  if (profile?.health) {
+    const h = profile.health;
+    const hist = (h.history || []).slice(-7);
+    const healthParts = [];
+    const withHR = hist.filter(d => d.avgHR);
+    if (withHR.length >= 2) {
+      const avg7 = Math.round(withHR.reduce((a,d) => a + d.avgHR, 0) / withHR.length);
+      healthParts.push(`ritmo cardíaco promedio de los últimos días: ${avg7} bpm`);
+    }
+    const withSteps = hist.filter(d => d.steps != null);
+    if (withSteps.length >= 2) {
+      const avgSteps = Math.round(withSteps.reduce((a,d) => a + d.steps, 0) / withSteps.length);
+      healthParts.push(`promedio diario de pasos: ${avgSteps.toLocaleString("es-CO")}`);
+    }
+    if (h.hr?.bpm && h.hr?.ts && (Date.now() - new Date(h.hr.ts).getTime()) < 6 * 3600000) {
+      healthParts.push(`última medición de pulso: ${h.hr.bpm} bpm`);
+    }
+    if (healthParts.length > 0) {
+      memoryBlock += `\n- Datos de salud que ha compartido conectando su celular/reloj: ${healthParts.join("; ")}. Solo menciónalos si vienen al caso o si el usuario pregunta — no los saques a la fuerza.`;
+    }
+  }
+
   // ── Memorias persistentes — priorizadas por relevancia al mensaje actual ──
   const persistentMemories = message
     ? await getContextualMemories(userId, message)

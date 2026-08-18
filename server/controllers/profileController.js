@@ -54,17 +54,35 @@ exports.getHealth = async (req, res) => {
 exports.syncHealth = async (req, res) => {
   try {
     const { hr, steps, watchBattery, watchName, sleepHours, sleepDate } = req.body;
+    const today = new Date().toDateString();
+
+    // Traer el historial actual para actualizar el resumen del día de hoy
+    // (esto es lo que le da a Zyra una tendencia real, no solo la lectura del momento)
+    const current = await Profile.findOne({ user: req.user._id }).select("health.history").lean();
+    const history = (current?.health?.history || []).slice(-89);
+    let todayEntry = history.find(d => d.date === today);
+    if (!todayEntry) { todayEntry = { date: today, avgHR: null, minHR: null, maxHR: null, hrCount: 0, steps: null }; history.push(todayEntry); }
+
     const set = { "health.updatedAt": Date.now() };
     if (hr && typeof hr.bpm === "number" && hr.bpm >= 30 && hr.bpm <= 220) {
-      set["health.hr"] = { bpm: Math.round(hr.bpm), ts: hr.ts ? new Date(hr.ts) : new Date() };
+      const bpm = Math.round(hr.bpm);
+      set["health.hr"] = { bpm, ts: hr.ts ? new Date(hr.ts) : new Date() };
+      const n = todayEntry.hrCount || 0;
+      todayEntry.avgHR  = n ? Math.round((todayEntry.avgHR * n + bpm) / (n + 1)) : bpm;
+      todayEntry.minHR  = todayEntry.minHR != null ? Math.min(todayEntry.minHR, bpm) : bpm;
+      todayEntry.maxHR  = todayEntry.maxHR != null ? Math.max(todayEntry.maxHR, bpm) : bpm;
+      todayEntry.hrCount = n + 1;
     }
     if (steps && typeof steps.count === "number" && steps.count >= 0) {
-      set["health.steps"] = { count: Math.round(steps.count), date: String(steps.date || new Date().toDateString()).substring(0, 40) };
+      const date = String(steps.date || today).substring(0, 40);
+      set["health.steps"] = { count: Math.round(steps.count), date };
+      if (date === today) todayEntry.steps = Math.round(steps.count);
     }
     if (typeof watchBattery === "number" && watchBattery >= 0 && watchBattery <= 100) set["health.watchBattery"] = watchBattery;
     if (typeof watchName === "string") set["health.watchName"] = watchName.substring(0, 60);
     if (typeof sleepHours === "number" && sleepHours >= 0 && sleepHours <= 24) set["health.sleepHours"] = sleepHours;
     if (typeof sleepDate === "string") set["health.sleepDate"] = sleepDate.substring(0, 40);
+    set["health.history"] = history;
 
     const p = await Profile.findOneAndUpdate(
       { user: req.user._id }, set, { new: true, upsert: true }

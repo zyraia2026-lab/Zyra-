@@ -7390,7 +7390,8 @@ function syncHealthToServer(partial) {
 
 function applyServerHealth(health) {
   if (!health) return;
-  let changed = false;
+  window._zyraHealthHistory = health.history || [];
+  let changed = true;
   if (health.hr && health.hr.bpm) {
     const local = (() => { try { return JSON.parse(localStorage.getItem('zyra_watch_hr') || 'null'); } catch(e) { return null; } })();
     const serverTs = new Date(health.hr.ts).getTime();
@@ -7751,13 +7752,32 @@ function renderWatchCard() {
       ${_stepActive ? `<div id="step-debug-live" style="margin-top:8px;font-size:9.5px;color:var(--text3);text-align:center;font-family:monospace">iniciando…</div>` : ''}
     </div>`;
 
+  // ── Historial de días recientes (pulso promedio + pasos) — lo que Zyra también usa como tendencia ──
+  const historyBlock = (() => {
+    const hist = (window._zyraHealthHistory || []).filter(d => d.avgHR || d.steps != null).slice(-7).reverse();
+    if (!hist.length) return '';
+    const today = new Date().toDateString();
+    const rows = hist.map(d => {
+      const label = d.date === today ? 'Hoy' : new Date(d.date).toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric' });
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 2px;border-bottom:1px solid var(--border,rgba(99,102,241,.08));font-size:11.5px">
+        <span style="color:var(--text3);text-transform:capitalize;min-width:70px">${label}</span>
+        <span style="color:var(--text)">${d.avgHR ? '💓 ' + d.avgHR + ' bpm' : '<span style="color:var(--text3)">—</span>'}</span>
+        <span style="color:var(--text)">${d.steps != null ? '👟 ' + d.steps.toLocaleString() : '<span style="color:var(--text3)">—</span>'}</span>
+      </div>`;
+    }).join('');
+    return `<div style="margin-top:14px;background:var(--surface,#fff);border:1px solid var(--border,rgba(99,102,241,.12));border-radius:16px;padding:14px 16px">
+      <div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">📈 Historial reciente</div>
+      ${rows}
+    </div>`;
+  })();
+
   if (!paired && !_watchConnected) {
     card.innerHTML = sensorPanel + `
       <div style="border:1.5px solid rgba(99,102,241,.25);border-radius:16px;padding:16px;background:rgba(99,102,241,.04)">
         <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px">⌚ ¿Tienes reloj inteligente?</div>
         <button onclick="connectSmartwatch()" style="width:100%;background:linear-gradient(135deg,#6366f1,#4f46e5);border:none;color:#fff;border-radius:12px;padding:13px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(99,102,241,.3)">⌚ Conectar reloj Bluetooth</button>
         ${!navigator.bluetooth ? `<div style="font-size:10px;color:#f59e0b;margin-top:8px;text-align:center">⚠ Usa Chrome para conectar por Bluetooth</div>` : ''}
-      </div>`;
+      </div>` + historyBlock;
     return;
   }
 
@@ -7793,7 +7813,7 @@ function renderWatchCard() {
       <div style="margin-top:10px;text-align:center;display:flex;gap:8px;justify-content:center">
         <button onclick="localStorage.removeItem('zyra_watch_paired');localStorage.removeItem('zyra_watch_name');_watchReset();renderWatchCard()" style="background:none;border:none;color:var(--text3);font-size:10px;cursor:pointer;opacity:.5">✕ Olvidar reloj</button>
       </div>
-    </div>`;
+    </div>` + historyBlock;
 }
 
 /* ── WIDGET COMPACTO DASHBOARD ── */
@@ -7815,7 +7835,7 @@ function renderWatchWidget() {
   const hrAge     = hrData ? Math.round((Date.now() - hrData.ts) / 60000) : null;
 
   widget.innerHTML = `
-    <div onclick="showPage('profile')" style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;cursor:pointer">
+    <div onclick="showPage('sensors')" style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;cursor:pointer">
       <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
         <span style="font-size:16px">${_watchConnected ? '⌚' : '📱'}</span>
         <span style="width:7px;height:7px;border-radius:50%;background:${(_watchConnected||_stepActive) ? '#10b981' : '#6b7280'};display:inline-block;flex-shrink:0${(_watchConnected||_stepActive)?';animation:crisis-pulse 2s infinite':''}"></span>
