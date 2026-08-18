@@ -60,7 +60,18 @@ const S = new mongoose.Schema({
   // ── Patrones emocionales ──
   negativeStreakCount: { type: Number, default: 0 }, // días consecutivos con emoción negativa
 
-  updatedAt: { type: Date, default: Date.now }
+  updatedAt: { type: Date, default: Date.now },
+
+  // ── Sensores de salud (pulso/pasos/reloj) — sincroniza entre dispositivos ──
+  health: {
+    hr:           { bpm: Number, ts: Date },
+    steps:        { count: Number, date: String },
+    watchBattery: { type: Number, default: null },
+    watchName:    { type: String, default: "" },
+    sleepHours:   { type: Number, default: null },
+    sleepDate:    { type: String, default: null },
+    updatedAt:    { type: Date, default: null },
+  }
 });
 
 // Index for daily reminder cron: find profiles matching exact hour/minute

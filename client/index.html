@@ -4274,7 +4274,7 @@ function showPage(name) {
   if(name === "wellness")     loadWellness();
   else if (_pomoAmbType && typeof _pomoStopAmbient === "function") { _pomoStopAmbient(); }
   if(name === "profile")      loadProfile();
-  if(name === "sensors")      renderWatchCard();
+  if(name === "sensors")      { renderWatchCard(); startHealthPolling(); } else { stopHealthPolling(); }
   if(name === "analytics")    loadAnalytics();
   if(name === "admin")        loadAdminPanel();
   if(name === "games")        { setTimeout(() => openGame(window._currentGame || 'breath'), 50); }
@@ -4392,6 +4392,7 @@ async function doLoginVerify() {
       if (p.avatarColor) localStorage.setItem("zyra_avatar_color", p.avatarColor);
       if (p.theme)       applyColorTheme(p.theme);
       applyAvatarEverywhere(p.photoUrl, p.avatarEmoji, p.avatarColor);
+      applyServerHealth(p.health);
     } catch(e) {}
     loadFeatureConfig();
     loadPlanStatus();
@@ -6101,6 +6102,7 @@ async function loadProfile() {
     if(p.avatarColor) localStorage.setItem("zyra_avatar_color", p.avatarColor);
 
     applyAvatarEverywhere(p.photoUrl, p.avatarEmoji, p.avatarColor);
+    applyServerHealth(p.health);
 
     const pn = document.getElementById("profile-name-big");
     const pe = document.getElementById("profile-email-big");
@@ -6813,10 +6815,16 @@ let _stepActive      = false;
 let _stepLastTs      = 0;
 let _stepAbove       = false;
 let _stepBaseline    = 9.8;
-let _stepSamples     = [];        // buffer deslizante para filtro
+let _stepEMA         = 9.8;       // señal suavizada (filtro por tiempo, no por muestras)
 let _stepUseNoGrav   = false;     // true si el OS ya quitó la gravedad
 let _stepCalibrating = true;      // true durante los primeros 2s
 let _stepCalTs       = 0;
+
+// Heurística simple: ¿este dispositivo es un celular/tablet (con acelerómetro real)
+// o un PC/laptop? Sirve para no prometer "pasos" donde no hay sensor de movimiento.
+function _isPhoneDevice() {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
 
 async function startPhoneSteps() {
   if (!window.DeviceMotionEvent) {
@@ -6833,8 +6841,9 @@ async function startPhoneSteps() {
   const saved = (() => { try { return JSON.parse(localStorage.getItem('zyra_phone_steps') || '{}'); } catch(_) { return {}; } })();
   _stepCount       = saved.date === today ? (saved.steps || 0) : 0;
   _stepBaseline    = 9.8;
+  _stepEMA         = 9.8;
   _stepAbove       = false;
-  _stepSamples     = [];
+  _stepLastTs      = 0;
   _stepCalibrating = true;
   _stepCalTs       = Date.now();
   _stepActive      = true;
@@ -6850,6 +6859,7 @@ function stopPhoneSteps() {
   _stepActive = false;
   window.removeEventListener('devicemotion', _onPhoneMotion);
   _savePhoneSteps();
+  syncHealthToServer({ steps: { count: _stepCount, date: new Date().toDateString() } });
   localStorage.removeItem('zyra_steps_active');
   renderWatchCard();
   renderWatchWidget();
@@ -6868,40 +6878,35 @@ function _onPhoneMotion(evt) {
 
   const mag = Math.sqrt((a.x||0)**2 + (a.y||0)**2 + (a.z||0)**2);
 
-  // Buffer deslizante de 20 muestras (~0.4s a 50hz) para suavizar
-  _stepSamples.push(mag);
-  if (_stepSamples.length > 20) _stepSamples.shift();
-  const smooth = _stepSamples.reduce((a,b)=>a+b,0) / _stepSamples.length;
+  // Filtro de paso bajo POR TIEMPO (no por cantidad de muestras) — 'devicemotion'
+  // dispara a frecuencias muy distintas según el teléfono (de ~15Hz a 60Hz+),
+  // y un promedio de "últimas 20 muestras" aplanaba la señal real en los
+  // celulares lentos, borrando los picos de cada paso (por eso solo contaba 1).
+  _stepEMA = _stepEMA * 0.72 + mag * 0.28;
 
-  // Fase de calibración: primeros 2 segundos establecen baseline
+  // Fase de calibración: primeros 1.5s establecen la línea base
   if (_stepCalibrating) {
-    _stepBaseline = _stepBaseline * 0.85 + smooth * 0.15;
-    if (Date.now() - _stepCalTs > 2000) _stepCalibrating = false;
+    _stepBaseline = _stepBaseline * 0.8 + _stepEMA * 0.2;
+    if (Date.now() - _stepCalTs > 1500) _stepCalibrating = false;
     return;
   }
 
   // Baseline adaptativa muy lenta (solo cambia con reposo prolongado)
-  _stepBaseline = _stepBaseline * 0.995 + smooth * 0.005;
+  _stepBaseline = _stepBaseline * 0.998 + _stepEMA * 0.002;
 
-  // Umbrales: con gravedad ~1.5-2.5 sobre baseline; sin gravedad ~1.5-3.0 absoluto
-  const threshold = _stepUseNoGrav ? 1.2 : 1.5;
-  const delta     = _stepUseNoGrav ? smooth : smooth - _stepBaseline;
+  const threshold = _stepUseNoGrav ? 0.9 : 1.1;
+  const delta     = _stepUseNoGrav ? _stepEMA : _stepEMA - _stepBaseline;
 
   if (!_stepAbove && delta > threshold) {
     _stepAbove = true;
-  } else if (_stepAbove && delta < threshold * 0.3) {
+  } else if (_stepAbove && delta < threshold * 0.4) {
     _stepAbove = false;
     const now = Date.now();
-    // Entre 250ms (240 ppm max) y 2500ms (24 ppm min = muy lento)
-    if (now - _stepLastTs > 250 && now - _stepLastTs < 2500) {
+    if (_stepLastTs === 0 || now - _stepLastTs > 280) { // min. ~280ms entre pasos (evita rebotes dobles)
       _stepLastTs = now;
       _stepCount++;
       _handleSteps(_stepCount);
       if (_stepCount % 5 === 0) _savePhoneSteps(); // guardar cada 5 pasos
-    } else if (_stepLastTs === 0) {
-      _stepLastTs = now; // primer paso
-      _stepCount++;
-      _handleSteps(_stepCount);
     }
   }
 }
@@ -7291,6 +7296,7 @@ function _handleHR(bpm) {
   if (hrHist.length > 288) hrHist.shift(); // 288 = cada 5min × 24h
   localStorage.setItem('zyra_watch_hr_hist', JSON.stringify(hrHist));
   localStorage.setItem('zyra_watch_hr', JSON.stringify({ bpm, ts }));
+  syncHealthToServer({ hr: { bpm, ts } });
   _updateWatchUI();
   // Reacción automática: HR alto → sugerir respiración
   const lastAlert = parseInt(localStorage.getItem('zyra_watch_hr_alert') || '0');
@@ -7310,10 +7316,17 @@ function _handleHR(bpm) {
   }
 }
 
+let _lastStepsSyncTs = 0;
 function _handleSteps(steps) {
   if (!steps || steps < 0) return;
   _watchSteps = steps;
-  localStorage.setItem('zyra_watch_steps', JSON.stringify({ steps, ts: Date.now(), date: new Date().toDateString() }));
+  const today = new Date().toDateString();
+  localStorage.setItem('zyra_watch_steps', JSON.stringify({ steps, ts: Date.now(), date: today }));
+  const now = Date.now();
+  if (now - _lastStepsSyncTs > 15000) {
+    _lastStepsSyncTs = now;
+    syncHealthToServer({ steps: { count: steps, date: today } });
+  }
   _updateWatchUI();
   // Reacción: pocos pasos a las 18h+ → motivar
   const h = new Date().getHours();
@@ -7330,6 +7343,7 @@ function _handleBattery(pct) {
   if (pct < 0 || pct > 100) return;
   _watchBattery = pct;
   localStorage.setItem('zyra_watch_battery', String(pct));
+  syncHealthToServer({ watchBattery: pct, watchName: localStorage.getItem('zyra_watch_name') || '' });
   _updateWatchUI();
   if (pct <= 15) zyraToast(`⌚ Batería del reloj al ${pct}% — cárgalo pronto`, 'info');
 }
@@ -7341,7 +7355,67 @@ function _handleSleep(raw) {
   if (hrs < 0 || hrs > 24) return;
   const today = new Date().toDateString();
   localStorage.setItem('zyra_sleep_' + today, JSON.stringify({ hours: hrs, quality: hrs >= 7 ? 4 : hrs >= 5 ? 3 : 2, fromWatch: true }));
+  syncHealthToServer({ sleepHours: hrs, sleepDate: today });
   zyraToast(`🌙 Zyra guardó tu sueño del reloj: ${hrs.toFixed(1)}h`, 'success');
+}
+
+// ══════════════════════════════════════════
+//  SINCRONIZAR SENSORES ENTRE DISPOSITIVOS
+//  (misma cuenta en celular y PC — lo que se mide en uno aparece en el otro)
+// ══════════════════════════════════════════
+function syncHealthToServer(partial) {
+  if (!token) return;
+  api('/profile/health', 'PUT', partial).catch(() => {});
+}
+
+function applyServerHealth(health) {
+  if (!health) return;
+  let changed = false;
+  if (health.hr && health.hr.bpm) {
+    const local = (() => { try { return JSON.parse(localStorage.getItem('zyra_watch_hr') || 'null'); } catch(e) { return null; } })();
+    const serverTs = new Date(health.hr.ts).getTime();
+    if (!local || serverTs > local.ts) {
+      localStorage.setItem('zyra_watch_hr', JSON.stringify({ bpm: health.hr.bpm, ts: serverTs }));
+      _watchHR = health.hr.bpm;
+      changed = true;
+    }
+  }
+  const today = new Date().toDateString();
+  if (health.steps && health.steps.date === today) {
+    const local = (() => { try { return JSON.parse(localStorage.getItem('zyra_watch_steps') || 'null'); } catch(e) { return null; } })();
+    if (!local || health.steps.count > (local.steps || 0)) {
+      localStorage.setItem('zyra_watch_steps', JSON.stringify({ steps: health.steps.count, ts: Date.now(), date: today }));
+      _watchSteps = health.steps.count;
+      changed = true;
+    }
+  }
+  if (health.watchBattery != null) { localStorage.setItem('zyra_watch_battery', String(health.watchBattery)); changed = true; }
+  if (health.watchName) { localStorage.setItem('zyra_watch_name', health.watchName); }
+  if (health.sleepHours != null && health.sleepDate) {
+    const key = 'zyra_sleep_' + health.sleepDate;
+    if (!localStorage.getItem(key)) {
+      localStorage.setItem(key, JSON.stringify({ hours: health.sleepHours, quality: health.sleepHours >= 7 ? 4 : health.sleepHours >= 5 ? 3 : 2, fromWatch: true }));
+    }
+  }
+  if (changed) { renderWatchCard(); renderWatchWidget(); }
+}
+
+async function pollHealthFromServer() {
+  if (!token) return;
+  try {
+    const d = await api('/profile/health', 'GET');
+    if (d?.health) applyServerHealth(d.health);
+  } catch(e) {}
+}
+
+let _healthPollTimer = null;
+function startHealthPolling() {
+  stopHealthPolling();
+  pollHealthFromServer();
+  _healthPollTimer = setInterval(pollHealthFromServer, 20000);
+}
+function stopHealthPolling() {
+  if (_healthPollTimer) { clearInterval(_healthPollTimer); _healthPollTimer = null; }
 }
 
 /* ── ENVIAR AL RELOJ ── */
@@ -7617,15 +7691,20 @@ function renderWatchCard() {
     ? `<span style="color:var(--text3)">Hace ${hrAge > 0 ? hrAge + 'min' : 'ahora'}</span>`
     : '<span style="color:var(--text3)">Sin medición</span>';
 
-  // ── Panel de sensores del celular (siempre visible arriba) ──
+  // ── Panel de sensores de este dispositivo (siempre visible arriba) ──
+  const _isPhone = _isPhoneDevice();
   const sensorPanel = `
     <div style="background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(236,72,153,.07));border:1.5px solid rgba(16,185,129,.35);border-radius:20px;padding:18px 20px;margin-bottom:14px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
-        <span style="font-size:13px;font-weight:800;color:var(--text)">📱 Este celular</span>
-        <span style="font-size:10px;background:rgba(16,185,129,.15);color:#10b981;border-radius:99px;padding:2px 10px;font-weight:700;display:flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:#10b981;display:inline-block"></span> CONECTADO</span>
+        <span style="font-size:13px;font-weight:800;color:var(--text)">${_isPhone ? '📱 Este celular' : '💻 Este computador'}</span>
+        ${_isPhone
+          ? `<span style="font-size:10px;background:rgba(16,185,129,.15);color:#10b981;border-radius:99px;padding:2px 10px;font-weight:700;display:flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:#10b981;display:inline-block"></span> DISPONIBLE</span>`
+          : `<span style="font-size:10px;background:rgba(99,102,241,.15);color:#818cf8;border-radius:99px;padding:2px 10px;font-weight:700">SOLO PULSO</span>`}
       </div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:14px;line-height:1.5">
-        Usa la cámara para medir el pulso y el acelerómetro para contar tus pasos
+        ${_isPhone
+          ? 'Usa la cámara para medir el pulso y el acelerómetro para contar tus pasos'
+          : 'Mide tu pulso con la cámara de este computador. Los pasos se cuentan desde tu celular (con la misma cuenta) y aparecen aquí solos.'}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
         <div style="background:rgba(236,72,153,.08);border:1px solid rgba(236,72,153,.2);border-radius:14px;padding:12px;text-align:center">
@@ -7643,9 +7722,11 @@ function renderWatchCard() {
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <button onclick="startCameraHR()" style="background:linear-gradient(135deg,#ec4899,#f43f5e);border:none;color:#fff;border-radius:12px;padding:12px 8px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(236,72,153,.3)">💓 Medir pulso</button>
-        ${_stepActive
-          ? `<button onclick="stopPhoneSteps()" style="background:rgba(16,185,129,.12);border:1.5px solid rgba(16,185,129,.3);color:#10b981;border-radius:12px;padding:12px 8px;font-size:12px;font-weight:700;cursor:pointer">⏹ Pausar pasos</button>`
-          : `<button onclick="startPhoneSteps()" style="background:linear-gradient(135deg,#6366f1,#4f46e5);border:none;color:#fff;border-radius:12px;padding:12px 8px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(99,102,241,.3)">👟 Activar pasos</button>`}
+        ${!_isPhone
+          ? `<div style="display:flex;align-items:center;justify-content:center;text-align:center;background:rgba(255,255,255,.05);border:1.5px dashed rgba(255,255,255,.15);color:var(--text3);border-radius:12px;padding:8px;font-size:10.5px;line-height:1.3">📱 Actívalos desde tu celular</div>`
+          : _stepActive
+            ? `<button onclick="stopPhoneSteps()" style="background:rgba(16,185,129,.12);border:1.5px solid rgba(16,185,129,.3);color:#10b981;border-radius:12px;padding:12px 8px;font-size:12px;font-weight:700;cursor:pointer">⏹ Pausar pasos</button>`
+            : `<button onclick="startPhoneSteps()" style="background:linear-gradient(135deg,#6366f1,#4f46e5);border:none;color:#fff;border-radius:12px;padding:12px 8px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(99,102,241,.3)">👟 Activar pasos</button>`}
       </div>
     </div>`;
 

@@ -43,6 +43,36 @@ exports.updateProfile = async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
 
+// ── Sensores de salud (pulso/pasos/reloj) — sincroniza entre dispositivos ──
+exports.getHealth = async (req, res) => {
+  try {
+    const p = await Profile.findOne({ user: req.user._id }).select("health").lean();
+    res.json({ success: true, health: p?.health || null });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+};
+
+exports.syncHealth = async (req, res) => {
+  try {
+    const { hr, steps, watchBattery, watchName, sleepHours, sleepDate } = req.body;
+    const set = { "health.updatedAt": Date.now() };
+    if (hr && typeof hr.bpm === "number" && hr.bpm >= 30 && hr.bpm <= 220) {
+      set["health.hr"] = { bpm: Math.round(hr.bpm), ts: hr.ts ? new Date(hr.ts) : new Date() };
+    }
+    if (steps && typeof steps.count === "number" && steps.count >= 0) {
+      set["health.steps"] = { count: Math.round(steps.count), date: String(steps.date || new Date().toDateString()).substring(0, 40) };
+    }
+    if (typeof watchBattery === "number" && watchBattery >= 0 && watchBattery <= 100) set["health.watchBattery"] = watchBattery;
+    if (typeof watchName === "string") set["health.watchName"] = watchName.substring(0, 60);
+    if (typeof sleepHours === "number" && sleepHours >= 0 && sleepHours <= 24) set["health.sleepHours"] = sleepHours;
+    if (typeof sleepDate === "string") set["health.sleepDate"] = sleepDate.substring(0, 40);
+
+    const p = await Profile.findOneAndUpdate(
+      { user: req.user._id }, set, { new: true, upsert: true }
+    ).select("health").lean();
+    res.json({ success: true, health: p.health });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+};
+
 // ── Historial emocional ──
 exports.addEmotionRecord = async (req, res) => {
   try {

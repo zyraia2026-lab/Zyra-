@@ -16,6 +16,8 @@ const {
   getPlanStatus,
   moodCheckin,
   getMoodStatus,
+  getHealth,
+  syncHealth,
 } = require("../controllers/profileController");
 const { protect }      = require("../middleware/auth");
 const { requirePlan }  = require("../middleware/planGate");
@@ -42,6 +44,10 @@ r.get("/history",         protect, getEmotionHistory);
 // ── Check-in de humor diario ──
 r.post("/mood-checkin", protect, moodCheckin);
 r.get("/mood-status",   protect, getMoodStatus);
+
+// ── Sensores de salud (pulso/pasos/reloj) — sincroniza entre dispositivos ──
+r.get("/health", protect, getHealth);
+r.put("/health", protect, syncHealth);
 
 // ── Contacto de emergencia (plan básico+) ──
 r.get("/emergency",  protect, getEmergencyContact);
