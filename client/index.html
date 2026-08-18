@@ -1271,14 +1271,18 @@ function closeMobileMoreSheet() {
 ══════════════════════════════════════════ -->
 <div id="page-shop" class="page">
 <div class="container">
-  <div class="page-header">
-    <h1 class="page-title">🛍️ Tienda Zyra</h1>
-    <p class="page-subtitle">Canjea tus monedas por recompensas exclusivas</p>
-  </div>
-  <div style="display:flex;align-items:center;gap:8px;background:rgba(99,102,241,.1);border-radius:12px;padding:10px 16px;margin-bottom:24px;max-width:340px">
-    <span style="font-size:22px">🪙</span>
-    <span style="font-size:18px;font-weight:800;color:var(--text)" id="shop-coins-display">0</span>
-    <span style="font-size:13px;color:var(--text3)">monedas disponibles</span>
+  <div class="page-header" style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap">
+    <div>
+      <h1 class="page-title">🛍️ Tienda Zyra</h1>
+      <p class="page-subtitle">Canjea tus monedas por recompensas exclusivas</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.08));border:1px solid rgba(99,102,241,.2);border-radius:14px;padding:12px 20px">
+      <span style="font-size:24px">🪙</span>
+      <div>
+        <div style="font-size:20px;font-weight:800;color:var(--text);line-height:1.15" id="shop-coins-display">0</div>
+        <div style="font-size:11px;color:var(--text3)">monedas disponibles</div>
+      </div>
+    </div>
   </div>
   <div id="rewards-sections"></div>
 </div>
@@ -1294,23 +1298,43 @@ function closeMobileMoreSheet() {
     <h1 class="page-title">🎁 Amigos</h1>
     <p class="page-subtitle">Invita y gana Premium gratis</p>
   </div>
-  <div class="card" id="friends-referral-card" style="background:linear-gradient(135deg,rgba(16,185,129,.07),rgba(5,150,105,.04));border:1.5px solid rgba(16,185,129,.2)">
-    <div class="card-header"><span class="card-title">🎁 Invita amigos y gana</span></div>
-    <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.6">Comparte tu código único y tú y tu amigo reciben <strong style="color:#34d399">7 días de Premium gratis</strong>.</p>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-      <div id="referral-code-display" style="flex:1;padding:12px 16px;background:var(--surface2);border:1.5px solid rgba(16,185,129,.3);border-radius:12px;font-family:monospace;font-size:17px;font-weight:800;color:#34d399;letter-spacing:3px;text-align:center" aria-label="Tu código de referido" aria-live="polite">––––––</div>
-      <button onclick="copyReferralCode()" aria-label="Copiar código de referido" style="padding:10px 14px;background:var(--grad);border:none;border-radius:10px;color:white;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">📋 Copiar</button>
-      <button onclick="shareReferral()" aria-label="Compartir código de referido" style="padding:10px 14px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:10px;color:#34d399;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">📤 Compartir</button>
-    </div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:16px">👥 Amigos invitados: <strong id="referral-count" style="color:var(--text)">0</strong></div>
-    <div id="referral-apply-section" style="border-top:1px solid var(--border);padding-top:16px">
-      <p style="font-size:13px;color:var(--text3);margin-bottom:10px">¿Tienes el código de un amigo? Úsalo para activar tu recompensa:</p>
-      <div style="display:flex;gap:8px">
-        <input type="text" id="referral-apply-input" placeholder="ZYRAXXXXXX" maxlength="12" aria-label="Código de referido de un amigo" style="flex:1;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;text-transform:uppercase;letter-spacing:1px;font-family:monospace" oninput="this.value=this.value.toUpperCase()"/>
-        <button onclick="applyReferral()" style="padding:10px 20px;background:linear-gradient(135deg,#10b981,#059669);border:none;border-radius:10px;color:white;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">Aplicar</button>
+  <div class="card" id="friends-referral-card" style="background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(5,150,105,.04));border:1.5px solid rgba(16,185,129,.22);padding:30px">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px">
+      <div style="width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#10b981,#34d399);display:flex;align-items:center;justify-content:center;font-size:23px;flex-shrink:0;box-shadow:0 6px 18px rgba(16,185,129,.35)">🎁</div>
+      <div>
+        <div style="font-size:16px;font-weight:800;color:var(--text)">Invita amigos y gana</div>
+        <div style="font-size:13px;color:var(--text3);line-height:1.5">Tú y tu amigo reciben <strong style="color:#34d399">7 días de Premium gratis</strong></div>
       </div>
     </div>
-    <div id="referral-used-msg" style="display:none;border-top:1px solid var(--border);padding-top:12px;font-size:12px;color:#34d399">✅ Ya usaste un código de referido — ¡gracias por unirte!</div>
+
+    <div style="margin-bottom:22px">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;text-align:center">Tu código de invitación</div>
+      <div id="referral-code-display" style="padding:18px 16px;background:var(--surface2);border:1.5px dashed rgba(16,185,129,.4);border-radius:14px;font-family:monospace;font-size:24px;font-weight:800;color:#34d399;letter-spacing:5px;text-align:center" aria-label="Tu código de referido" aria-live="polite">––––––</div>
+      <div style="display:flex;gap:10px;margin-top:12px">
+        <button onclick="copyReferralCode()" aria-label="Copiar código de referido" style="flex:1;padding:12px 14px;background:var(--grad);border:none;border-radius:10px;color:white;font-size:13.5px;font-weight:700;cursor:pointer">📋 Copiar código</button>
+        <button onclick="shareReferral()" aria-label="Compartir código de referido" style="flex:1;padding:12px 14px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:10px;color:#34d399;font-size:13.5px;font-weight:700;cursor:pointer">📤 Compartir</button>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-bottom:24px">
+      <div style="flex:1;background:rgba(16,185,129,.09);border-radius:14px;padding:16px 12px;text-align:center">
+        <div style="font-size:22px;font-weight:800;color:var(--text)" id="referral-count">0</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px">👥 Amigos invitados</div>
+      </div>
+      <div style="flex:1;background:rgba(16,185,129,.09);border-radius:14px;padding:16px 12px;text-align:center">
+        <div style="font-size:22px;font-weight:800;color:var(--text)" id="referral-days-earned">0</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px">✦ Días Premium ganados</div>
+      </div>
+    </div>
+
+    <div id="referral-apply-section" style="border-top:1px solid var(--border);padding-top:22px">
+      <p style="font-size:13px;color:var(--text3);margin-bottom:12px">¿Tienes el código de un amigo? Úsalo para activar tu recompensa:</p>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="referral-apply-input" placeholder="ZYRAXXXXXX" maxlength="12" aria-label="Código de referido de un amigo" style="flex:1;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;text-transform:uppercase;letter-spacing:1px;font-family:monospace" oninput="this.value=this.value.toUpperCase()"/>
+        <button onclick="applyReferral()" style="padding:12px 20px;background:linear-gradient(135deg,#10b981,#059669);border:none;border-radius:10px;color:white;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">Aplicar</button>
+      </div>
+    </div>
+    <div id="referral-used-msg" style="display:none;border-top:1px solid var(--border);padding-top:18px;font-size:12px;color:#34d399">✅ Ya usaste un código de referido — ¡gracias por unirte!</div>
   </div>
 
   <div class="card" id="friends-list-wrap" style="display:none;margin-top:20px">
@@ -8039,6 +8063,8 @@ async function loadReferral() {
     const usedMsg      = document.getElementById("referral-used-msg");
     if (codeEl) codeEl.textContent = d.referralCode || "–";
     if (cntEl)  cntEl.textContent  = d.referralCount || 0;
+    const daysEl = document.getElementById("referral-days-earned");
+    if (daysEl) daysEl.textContent = (d.referralCount || 0) * 7;
     if (d.referredBy) {
       if (applySection) applySection.style.display = "none";
       if (usedMsg)      usedMsg.style.display = "";
