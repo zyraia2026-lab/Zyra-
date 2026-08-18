@@ -1574,6 +1574,12 @@ nav#app-shared-nav {
 ═══════════════════════════════════════════ */
 .container { max-width: 1400px; margin: 0 auto; padding: 36px 40px 60px; }
 
+/* Encabezado de página (Planes/Tienda/Amigos) -- sin esto quedaba con el
+   espaciado por defecto del navegador para h1/p, todo amontonado. */
+.page-header { margin-bottom: 28px; }
+.page-title { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 800; color: var(--text, #0f172a); margin: 0 0 8px; letter-spacing: -.3px; line-height: 1.2; }
+.page-subtitle { font-size: 14px; color: var(--text3, #64748b); margin: 0; line-height: 1.5; }
+
 /* ══ Dashboard: columna principal + columna derecha de progreso (desktop) ══ */
 @media (min-width: 1080px) {
   .db-container { display: flex; align-items: flex-start; gap: 24px; }
