@@ -1013,8 +1013,19 @@ function closeMobileMoreSheet() {
     </div>
 
     <div style="position:relative;margin-top:auto" id="nav-more-wrap">
-      <button class="nav-btn" id="nav-more-btn" onclick="(function(e){e.stopPropagation();var m=document.getElementById('nav-more-menu');m.style.display=m.style.display==='block'?'none':'block';})(event)"><span class="nav-btn-ic">⋯</span>Más</button>
-      <div id="nav-more-menu" style="display:none;position:absolute;bottom:0;left:calc(100% + 24px);background:var(--surface,#fff);border:1px solid var(--border,rgba(99,102,241,.15));border-radius:16px;padding:8px;min-width:190px;z-index:9999;box-shadow:0 12px 40px rgba(0,0,0,.15)">
+      <button class="nav-btn" id="nav-more-btn" onclick="(function(e){
+        e.stopPropagation();
+        var m=document.getElementById('nav-more-menu');
+        if (m.style.display==='block') { m.style.display='none'; return; }
+        // position:fixed + calculado en JS -- la barra lateral tiene overflow-y:auto,
+        // y eso hace que el navegador recorte cualquier hijo absolute que se salga
+        // hacia los lados (mismo elemento, mismo bug que con position:absolute).
+        var r = e.currentTarget.getBoundingClientRect();
+        m.style.left = (r.right + 12) + 'px';
+        m.style.bottom = (window.innerHeight - r.bottom) + 'px';
+        m.style.display='block';
+      })(event)"><span class="nav-btn-ic">⋯</span>Más</button>
+      <div id="nav-more-menu" style="display:none;position:fixed;background:var(--surface,#fff);border:1px solid var(--border,rgba(99,102,241,.15));border-radius:16px;padding:8px;min-width:190px;z-index:9999;box-shadow:0 12px 40px rgba(0,0,0,.15)">
         <button onclick="showPage('games');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">🎮 Juegos</button>
         <button onclick="showPage('goals');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">🎯 Metas</button>
         <button onclick="showPage('analytics');document.getElementById('nav-more-menu').style.display='none'" style="display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--text);font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;cursor:pointer;text-align:left;transition:background .12s" onmouseenter="this.style.background='rgba(99,102,241,.08)'" onmouseleave="this.style.background='none'">📊 Analítica</button>
@@ -1023,15 +1034,20 @@ function closeMobileMoreSheet() {
       </div>
     </div>
 
-    <!-- Racha -- el perfil ya vive arriba a la derecha (avatar de la barra
-         superior), no se repite acá para no duplicar ni estorbar. -->
+    <!-- Racha -->
     <div class="sb-streak-card" id="sb-streak-card" onclick="showPage('dashboard')">
       <div class="sb-streak-top"><span>🔥 Racha actual</span><strong id="sb-streak-days">0 días</strong></div>
       <div class="sb-streak-bar"><div class="sb-streak-bar-fill" id="sb-streak-bar-fill" style="width:0%"></div></div>
       <div class="sb-streak-sub">¡Sigue así!</div>
     </div>
-    <div style="display:none">
-      <span id="sb-avatar-mini"></span><span id="sb-profile-name"></span><span id="sb-profile-level"></span>
+
+    <!-- Perfil -->
+    <div class="sb-profile-card" id="sb-profile-card" onclick="showPage('profile')">
+      <div class="avatar" id="sb-avatar-mini">?</div>
+      <div style="flex:1;min-width:0">
+        <div class="sb-profile-name" id="sb-profile-name">—</div>
+        <div class="sb-profile-level" id="sb-profile-level">Nivel 1</div>
+      </div>
     </div>
   </div>
 </nav>
@@ -2490,6 +2506,7 @@ async function b2bSubmitContact() {
   </div>
 </div>
 </div>
+</div><!-- /page-dashboard -->
 
 <!-- ══════ JUEGOS ══════ -->
 <div id="page-games" class="page">
