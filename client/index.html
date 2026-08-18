@@ -6814,11 +6814,12 @@ let _stepCount       = 0;
 let _stepActive      = false;
 let _stepLastTs      = 0;
 let _stepAbove       = false;
-let _stepBaseline    = 9.8;
 let _stepEMA         = 9.8;       // señal suavizada (filtro por tiempo, no por muestras)
+let _stepWin         = [];        // ventana deslizante (~1.5s) para medir el rango real de la señal
 let _stepUseNoGrav   = false;     // true si el OS ya quitó la gravedad
-let _stepCalibrating = true;      // true durante los primeros 2s
+let _stepCalibrating = true;      // true durante los primeros ~1.2s
 let _stepCalTs       = 0;
+let _stepDebugTs     = 0;
 
 // Heurística simple: ¿este dispositivo es un celular/tablet (con acelerómetro real)
 // o un PC/laptop? Sirve para no prometer "pasos" donde no hay sensor de movimiento.
@@ -6840,8 +6841,8 @@ async function startPhoneSteps() {
   const today = new Date().toDateString();
   const saved = (() => { try { return JSON.parse(localStorage.getItem('zyra_phone_steps') || '{}'); } catch(_) { return {}; } })();
   _stepCount       = saved.date === today ? (saved.steps || 0) : 0;
-  _stepBaseline    = 9.8;
   _stepEMA         = 9.8;
+  _stepWin         = [];
   _stepAbove       = false;
   _stepLastTs      = 0;
   _stepCalibrating = true;
@@ -6866,6 +6867,14 @@ function stopPhoneSteps() {
   zyraToast(`👟 Pasos guardados: ${_stepCount.toLocaleString()}`, 'info', 3000);
 }
 
+function _dbgStepWrite(text) {
+  const now = Date.now();
+  if (now - _stepDebugTs < 200) return; // máx. 5 actualizaciones/seg
+  _stepDebugTs = now;
+  const el = document.getElementById('step-debug-live');
+  if (el) el.textContent = text;
+}
+
 function _onPhoneMotion(evt) {
   if (!_stepActive) return;
 
@@ -6874,34 +6883,45 @@ function _onPhoneMotion(evt) {
   const rawGrav   = evt.accelerationIncludingGravity;
   _stepUseNoGrav  = rawNoGrav && rawNoGrav.x != null && (Math.abs(rawNoGrav.x) + Math.abs(rawNoGrav.y) + Math.abs(rawNoGrav.z)) > 0.01;
   const a = _stepUseNoGrav ? rawNoGrav : rawGrav;
-  if (!a || a.x == null) return;
+  if (!a || a.x == null) { _dbgStepWrite('⚠ sin datos del sensor'); return; }
 
   const mag = Math.sqrt((a.x||0)**2 + (a.y||0)**2 + (a.z||0)**2);
+  const now = Date.now();
 
   // Filtro de paso bajo POR TIEMPO (no por cantidad de muestras) — 'devicemotion'
-  // dispara a frecuencias muy distintas según el teléfono (de ~15Hz a 60Hz+),
-  // y un promedio de "últimas 20 muestras" aplanaba la señal real en los
-  // celulares lentos, borrando los picos de cada paso (por eso solo contaba 1).
-  _stepEMA = _stepEMA * 0.72 + mag * 0.28;
+  // dispara a frecuencias muy distintas según el teléfono.
+  _stepEMA = _stepEMA * 0.7 + mag * 0.3;
 
-  // Fase de calibración: primeros 1.5s establecen la línea base
   if (_stepCalibrating) {
-    _stepBaseline = _stepBaseline * 0.8 + _stepEMA * 0.2;
-    if (Date.now() - _stepCalTs > 1500) _stepCalibrating = false;
+    _dbgStepWrite(`calibrando… mag ${mag.toFixed(2)}`);
+    if (now - _stepCalTs > 1200) _stepCalibrating = false;
     return;
   }
 
-  // Baseline adaptativa muy lenta (solo cambia con reposo prolongado)
-  _stepBaseline = _stepBaseline * 0.998 + _stepEMA * 0.002;
+  // Umbral ADAPTATIVO: en vez de un número fijo (que varía muchísimo de un
+  // teléfono a otro según cómo reporte su acelerómetro), medimos el rango
+  // real (máx-mín) de la señal en la última ventana de ~1.5s y el umbral es
+  // una fracción de ESE rango — así se auto-calibra a la sensibilidad real
+  // de cada celular en vez de adivinar un valor absoluto a ciegas.
+  _stepWin.push({ t: now, v: _stepEMA });
+  while (_stepWin.length && now - _stepWin[0].t > 1500) _stepWin.shift();
+  const vals  = _stepWin.map(s => s.v);
+  const vMax  = Math.max(...vals), vMin = Math.min(...vals);
+  const range = vMax - vMin;
+  const mid   = (vMax + vMin) / 2;
 
-  const threshold = _stepUseNoGrav ? 0.9 : 1.1;
-  const delta     = _stepUseNoGrav ? _stepEMA : _stepEMA - _stepBaseline;
+  _dbgStepWrite(`mag ${mag.toFixed(2)} · señal ${_stepEMA.toFixed(2)} · rango ${range.toFixed(2)} · pasos ${_stepCount}`);
 
-  if (!_stepAbove && delta > threshold) {
+  const MIN_RANGE = 0.12; // sin esto, con el celular quieto el ruido cuenta "pasos" solo
+  if (range < MIN_RANGE) return;
+
+  const upper = mid + range * 0.22;
+  const lower = mid - range * 0.12;
+
+  if (!_stepAbove && _stepEMA > upper) {
     _stepAbove = true;
-  } else if (_stepAbove && delta < threshold * 0.4) {
+  } else if (_stepAbove && _stepEMA < lower) {
     _stepAbove = false;
-    const now = Date.now();
     if (_stepLastTs === 0 || now - _stepLastTs > 280) { // min. ~280ms entre pasos (evita rebotes dobles)
       _stepLastTs = now;
       _stepCount++;
@@ -7728,6 +7748,7 @@ function renderWatchCard() {
             ? `<button onclick="stopPhoneSteps()" style="background:rgba(16,185,129,.12);border:1.5px solid rgba(16,185,129,.3);color:#10b981;border-radius:12px;padding:12px 8px;font-size:12px;font-weight:700;cursor:pointer">⏹ Pausar pasos</button>`
             : `<button onclick="startPhoneSteps()" style="background:linear-gradient(135deg,#6366f1,#4f46e5);border:none;color:#fff;border-radius:12px;padding:12px 8px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(99,102,241,.3)">👟 Activar pasos</button>`}
       </div>
+      ${_stepActive ? `<div id="step-debug-live" style="margin-top:8px;font-size:9.5px;color:var(--text3);text-align:center;font-family:monospace">iniciando…</div>` : ''}
     </div>`;
 
   if (!paired && !_watchConnected) {
