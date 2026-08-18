@@ -43,12 +43,11 @@ exports.createCheckout = async (req, res) => {
     const isAnnual = period === "annual";
 
     if (!stripe) {
-      // Modo demo: actualizar plan directamente (para pruebas sin Stripe).
-      // Restringido al admin -- sin esto, cualquier usuario real podía llamar
-      // este endpoint y quedar en plan pago gratis mientras Stripe no esté configurado.
-      if (!process.env.ADMIN_EMAIL || req.user.email !== process.env.ADMIN_EMAIL) {
-        return res.status(503).json({ message: "Los pagos aún no están disponibles. Intenta más tarde." });
-      }
+      // Modo demo: actualizar plan directamente (para pruebas/demos sin Stripe
+      // configurado). Abierto a cualquier cuenta autenticada a propósito -- se
+      // necesita para la exposicion, donde se prueba el pago con cuentas que
+      // no son la admin. Una vez haya STRIPE_SECRET_KEY real en el .env, esta
+      // rama ya no se ejecuta nunca (se va directo al checkout real de Stripe).
       const duration = isAnnual ? PLANS[plan].durationAnnual : PLANS[plan].durationMonthly;
       const expires = new Date();
       expires.setDate(expires.getDate() + duration);

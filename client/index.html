@@ -1077,7 +1077,7 @@ function closeMobileMoreSheet() {
 
     <!-- ── PLAN GRATIS ── -->
     <div class="plan-card" id="plan-free" onclick="selectPlan('free')">
-      <div class="plan-badge">Actual</div>
+      <div class="plan-badge" id="plan-badge-free">Actual</div>
       <div class="plan-icon">🌱</div>
       <div class="plan-name">Gratis</div>
       <div class="plan-price"><span class="plan-amount">$0</span><span class="plan-period">/mes</span></div>
@@ -19258,6 +19258,8 @@ function loadPlanesPage() {
   const current = getCurrentPlan();
   const planName = document.getElementById('plan-actual-nombre');
   if (planName) planName.textContent = PLANS[current]?.name || 'Gratis';
+  const freeBadge = document.getElementById('plan-badge-free');
+  if (freeBadge) freeBadge.style.display = current === 'free' ? '' : 'none';
   ['free','basic','premium'].forEach(p => {
     const card = document.getElementById('plan-'+p);
     const btn  = document.getElementById('btn-plan-'+p);
