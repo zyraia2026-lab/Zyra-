@@ -16,6 +16,20 @@ exports.getInfo = async (req, res) => {
   }
 };
 
+exports.getFriendsList = async (req, res) => {
+  try {
+    const friends = await User.find({ referredBy: req.user._id })
+      .select("name createdAt")
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json({
+      friends: friends.map(f => ({ name: f.name, joinedAt: f.createdAt })),
+    });
+  } catch(e) {
+    res.status(500).json({ message: e.message });
+  }
+};
+
 exports.applyCode = async (req, res) => {
   try {
     const { code } = req.body;

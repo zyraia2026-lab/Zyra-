@@ -1298,6 +1298,11 @@ function closeMobileMoreSheet() {
     </div>
     <div id="referral-used-msg" style="display:none;border-top:1px solid var(--border);padding-top:12px;font-size:12px;color:#34d399">✅ Ya usaste un código de referido — ¡gracias por unirte!</div>
   </div>
+
+  <div class="card" id="friends-list-wrap" style="display:none;margin-top:20px">
+    <div class="card-header"><span class="card-title">👥 Amigos que invitaste</span></div>
+    <div id="friends-list"></div>
+  </div>
 </div>
 </div>
 
@@ -4244,6 +4249,7 @@ function showPage(name) {
   if(name === "goals")        { loadGoals(); }
   if(name === "planes")       setTimeout(function(){ if(typeof loadPlanesPage==="function") loadPlanesPage(); }, 150);
   if(name === "shop")         loadShopPage();
+  if(name === "friends")      { loadReferral(); loadFriendsList(); }
   if(name === "journal")      { loadJournal(); loadFutureNotes(); }
   if(name === "wellness")     loadWellness();
   else if (_pomoAmbType && typeof _pomoStopAmbient === "function") { _pomoStopAmbient(); }
@@ -7971,6 +7977,39 @@ async function loadPaymentHistory() {
     console.warn("loadPaymentHistory:", e.message);
   }
 }
+function escHtml(s) {
+  const d = document.createElement("div");
+  d.textContent = String(s == null ? "" : s);
+  return d.innerHTML;
+}
+
+/* ── LISTA DE AMIGOS INVITADOS ── */
+async function loadFriendsList() {
+  const wrap = document.getElementById("friends-list-wrap");
+  const list = document.getElementById("friends-list");
+  if (!wrap || !list) return;
+  try {
+    const d = await api("/referral/friends");
+    const friends = d.friends || [];
+    if (!friends.length) { wrap.style.display = "none"; return; }
+    wrap.style.display = "";
+    list.innerHTML = friends.map(f => {
+      const initial = (f.name || "?").charAt(0).toUpperCase();
+      const date = f.joinedAt ? new Date(f.joinedAt).toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" }) : "";
+      return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#10b981,#34d399);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0">${initial}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13.5px;font-weight:700;color:var(--text)">${escHtml(f.name || "Usuario")}</div>
+          <div style="font-size:11px;color:var(--text3)">Se unió el ${date}</div>
+        </div>
+        <span style="font-size:11px;color:#34d399;font-weight:700">✓ 7 días Premium</span>
+      </div>`;
+    }).join("");
+    const rows = list.querySelectorAll("div[style*='border-bottom']");
+    if (rows.length) rows[rows.length - 1].style.borderBottom = "none";
+  } catch(e) { wrap.style.display = "none"; }
+}
+
 /* ── REFERIDOS ── */
 let _referralCode = null;
 async function loadReferral() {
