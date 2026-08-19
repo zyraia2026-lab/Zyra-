@@ -15,18 +15,18 @@ try {
 const PLANS = {
   basic: {
     name:        "Zyra Plan Básico",
-    description: "100 mensajes/día · 10 metas · Diario ilimitado · Contacto emergencia",
-    monthly:     990000,   // $9,900 COP
-    annual:      9900000,  // $99,000 COP (ahorra 17%)
+    description: "1.800 cargas/mes · 6 llamadas de 10 min · Diario ilimitado · Contacto emergencia",
+    monthly:     1190000,   // $11,900 COP
+    annual:      11900000,  // $119,000 COP
     currency:    "cop",
     durationMonthly: 30,
     durationAnnual:  365,
   },
   premium: {
     name:        "Zyra Plan Premium",
-    description: "Mensajes ilimitados · Todo incluido · Llamadas de voz IA · Reportes PDF",
-    monthly:     2490000,  // $24,900 COP
-    annual:      24900000, // $249,000 COP (ahorra 17%)
+    description: "6.000 cargas/mes · 12 llamadas de 20 min · Todo ilimitado · Reportes PDF",
+    monthly:     1990000,  // $19,900 COP
+    annual:      19900000, // $199,000 COP
     currency:    "cop",
     durationMonthly: 30,
     durationAnnual:  365,

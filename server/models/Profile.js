@@ -27,6 +27,12 @@ const S = new mongoose.Schema({
   equippedBadge:          { type: String, default: "" },
   equippedFrame:          { type: String, default: "" },
 
+  // ── Cupos del plan: llamadas y test emocional ──
+  callsUsedThisMonth:     { type: Number, default: 0 },
+  callsResetAt:           { type: Date, default: null },
+  testUsedToday:          { type: Number, default: 0 },
+  testResetAt:            { type: Date, default: null },
+
   // ── Contacto de emergencia ──
   emergencyContact: {
     name:     { type: String, default: "" },

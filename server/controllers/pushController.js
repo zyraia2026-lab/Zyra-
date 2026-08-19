@@ -99,11 +99,20 @@ exports.sendDailyReminders = async () => {
     const min  = now.getUTCMinutes();
 
     // ── 1. Recordatorio diario personalizado (con emoción) ──
-    const profiles = await Profile.find({
+    let profiles = await Profile.find({
       reminderEnabled: true,
       reminderHour:    hour,
       reminderMinute:  min,
     }).select("user lastReminderSentAt currentEmotion").lean();
+
+    // Notificaciones push: el plan Gratis solo ve avisos dentro de la app,
+    // no push -- filtramos aquí antes de enviar nada.
+    const User = require("../models/User");
+    const paidUserIds = new Set(
+      (await User.find({ _id: { $in: profiles.map(p => p.user) }, plan: { $ne: "free" } }).select("_id").lean())
+        .map(u => String(u._id))
+    );
+    profiles = profiles.filter(p => paidUserIds.has(String(p.user)));
 
     const DEDUP_MS = 50 * 60 * 1000;
     let sent = 0;

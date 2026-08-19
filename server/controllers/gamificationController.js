@@ -301,6 +301,37 @@ exports.redeemReward = async (req, res) => {
   } catch(e) { res.status(500).json({ message: e.message }); }
 };
 
+/* POST /api/gamification/test-start — revisa y descuenta 1 uso del test emocional */
+exports.startTest = async (req, res) => {
+  try {
+    const { getPlan, LIMITS } = require("../middleware/planGate");
+    const { plan } = getPlan(req.user);
+    const limits = LIMITS[plan] || LIMITS.free;
+
+    if (limits.testPerDay === Infinity) return res.json({ allowed: true });
+
+    const now = new Date();
+    const col = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+    const today = col.getUTCFullYear() + "-" + String(col.getUTCMonth() + 1).padStart(2, "0") + "-" + String(col.getUTCDate()).padStart(2, "0");
+
+    let p = await Profile.findOne({ user: req.user._id }).select("testUsedToday testResetAt").lean();
+    if (!p) p = (await Profile.create({ user: req.user._id })).toObject();
+    const col2 = p.testResetAt ? new Date(new Date(p.testResetAt).getTime() - 5 * 60 * 60 * 1000) : null;
+    const lastDay = col2 ? col2.getUTCFullYear() + "-" + String(col2.getUTCMonth() + 1).padStart(2, "0") + "-" + String(col2.getUTCDate()).padStart(2, "0") : null;
+    const usedSoFar = lastDay === today ? (p.testUsedToday || 0) : 0;
+
+    if (usedSoFar >= limits.testPerDay) {
+      return res.status(403).json({
+        allowed: false,
+        message: `Ya usaste el test emocional ${limits.testPerDay === 1 ? "hoy" : limits.testPerDay + " veces hoy"}. Vuelve mañana, o mejora tu plan para repetirlo más veces.`,
+      });
+    }
+
+    await Profile.findOneAndUpdate({ user: req.user._id }, { testUsedToday: usedSoFar + 1, testResetAt: now });
+    res.json({ allowed: true, testUsed: usedSoFar + 1, testPerDay: limits.testPerDay });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+};
+
 /* POST /api/gamification/equip/:itemId  — equipar badge o marco de perfil */
 exports.equipItem = async (req, res) => {
   try {

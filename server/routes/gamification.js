@@ -7,5 +7,6 @@ r.post("/visit",          protect, G.recordVisit);
 r.post("/mission/:id",    protect, G.completeMission);
 r.post("/redeem/:id",     protect, G.redeemReward);
 r.post("/equip/:itemId",  protect, G.equipItem);
+r.post("/test-start",     protect, G.startTest);
 
 module.exports = r;

@@ -1437,6 +1437,13 @@ exports.sendMessage = async (req, res) => {
       systemPrompt += `\n\n🔴 IMPORTANTE: Detecté que lo que escribió podría indicar angustia emocional real. Quédate presente, pregunta qué está pasando, no des consejos todavía. Si hay dolor real, pregunta directamente: "¿Estás bien de verdad?" o "¿Qué tan pesado está esto?". No normalices ni minimices. No menciones líneas de ayuda todavía salvo que la situación lo requiera.`;
     }
 
+    // Sin cargas disponibles este periodo — modo ligero: la app nunca se
+    // bloquea, solo responde más corto y sin análisis profundo (igual que
+    // ChatGPT cuando se acaba el límite del modelo grande).
+    if (req.cargasLight) {
+      systemPrompt += `\n\n🪫 MODO LIGERO: se acabaron las cargas de este periodo. Responde en UNA frase corta, cálida, sin análisis profundo ni recomendaciones elaboradas. Puedes mencionar de forma breve y natural que las cargas vuelven pronto, sin sonar a mensaje de sistema.`;
+    }
+
     // Solicitud de música incompleta — pedir aclaración
     if (incompleteMusicReq) {
       systemPrompt += `\n\n🎵 IMPORTANTE: El usuario quiere música pero NO dijo de quién ni qué estilo. Pregunta de forma amigable y natural "¿De quién quieres escuchar?" o "¿Qué estilo te va ahora?". NO digas "Claro 🎵", NO mandes música todavía.`;
@@ -1724,7 +1731,8 @@ exports.sendMessage = async (req, res) => {
       cards,
       conversationId: conv?._id,
       plan: userPlan,
-      messagesRemaining: req.messagesRemaining ?? null,
+      cargasRemaining: req.cargasRemaining ?? null,
+      cargasLight: !!req.cargasLight,
     });
 
   } catch(e) {
@@ -1816,6 +1824,10 @@ exports.streamMessage = async (req, res) => {
 
     if (req.safetyWarning) {
       systemPrompt += `\n\n🔴 IMPORTANTE: Detecté que lo que escribió podría indicar angustia emocional real. Quédate presente, pregunta qué está pasando, no des consejos todavía. Si hay dolor real, pregunta directamente: "¿Estás bien de verdad?" o "¿Qué tan pesado está esto?". No normalices ni minimices. No menciones líneas de ayuda todavía salvo que la situación lo requiera.`;
+    }
+
+    if (req.cargasLight) {
+      systemPrompt += `\n\n🪫 MODO LIGERO: se acabaron las cargas de este periodo. Responde en UNA frase corta, cálida, sin análisis profundo ni recomendaciones elaboradas. Puedes mencionar de forma breve y natural que las cargas vuelven pronto, sin sonar a mensaje de sistema.`;
     }
 
     if (incompleteMusicReq) {
@@ -2093,7 +2105,8 @@ exports.streamMessage = async (req, res) => {
       cards,
       conversationId: conv?._id,
       plan: userPlan,
-      messagesRemaining: req.messagesRemaining ?? null,
+      cargasRemaining: req.cargasRemaining ?? null,
+      cargasLight: !!req.cargasLight,
       convLimitReached: convLimitReached || undefined,
     });
     res.end();

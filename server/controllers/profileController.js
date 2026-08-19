@@ -432,15 +432,11 @@ exports.deleteAccount = async (req, res) => {
 exports.getPlanStatus = async (req, res) => {
   try {
     const User = require("../models/User");
-    const { getPlan, LIMITS } = require("../middleware/planGate");
-    const user = await User.findById(req.user._id).select("plan planExpiresAt planActivatedAt messagesResetAt messagesUsedToday").lean();
+    const { getPlan } = require("../middleware/planGate");
+    const { getCargasStatus } = require("../middleware/cargasGate");
+    const user = await User.findById(req.user._id).select("plan planExpiresAt planActivatedAt").lean();
     const { plan, limits, expired } = getPlan(user);
-
-    const now   = new Date();
-    const _col  = (d) => { const c = new Date(d.getTime() - 5*60*60*1000); return c.getUTCFullYear()+"-"+(c.getUTCMonth()+1)+"-"+c.getUTCDate(); };
-    const reset = user.messagesResetAt ? new Date(user.messagesResetAt) : null;
-    const sameDay = reset && _col(reset) === _col(now);
-    const messagesUsedToday = sameDay ? (user.messagesUsedToday || 0) : 0;
+    const cargasStatus = await getCargasStatus({ _id: req.user._id, plan: user.plan, planExpiresAt: user.planExpiresAt });
 
     res.json({
       success: true,
@@ -449,8 +445,9 @@ exports.getPlanStatus = async (req, res) => {
       planExpiresAt:     user.planExpiresAt || null,
       planActivatedAt:   user.planActivatedAt || null,
       limits,
-      messagesUsedToday,
-      messagesRemaining: limits.messagesPerDay === Infinity ? null : Math.max(0, limits.messagesPerDay - messagesUsedToday),
+      cargas:    cargasStatus.cargas,
+      cargasMax: cargasStatus.cargasMax,
+      cargasCycle: cargasStatus.cycle,
     });
   } catch(e) { res.status(500).json({ message: e.message }); }
 };

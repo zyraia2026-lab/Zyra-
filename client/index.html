@@ -1084,15 +1084,17 @@ function closeMobileMoreSheet() {
       <div class="plan-desc">Perfecto para empezar tu viaje de bienestar</div>
       <ul class="plan-features">
         <li class="feat-ok">✓ Registro y acceso completo</li>
-        <li class="feat-ok">✓ 15 mensajes con Zyra IA al día</li>
-        <li class="feat-ok">✓ 3 metas activas</li>
-        <li class="feat-ok">✓ Diario emocional ilimitado</li>
-        <li class="feat-ok">✓ Test emocional</li>
-        <li class="feat-ok">✓ Modo crisis ilimitado</li>
+        <li class="feat-ok">✓ 20 cargas al día</li>
+        <li class="feat-ok">✓ Diario ilimitado (escribir no gasta)</li>
+        <li class="feat-ok">✓ Test emocional 1 vez al día</li>
+        <li class="feat-ok">✓ 2 llamadas al mes (5 min c/u)</li>
+        <li class="feat-ok">✓ 5 ejercicios guiados al día</li>
+        <li class="feat-ok">✓ Gráficos: últimos 7 días</li>
+        <li class="feat-ok">✓ Modo emergencia ilimitado</li>
         <li class="feat-ok">✓ Sin anuncios</li>
-        <li class="feat-no">🔒 Llamadas de voz con Zyra</li>
+        <li class="feat-no">🔒 Notificaciones push y por correo</li>
         <li class="feat-no">🔒 Contacto de emergencia</li>
-        <li class="feat-no">🔒 Exportar mis datos</li>
+        <li class="feat-no">🔒 Exportar diario (PDF/CSV)</li>
       </ul>
       <button class="plan-btn plan-btn-outline" id="btn-plan-free" disabled>Plan actual</button>
     </div>
@@ -1103,21 +1105,22 @@ function closeMobileMoreSheet() {
       <div class="plan-icon">⚡</div>
       <div class="plan-name">Básico</div>
       <div class="plan-price">
-        <span class="plan-amount" id="price-basic-amount">$9.900</span><span class="plan-period" id="price-basic-period"> COP/mes</span>
-        <div id="price-basic-alt" style="font-size:11px;color:#818cf8;margin-top:3px">o $99.000 COP/año</div>
+        <span class="plan-amount" id="price-basic-amount">$11.900</span><span class="plan-period" id="price-basic-period"> COP/mes</span>
+        <div id="price-basic-alt" style="font-size:11px;color:#818cf8;margin-top:3px">o $119.000 COP/año</div>
       </div>
-      <div class="plan-desc">Más mensajes, más metas, funciones avanzadas</div>
+      <div class="plan-desc">Más cargas, más llamadas, análisis personalizado</div>
       <ul class="plan-features">
-        <li class="feat-ok">✓ 100 mensajes con Zyra IA al día</li>
-        <li class="feat-ok">✓ 10 metas activas</li>
-        <li class="feat-ok">✓ 30 entradas de diario al mes</li>
+        <li class="feat-ok">✓ 1.800 cargas al mes (~60/día)</li>
+        <li class="feat-ok">✓ Diario ilimitado</li>
+        <li class="feat-ok">✓ Test emocional 3 veces al día</li>
+        <li class="feat-ok">✓ 6 llamadas al mes (10 min c/u)</li>
+        <li class="feat-ok">✓ 20 canciones completas por semana</li>
+        <li class="feat-ok">✓ 15 ejercicios guiados al día</li>
+        <li class="feat-ok">✓ Análisis semanal + recomendaciones según tu diario</li>
+        <li class="feat-ok">✓ Gráficos: últimos 30 días</li>
         <li class="feat-ok">✓ Contacto de emergencia</li>
-        <li class="feat-ok">✓ Exportar mis datos (JSON)</li>
-        <li class="feat-ok">✓ Música y ejercicios guiados</li>
-        <li class="feat-ok">✓ Modo crisis ilimitado</li>
-        <li class="feat-ok">✓ Sin anuncios</li>
-        <li class="feat-no">🔒 Llamadas de voz con Zyra</li>
-        <li class="feat-no">🔒 Reportes en PDF</li>
+        <li class="feat-ok">✓ Notificaciones push + 1 correo semanal</li>
+        <li class="feat-no">🔒 Exportar diario (PDF/CSV)</li>
       </ul>
       <button class="plan-btn plan-btn-primary" id="btn-plan-basic" onclick="event.stopPropagation();upgradePlan('basic')">Elegir Básico →</button>
     </div>
@@ -1128,25 +1131,53 @@ function closeMobileMoreSheet() {
       <div class="plan-icon">👑</div>
       <div class="plan-name">Premium</div>
       <div class="plan-price">
-        <span class="plan-amount" id="price-premium-amount">$24.900</span><span class="plan-period" id="price-premium-period"> COP/mes</span>
-        <div id="price-premium-alt" style="font-size:11px;color:#fbbf24;margin-top:3px">o $249.000 COP/año (ahorra 17%)</div>
+        <span class="plan-amount" id="price-premium-amount">$19.900</span><span class="plan-period" id="price-premium-period"> COP/mes</span>
+        <div id="price-premium-alt" style="font-size:11px;color:#fbbf24;margin-top:3px">o $199.000 COP/año</div>
       </div>
       <div class="plan-desc">La experiencia Zyra completa, sin límites</div>
       <ul class="plan-features">
-        <li class="feat-ok feat-gold">★ Mensajes ilimitados con Zyra IA</li>
-        <li class="feat-ok feat-gold">★ Metas ilimitadas</li>
-        <li class="feat-ok feat-gold">★ Diario ilimitado</li>
-        <li class="feat-ok feat-gold">★ Llamadas de voz con Zyra</li>
+        <li class="feat-ok feat-gold">★ 6.000 cargas al mes (~200/día, se siente ilimitado)</li>
+        <li class="feat-ok feat-gold">★ Test emocional ilimitado</li>
+        <li class="feat-ok feat-gold">★ 12 llamadas al mes (20 min c/u)</li>
+        <li class="feat-ok feat-gold">★ Música ilimitada, playlists según tu ánimo</li>
+        <li class="feat-ok feat-gold">★ Ejercicios guiados ilimitados</li>
+        <li class="feat-ok feat-gold">★ Patrones mensuales y alertas preventivas</li>
+        <li class="feat-ok feat-gold">★ Gráficos: histórico completo</li>
         <li class="feat-ok feat-gold">★ Contacto de emergencia</li>
-        <li class="feat-ok feat-gold">★ Exportar datos + Reportes PDF</li>
-        <li class="feat-ok feat-gold">★ IA con modelo avanzado (Llama 70B)</li>
-        <li class="feat-ok feat-gold">★ Música ilimitada por ánimo</li>
-        <li class="feat-ok feat-gold">★ Modo crisis ilimitado</li>
+        <li class="feat-ok feat-gold">★ Exportar diario en PDF y CSV</li>
+        <li class="feat-ok feat-gold">★ Notificaciones push + correo diario</li>
         <li class="feat-ok feat-gold">★ Sin anuncios</li>
       </ul>
       <button class="plan-btn plan-btn-gold" id="btn-plan-premium" onclick="event.stopPropagation();upgradePlan('premium')">Elegir Premium ✦</button>
     </div>
 
+  </div>
+
+  <!-- Tabla comparativa completa -->
+  <div class="card" style="max-width:900px;margin:0 auto 24px;overflow-x:auto">
+    <div class="card-header"><span class="card-title">📋 Comparativa completa</span></div>
+    <table class="plan-compare-table">
+      <thead>
+        <tr><th></th><th>Gratis</th><th>Básico</th><th>Premium</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Cargas</td><td>20 al día</td><td>1.800 al mes</td><td>6.000 al mes</td></tr>
+        <tr><td>Llamadas con Zyra</td><td>2/mes · 5 min</td><td>6/mes · 10 min</td><td>12/mes · 20 min</td></tr>
+        <tr><td>Modo emergencia</td><td>Ilimitado</td><td>Ilimitado</td><td>Ilimitado</td></tr>
+        <tr><td>Test emocional</td><td>1 vez al día</td><td>3 veces al día</td><td>Ilimitado</td></tr>
+        <tr><td>Entradas de diario</td><td>Ilimitadas</td><td>Ilimitadas</td><td>Ilimitadas</td></tr>
+        <tr><td>Análisis IA del diario</td><td>Palabras clave del día</td><td>Palabras clave + comparativa semanal</td><td>Patrones, tendencias y alertas</td></tr>
+        <tr><td>Recomendaciones</td><td>Genéricas</td><td>Según tu día</td><td>Según tu historial completo</td></tr>
+        <tr><td>Música</td><td>Vista previa 30s + sonidos sin límite</td><td>20 canciones/semana</td><td>Sin límite, adaptada al ánimo</td></tr>
+        <tr><td>Ejercicios guiados</td><td>5 al día</td><td>15 al día</td><td>Ilimitados</td></tr>
+        <tr><td>Gráficos de progreso</td><td>Últimos 7 días</td><td>Últimos 30 días</td><td>Histórico completo</td></tr>
+        <tr><td>Exportar diario</td><td>No</td><td>No</td><td>PDF / CSV</td></tr>
+        <tr><td>Notificaciones</td><td>Solo en la app</td><td>Push + 1 correo/semana</td><td>Push + 1 correo/día</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:11.5px;color:var(--text3);margin-top:14px;line-height:1.6">
+      <strong style="color:var(--text2)">¿Qué son las cargas?</strong> El saldo de Zyra: cada mensaje de chat, análisis de diario o recomendación gasta 1 carga; un análisis semanal, playlist adaptada o reporte en PDF gasta 5. Escribir en el diario, los ejercicios, los sonidos, el test y el modo emergencia nunca gastan cargas. Si se acaban, Zyra no se bloquea — responde más corto hasta que vuelvan.
+    </p>
   </div>
 
   <!-- Garantía -->
@@ -1236,6 +1267,14 @@ function closeMobileMoreSheet() {
 .plan-btn-primary:hover { transform:translateY(-1px);box-shadow:0 8px 20px rgba(99,102,241,.4) }
 .plan-btn-gold { background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#1c1100 }
 .plan-btn-gold:hover { transform:translateY(-1px);box-shadow:0 8px 20px rgba(251,191,36,.4) }
+
+.plan-compare-table { width:100%; border-collapse:collapse; font-size:12.5px; white-space:nowrap }
+.plan-compare-table th { text-align:center; padding:10px 12px; color:var(--text3); font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:.4px; border-bottom:1.5px solid var(--border) }
+.plan-compare-table th:first-child { text-align:left }
+.plan-compare-table td { padding:10px 12px; text-align:center; color:var(--text2); border-bottom:1px solid var(--border); white-space:normal }
+.plan-compare-table td:first-child { text-align:left; font-weight:700; color:var(--text); white-space:nowrap }
+.plan-compare-table tr:last-child td { border-bottom:none }
+.plan-compare-table tbody tr:hover td { background:rgba(99,102,241,.05) }
 
 .plan-faq-item { border-bottom:1px solid var(--border);padding:14px 0;cursor:pointer }
 .plan-faq-item:last-child { border-bottom:none }
@@ -2532,6 +2571,16 @@ async function b2bSubmitContact() {
     <span id="rail-st-em-icon"></span><span id="rail-st-emotion"></span>
     <span id="rail-st-sessions"></span><span id="rail-st-goals"></span><span id="rail-st-journal"></span>
     <span id="rail-level-name"></span><span id="rail-level-xp"></span><span id="rail-level-bar"></span>
+  </div>
+
+  <div class="db-rail-card" id="cargas-meter-wrap" style="display:none;cursor:pointer" onclick="showPage('planes')" title="Saldo de cargas de Zyra">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <span id="cargas-meter-label" style="font-size:12.5px;font-weight:700;color:var(--text)">⚡ Cargas</span>
+      <span style="font-size:10px;color:var(--text3)">¿Qué es esto?</span>
+    </div>
+    <div style="height:7px;background:var(--surface2);border-radius:99px;overflow:hidden">
+      <div id="cargas-meter-fill" style="height:100%;width:100%;background:linear-gradient(90deg,#6366f1,#8b5cf6);border-radius:99px;transition:width .4s ease"></div>
+    </div>
   </div>
 
   <div class="db-rail-card" style="display:flex;align-items:center;gap:12px;cursor:pointer" onclick="openRewardsShop()">
@@ -11834,7 +11883,13 @@ const TEST_Q = [
 
 let testAnswers = {}, testStep = 0, testIsNew = false;
 
-function startTest(isNew = false) {
+async function startTest(isNew = false) {
+  try {
+    await api('/gamification/test-start', 'POST');
+  } catch(e) {
+    if (e.status === 403) { zyraToast(e.message || 'Ya usaste el test hoy', 'info', 5000); return; }
+    // Si el chequeo falla por otra razón (red, etc), no bloqueamos el test.
+  }
   testAnswers = {}; testStep = 0; testIsNew = isNew;
   showPage("test"); renderTestStep();
 }
@@ -15358,7 +15413,7 @@ function finalizeBotMsgStream(div, text, cards, convId, msgsLeft) {
       </div>`;
   }
   if (convId && convId !== String(currentConvId)) { currentConvId = String(convId); loadHistory(); setTimeout(loadHistory, 2000); }
-  if (msgsLeft !== undefined && msgsLeft !== null) { _zyraMessagesRemaining = msgsLeft; updateMsgsRemainingUI(); }
+  if (msgsLeft !== undefined && msgsLeft !== null) { _zyraCargas = msgsLeft; updateMsgsRemainingUI(); updateCargasMeter(); }
 }
 
 let _chatSending = false;
@@ -16026,7 +16081,12 @@ async function sendMsg() {
 
         if (data.done) {
           streamDone = true;
-          finalizeBotMsgStream(streamDiv, fullText, data.cards||[], data.conversationId, data.messagesRemaining);
+          finalizeBotMsgStream(streamDiv, fullText, data.cards||[], data.conversationId, data.cargasRemaining);
+          _zyraCargas = data.cargasRemaining; updateCargasMeter();
+          if (data.cargasLight && !sessionStorage.getItem('zyra_cargas_light_warned')) {
+            sessionStorage.setItem('zyra_cargas_light_warned', '1');
+            zyraToast('🪫 Se acabaron tus cargas de este periodo — Zyra sigue respondiendo, más liviano por ahora.', 'info', 6000);
+          }
           chatHistory.push({role:"assistant", content:fullText});
           if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
           if (autoSpeak) zyraChatSpeak(fullText);
@@ -16690,6 +16750,7 @@ let vcCurrentSong = null;
 let vcSpeaking  = false;
 let vcActive    = false; // true while voice-call page is open
 let _vcAudioCtx = null, _vcAnalyser = null, _vcWaveRAF = null, _vcMicStream = null;
+let _vcMaxSeconds = 300, _vcWarned1min = false; // tope de duracion segun el plan (cupo de llamadas)
 
 async function vcStartMicViz() {
   if (_vcWaveRAF) return; // ya animando
@@ -16740,8 +16801,15 @@ function vcTeardownMicViz() {
   document.querySelectorAll('.vc-wave-bars span').forEach(b => { b.style.height = ''; b.style.opacity = ''; });
 }
 
-function openVoiceCall() {
-  if (!checkPlanAccess('voice')) { showUpgradePrompt('voice', 'premium'); return; }
+async function openVoiceCall() {
+  try {
+    const d = await api('/voice/start', 'POST');
+    _vcMaxSeconds = (d.maxMinutes || 5) * 60;
+    _vcWarned1min = false;
+  } catch(e) {
+    zyraToast(e.message || 'No pudimos iniciar la llamada. Intenta de nuevo.', 'error', 5000);
+    return;
+  }
   vcActive  = true;
   vcConvId  = currentConvId || null;
   vcHistory = (chatHistory || []).slice(-10);
@@ -16766,6 +16834,17 @@ function openVoiceCall() {
     const s = String(vcSeconds%60).padStart(2,'0');
     const el = document.getElementById('vc-duration');
     if(el) el.textContent = m+':'+s;
+    // Aviso a falta de 1 minuto y cierre automatico al llegar al tope del plan
+    if (!_vcWarned1min && _vcMaxSeconds - vcSeconds === 60) {
+      _vcWarned1min = true;
+      vcAddMessage('bot', 'Nos queda un minuto — ya casi cerramos por hoy.');
+      vcSpeak('Nos queda un minuto — ya casi cerramos por hoy.', true);
+    }
+    if (vcSeconds >= _vcMaxSeconds) {
+      vcAddMessage('bot', 'Se acabó el tiempo de esta llamada. Sigamos por chat si quieres.');
+      vcSpeak('Se acabó el tiempo de esta llamada. Sigamos por chat si quieres.', true);
+      setTimeout(() => endVoiceCall(), 2500);
+    }
   }, 1000);
 
   const t = document.getElementById('vc-transcript');
@@ -16860,6 +16939,8 @@ function vcCreateSR() {
 }
 
 function endVoiceCall() {
+  // Una llamada de menos de 30s no cuenta contra el cupo mensual
+  if (vcSeconds < 30) api('/voice/discard', 'POST').catch(()=>{});
   vcActive = false;
   vcDIDToken++; // cancel any pending D-ID request
   vcAvatarReset();
@@ -19143,6 +19224,7 @@ const TERMS_VER = "v1.1-2026-07";
 let _zyraCurrentPlan = localStorage.getItem('zyra_plan') || 'free';
 let _zyraMessagesRemaining = null;
 let _zyraLimits = null;
+let _zyraCargas = null, _zyraCargasMax = null, _zyraCargasCycle = 'daily';
 
 function getCurrentPlan() { return _zyraCurrentPlan; }
 
@@ -19152,9 +19234,10 @@ async function loadPlanStatus() {
     const d = await api('/profile/plan');
     _zyraCurrentPlan = d.plan;
     _zyraLimits = d.limits;
-    _zyraMessagesRemaining = d.messagesRemaining;
+    _zyraCargas = d.cargas; _zyraCargasMax = d.cargasMax; _zyraCargasCycle = d.cargasCycle;
     localStorage.setItem('zyra_plan', d.plan);
     updateMsgsRemainingUI();
+    updateCargasMeter();
     // Update voice call button lock indicator
     const vcBtn = document.getElementById('btn-voice-call');
     if (vcBtn) {
@@ -19181,12 +19264,27 @@ async function loadPlanStatus() {
 function updateMsgsRemainingUI() {
   const el = document.getElementById('chat-msgs-remaining');
   if (!el) return;
-  const n = _zyraMessagesRemaining;
-  if (n === null || n === undefined || n > 5) { el.innerHTML = ''; return; }
-  if (n <= 0) { el.innerHTML = ''; return; }
-  const color = n <= 2 ? '#ef4444' : n <= 4 ? '#f59e0b' : 'var(--text3)';
-  const uplink = n <= 3 ? ` · <a href="#" onclick="event.preventDefault();showPage('planes')" style="color:var(--accent);text-decoration:none;font-weight:600">Ampliar plan</a>` : '';
-  el.innerHTML = `<span style="color:${color}">${n} mensaje${n !== 1 ? 's' : ''} restante${n !== 1 ? 's' : ''} hoy${uplink}</span>`;
+  const n = _zyraCargas;
+  const max = _zyraCargasMax;
+  if (n === null || n === undefined || !max || n > max * 0.25) { el.innerHTML = ''; return; }
+  const color = n <= max * 0.1 ? '#ef4444' : '#f59e0b';
+  const uplink = ` · <a href="#" onclick="event.preventDefault();showPage('planes')" style="color:var(--accent);text-decoration:none;font-weight:600">Ampliar plan</a>`;
+  el.innerHTML = `<span style="color:${color}">🪫 ${n} carga${n !== 1 ? 's' : ''} restante${n !== 1 ? 's' : ''}${uplink}</span>`;
+}
+
+/* Medidor de cargas -- siempre visible en el dashboard */
+function updateCargasMeter() {
+  const wrap = document.getElementById('cargas-meter-wrap');
+  if (!wrap) return;
+  const n = _zyraCargas, max = _zyraCargasMax;
+  if (n === null || n === undefined || !max) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  const pct = Math.max(0, Math.min(100, (n / max) * 100));
+  const fill = document.getElementById('cargas-meter-fill');
+  const label = document.getElementById('cargas-meter-label');
+  const cycleLabel = _zyraCargasCycle === 'monthly' ? 'este mes' : 'hoy';
+  if (fill)  { fill.style.width = pct + '%'; fill.style.background = pct <= 15 ? '#ef4444' : pct <= 40 ? '#f59e0b' : 'linear-gradient(90deg,#6366f1,#8b5cf6)'; }
+  if (label) label.textContent = `⚡ ${n.toLocaleString('es-CO')} / ${max.toLocaleString('es-CO')} cargas ${cycleLabel}`;
 }
 
 function checkPlanAccess(feature) {
@@ -19715,11 +19813,11 @@ const PM_DATA = {
 
 // ─── Precios internacionales ───
 const CURRENCY_TABLE = {
-  COP: { symbol:'$', code:'COP', locale:'es-CO', basic:{ monthly:9900,   annual:99000  }, premium:{ monthly:24900,  annual:249000 }, label:'COP' },
-  USD: { symbol:'$', code:'USD', locale:'en-US', basic:{ monthly:2.99,   annual:29.99  }, premium:{ monthly:5.99,   annual:59.99  }, label:'USD' },
-  MXN: { symbol:'$', code:'MXN', locale:'es-MX', basic:{ monthly:49,     annual:490    }, premium:{ monthly:119,    annual:1190   }, label:'MXN' },
-  ARS: { symbol:'$', code:'ARS', locale:'es-AR', basic:{ monthly:1999,   annual:19990  }, premium:{ monthly:4999,   annual:49990  }, label:'ARS' },
-  EUR: { symbol:'€', code:'EUR', locale:'es-ES', basic:{ monthly:2.49,   annual:24.90  }, premium:{ monthly:4.99,   annual:49.90  }, label:'EUR' },
+  COP: { symbol:'$', code:'COP', locale:'es-CO', basic:{ monthly:11900,  annual:119000 }, premium:{ monthly:19900,  annual:199000 }, label:'COP' },
+  USD: { symbol:'$', code:'USD', locale:'en-US', basic:{ monthly:3.59,   annual:35.99  }, premium:{ monthly:4.79,   annual:47.99  }, label:'USD' },
+  MXN: { symbol:'$', code:'MXN', locale:'es-MX', basic:{ monthly:59,     annual:590    }, premium:{ monthly:95,     annual:950    }, label:'MXN' },
+  ARS: { symbol:'$', code:'ARS', locale:'es-AR', basic:{ monthly:2400,   annual:24000  }, premium:{ monthly:3990,   annual:39900  }, label:'ARS' },
+  EUR: { symbol:'€', code:'EUR', locale:'es-ES', basic:{ monthly:2.99,   annual:29.99  }, premium:{ monthly:3.99,   annual:39.99  }, label:'EUR' },
 };
 
 function _detectCurrencyCode() {

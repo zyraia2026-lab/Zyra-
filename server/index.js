@@ -135,6 +135,7 @@ app.use("/api/weekly-report", require("./routes/weeklyReport"));
 app.use("/api/referral",      require("./routes/referral"));
 app.use("/api/future-notes",  require("./routes/futureNotes"));
 app.use("/api/admin",         require("./routes/admin"));
+app.use("/api/voice",         require("./routes/voice"));
 app.use("/api/spotify",       require("./routes/spotify"));
 
 app.get("/api/health", (req, res) => res.json({ status: "OK", ai: "Zyra/Groq", version: "5.0" }));

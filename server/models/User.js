@@ -25,9 +25,13 @@ const S = new mongoose.Schema({
   planActivatedAt:  { type: Date, default: null },
   stripeCustomerId: { type: String, default: null },
 
-  // ── Uso diario de mensajes ──
+  // ── Uso diario de mensajes (obsoleto, reemplazado por cargas) ──
   messagesUsedToday: { type: Number, default: 0 },
   messagesResetAt:   { type: Date, default: null },
+
+  // ── Cargas (saldo de acciones de IA) ──
+  cargas:            { type: Number, default: null },
+  cargasResetAt:     { type: Date, default: null },
 
   // ── Consentimiento legal ──
   termsAcceptedAt:      { type: Date, default: null },
