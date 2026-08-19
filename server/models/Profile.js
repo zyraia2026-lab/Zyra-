@@ -25,6 +25,7 @@ const S = new mongoose.Schema({
   achievements:           [{ type: String }],
   unlockedItems:          [{ type: String }],
   equippedBadge:          { type: String, default: "" },
+  equippedFrame:          { type: String, default: "" },
 
   // ── Contacto de emergencia ──
   emergencyContact: {

@@ -3202,10 +3202,10 @@ async function b2bSubmitContact() {
     <p style="font-size:13px;color:var(--text3);margin-bottom:16px">Personaliza los colores de Zyra.</p>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:10px">
       <button onclick="changeThemeFromProfile('default')"  style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:12px;color:#fff;font-size:12px;font-weight:700;padding:12px 4px;cursor:pointer">Default</button>
-      <button onclick="changeThemeFromProfile('ocean')"    style="background:linear-gradient(135deg,#0ea5e9,#06b6d4);border:none;border-radius:12px;color:#fff;font-size:12px;font-weight:700;padding:12px 4px;cursor:pointer">Ocean</button>
-      <button onclick="changeThemeFromProfile('forest')"   style="background:linear-gradient(135deg,#16a34a,#4ade80);border:none;border-radius:12px;color:#fff;font-size:12px;font-weight:700;padding:12px 4px;cursor:pointer">Forest</button>
-      <button onclick="changeThemeFromProfile('sunset')"   style="background:linear-gradient(135deg,#f97316,#ec4899);border:none;border-radius:12px;color:#fff;font-size:12px;font-weight:700;padding:12px 4px;cursor:pointer">Sunset</button>
-      <button onclick="changeThemeFromProfile('midnight')" style="background:linear-gradient(135deg,#1e1b4b,#4338ca);border:none;border-radius:12px;color:#fff;font-size:12px;font-weight:700;padding:12px 4px;cursor:pointer">Midnight</button>
+      <button id="theme-pick-ocean"    onclick="changeThemeFromProfile('ocean')"    style="position:relative;background:linear-gradient(135deg,#0ea5e9,#06b6d4);border:none;border-radius:12px;color:#fff;font-size:12px;font-weight:700;padding:12px 4px;cursor:pointer">Ocean</button>
+      <button id="theme-pick-forest"   onclick="changeThemeFromProfile('forest')"   style="position:relative;background:linear-gradient(135deg,#16a34a,#4ade80);border:none;border-radius:12px;color:#fff;font-size:12px;font-weight:700;padding:12px 4px;cursor:pointer">Forest</button>
+      <button id="theme-pick-sunset"   onclick="changeThemeFromProfile('sunset')"   style="position:relative;background:linear-gradient(135deg,#f97316,#ec4899);border:none;border-radius:12px;color:#fff;font-size:12px;font-weight:700;padding:12px 4px;cursor:pointer">Sunset</button>
+      <button id="theme-pick-midnight" onclick="changeThemeFromProfile('midnight')" style="position:relative;background:linear-gradient(135deg,#1e1b4b,#4338ca);border:none;border-radius:12px;color:#fff;font-size:12px;font-weight:700;padding:12px 4px;cursor:pointer">Midnight</button>
     </div>
     <div class="theme-auto-row" style="margin-top:14px">
       <span style="font-size:12px;color:var(--text3);font-weight:600;white-space:nowrap">Modo oscuro:</span>
@@ -5938,6 +5938,17 @@ function applyAvatarEverywhere(photoUrl, emoji, color) {
   });
 }
 
+function applyEquippedFrame(frameId) {
+  const FRAME_CLASS = { frame_glow: "avatar-frame-glow", frame_rainbow: "avatar-frame-rainbow" };
+  const cls = FRAME_CLASS[frameId] || null;
+  ["sb-avatar-mini", "profile-avatar-big"].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    Object.values(FRAME_CLASS).forEach(c => el.classList.remove(c));
+    if (cls) el.classList.add(cls);
+  });
+}
+
 function applyStreakBadge(streakDays) {
   const ring = streakDays >= 30 ? '#f59e0b' : streakDays >= 14 ? '#f97316' : streakDays >= 7 ? '#6366f1' : null;
   ["sb-avatar-mini"].forEach(id => {
@@ -6163,6 +6174,25 @@ async function loadProfile() {
         const BADGE_EMOJIS = { badge_fire:"🔥", badge_star:"⭐", badge_moon:"🌙", badge_crown:"👑", badge_diamond:"💎" };
         if(badgeEl) { badgeEl.textContent = BADGE_EMOJIS[gs.equippedBadge]||""; badgeEl.style.display=""; }
       }
+      // Candados en los temas de color que no se han comprado en la Tienda
+      _ownedThemes = (gs.rewards || []).filter(r => r.type === "theme" && r.unlocked).map(r => r.id.replace("theme_", ""));
+      ["ocean","forest","sunset","midnight"].forEach(t => {
+        const btn = document.getElementById("theme-pick-" + t);
+        if (!btn) return;
+        const owned = _ownedThemes.includes(t);
+        btn.style.opacity = owned ? "1" : ".45";
+        btn.title = owned ? "" : "Cómpralo en la Tienda";
+        let lock = btn.querySelector(".theme-lock-ic");
+        if (!owned && !lock) {
+          lock = document.createElement("span");
+          lock.className = "theme-lock-ic";
+          lock.textContent = "🔒";
+          lock.style.cssText = "position:absolute;top:2px;right:4px;font-size:10px";
+          btn.appendChild(lock);
+        } else if (owned && lock) {
+          lock.remove();
+        }
+      });
     }
 
     // Plan info card
@@ -14784,6 +14814,11 @@ async function disablePinFromProfile() {
 }
 
 async function changeThemeFromProfile(theme) {
+  if (theme !== "default" && !_ownedThemes.includes(theme)) {
+    zyraToast("🔒 Primero cómpralo en la Tienda", "info");
+    showPage("shop");
+    return;
+  }
   try {
     await api("/profile", "PUT", { theme });
     applyColorTheme(theme);
@@ -20049,6 +20084,7 @@ function launchConfetti() {
    GAMIFICACIÓN — Racha, Misiones, Monedas, Logros, Tienda
 ═══════════════════════════════════════════════════════════ */
 let _gamifStatus = null;
+let _ownedThemes = [];
 
 async function loadGamification() {
   if (!token) return;
@@ -20110,6 +20146,7 @@ function renderGamification(s) {
   if (!s) return;
   const row = document.getElementById('gamification-row');
   if (row) row.style.display = 'grid';
+  applyEquippedFrame(s.equippedFrame);
 
   // Nav badges
   const nbStreak = document.getElementById('nav-streak-badge');
@@ -20320,6 +20357,7 @@ async function loadShopPage() {
     const wrap = document.getElementById('rewards-sections');
     if (!wrap) return;
     const equipped = s.equippedBadge || "";
+    const equippedFr = s.equippedFrame || "";
     const freezeCount = s.streakFreezes || 0;
     const coins = s.coins || 0;
 
@@ -20329,7 +20367,7 @@ async function loadShopPage() {
     wrap.innerHTML = Object.keys(SHOP_CATEGORIES).filter(t => byType[t]?.length).map(type => {
       const cat = SHOP_CATEGORIES[type];
       const cardsHtml = byType[type].map(r => {
-        const isEquipped = r.type === "badge" && equipped === r.id;
+        const isEquipped = (r.type === "badge" && equipped === r.id) || (r.type === "frame" && equippedFr === r.id);
         const cantAfford = !r.unlocked && coins < r.cost && r.type !== "consumable";
         const cardStyle = `--rcard-grad:${cat.grad};--rcard-accent:${cat.accent};--rcard-shadow:${cat.shadow}`;
         if (r.type === "consumable") {
@@ -20347,7 +20385,7 @@ async function loadShopPage() {
           <div class="r-emoji-wrap" style="background:${cat.iconBg}">${r.emoji}</div>
           <div class="r-name">${r.label}</div>
           ${r.unlocked
-            ? (r.type === 'badge'
+            ? ((r.type === 'badge' || r.type === 'frame')
                 ? `<button onclick="event.stopPropagation();equipReward('${r.id}')" style="position:relative;z-index:1;margin-top:2px;padding:4px 10px;font-size:11px;font-weight:700;border:none;border-radius:8px;cursor:pointer;background:${isEquipped ? cat.accent : 'rgba(99,102,241,.15)'};color:${isEquipped ? '#fff' : cat.accent}">
                     ${isEquipped ? '✓ Puesto' : 'Equipar'}
                    </button>`
@@ -20396,11 +20434,16 @@ async function redeemReward(rewardId) {
 async function equipReward(rewardId) {
   try {
     const d = await api('/gamification/equip/' + rewardId, 'POST');
-    // Actualiza el badge en el perfil
-    const BADGE_EMOJIS = { badge_fire:"🔥", badge_star:"⭐", badge_moon:"🌙", badge_crown:"👑", badge_diamond:"💎" };
-    const badgeEl = document.getElementById("prof-equipped-badge");
-    if (badgeEl) { badgeEl.textContent = BADGE_EMOJIS[rewardId] || ""; badgeEl.style.display = ""; }
-    zyraToast('¡Badge equipado! ' + (BADGE_EMOJIS[rewardId] || ""), 'success');
+    if (rewardId.startsWith('frame_')) {
+      applyEquippedFrame(rewardId);
+      zyraToast('¡Marco de perfil equipado! 🖼️', 'success');
+    } else {
+      // Actualiza el badge en el perfil
+      const BADGE_EMOJIS = { badge_fire:"🔥", badge_star:"⭐", badge_moon:"🌙", badge_crown:"👑", badge_diamond:"💎" };
+      const badgeEl = document.getElementById("prof-equipped-badge");
+      if (badgeEl) { badgeEl.textContent = BADGE_EMOJIS[rewardId] || ""; badgeEl.style.display = ""; }
+      zyraToast('¡Badge equipado! ' + (BADGE_EMOJIS[rewardId] || ""), 'success');
+    }
     await openRewardsShop();
   } catch(e) {
     zyraToast(e.message || 'Error al equipar', 'error');
@@ -24493,6 +24536,12 @@ function openNotifPanel() {
       </div>`).join("");
   }
   panel.style.display = "flex";
+  // Marcar estas notificaciones como vistas -- si no, el numero del
+  // campanazo seguia mostrando el mismo conteo aunque ya las hubieras
+  // abierto, porque computeNotifs() solo recalcula por condicion actual,
+  // no llevaba ningun registro de "ya las vi".
+  try { sessionStorage.setItem("zyra_notifs_seen", JSON.stringify(notifs.map(n => n.text))); } catch(e) {}
+  updateNotifBadge();
 }
 
 function closeNotifPanel() {
@@ -24509,10 +24558,13 @@ function updateNotifBadge() {
   if (!token || _authOnlyPages.includes(_cp)) { fab.style.display = "none"; return; }
   fab.style.display = "flex";
   const notifs = computeNotifs();
-  const hasNotifs = notifs.length > 0;
+  let seen = [];
+  try { seen = JSON.parse(sessionStorage.getItem("zyra_notifs_seen") || "[]"); } catch(e) {}
+  const unseen = notifs.filter(n => !seen.includes(n.text));
+  const hasNotifs = unseen.length > 0;
   if (hasNotifs) {
     badge.style.display = "flex";
-    badge.textContent = notifs.length > 9 ? "9+" : String(notifs.length);
+    badge.textContent = unseen.length > 9 ? "9+" : String(unseen.length);
   } else {
     badge.style.display = "none";
   }

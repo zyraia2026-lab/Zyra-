@@ -85,7 +85,7 @@ function checkAchievements(p, newStreak, newCoins, completedMissions, journalCou
 /* GET /api/gamification/status */
 exports.getStatus = async (req, res) => {
   try {
-    let p = await Profile.findOne({ user: req.user._id }).select("streakDays coins equippedBadge missionsCompletedToday missionsResetAt achievements unlockedItems streakFreezes").lean();
+    let p = await Profile.findOne({ user: req.user._id }).select("streakDays coins equippedBadge equippedFrame missionsCompletedToday missionsResetAt achievements unlockedItems streakFreezes").lean();
     if (!p) p = (await Profile.create({ user: req.user._id })).toObject();
 
     const needsReset = isMissionsReset(p);
@@ -102,6 +102,7 @@ exports.getStatus = async (req, res) => {
       streak:        p.streakDays || 0,
       coins:         p.coins || 0,
       equippedBadge: p.equippedBadge || "",
+      equippedFrame: p.equippedFrame || "",
       missions,
       missionsCompleted: completedToday.length,
       missionsTotal:     DAILY_MISSIONS.length,
@@ -300,17 +301,18 @@ exports.redeemReward = async (req, res) => {
   } catch(e) { res.status(500).json({ message: e.message }); }
 };
 
-/* POST /api/gamification/equip/:itemId  — equipar badge */
+/* POST /api/gamification/equip/:itemId  — equipar badge o marco de perfil */
 exports.equipItem = async (req, res) => {
   try {
     let p = await Profile.findOne({ user: req.user._id }).select("unlockedItems").lean();
     if (!p) return res.status(404).json({ message: "Perfil no encontrado" });
-    const item = REWARDS.find(r => r.id === req.params.itemId && r.type === "badge");
+    const item = REWARDS.find(r => r.id === req.params.itemId && (r.type === "badge" || r.type === "frame"));
     if (!item) return res.status(400).json({ message: "Ítem no encontrado" });
     if (!(p.unlockedItems || []).includes(item.id)) {
       return res.status(403).json({ message: "No has desbloqueado este ítem" });
     }
-    await Profile.findOneAndUpdate({ user: req.user._id }, { equippedBadge: item.id, updatedAt: new Date() });
-    res.json({ success: true, equippedBadge: item.id });
+    const field = item.type === "badge" ? "equippedBadge" : "equippedFrame";
+    await Profile.findOneAndUpdate({ user: req.user._id }, { [field]: item.id, updatedAt: new Date() });
+    res.json({ success: true, [field]: item.id });
   } catch(e) { res.status(500).json({ message: e.message }); }
 };

@@ -1552,6 +1552,28 @@ nav#app-shared-nav {
 }
 .avatar:hover { transform: scale(1.08); }
 
+/* Marcos de perfil comprados en la Tienda -- se aplican sobre .avatar y
+   sobre el avatar grande de Perfil (#profile-avatar-big). */
+.avatar-frame-glow {
+  box-shadow: 0 0 0 3px rgba(167,139,250,.9), 0 0 18px 4px rgba(167,139,250,.55);
+  animation: avatarGlowPulse 2.2s ease-in-out infinite;
+}
+@keyframes avatarGlowPulse {
+  0%,100% { box-shadow: 0 0 0 3px rgba(167,139,250,.9), 0 0 14px 3px rgba(167,139,250,.45); }
+  50%     { box-shadow: 0 0 0 3px rgba(167,139,250,1),  0 0 22px 7px rgba(167,139,250,.75); }
+}
+.avatar-frame-rainbow {
+  box-shadow: 0 0 0 3px transparent;
+  position: relative;
+}
+.avatar-frame-rainbow::before {
+  content: ""; position: absolute; inset: -4px; border-radius: 50%;
+  background: conic-gradient(from 0deg, #f43f5e, #f59e0b, #eab308, #22c55e, #06b6d4, #6366f1, #a855f7, #f43f5e);
+  animation: avatarRainbowSpin 3.5s linear infinite;
+  z-index: -1;
+}
+@keyframes avatarRainbowSpin { to { transform: rotate(360deg); } }
+
 .btn-icon {
   background: #f1f2ff; border: 1.5px solid #e0e2ff;
   width: 38px; height: 38px; border-radius: 10px; cursor: pointer;
