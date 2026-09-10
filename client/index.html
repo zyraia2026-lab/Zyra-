@@ -12553,7 +12553,22 @@ function selectBreathTech(tech, silent) {
   const desc = document.getElementById('breath-tech-desc');
   if (desc) desc.innerHTML = BREATH_TECHS[tech].desc;
 }
-function startBreath() {
+// Cupo diario de ejercicios guiados (respiración, meditación IA, CBT) por plan.
+// Falla abierto ante error de red/servidor -- nunca bloquear un ejercicio de bienestar por eso.
+async function checkExerciseGate() {
+  try {
+    const q = await api("/gamification/exercise-start", "POST");
+    return !!q?.allowed;
+  } catch(e) {
+    if (e?.data?.exercisesPerDay > 0) {
+      zyraToast(e.data.message || "Ya usaste tus ejercicios guiados de hoy.", "info", 5000);
+      return false;
+    }
+    return true;
+  }
+}
+async function startBreath() {
+  if (!(await checkExerciseGate())) return;
   if(breathTimer) { clearTimeout(breathTimer); breathTimer = null; }
   const circle = document.getElementById("breath-circle");
   const label  = document.getElementById("breath-label");
@@ -12678,6 +12693,7 @@ async function _genMedAI(force) {
   const duration = hour < 9 || hour > 22 ? "3" : "5";
   const cachedKey = "zyra_med_ai_" + new Date().toDateString() + (todayEmotion || "x");
   if (!force && localStorage.getItem(cachedKey)) return;
+  if (!(await checkExerciseGate())) return;
 
   area.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:16px 0">
     <div style="width:20px;height:20px;border:2px solid rgba(139,92,246,.3);border-top-color:#8b5cf6;border-radius:50%;animation:spin .8s linear infinite"></div>
@@ -24316,11 +24332,13 @@ function renderCBTTool(el) {
     </div>
   </div>`;
 }
-function _cbtStartFull() {
+async function _cbtStartFull() {
+  if (!(await checkExerciseGate())) return;
   const el = document.getElementById("wellness-content");
   if (el) showCBTStep(el);
 }
 async function _cbtStartExpress() {
+  if (!(await checkExerciseGate())) return;
   const el = document.getElementById("wellness-content");
   if (!el) return;
   el.innerHTML = `<div class="card" style="max-width:560px;margin:0 auto">

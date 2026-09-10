@@ -18,5 +18,6 @@ r.post("/redeem/:id",     protect, gamifLimiter, G.redeemReward);
 r.post("/equip/:itemId",  protect, gamifLimiter, G.equipItem);
 r.post("/test-start",     protect, gamifLimiter, G.startTest);
 r.post("/song-start",     protect, gamifLimiter, G.checkSongQuota);
+r.post("/exercise-start",  protect, gamifLimiter, G.checkExerciseQuota);
 
 module.exports = r;

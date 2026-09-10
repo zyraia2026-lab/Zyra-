@@ -411,6 +411,54 @@ exports.checkSongQuota = async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
 
+/* POST /api/gamification/exercise-start — cupo diario de ejercicios guiados
+   (respiración, meditación con IA, reestructuración cognitiva) por plan. */
+exports.checkExerciseQuota = async (req, res) => {
+  try {
+    const { getPlan, LIMITS } = require("../middleware/planGate");
+    const { plan } = getPlan(req.user);
+    const limits = LIMITS[plan] || LIMITS.free;
+
+    if (limits.exercisesPerDay === Infinity) return res.json({ allowed: true });
+
+    const now = new Date();
+    const col = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+    const today = col.getUTCFullYear() + "-" + String(col.getUTCMonth() + 1).padStart(2, "0") + "-" + String(col.getUTCDate()).padStart(2, "0");
+
+    await Profile.findOneAndUpdate({ user: req.user._id }, {}, { upsert: true }).catch(() => {});
+
+    const updated = await Profile.findOneAndUpdate(
+      { user: req.user._id },
+      [{
+        $set: {
+          exercisesUsedToday: {
+            $cond: [
+              { $eq: [{ $dateToString: { format: "%Y-%m-%d", date: { $ifNull: ["$exercisesResetAt", new Date(0)] }, timezone: "America/Bogota" } }, today] },
+              { $add: [{ $ifNull: ["$exercisesUsedToday", 0] }, 1] },
+              1,
+            ],
+          },
+          exercisesResetAt: now,
+        },
+      }],
+      { new: true }
+    ).select("exercisesUsedToday").lean();
+
+    const usedAfter = updated?.exercisesUsedToday ?? 1;
+    if (usedAfter > limits.exercisesPerDay) {
+      await Profile.findOneAndUpdate({ user: req.user._id }, { $inc: { exercisesUsedToday: -1 } });
+      return res.status(403).json({
+        allowed: false,
+        exercisesUsedToday: limits.exercisesPerDay,
+        exercisesPerDay: limits.exercisesPerDay,
+        message: `Ya usaste tus ${limits.exercisesPerDay} ejercicios guiados de hoy. Vuelve mañana, o mejora tu plan para hacer más.`,
+      });
+    }
+
+    res.json({ allowed: true, exercisesUsedToday: usedAfter, exercisesPerDay: limits.exercisesPerDay });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+};
+
 /* POST /api/gamification/equip/:itemId  — equipar badge o marco de perfil */
 exports.equipItem = async (req, res) => {
   try {
