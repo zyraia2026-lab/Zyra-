@@ -126,12 +126,13 @@
   /* ── Twinkle stars ── */
   function mkStars(){
     stars=[];
-    var n=Math.min(130,Math.round(W*H/7000));
+    var n=Math.min(240,Math.round(W*H/4200));
     for(var i=0;i<n;i++) stars.push({
       x:Math.random(), y:Math.random(),
-      r:Math.random()*.9+.2,
+      r:Math.random()*1.1+.25,
       ph:Math.random()*6.28,
-      sp:Math.random()*.55+.15
+      sp:Math.random()*.55+.15,
+      hero:Math.random()<.08
     });
   }
 
@@ -157,20 +158,38 @@
     if(!alive)return;
     T+=1/60;
 
-    /* Deep space background with subtle nebula glow */
+    /* Deep space background with layered, slowly-drifting nebula glow */
     X.fillStyle='#03040E';X.fillRect(0,0,W,H);
-    var nb=X.createRadialGradient(W*.5,H*.45,0,W*.5,H*.45,Math.max(W,H)*.55);
-    nb.addColorStop(0,'rgba(60,20,100,.22)');
-    nb.addColorStop(.5,'rgba(30,10,60,.10)');
+    var drX=Math.sin(T*.05)*W*.07, drY=Math.cos(T*.04)*H*.06;
+    var nb=X.createRadialGradient(W*.5+drX,H*.42+drY,0,W*.5+drX,H*.42+drY,Math.max(W,H)*.62);
+    nb.addColorStop(0,'rgba(90,40,155,.32)');
+    nb.addColorStop(.45,'rgba(45,20,90,.16)');
     nb.addColorStop(1,'rgba(0,0,0,0)');
     X.fillStyle=nb;X.fillRect(0,0,W,H);
+    var n2x=W*.26-drY*.5, n2y=H*.74+drX*.35;
+    var nb2=X.createRadialGradient(n2x,n2y,0,n2x,n2y,Math.max(W,H)*.4);
+    nb2.addColorStop(0,'rgba(219,39,119,.15)');
+    nb2.addColorStop(.5,'rgba(139,92,246,.07)');
+    nb2.addColorStop(1,'rgba(0,0,0,0)');
+    X.fillStyle=nb2;X.fillRect(0,0,W,H);
+    var n3x=W*.78+drX*.35, n3y=H*.2-drY*.5;
+    var nb3=X.createRadialGradient(n3x,n3y,0,n3x,n3y,Math.max(W,H)*.35);
+    nb3.addColorStop(0,'rgba(56,189,248,.11)');
+    nb3.addColorStop(1,'rgba(0,0,0,0)');
+    X.fillStyle=nb3;X.fillRect(0,0,W,H);
 
     /* Twinkle stars */
     stars.forEach(function(s){
-      var a=.06+.5*(0.5+0.5*Math.sin(T*s.sp+s.ph));
+      var a=(s.hero?.16:.08)+.56*(0.5+0.5*Math.sin(T*s.sp+s.ph));
       X.globalAlpha=a;
       X.fillStyle='#fff';
-      X.fillRect(s.x*W,s.y*H,s.r,s.r);
+      if(s.hero){
+        X.shadowBlur=6;X.shadowColor='rgba(196,181,253,.8)';
+        X.fillRect(s.x*W,s.y*H,s.r*1.8,s.r*1.8);
+        X.shadowBlur=0;
+      } else {
+        X.fillRect(s.x*W,s.y*H,s.r,s.r);
+      }
     });
     X.globalAlpha=1;
 
@@ -233,6 +252,21 @@
       shoot(sx,sy,s.a,s.sp,s.len,s.c);
     },s.t);
   });
+  /* Tras el guion inicial, seguir lanzando estrellas fugaces al azar mientras
+     la pantalla siga abierta -- si no, se queda estatica cuando alguien se
+     tarda unos segundos en darle a "Entrar". */
+  var shootCols=['255,230,190','210,195,255','255,240,200','200,215,255','255,225,180','215,200,255'];
+  function scheduleNextShoot(){
+    if(!alive)return;
+    setTimeout(function(){
+      if(!alive)return;
+      var sx=Math.random()*W*.7, sy=-10;
+      var a=PI*(.15+Math.random()*.14), sp=18+Math.random()*12, len=26+Math.random()*20;
+      shoot(sx,sy,a,sp,len,shootCols[Math.floor(Math.random()*shootCols.length)]);
+      scheduleNextShoot();
+    },1800+Math.random()*2600);
+  }
+  setTimeout(scheduleNextShoot,4200);
 
   /* ── Letter glow activation ── */
   var letters=document.querySelectorAll('#spl-title .sl');
@@ -349,6 +383,11 @@
   document.getElementById('spl-c').addEventListener('click',function(e){
     if(!_camActive)palmBurst(e.clientX,e.clientY);
   });
+  /* ── Cursor glow en desktop (misma capa que la mano, sin camara) ── */
+  document.getElementById('spl-c').addEventListener('mousemove',function(e){
+    if(!_camActive){hx=e.clientX;hy=e.clientY;}
+  });
+  document.getElementById('spl-c').addEventListener('mouseleave',function(){hx=-1;hy=-1;});
 
   /* ── Kill canvas when splash hides ── */
   var obs=new MutationObserver(function(){
