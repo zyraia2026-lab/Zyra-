@@ -4137,22 +4137,27 @@ document.addEventListener("keydown", function(e) {
   }
 
   if (e.key !== "Escape") return;
-  const modals = [
-    { id: "saved-msgs-modal",     close: () => { const m=document.getElementById("saved-msgs-modal"); if(m&&m.style.display!=="none") m.style.display="none"; } },
-    { id: "edit-goal-modal",      close: () => { const m=document.getElementById("edit-goal-modal"); if(m&&m.style.display!=="none"){ m.style.display="none"; document.body.style.overflow=""; } } },
-    { id: "edit-journal-modal",   close: () => { const m=document.getElementById("edit-journal-modal"); if(m&&m.style.display!=="none"){ m.style.display="none"; document.body.style.overflow=""; } } },
-    { id: "zyra-payment-modal",   close: () => { const m=document.getElementById("zyra-payment-modal"); if(m&&m.style.display!=="none") closePaymentModal(); } },
-    { id: "quick-emotion-modal",  close: () => { const m=document.getElementById("quick-emotion-modal"); if(m&&m.style.display!=="none") closeQuickEmotion(); } },
-    { id: "achievements-modal",   close: () => { const m=document.getElementById("achievements-modal"); if(m&&m.style.display!=="none") closeAchievements(); } },
-    { id: "weekly-report-modal",  close: () => { const m=document.getElementById("weekly-report-modal"); if(m&&m.style.display!=="none") closeWeeklyReport(); } },
-    { id: "quick-note-modal",             close: () => { const m=document.getElementById("quick-note-modal"); if(m&&m.style.display!=="none") closeQuickNote(); } },
-    { id: "streak-celebration-overlay",   close: () => { const m=document.getElementById("streak-celebration-overlay"); if(m&&m.style.display!=="none") closeStreakCelebration(); } },
-  ];
-  for (const { id, close } of modals) {
+  for (const { id, close } of ALL_MODALS) {
     const m = document.getElementById(id);
     if (m && m.style.display !== "none") { close(); e.preventDefault(); return; }
   }
 });
+const ALL_MODALS = [
+  { id: "saved-msgs-modal",     close: () => { const m=document.getElementById("saved-msgs-modal"); if(m&&m.style.display!=="none") m.style.display="none"; } },
+  { id: "edit-goal-modal",      close: () => { const m=document.getElementById("edit-goal-modal"); if(m&&m.style.display!=="none"){ m.style.display="none"; document.body.style.overflow=""; } } },
+  { id: "edit-journal-modal",   close: () => { const m=document.getElementById("edit-journal-modal"); if(m&&m.style.display!=="none"){ m.style.display="none"; document.body.style.overflow=""; } } },
+  { id: "zyra-payment-modal",   close: () => { const m=document.getElementById("zyra-payment-modal"); if(m&&m.style.display!=="none") closePaymentModal(); } },
+  { id: "quick-emotion-modal",  close: () => { const m=document.getElementById("quick-emotion-modal"); if(m&&m.style.display!=="none") closeQuickEmotion(); } },
+  { id: "achievements-modal",   close: () => { const m=document.getElementById("achievements-modal"); if(m&&m.style.display!=="none") closeAchievements(); } },
+  { id: "weekly-report-modal",  close: () => { const m=document.getElementById("weekly-report-modal"); if(m&&m.style.display!=="none") closeWeeklyReport(); } },
+  { id: "quick-note-modal",             close: () => { const m=document.getElementById("quick-note-modal"); if(m&&m.style.display!=="none") closeQuickNote(); } },
+  { id: "streak-celebration-overlay",   close: () => { const m=document.getElementById("streak-celebration-overlay"); if(m&&m.style.display!=="none") closeStreakCelebration(); } },
+];
+// Cierre forzado de cualquier modal abierto -- para cuando la sesión termina
+// de golpe (token inválido/expirado) y la página de atrás ya no es el dashboard.
+function closeAllModals() {
+  ALL_MODALS.forEach(({ close }) => { try { close(); } catch(_) {} });
+}
 
 const EMOTIONS = [
   {key:"feliz",      label:"Feliz",        emoji:"😊", color:"#f59e0b"},
@@ -4190,6 +4195,7 @@ async function api(path, method="GET", body=null, timeoutMs=15000) {
       token = null; user = null;
       localStorage.removeItem("zyra_token");
       localStorage.removeItem("zyra_user");
+      closeAllModals();
       zyraToast("Tu sesión expiró. Inicia sesión de nuevo.", "error");
       showPage("login");
     }
@@ -4197,6 +4203,7 @@ async function api(path, method="GET", body=null, timeoutMs=15000) {
       token = null; user = null;
       localStorage.removeItem("zyra_token");
       localStorage.removeItem("zyra_user");
+      closeAllModals();
       zyraToast(d.message || "Cuenta suspendida. Contacta soporte.", "error", 8000);
       showPage("login");
     }
@@ -17752,6 +17759,7 @@ function showQuickEmotion() {
   localStorage.setItem('zyra_mood_date', today);
   sessionStorage.setItem('zyra_checkin_session_shown', '1');
   setTimeout(() => {
+    if (!token) return; // la sesión pudo cerrarse (token inválido/expirado) mientras esperábamos
     const ob = document.getElementById('zyra-onboarding');
     if (ob && ob.style.display === 'flex') return; // no apilar sobre onboarding
     const m = document.getElementById('quick-emotion-modal');
