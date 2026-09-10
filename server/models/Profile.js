@@ -33,6 +33,8 @@ const S = new mongoose.Schema({
   lastCallStartedAt:      { type: Date, default: null },
   testUsedToday:          { type: Number, default: 0 },
   testResetAt:            { type: Date, default: null },
+  songsUsedThisWeek:      { type: Number, default: 0 },
+  songsResetAt:           { type: Date, default: null },
 
   // ── Contacto de emergencia ──
   emergencyContact: {

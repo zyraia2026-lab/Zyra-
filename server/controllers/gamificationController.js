@@ -352,6 +352,65 @@ exports.startTest = async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
 
+/* POST /api/gamification/song-start — cupo semanal de canciones completas (YouTube) por plan.
+   Gratis nunca tiene cupo (se queda con la vista previa de 30s de Spotify). */
+exports.checkSongQuota = async (req, res) => {
+  try {
+    const { getPlan, LIMITS } = require("../middleware/planGate");
+    const { plan } = getPlan(req.user);
+    const limits = LIMITS[plan] || LIMITS.free;
+
+    if (limits.songsPerWeek === Infinity) return res.json({ allowed: true });
+    if (limits.songsPerWeek === 0) {
+      return res.status(403).json({
+        allowed: false,
+        songsPerWeek: 0,
+        message: "Las canciones completas son parte de los planes Básico y Premium. Con el plan Gratis escuchas la vista previa de 30 segundos.",
+      });
+    }
+
+    const now = new Date();
+
+    await Profile.findOneAndUpdate({ user: req.user._id }, {}, { upsert: true }).catch(() => {});
+
+    const updated = await Profile.findOneAndUpdate(
+      { user: req.user._id },
+      [{
+        $set: {
+          songsUsedThisWeek: {
+            $cond: [
+              {
+                $and: [
+                  { $eq: [{ $isoWeekYear: { date: { $ifNull: ["$songsResetAt", new Date(0)] }, timezone: "America/Bogota" } }, { $isoWeekYear: { date: now, timezone: "America/Bogota" } }] },
+                  { $eq: [{ $isoWeek:     { date: { $ifNull: ["$songsResetAt", new Date(0)] }, timezone: "America/Bogota" } }, { $isoWeek:     { date: now, timezone: "America/Bogota" } }] },
+                ],
+              },
+              { $add: [{ $ifNull: ["$songsUsedThisWeek", 0] }, 1] },
+              1,
+            ],
+          },
+          songsResetAt: now,
+        },
+      }],
+      { new: true }
+    ).select("songsUsedThisWeek").lean();
+
+    const usedAfter = updated?.songsUsedThisWeek ?? 1;
+    if (usedAfter > limits.songsPerWeek) {
+      // Ya se paso del limite -- revertir el conteo que se acabo de sumar.
+      await Profile.findOneAndUpdate({ user: req.user._id }, { $inc: { songsUsedThisWeek: -1 } });
+      return res.status(403).json({
+        allowed: false,
+        songsUsedThisWeek: limits.songsPerWeek,
+        songsPerWeek: limits.songsPerWeek,
+        message: `Ya escuchaste tus ${limits.songsPerWeek} canciones completas de esta semana. Mejora tu plan para escuchar sin límite.`,
+      });
+    }
+
+    res.json({ allowed: true, songsUsedThisWeek: usedAfter, songsPerWeek: limits.songsPerWeek });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+};
+
 /* POST /api/gamification/equip/:itemId  — equipar badge o marco de perfil */
 exports.equipItem = async (req, res) => {
   try {

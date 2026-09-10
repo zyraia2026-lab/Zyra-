@@ -14096,15 +14096,32 @@ async function toggleYTPlayer(cardEl, card, ytId) {
     if(a) a.textContent = "■ Cerrar";
     cardEl.style.borderColor = "var(--green)";
 
-    // Spotify primero. Si falla y Spotify está activo → botón Spotify (NUNCA YouTube cuando Spotify está configurado)
+    // Básico/Premium prometen canción completa (el embed de Spotify siempre corta a 30s) →
+    // se intenta primero YouTube completo, con cupo semanal para Básico. Gratis, o
+    // Básico sin cupo restante, cae a la vista previa de Spotify de siempre.
     c.innerHTML = ytLoadingHTML(card, ytId);
-    const spotHtml = await buildSpotifyPlayer(card, ytId);
-    if (spotHtml) {
-      c.innerHTML = spotHtml;
-    } else if (window.SPOTIFY_ENABLED) {
-      c.innerHTML = spotFallbackHTML(card, ytId); // Canción no encontrada en Spotify → botón de búsqueda Spotify
+    let fullSongHtml = null;
+    if ((user?.plan === "basic" || user?.plan === "premium") && window.YT_ENABLED) {
+      try {
+        const q = await api("/gamification/song-start", "POST");
+        if (q?.allowed) fullSongHtml = buildYTPlayer(card, ytId);
+      } catch(e) {
+        if (e?.data?.songsPerWeek > 0) {
+          zyraToast(e.data.message || "Ya usaste tus canciones completas de esta semana.", "info", 5000);
+        }
+      }
+    }
+    if (fullSongHtml) {
+      c.innerHTML = fullSongHtml;
     } else {
-      c.innerHTML = buildYTPlayer(card, ytId);    // Solo YouTube si Spotify no está configurado
+      const spotHtml = await buildSpotifyPlayer(card, ytId);
+      if (spotHtml) {
+        c.innerHTML = spotHtml;
+      } else if (window.SPOTIFY_ENABLED) {
+        c.innerHTML = spotFallbackHTML(card, ytId); // Canción no encontrada en Spotify → botón de búsqueda Spotify
+      } else {
+        c.innerHTML = buildYTPlayer(card, ytId);    // Solo YouTube si Spotify no está configurado
+      }
     }
     setTimeout(() => c.scrollIntoView({behavior:"smooth",block:"nearest"}), 100);
   } else {

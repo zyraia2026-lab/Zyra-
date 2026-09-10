@@ -5,11 +5,11 @@
 
 const LIMITS = {
   free:    { messagesPerDay: 15,  goals: 3,  journal: Infinity, conversations: 5,  voice: true, emergencyContact: false, export: false, report: false,
-             callsPerMonth: 2,  callMaxMinutes: 5,  testPerDay: 1,        graphDays: 7 },
+             callsPerMonth: 2,  callMaxMinutes: 5,  testPerDay: 1,        graphDays: 7,        songsPerWeek: 0 },
   basic:   { messagesPerDay: 100, goals: 10, journal: Infinity, conversations: 30, voice: true, emergencyContact: true,  export: false, report: false,
-             callsPerMonth: 6,  callMaxMinutes: 10, testPerDay: 3,        graphDays: 30 },
+             callsPerMonth: 6,  callMaxMinutes: 10, testPerDay: 3,        graphDays: 30,       songsPerWeek: 20 },
   premium: { messagesPerDay: Infinity, goals: Infinity, journal: Infinity, conversations: Infinity, voice: true, emergencyContact: true, export: true, report: true,
-             callsPerMonth: 12, callMaxMinutes: 20, testPerDay: Infinity, graphDays: Infinity },
+             callsPerMonth: 12, callMaxMinutes: 20, testPerDay: Infinity, graphDays: Infinity, songsPerWeek: Infinity },
 };
 
 exports.LIMITS = LIMITS;
