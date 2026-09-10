@@ -97,6 +97,19 @@ app.use(express.urlencoded({ extended: false, limit: "2mb" }));
 // ── Sanitizar MongoDB injection ($where, $gt, etc.)
 app.use(mongoSanitize());
 
+// ── Límite de tasa general para toda la API -- red de respaldo para las
+// rutas que no tienen su propio limitador especifico (admin, journal,
+// goals, referral, etc). Las rutas sensibles (auth, chat, pagos) ya tienen
+// su propio limite mas estricto encima de este.
+const { rateLimit: apiRateLimit } = require("express-rate-limit");
+app.use("/api", apiRateLimit({
+  windowMs: 60 * 1000,
+  max: 240,
+  keyGenerator: (req) => req.user?._id?.toString() || req.ip || "unknown",
+  message: { message: "Demasiadas solicitudes. Espera un momento." },
+  standardHeaders: true, legacyHeaders: false, validate: { keyGeneratorIpFallback: false },
+}));
+
 app.use(express.static(path.join(__dirname, "../client"), {
   maxAge: process.env.NODE_ENV === "production" ? "1d" : 0,
   etag: true,

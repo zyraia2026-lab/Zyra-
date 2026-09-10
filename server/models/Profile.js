@@ -30,6 +30,7 @@ const S = new mongoose.Schema({
   // ── Cupos del plan: llamadas y test emocional ──
   callsUsedThisMonth:     { type: Number, default: 0 },
   callsResetAt:           { type: Date, default: null },
+  lastCallStartedAt:      { type: Date, default: null },
   testUsedToday:          { type: Number, default: 0 },
   testResetAt:            { type: Date, default: null },
 

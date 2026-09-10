@@ -43,11 +43,16 @@ exports.createCheckout = async (req, res) => {
     const isAnnual = period === "annual";
 
     if (!stripe) {
-      // Modo demo: actualizar plan directamente (para pruebas/demos sin Stripe
-      // configurado). Abierto a cualquier cuenta autenticada a propósito -- se
-      // necesita para la exposicion, donde se prueba el pago con cuentas que
-      // no son la admin. Una vez haya STRIPE_SECRET_KEY real en el .env, esta
-      // rama ya no se ejecuta nunca (se va directo al checkout real de Stripe).
+      // Modo demo: actualizar plan directamente (para pruebas sin Stripe
+      // configurado). Restringido de nuevo al admin -- se abrió para
+      // cualquier cuenta solo durante la expo (ya pasó). Sin esto, cualquier
+      // usuario real que se registre podía llamar este endpoint y quedar en
+      // plan pago gratis para siempre, porque no hay pasarela real
+      // configurada (ni la va a haber pronto -- Stripe no opera en Colombia
+      // y las pasarelas locales piden RUT/NIT real).
+      if (!process.env.ADMIN_EMAIL || req.user.email !== process.env.ADMIN_EMAIL) {
+        return res.status(503).json({ message: "Los pagos aún no están disponibles. Intenta más tarde." });
+      }
       const duration = isAnnual ? PLANS[plan].durationAnnual : PLANS[plan].durationMonthly;
       const expires = new Date();
       expires.setDate(expires.getDate() + duration);

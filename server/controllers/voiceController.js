@@ -29,7 +29,7 @@ exports.startCall = async (req, res) => {
 
     await Profile.findOneAndUpdate(
       { user: req.user._id },
-      { callsUsedThisMonth: usedSoFar + 1, callsResetAt: now }
+      { callsUsedThisMonth: usedSoFar + 1, callsResetAt: now, lastCallStartedAt: now }
     );
 
     res.json({
@@ -41,13 +41,19 @@ exports.startCall = async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
 
-/* POST /api/voice/discard — llamada de menos de 30s, no debe contar */
+/* POST /api/voice/discard — llamada de menos de 30s, no debe contar.
+   Verificado en el servidor (no solo confiado del cliente): solo perdona
+   si hay una llamada iniciada de verdad hace menos de 30s, y la consume
+   de una vez (lastCallStartedAt a null) para que no se pueda repetir el
+   mismo perdón llamando este endpoint varias veces seguidas -- así no se
+   puede hacer start+discard en bucle para tener llamadas ilimitadas. */
 exports.discardCall = async (req, res) => {
   try {
-    await Profile.findOneAndUpdate(
-      { user: req.user._id, callsUsedThisMonth: { $gt: 0 } },
-      { $inc: { callsUsedThisMonth: -1 } }
+    const cutoff = new Date(Date.now() - 30000);
+    const updated = await Profile.findOneAndUpdate(
+      { user: req.user._id, callsUsedThisMonth: { $gt: 0 }, lastCallStartedAt: { $gte: cutoff } },
+      { $inc: { callsUsedThisMonth: -1 }, lastCallStartedAt: null }
     );
-    res.json({ success: true });
+    res.json({ success: !!updated });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };

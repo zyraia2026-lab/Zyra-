@@ -301,7 +301,11 @@ exports.redeemReward = async (req, res) => {
   } catch(e) { res.status(500).json({ message: e.message }); }
 };
 
-/* POST /api/gamification/test-start — revisa y descuenta 1 uso del test emocional */
+/* POST /api/gamification/test-start — revisa y descuenta 1 uso del test emocional.
+   Update atomico (pipeline) en vez de leer-y-luego-escribir -- la version
+   anterior tenia una condicion de carrera: varias solicitudes en paralelo
+   podian leer el mismo conteo antes de que cualquiera escribiera, y todas
+   pasaban el limite diario a la vez. */
 exports.startTest = async (req, res) => {
   try {
     const { getPlan, LIMITS } = require("../middleware/planGate");
@@ -314,21 +318,37 @@ exports.startTest = async (req, res) => {
     const col = new Date(now.getTime() - 5 * 60 * 60 * 1000);
     const today = col.getUTCFullYear() + "-" + String(col.getUTCMonth() + 1).padStart(2, "0") + "-" + String(col.getUTCDate()).padStart(2, "0");
 
-    let p = await Profile.findOne({ user: req.user._id }).select("testUsedToday testResetAt").lean();
-    if (!p) p = (await Profile.create({ user: req.user._id })).toObject();
-    const col2 = p.testResetAt ? new Date(new Date(p.testResetAt).getTime() - 5 * 60 * 60 * 1000) : null;
-    const lastDay = col2 ? col2.getUTCFullYear() + "-" + String(col2.getUTCMonth() + 1).padStart(2, "0") + "-" + String(col2.getUTCDate()).padStart(2, "0") : null;
-    const usedSoFar = lastDay === today ? (p.testUsedToday || 0) : 0;
+    await Profile.findOneAndUpdate({ user: req.user._id }, {}, { upsert: true }).catch(() => {});
 
-    if (usedSoFar >= limits.testPerDay) {
+    const updated = await Profile.findOneAndUpdate(
+      { user: req.user._id },
+      [{
+        $set: {
+          testUsedToday: {
+            $cond: [
+              { $eq: [{ $dateToString: { format: "%Y-%m-%d", date: { $ifNull: ["$testResetAt", new Date(0)] }, timezone: "America/Bogota" } }, today] },
+              { $add: [{ $ifNull: ["$testUsedToday", 0] }, 1] },
+              1,
+            ],
+          },
+          testResetAt: now,
+        },
+      }],
+      { new: true }
+    ).select("testUsedToday").lean();
+
+    const usedAfter = updated?.testUsedToday ?? 1;
+    if (usedAfter > limits.testPerDay) {
+      // Ya se paso del limite -- revertir el conteo que se acabo de sumar
+      // (no queremos que un intento rechazado siga inflando el numero).
+      await Profile.findOneAndUpdate({ user: req.user._id }, { $inc: { testUsedToday: -1 } });
       return res.status(403).json({
         allowed: false,
         message: `Ya usaste el test emocional ${limits.testPerDay === 1 ? "hoy" : limits.testPerDay + " veces hoy"}. Vuelve mañana, o mejora tu plan para repetirlo más veces.`,
       });
     }
 
-    await Profile.findOneAndUpdate({ user: req.user._id }, { testUsedToday: usedSoFar + 1, testResetAt: now });
-    res.json({ allowed: true, testUsed: usedSoFar + 1, testPerDay: limits.testPerDay });
+    res.json({ allowed: true, testUsed: usedAfter, testPerDay: limits.testPerDay });
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
 
