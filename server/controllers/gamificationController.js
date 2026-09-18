@@ -188,7 +188,7 @@ exports.recordVisit = async (req, res) => {
       const msg = STREAK_PUSH[streakHit];
       sendToUser(req.user._id, {
         title: msg.title, body: msg.body,
-        icon: "/Imagenes/1000154669.png", badge: "/Imagenes/1000154669.png",
+        icon: "/Imagenes/logo-nuevo.png", badge: "/Imagenes/logo-nuevo.png",
         tag: "zyra-streak-milestone", data: { url: "/?p=gamification" },
       }).catch(() => {});
     }
