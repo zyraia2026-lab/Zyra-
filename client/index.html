@@ -11320,19 +11320,18 @@ function renderJournal(entries, updateCache = true) {
     const em = EMOTIONS.find(x => x.key === e.emotion);
     const isFav = _favEntries.has(e._id);
     const _bc = e.emotion && _EMO_BORDER[e.emotion] ? `border-left:3px solid ${_EMO_BORDER[e.emotion]};padding-left:12px;` : "";
-    const _expandable = (e.content||"").length > 130;
-    return `<div class="journal-item${_expandable?" expandable":""}" id="jitem-${e._id}" style="${_bc}" ${_expandable?`onclick="toggleJournalPreview('${e._id}')"`:""}>
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+    return `<div class="journal-item" id="jitem-${e._id}" style="${_bc}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div class="journal-title">${em?em.emoji+" ":""}${safeHtml(e.title||"Entrada sin título")}</div>
-        <div class="jitem-actions" onclick="event.stopPropagation()">
-          <button class="jitem-icon-btn fav${isFav?" is-fav":""}" title="${isFav?"Quitar de favoritas":"Guardar como favorita"}" onclick="toggleFavEntry('${e._id}')">${isFav?"⭐":"☆"}</button>
-          <button class="jitem-icon-btn copy" title="Copiar entrada" onclick="copyJournalEntry(${JSON.stringify(e.title||'')},${JSON.stringify(e.content||'')},this)">📋</button>
-          <button class="jitem-edit-pill" title="Editar entrada" onclick="openEditJournal('${e._id}')" aria-label="Editar entrada: ${safeHtml(e.title||'Entrada sin título')}">✏️ Editar</button>
-          <button class="jitem-icon-btn del" title="Eliminar entrada" onclick="deleteJournal('${e._id}')" aria-label="Eliminar entrada: ${safeHtml(e.title||'Entrada sin título')}">🗑️</button>
+        <div style="display:flex;gap:6px" onclick="event.stopPropagation()">
+          <button class="btn-xs" title="${isFav?"Quitar de favoritas":"Guardar como favorita"}" onclick="toggleFavEntry('${e._id}')" style="color:${isFav?"#f59e0b":"var(--text3)"}">${isFav?"⭐":"☆"}</button>
+          <button class="btn-xs" title="Copiar entrada" onclick="copyJournalEntry(${JSON.stringify(e.title||'')},${JSON.stringify(e.content||'')},this)">📋</button>
+          <button class="btn-xs" onclick="openEditJournal('${e._id}')" aria-label="Editar entrada: ${safeHtml(e.title||'Entrada sin título')}">✏</button>
+          <button class="btn-xs" onclick="deleteJournal('${e._id}')" aria-label="Eliminar entrada: ${safeHtml(e.title||'Entrada sin título')}">×</button>
         </div>
       </div>
       <div class="journal-preview" id="jprev-${e._id}">${safeHtml(e.content)}</div>
-      ${_expandable ? `<button class="jitem-expand-btn" id="jexp-${e._id}" onclick="event.stopPropagation();toggleJournalPreview('${e._id}')">▼ Leer más</button>` : ""}
+      ${(e.content||"").length > 130 ? `<button class="jitem-expand-btn" id="jexp-${e._id}" onclick="event.stopPropagation();toggleJournalPreview('${e._id}')">▼ Leer más</button>` : ""}
       <div id="jinsight-${e._id}"></div>
       <div class="journal-meta">
         <span class="journal-date" title="${new Date(e.createdAt).toLocaleDateString("es",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}">${timeAgo(e.createdAt)}</span>

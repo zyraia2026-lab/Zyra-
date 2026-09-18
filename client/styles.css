@@ -1909,40 +1909,18 @@ nav#app-shared-nav {
 /* ═══════════════════════════════════════════
    JOURNAL
 ═══════════════════════════════════════════ */
-.journal-item{padding:18px;border-radius:var(--r-md);background:white;border:2px solid var(--border);margin-bottom:10px;transition:border-color .12s var(--ease),box-shadow .12s var(--ease),transform .12s var(--ease);box-shadow:var(--shadow-xs)}
-/* Solo las entradas largas ("Leer más") son clicables para expandir — antes TODA
-   la tarjeta tenía cursor y animación de click aunque no hiciera nada, lo que
-   además tapaba el click real de los botones de acción (favorita/editar/etc). */
-.journal-item.expandable{cursor:pointer}
-.journal-item.expandable:hover{border-color:#ddd6fe;box-shadow:var(--shadow-sm);transform:translateX(4px)}
-.journal-item.expandable:active{transform:scale(0.98) !important;}
-/* La animación de la tarjeta nunca debe dispararse por pasar/pulsar un botón de acción */
-.journal-item:has(.jitem-icon-btn:hover),
-.journal-item:has(.jitem-icon-btn:active),
-.journal-item:has(.jitem-edit-pill:hover),
-.journal-item:has(.jitem-edit-pill:active){transform:none !important;border-color:var(--border) !important;box-shadow:var(--shadow-xs) !important}
+.journal-item{padding:18px;border-radius:var(--r-md);background:white;border:2px solid var(--border);margin-bottom:10px;cursor:pointer;transition:border-color .12s var(--ease),box-shadow .12s var(--ease),transform .12s var(--ease);box-shadow:var(--shadow-xs)}
+.journal-item:hover{border-color:#ddd6fe;box-shadow:var(--shadow-sm);transform:translateX(4px)}
+.journal-item:active{transform:scale(0.97) !important;}
+/* La animación de la tarjeta no debe dispararse por pasar/pulsar un botón de acción
+   (favorita/copiar/editar/borrar) — antes "favorito" se sentía como si hiciera otra cosa. */
+.journal-item:has(.btn-xs:hover),
+.journal-item:has(.btn-xs:active){transform:none !important;border-color:var(--border) !important;box-shadow:var(--shadow-xs) !important}
 .journal-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px}
 .journal-preview{font-size:12px;color:var(--text3);line-height:1.6;overflow:hidden;display:-webkit-box;line-clamp:2;-webkit-line-clamp:2;-webkit-box-orient:vertical;transition:none}
 .journal-preview.expanded{display:block;-webkit-line-clamp:unset;line-clamp:unset;overflow:visible}
 .jitem-expand-btn{background:none;border:none;color:var(--accent,#6366f1);font-size:10px;font-weight:700;cursor:pointer;padding:4px 0 0;display:block;letter-spacing:.2px;opacity:.8;transition:opacity .15s}
 .jitem-expand-btn:hover{opacity:1}
-
-/* ── Acciones de entrada de diario — botones circulares independientes (favorita/
-   copiar/borrar) + una píldora con texto para editar, para que ninguno se confunda
-   entre sí ni con la tarjeta que los contiene. ── */
-.jitem-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
-.jitem-icon-btn{width:30px;height:30px;flex-shrink:0;background:transparent;border:1.5px solid var(--border,#e2e8f0);border-radius:50%;cursor:pointer;font-size:13px;line-height:1;display:inline-flex;align-items:center;justify-content:center;transition:background .15s ease,border-color .15s ease,transform .1s ease,color .15s ease}
-.jitem-icon-btn:active{transform:scale(.86)}
-.jitem-icon-btn.fav{color:#cbd5e1}
-.jitem-icon-btn.fav:hover{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.4);color:#f59e0b}
-.jitem-icon-btn.fav.is-fav{color:#f59e0b;background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.35)}
-.jitem-icon-btn.copy{color:#94a3b8}
-.jitem-icon-btn.copy:hover{background:rgba(100,116,139,.12);border-color:rgba(100,116,139,.4);color:#475569}
-.jitem-icon-btn.del{color:#94a3b8}
-.jitem-icon-btn.del:hover{background:#fef2f2;border-color:#fecaca;color:#ef4444}
-.jitem-edit-pill{flex-shrink:0;display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 13px;border-radius:99px;border:none;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:11px;font-weight:800;cursor:pointer;transition:filter .15s ease,transform .1s ease;box-shadow:0 2px 8px rgba(99,102,241,.3)}
-.jitem-edit-pill:hover{filter:brightness(1.08)}
-.jitem-edit-pill:active{transform:scale(.94)}
 .jitem-zyra-insight{margin-top:10px;padding:10px 12px;background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.18);border-radius:10px;font-size:11.5px;color:var(--text2,#374151);line-height:1.6;display:flex;gap:8px;align-items:flex-start;animation:fadeUp .3s ease both}
 .jitem-zyra-insight img{width:18px;height:18px;border-radius:50%;flex-shrink:0;margin-top:1px}
 .journal-meta{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
