@@ -13787,7 +13787,7 @@ function speakText(btn, text) {
   const clean = cleanTTS(text); if(!clean) return;
   const utt = new SpeechSynthesisUtterance(clean);
   utt.lang = "es-MX"; utt.rate = 0.90;
-  utt.pitch = (ttsVoice && _isTTSFemale(ttsVoice)) ? 1.2 : 1.8;
+  utt.pitch = 1.0;
   if(ttsVoice) utt.voice = ttsVoice;
   if(btn) { btn.classList.add("speaking"); btn.textContent = "⏹"; currentTTSBtn = btn; }
   utt.onend = () => { if(btn) { btn.classList.remove("speaking"); btn.textContent = "🔊"; } currentTTSBtn = null; };
@@ -17258,15 +17258,24 @@ async function vcSpeak(text, isGreeting) {
   vcSetWaveLabel('Escucha a Zyra...');
   vcSetWaveActive(true, true);
 
-  // Prioridad 1: voz neural del browser (Dalia Online Natural — sin latencia, mejor calidad)
-  await _waitForTTSVoices();
-  if (vcMuted) { vcSpeaking = false; vcSetBodyClass(false); return; }
-  if (_hasPremiumTTSVoice()) {
-    vcUseBrowserTTS(clean, isGreeting);
-    return;
-  }
+  // Red de seguridad: si por lo que sea el audio nunca dispara onend/onerror (bug
+  // conocido del Web Speech API tras varios cancel()+speak() seguidos), esto evita
+  // que la llamada se quede "trabada" sin volver a escuchar al usuario.
+  const myWatchdog = ++_vcWatchdogGen;
+  const watchdogMs = Math.min(45000, Math.max(6000, clean.length * 120) + 5000);
+  setTimeout(() => {
+    if (_vcWatchdogGen === myWatchdog && vcSpeaking) {
+      console.warn('vcSpeak watchdog: el audio no terminó a tiempo, se fuerza fin de turno');
+      _vcSpeakGen++; // invalida cualquier onend/onerror tardío para que no se dispare dos veces
+      window.speechSynthesis.cancel();
+      if (_vcAudioPlaying) { try { _vcAudioPlaying.pause(); } catch(e){} _vcAudioPlaying = null; }
+      vcOnSpeakEnd(isGreeting);
+    }
+  }, watchdogMs);
 
-  // Prioridad 2: backend TTS (StreamElements → Google TTS) + D-ID en background
+  // Voz del backend (neural — StreamElements/ElevenLabs) primero: es consistente
+  // para todos, sin depender de qué voz local tenga instalada el navegador. Si
+  // falla, vcSpeakBackend cae sola a la voz local del navegador como respaldo.
   await vcSpeakBackend(clean, isGreeting);
 }
 
@@ -17307,6 +17316,7 @@ function vcStartListening() {
 
 let _vcAudioPlaying = null; // referencia al audio activo de Zyra
 let _vcSpeakGen = 0; // generación para evitar que cancel() dispare onerror de la utterance anterior
+let _vcWatchdogGen = 0; // generación propia del watchdog anti-congelamiento (independiente de _vcSpeakGen)
 
 async function vcSpeakBackend(clean, isGreeting) {
   const load = document.getElementById('vc-avatar-loading');
@@ -17385,8 +17395,8 @@ function vcUseBrowserTTS(clean, isGreeting) {
     if (_vcSpeakGen !== myGen) return; // superseded by a newer vcSpeak call
     const utt = new SpeechSynthesisUtterance(clean);
     utt.lang = 'es-MX';
-    utt.rate  = isGreeting ? 0.84 : 0.87;
-    utt.pitch = (ttsVoice && _isTTSFemale(ttsVoice)) ? 1.2 : 1.8;
+    utt.rate  = isGreeting ? 0.92 : 0.96;
+    utt.pitch = 1.0;
     utt.volume = 1;
     if (ttsVoice) utt.voice = ttsVoice;
     utt.onend  = () => { if (_vcSpeakGen === myGen) vcOnSpeakEnd(isGreeting); };
@@ -17412,7 +17422,7 @@ function _speakWSA(text, btn) {
   _waitForTTSVoices().then(() => {
     const utt = new SpeechSynthesisUtterance(clean);
     utt.lang = "es-MX"; utt.rate = 0.88; utt.volume = 1;
-    utt.pitch = (ttsVoice && _isTTSFemale(ttsVoice)) ? 1.2 : 1.8;
+    utt.pitch = 1.0;
     if (ttsVoice) utt.voice = ttsVoice;
     utt.onend  = () => { if (btn) { btn.classList.remove("speaking"); btn.textContent = "🔊"; } if (currentTTSBtn===btn) currentTTSBtn=null; };
     utt.onerror = () => { if (btn) { btn.classList.remove("speaking","loading"); btn.textContent = "🔊"; } if (currentTTSBtn===btn) currentTTSBtn=null; };

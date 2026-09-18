@@ -20,6 +20,30 @@ function truncateAtSentence(text, maxLen) {
   return slice;
 }
 
+async function elevenLabsAudio(text) {
+  if (!process.env.ELEVENLABS_API_KEY || !process.env.ELEVENLABS_VOICE_ID) {
+    throw new Error("ElevenLabs no configurado");
+  }
+  const clean = truncateAtSentence(normalizeTTSText(text), 600);
+  const url = `https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVENLABS_VOICE_ID}`;
+  const r = await fetch(url, {
+    method: "POST",
+    signal: AbortSignal.timeout(15000),
+    headers: {
+      "xi-api-key": process.env.ELEVENLABS_API_KEY,
+      "Content-Type": "application/json",
+      "Accept": "audio/mpeg",
+    },
+    body: JSON.stringify({
+      text: clean,
+      model_id: "eleven_turbo_v2_5",
+      voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+    }),
+  });
+  if (!r.ok) throw new Error("ElevenLabs " + r.status);
+  return r;
+}
+
 async function streamElementsAudio(text) {
   const clean = truncateAtSentence(normalizeTTSText(text), 320);
   const url = `https://api.streamelements.com/kappa/v2/speech?voice=es-MX-DaliaNeural&text=${encodeURIComponent(clean)}`;
@@ -48,25 +72,32 @@ async function googleTTSAudio(text) {
   return r;
 }
 
-/* ── POST /api/tts/speak ── StreamElements Dalia Neural → Google TTS fallback */
+/* ── POST /api/tts/speak ── ElevenLabs → StreamElements Dalia Neural → Google TTS */
 exports.speak = async (req, res) => {
   try {
     const { text } = req.body;
     if (!text?.trim()) return res.status(400).json({ message: "Texto requerido" });
 
     let audioBuffer = null;
-    let provider = "streamelements";
+    let provider = "elevenlabs";
     try {
-      const r = await streamElementsAudio(text);
+      const r = await elevenLabsAudio(text);
       audioBuffer = Buffer.from(await r.arrayBuffer());
     } catch(e) {
-      console.warn("[TTS/speak] StreamElements:", e.message, "→ Google TTS");
-      provider = "google";
+      console.warn("[TTS/speak] ElevenLabs:", e.message, "→ StreamElements");
+      provider = "streamelements";
       try {
-        const r = await googleTTSAudio(text);
+        const r = await streamElementsAudio(text);
         audioBuffer = Buffer.from(await r.arrayBuffer());
       } catch(e2) {
-        throw new Error("TTS no disponible: " + e2.message);
+        console.warn("[TTS/speak] StreamElements:", e2.message, "→ Google TTS");
+        provider = "google";
+        try {
+          const r = await googleTTSAudio(text);
+          audioBuffer = Buffer.from(await r.arrayBuffer());
+        } catch(e3) {
+          throw new Error("TTS no disponible: " + e3.message);
+        }
       }
     }
 
@@ -77,11 +108,19 @@ exports.speak = async (req, res) => {
   }
 };
 
-/* ── POST /api/tts/audio ── StreamElements Dalia Neural → Google TTS */
+/* ── POST /api/tts/audio ── ElevenLabs → StreamElements Dalia Neural → Google TTS */
 exports.audio = async (req, res) => {
   try {
     const { text } = req.body;
     if (!text?.trim()) return res.status(400).json({ message: "Texto requerido" });
+
+    try {
+      const r = await elevenLabsAudio(text);
+      res.set("Content-Type", "audio/mpeg");
+      res.set("X-TTS-Provider", "elevenlabs");
+      res.send(Buffer.from(await r.arrayBuffer()));
+      return;
+    } catch(e) { console.warn("[TTS] ElevenLabs:", e.message, "→ StreamElements"); }
 
     try {
       const r = await streamElementsAudio(text);
