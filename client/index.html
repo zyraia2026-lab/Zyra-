@@ -461,14 +461,21 @@ function closeSplash(){
 
 <!-- ══ TERMS ACCEPTANCE — FIRST TIME ══ -->
 <div id="zyra-terms-overlay" role="dialog" aria-modal="true" aria-labelledby="terms-overlay-title" style="display:none;position:fixed;inset:0;z-index:9700;background:rgba(0,0,0,.92);backdrop-filter:blur(16px);align-items:center;justify-content:center;padding:16px">
-  <div style="background:var(--bg2,#141624);border:1px solid rgba(99,102,241,.3);border-radius:28px;max-width:520px;width:100%;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 40px 100px rgba(0,0,0,.7)">
+  <div style="position:relative;background:#141624;border:1px solid rgba(99,102,241,.3);border-radius:28px;max-width:520px;width:100%;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 40px 100px rgba(0,0,0,.7),0 0 0 1px rgba(99,102,241,.06);animation:zyraModalPop .4s cubic-bezier(.16,1,.3,1)">
+
+    <!-- Barra superior decorativa -->
+    <div style="height:4px;flex-shrink:0;background:linear-gradient(90deg,#6366f1,#a855f7,#818cf8)"></div>
 
     <!-- Header -->
-    <div style="padding:28px 28px 0;flex-shrink:0">
-      <div style="text-align:center;margin-bottom:20px">
-        <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:28px">🌊</div>
-        <h2 id="terms-overlay-title" style="font-size:20px;font-weight:800;margin:0 0 6px;color:var(--text,#e8eaf6)">Antes de continuar</h2>
-        <p style="font-size:13px;color:var(--text3,#7880a0);margin:0;line-height:1.5">Por favor lee y acepta nuestros términos para usar Zyra</p>
+    <div style="position:relative;padding:30px 28px 0;flex-shrink:0;overflow:hidden">
+      <div style="position:absolute;top:-60px;left:50%;transform:translateX(-50%);width:220px;height:180px;background:radial-gradient(circle,rgba(139,92,246,.35),transparent 70%);pointer-events:none"></div>
+      <div style="position:relative;text-align:center;margin-bottom:20px">
+        <div style="width:68px;height:68px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 6px 24px rgba(99,102,241,.5),0 0 0 4px rgba(99,102,241,.12);padding:13px">
+          <img src="/Imagenes/logo-nuevo.png" alt="Zyra" style="width:100%;height:100%;object-fit:contain"/>
+        </div>
+        <div style="font-size:11px;font-weight:800;color:#818cf8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Bienvenido a Zyra</div>
+        <h2 id="terms-overlay-title" style="font-size:21px;font-weight:800;margin:0 0 6px;color:#e8eaf6;letter-spacing:-.3px">Antes de continuar</h2>
+        <p style="font-size:13px;color:#7880a0;margin:0;line-height:1.5">Por favor lee y acepta nuestros términos para usar Zyra</p>
       </div>
     </div>
 
@@ -476,45 +483,66 @@ function closeSplash(){
     <div id="terms-scroll-area" style="flex:1;overflow-y:auto;padding:0 28px;min-height:0" onscroll="onTermsScroll(this)">
 
       <!-- Puntos clave -->
-      <div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:16px;padding:18px;margin-bottom:16px">
-        <div style="font-size:12px;font-weight:700;color:#818cf8;text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px">Resumen de lo que aceptas</div>
-        <div style="font-size:13px;color:var(--text2,#c0c4d8);line-height:2.1">
-          ✅ Usarás Zyra solo para apoyo emocional personal<br/>
-          ✅ Eres mayor de 13 años<br/>
-          ✅ Entiendes que Zyra <strong>no reemplaza</strong> atención médica o terapia<br/>
-          ✅ Tus datos están protegidos y nunca los vendemos<br/>
-          ✅ Puedes exportar o eliminar tus datos cuando quieras<br/>
-          ✅ Las suscripciones se renuevan automáticamente y puedes cancelar
+      <div style="background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.06));border:1.5px solid rgba(99,102,241,.22);border-radius:18px;padding:20px;margin-bottom:16px">
+        <div style="font-size:12px;font-weight:800;color:#818cf8;text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px">Resumen de lo que aceptas</div>
+        <div style="display:flex;flex-direction:column;gap:11px">
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <span style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:900;margin-top:1px">✓</span>
+            <span style="font-size:13px;color:#c0c4d8;line-height:1.5">Usarás Zyra solo para apoyo emocional personal</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <span style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:900;margin-top:1px">✓</span>
+            <span style="font-size:13px;color:#c0c4d8;line-height:1.5">Eres mayor de 13 años</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <span style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:900;margin-top:1px">✓</span>
+            <span style="font-size:13px;color:#c0c4d8;line-height:1.5">Entiendes que Zyra <strong style="color:#e8eaf6">no reemplaza</strong> atención médica o terapia</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <span style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:900;margin-top:1px">✓</span>
+            <span style="font-size:13px;color:#c0c4d8;line-height:1.5">Tus datos están protegidos y nunca los vendemos</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <span style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:900;margin-top:1px">✓</span>
+            <span style="font-size:13px;color:#c0c4d8;line-height:1.5">Puedes exportar o eliminar tus datos cuando quieras</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <span style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:900;margin-top:1px">✓</span>
+            <span style="font-size:13px;color:#c0c4d8;line-height:1.5">Las suscripciones se renuevan automáticamente y puedes cancelar</span>
+          </div>
         </div>
       </div>
 
       <!-- Aviso salud mental destacado -->
-      <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.25);border-radius:14px;padding:16px;margin-bottom:16px">
-        <div style="font-size:13px;color:#f87171;font-weight:700;margin-bottom:6px">⚕️ Aviso importante de salud</div>
-        <div style="font-size:12px;color:var(--text2,#c0c4d8);line-height:1.7">
-          Zyra es una herramienta de bienestar emocional con IA. <strong>No es un servicio médico, psicológico ni de emergencias.</strong> Si estás en crisis, llama a la Línea 106 (Colombia) o al 112.
+      <div style="display:flex;gap:12px;align-items:flex-start;background:rgba(239,68,68,.08);border:1.5px solid rgba(239,68,68,.28);border-radius:16px;padding:16px;margin-bottom:16px">
+        <span style="flex-shrink:0;width:30px;height:30px;border-radius:50%;background:rgba(239,68,68,.18);display:flex;align-items:center;justify-content:center;font-size:15px">⚕️</span>
+        <div>
+          <div style="font-size:13px;color:#f87171;font-weight:800;margin-bottom:5px">Aviso importante de salud</div>
+          <div style="font-size:12px;color:#c0c4d8;line-height:1.7">
+            Zyra es una herramienta de bienestar emocional con IA. <strong style="color:#e8eaf6">No es un servicio médico, psicológico ni de emergencias.</strong> Si estás en crisis, llama a la Línea 106 (Colombia) o al 112.
+          </div>
         </div>
       </div>
 
       <!-- Links a documentos completos -->
       <div style="display:flex;gap:10px;margin-bottom:16px">
-        <button onclick="window.open('/legal?tab=terms','_blank','noopener')" style="flex:1;padding:11px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:var(--text2,#c0c4d8);font-size:12px;cursor:pointer;font-weight:600">📄 Leer Términos completos ↗</button>
-        <button onclick="window.open('/legal?tab=privacy','_blank','noopener')" style="flex:1;padding:11px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:var(--text2,#c0c4d8);font-size:12px;cursor:pointer;font-weight:600">🔒 Leer Privacidad completa ↗</button>
+        <button class="terms-doc-link" onclick="window.open('/legal?tab=terms','_blank','noopener')" style="flex:1;padding:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:#c0c4d8;font-size:12px;cursor:pointer;font-weight:700">📄 Términos completos ↗</button>
+        <button class="terms-doc-link" onclick="window.open('/legal?tab=privacy','_blank','noopener')" style="flex:1;padding:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:#c0c4d8;font-size:12px;cursor:pointer;font-weight:700">🔒 Privacidad completa ↗</button>
       </div>
 
       <!-- Checkboxes -->
       <div style="padding-bottom:4px">
-        <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);border-radius:12px;margin-bottom:10px">
-          <input type="checkbox" id="tc-check-1" style="margin-top:2px;flex-shrink:0;accent-color:#6366f1;width:17px;height:17px" onchange="updateTermsBtn()"/>
-          <span style="font-size:13px;color:var(--text,#e8eaf6);line-height:1.5">He leído, entendido y acepto los <strong><a onclick="showLegal('terms');event.stopPropagation()" style="color:#818cf8;cursor:pointer;text-decoration:underline">Términos y Condiciones de Uso</a></strong> y la <strong><a onclick="showLegal('privacy');event.stopPropagation()" style="color:#818cf8;cursor:pointer;text-decoration:underline">Política de Privacidad y Tratamiento de Datos</a></strong> de Zyra. Autorizo el tratamiento de mis datos personales según lo descrito.</span>
+        <label class="terms-check-card accent" style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:rgba(99,102,241,.06);border:1.5px solid rgba(99,102,241,.18);border-radius:14px;margin-bottom:10px">
+          <input type="checkbox" id="tc-check-1" style="margin-top:2px;flex-shrink:0;accent-color:#6366f1;width:18px;height:18px" onchange="updateTermsBtn()"/>
+          <span style="font-size:13px;color:#e8eaf6;line-height:1.5">He leído, entendido y acepto los <strong><a onclick="showLegal('terms');event.stopPropagation()" style="color:#818cf8;cursor:pointer;text-decoration:underline">Términos y Condiciones de Uso</a></strong> y la <strong><a onclick="showLegal('privacy');event.stopPropagation()" style="color:#818cf8;cursor:pointer;text-decoration:underline">Política de Privacidad y Tratamiento de Datos</a></strong> de Zyra. Autorizo el tratamiento de mis datos personales según lo descrito.</span>
         </label>
-        <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.15);border-radius:12px;margin-bottom:10px">
-          <input type="checkbox" id="tc-check-2" style="margin-top:2px;flex-shrink:0;accent-color:#ef4444;width:17px;height:17px" onchange="updateTermsBtn()"/>
-          <span style="font-size:13px;color:var(--text,#e8eaf6);line-height:1.5">Entiendo que Zyra es una herramienta de bienestar emocional con IA y <strong>NO reemplaza</strong> la atención de un profesional de salud mental, psicólogo, psiquiatra ni servicio de emergencias.</span>
+        <label class="terms-check-card danger" style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:rgba(239,68,68,.05);border:1.5px solid rgba(239,68,68,.18);border-radius:14px;margin-bottom:10px">
+          <input type="checkbox" id="tc-check-2" style="margin-top:2px;flex-shrink:0;accent-color:#ef4444;width:18px;height:18px" onchange="updateTermsBtn()"/>
+          <span style="font-size:13px;color:#e8eaf6;line-height:1.5">Entiendo que Zyra es una herramienta de bienestar emocional con IA y <strong>NO reemplaza</strong> la atención de un profesional de salud mental, psicólogo, psiquiatra ni servicio de emergencias.</span>
         </label>
-        <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.15);border-radius:12px">
-          <input type="checkbox" id="tc-check-3" style="margin-top:2px;flex-shrink:0;accent-color:#10b981;width:17px;height:17px" onchange="updateTermsBtn()"/>
-          <span style="font-size:13px;color:var(--text,#e8eaf6);line-height:1.5">Confirmo que tengo <strong>13 años o más</strong>. Si tengo entre 13 y 17 años, cuento con el consentimiento de mis padres o tutores. Si voy a contratar un plan de pago, confirmo ser mayor de 18 años.</span>
+        <label class="terms-check-card success" style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:rgba(16,185,129,.05);border:1.5px solid rgba(16,185,129,.18);border-radius:14px">
+          <input type="checkbox" id="tc-check-3" style="margin-top:2px;flex-shrink:0;accent-color:#10b981;width:18px;height:18px" onchange="updateTermsBtn()"/>
+          <span style="font-size:13px;color:#e8eaf6;line-height:1.5">Confirmo que tengo <strong>13 años o más</strong>. Si tengo entre 13 y 17 años, cuento con el consentimiento de mis padres o tutores. Si voy a contratar un plan de pago, confirmo ser mayor de 18 años.</span>
         </label>
       </div>
 
@@ -524,10 +552,10 @@ function closeSplash(){
     <!-- Footer con botón -->
     <div style="padding:20px 28px;border-top:1px solid rgba(255,255,255,.07);flex-shrink:0">
       <button id="btn-accept-terms" onclick="acceptTermsAndContinue()" disabled
-        style="width:100%;padding:15px;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;transition:all .3s;background:rgba(99,102,241,.3);color:rgba(255,255,255,.4)">
+        style="width:100%;padding:16px;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;transition:all .3s;background:rgba(99,102,241,.3);color:rgba(255,255,255,.4);box-shadow:0 6px 24px rgba(99,102,241,.25)">
         Acepta los tres puntos para continuar
       </button>
-      <p style="text-align:center;font-size:11px;color:var(--text3,#7880a0);margin:10px 0 0">
+      <p style="text-align:center;font-size:11px;color:#7880a0;margin:10px 0 0">
         Versión v1.1 — 6 de julio de 2026 · <a href="mailto:zyra.ia.2026@gmail.com" style="color:#818cf8">Contacto legal</a>
       </p>
     </div>
@@ -9894,7 +9922,7 @@ function renderMoodMiniTrend(history) {
   if (!wrap || !bars || history.length < 3) { if(wrap) wrap.style.display="none"; return; }
   wrap.style.display = "";
   const last7 = history.slice(-7);
-  const W = 360, H = 80, PL = 4, PR = 4, PT = 8, PB = 28;
+  const W = 264, H = 80, PL = 6, PR = 6, PT = 8, PB = 28;
   const cW = W - PL - PR, cH = H - PT - PB;
   const pts = last7.map((h, i) => {
     const v = (_MOOD_VAL[h.emotion] || 3) - 1;
@@ -9911,8 +9939,8 @@ function renderMoodMiniTrend(history) {
   }
   const fill = path + ` L ${pts[pts.length-1].x} ${H-PB} L ${pts[0].x} ${H-PB} Z`;
   const dots = pts.map(p => `<circle cx="${p.x}" cy="${p.y}" r="3.5" fill="${p.em.color}" stroke="var(--bg2)" stroke-width="1.5"><title>${p.em.label} — ${p.day}</title></circle>`).join("");
-  const emojis = pts.map(p => `<text x="${p.x}" y="${p.y-7}" text-anchor="middle" style="font-size:10px">${p.em.emoji}</text>`).join("");
-  const labels = pts.map(p => `<text x="${p.x}" y="${H-PB+12}" text-anchor="middle" style="font-size:9px;fill:var(--text3)">${p.day}</text>`).join("");
+  const emojis = pts.map(p => `<text x="${p.x}" y="${p.y-7}" text-anchor="middle" style="font-size:12px">${p.em.emoji}</text>`).join("");
+  const labels = pts.map(p => `<text x="${p.x}" y="${H-PB+12}" text-anchor="middle" style="font-size:10px;fill:var(--text3)">${p.day}</text>`).join("");
   bars.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:${H}px;display:block;overflow:visible">
     <defs>
       <linearGradient id="mtg" x1="0" y1="0" x2="0" y2="1">
@@ -10158,7 +10186,9 @@ function renderChart(history) {
   const el = document.getElementById("emotion-chart");
   if(!history || !history.length) { el.innerHTML = '<div class="chart-empty"><span style="font-size:32px;opacity:.3">📊</span><span>Registra emociones para ver la gráfica</span></div>'; return; }
   const last = history.slice(-14);
-  const W = 560, H = 130, PL = 8, PR = 8, PT = 12, PB = 36;
+  // W ajustado al ancho real de la tarjeta (.db-rail-card ≈ 264px de contenido);
+  // antes era 560 y el SVG se escalaba a la mitad, dejando textos y puntos ilegibles.
+  const W = 264, H = 118, PL = 10, PR = 10, PT = 16, PB = 30;
   const cW = W - PL - PR, cH = H - PT - PB;
   const pts = last.map((h, i) => {
     const v = (_MOOD_VAL[h.emotion] || 3) - 1; // 0-4
@@ -10174,21 +10204,22 @@ function renderChart(history) {
     const cp = (pts[i].x - pts[i-1].x) * 0.45;
     path += ` C ${pts[i-1].x+cp} ${pts[i-1].y}, ${pts[i].x-cp} ${pts[i].y}, ${pts[i].x} ${pts[i].y}`;
   }
-  const fillPath = path + ` L ${pts[pts.length-1].x} ${H-PB} L ${pts[0].x} ${H-PB} Z`;
-  const dots = pts.map((p,i) => `<circle cx="${p.x}" cy="${p.y}" r="4" fill="${p.em.color}" stroke="var(--bg2)" stroke-width="2"><title>${p.em.label} (${p.label})</title></circle>`).join("");
-  const labels = pts.filter((_,i)=> last.length<=7 || i%2===0).map(p => `<text x="${p.x}" y="${H-PB+14}" text-anchor="middle" style="font-size:9px;fill:var(--text3)">${p.label}</text>`).join("");
-  const emojis = pts.map(p => `<text x="${p.x}" y="${p.y-8}" text-anchor="middle" style="font-size:11px">${p.em.emoji}</text>`).join("");
-  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:${H}px;display:block;overflow:visible">
+  const fillPath = pts.length > 1 ? (path + ` L ${pts[pts.length-1].x} ${H-PB} L ${pts[0].x} ${H-PB} Z`) : "";
+  const dots = pts.map((p,i) => `<circle cx="${p.x}" cy="${p.y}" r="3.5" fill="${p.em.color}" stroke="var(--bg2)" stroke-width="2"><title>${p.em.label} (${p.label})</title></circle>`).join("");
+  const labels = pts.filter((_,i)=> last.length<=5 || i%2===0).map(p => `<text x="${p.x}" y="${H-PB+16}" text-anchor="middle" style="font-size:10px;fill:var(--text3)">${p.label}</text>`).join("");
+  const emojis = pts.map(p => `<text x="${p.x}" y="${p.y-9}" text-anchor="middle" style="font-size:13px">${p.em.emoji}</text>`).join("");
+  const sparseHint = last.length < 4 ? `<div style="font-size:11px;color:var(--text3);text-align:center;margin-top:8px">Sigue registrando cómo te sientes para ver tu tendencia completa</div>` : "";
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:${H}px;display:block;overflow:visible">
     <defs>
       <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="#6366f1" stop-opacity="0.35"/>
         <stop offset="100%" stop-color="#6366f1" stop-opacity="0"/>
       </linearGradient>
     </defs>
-    <path d="${fillPath}" fill="url(#cg)"/>
-    <path d="${path}" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    ${fillPath ? `<path d="${fillPath}" fill="url(#cg)"/>` : ""}
+    ${path.includes("C") ? `<path d="${path}" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : ""}
     ${dots}${emojis}${labels}
-  </svg>`;
+  </svg>${sparseHint}`;
 }
 function renderDashConvs(convs) {
   const el = document.getElementById("dash-convs");
@@ -11292,11 +11323,11 @@ function renderJournal(entries, updateCache = true) {
     return `<div class="journal-item" id="jitem-${e._id}" style="${_bc}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div class="journal-title">${em?em.emoji+" ":""}${safeHtml(e.title||"Entrada sin título")}</div>
-        <div style="display:flex;gap:6px">
-          <button class="btn-xs" title="${isFav?"Quitar de favoritas":"Guardar como favorita"}" onclick="toggleFavEntry('${e._id}')" style="color:${isFav?"#f59e0b":"var(--text3)"}">${isFav?"⭐":"☆"}</button>
-          <button class="btn-xs" title="Copiar entrada" onclick="copyJournalEntry(${JSON.stringify(e.title||'')},${JSON.stringify(e.content||'')},this)">📋</button>
-          <button class="btn-xs" onclick="openEditJournal('${e._id}')" aria-label="Editar entrada: ${safeHtml(e.title||'Entrada sin título')}">✏</button>
-          <button class="btn-xs" onclick="deleteJournal('${e._id}')" aria-label="Eliminar entrada: ${safeHtml(e.title||'Entrada sin título')}">×</button>
+        <div style="display:flex;gap:7px" onclick="event.stopPropagation()">
+          <button class="jitem-act-btn fav${isFav?" is-fav":""}" title="${isFav?"Quitar de favoritas":"Guardar como favorita"}" onclick="toggleFavEntry('${e._id}')">${isFav?"⭐":"☆"}</button>
+          <button class="jitem-act-btn copy" title="Copiar entrada" onclick="copyJournalEntry(${JSON.stringify(e.title||'')},${JSON.stringify(e.content||'')},this)">📋</button>
+          <button class="jitem-act-btn edit" title="Editar entrada" onclick="openEditJournal('${e._id}')" aria-label="Editar entrada: ${safeHtml(e.title||'Entrada sin título')}">✏️ Editar</button>
+          <button class="jitem-act-btn del" title="Eliminar entrada" onclick="deleteJournal('${e._id}')" aria-label="Eliminar entrada: ${safeHtml(e.title||'Entrada sin título')}">×</button>
         </div>
       </div>
       <div class="journal-preview" id="jprev-${e._id}">${safeHtml(e.content)}</div>
@@ -12023,8 +12054,8 @@ function showTestResult() {
     movie:      `<button class="btn-primary" style="width:auto;padding:13px 28px" onclick="showPage('assistant');setTimeout(()=>{document.getElementById('chat-input').value='Recomiéndame una película para ver hoy';sendMsg();},600)">🎬 Que Zyra recomiende algo</button>`,
   };
   const insightsHtml = insights.length ? `
-    <div style="margin:16px 0 0;padding:14px 16px;background:rgba(255,255,255,.06);border-radius:12px;text-align:left">
-      ${insights.map(i => `<div style="font-size:12px;color:rgba(255,255,255,.75);line-height:1.6;margin-bottom:6px">💡 ${i}</div>`).join("")}
+    <div style="margin:16px 0 0;padding:14px 16px;background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.15);border-radius:12px;text-align:left">
+      ${insights.map(i => `<div style="font-size:12px;color:var(--text2,#334155);line-height:1.6;margin-bottom:6px">💡 ${i}</div>`).join("")}
     </div>` : "";
   document.getElementById("test-page-wrap").innerHTML = `
     <div class="test-header">

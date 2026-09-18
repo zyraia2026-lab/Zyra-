@@ -1818,7 +1818,7 @@ nav#app-shared-nav {
 .chart-bar { width: 100%; border-radius: 8px 8px 0 0; transition: height .6s cubic-bezier(.34,1.56,.64,1); min-height: 4px; }
 .chart-emoji { font-size: 11px; text-align: center; }
 .chart-date { font-size: 8px; color: #94a3b8; text-align: center; }
-.chart-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: #94a3b8; font-size: 13px; flex-direction: column; gap: 10px; }
+.chart-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text3, #64748b); font-size: 13px; text-align: center; flex-direction: column; gap: 10px; }
 
 /* ═══════════════════════════════════════════
    CONVERSATIONS
@@ -1917,6 +1917,20 @@ nav#app-shared-nav {
 .journal-preview.expanded{display:block;-webkit-line-clamp:unset;line-clamp:unset;overflow:visible}
 .jitem-expand-btn{background:none;border:none;color:var(--accent,#6366f1);font-size:10px;font-weight:700;cursor:pointer;padding:4px 0 0;display:block;letter-spacing:.2px;opacity:.8;transition:opacity .15s}
 .jitem-expand-btn:hover{opacity:1}
+
+/* ── Acciones de entrada de diario — cada botón con su propio color, para que no
+   todos parezcan "borrar" al pasar el mouse (antes compartían .btn-xs con hover rojo) ── */
+.jitem-act-btn{background:transparent;border:1.5px solid var(--border,#e2e8f0);padding:5px 9px;border-radius:9px;cursor:pointer;font-size:13px;line-height:1;display:inline-flex;align-items:center;justify-content:center;transition:background .15s ease,border-color .15s ease,transform .1s ease}
+.jitem-act-btn:active{transform:scale(.88)}
+.jitem-act-btn.fav{color:#94a3b8}
+.jitem-act-btn.fav:hover{background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.4);color:#f59e0b}
+.jitem-act-btn.fav.is-fav{color:#f59e0b;background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.3)}
+.jitem-act-btn.copy{color:#94a3b8}
+.jitem-act-btn.copy:hover{background:rgba(100,116,139,.1);border-color:rgba(100,116,139,.35);color:#475569}
+.jitem-act-btn.edit{color:#6366f1;border-color:rgba(99,102,241,.28);background:rgba(99,102,241,.07)}
+.jitem-act-btn.edit:hover{background:rgba(99,102,241,.18);border-color:rgba(99,102,241,.55)}
+.jitem-act-btn.del{color:#94a3b8}
+.jitem-act-btn.del:hover{background:#fef2f2;border-color:#fecaca;color:#ef4444}
 .jitem-zyra-insight{margin-top:10px;padding:10px 12px;background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.18);border-radius:10px;font-size:11.5px;color:var(--text2,#374151);line-height:1.6;display:flex;gap:8px;align-items:flex-start;animation:fadeUp .3s ease both}
 .jitem-zyra-insight img{width:18px;height:18px;border-radius:50%;flex-shrink:0;margin-top:1px}
 .journal-meta{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
@@ -4035,6 +4049,22 @@ body {
   from { transform: translateY(100%); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }
 }
+
+@keyframes zyraModalPop {
+  from { opacity: 0; transform: scale(.94) translateY(10px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+/* ── Modal de términos ── */
+.terms-doc-link {
+  transition: background .2s ease, border-color .2s ease, transform .15s ease;
+}
+.terms-doc-link:hover { background: rgba(255,255,255,.09) !important; border-color: rgba(255,255,255,.18) !important; transform: translateY(-1px); }
+
+.terms-check-card { transition: background .2s ease, border-color .2s ease, box-shadow .2s ease; }
+.terms-check-card.accent:has(input:checked) { background: rgba(99,102,241,.14) !important; border-color: rgba(99,102,241,.5) !important; box-shadow: 0 0 0 3px rgba(99,102,241,.12); }
+.terms-check-card.danger:has(input:checked) { background: rgba(239,68,68,.11)  !important; border-color: rgba(239,68,68,.5)  !important; box-shadow: 0 0 0 3px rgba(239,68,68,.12); }
+.terms-check-card.success:has(input:checked) { background: rgba(16,185,129,.11) !important; border-color: rgba(16,185,129,.5) !important; box-shadow: 0 0 0 3px rgba(16,185,129,.12); }
 
 /* ── Streaming chat cursor ── */
 .stream-cursor {
