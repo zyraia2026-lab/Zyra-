@@ -10209,7 +10209,10 @@ function renderChart(history) {
   const labels = pts.filter((_,i)=> last.length<=5 || i%2===0).map(p => `<text x="${p.x}" y="${H-PB+16}" text-anchor="middle" style="font-size:10px;fill:var(--text3)">${p.label}</text>`).join("");
   const emojis = pts.map(p => `<text x="${p.x}" y="${p.y-9}" text-anchor="middle" style="font-size:13px">${p.em.emoji}</text>`).join("");
   const sparseHint = last.length < 4 ? `<div style="font-size:11px;color:var(--text3);text-align:center;margin-top:8px">Sigue registrando cómo te sientes para ver tu tendencia completa</div>` : "";
-  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:${H}px;display:block;overflow:visible">
+  // .chart-wrap es flex-row (lo usa tambien el chart de barras) — envolver todo en un
+  // solo div para que el mensaje caiga debajo del svg en vez de al lado, afuera de la tarjeta.
+  el.innerHTML = `<div style="width:100%">
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:${H}px;display:block;overflow:visible">
     <defs>
       <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="#6366f1" stop-opacity="0.35"/>
@@ -10219,7 +10222,8 @@ function renderChart(history) {
     ${fillPath ? `<path d="${fillPath}" fill="url(#cg)"/>` : ""}
     ${path.includes("C") ? `<path d="${path}" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : ""}
     ${dots}${emojis}${labels}
-  </svg>${sparseHint}`;
+    </svg>${sparseHint}
+  </div>`;
 }
 function renderDashConvs(convs) {
   const el = document.getElementById("dash-convs");
