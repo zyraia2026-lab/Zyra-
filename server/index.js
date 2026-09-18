@@ -125,6 +125,11 @@ app.use(express.static(path.join(__dirname, "../client"), {
       res.setHeader("Content-Disposition", 'attachment; filename="Zyra.apk"');
       res.setHeader("Cache-Control", "no-cache");
     }
+    // styles.css tiene un ?v= que hay que recordar subir en cada deploy que lo toque;
+    // como red de seguridad si se nos olvida, que el navegador lo refresque solo en minutos, no en 1 día.
+    if (filePath.endsWith("styles.css")) {
+      res.setHeader("Cache-Control", "public, max-age=300");
+    }
   }
 }));
 

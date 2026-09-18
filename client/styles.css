@@ -1884,6 +1884,11 @@ nav#app-shared-nav {
 .goal-item:hover { background: white; border-color: #e0e2ff; box-shadow: 0 4px 14px rgba(99,102,241,0.08); }
 .goal-item:active { transform: scale(0.97) !important; }
 .goal-item.done { opacity: .5; }
+/* La tarjeta no tiene click propio — solo botones adentro (check/editar/borrar/progreso/notas/
+   Plan IA). Que su animación no se dispare al tocar esos botones (mismo bug que tuvo el diario). */
+.goal-item:has(.goal-check:hover), .goal-item:has(.goal-check:active),
+.goal-item:has(button:hover), .goal-item:has(button:active)
+{ transform: none !important; background: #f8f9ff !important; border-color: transparent !important; box-shadow: none !important; }
 
 .goal-check:hover{border-color:var(--green);transform:scale(1.1)}
 .goal-check.checked{background:var(--green);border-color:var(--green);color:white;box-shadow:0 0 0 3px rgba(5,150,105,.15)}
@@ -2041,6 +2046,10 @@ textarea.chat-ta::placeholder{color:var(--placeholder);-webkit-text-fill-color:v
 .card-item { display: flex; align-items: center; gap: 11px; border-radius: 14px; padding: 11px 15px; text-decoration: none; transition: transform .12s var(--ease), box-shadow .12s var(--ease), background .12s var(--ease), border-color .12s var(--ease); cursor: pointer; border: 1.5px solid var(--border); background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.05); width: 100%; box-sizing: border-box; min-width: 0; }
 .card-item:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(99,102,241,0.12); }
 .card-item:active { transform: scale(0.96) !important; }
+/* Algunas variantes (tip de respiracion, etc) traen un boton adentro sin ser ellas mismas
+   clicables — que su animacion no se dispare al tocar ese boton (mismo bug del diario). */
+.card-item:has(button:hover), .card-item:has(button:active)
+{ transform: none !important; box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important; }
 .card-item.song  { border-color: #a7f3d0; background: #ecfdf5; }
 .card-item.song:hover { background: #d1fae5; border-color: #6ee7b7; }
 .card-item.book  { border-color: #fde68a; background: #fffbeb; }
@@ -3710,6 +3719,10 @@ body {
 .reward-card:hover { transform: translateY(-4px) scale(1.02); border-color: var(--rcard-accent, var(--accent)); box-shadow: 0 12px 28px var(--rcard-shadow, rgba(99,102,241,.25)); }
 .reward-card:hover::before { opacity: 1; }
 .reward-card:active { transform: scale(0.94) !important; }
+/* El boton "Equipar" adentro ya usa stopPropagation en JS, pero eso no evita que el
+   CSS :hover/:active del padre se dispare igual al tocar un boton hijo (mismo bug del diario). */
+.reward-card:has(button:hover), .reward-card:has(button:active)
+{ transform: none !important; border-color: var(--border) !important; box-shadow: none !important; }
 .reward-card.owned { border-color: #10b981; background: rgba(16,185,129,.08); }
 .reward-card.cant-afford { opacity: .55; }
 .reward-card.cant-afford:hover { transform: none; box-shadow: none; }
