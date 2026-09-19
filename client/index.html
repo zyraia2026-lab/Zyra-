@@ -979,14 +979,14 @@ function closeSplash(){
     <span class="mnb-label">Inicio</span>
   </button>
   <button class="mobile-nav-btn" onclick="showPage('assistant')" data-page="assistant" style="position:relative">
-    <span class="mnb-icon-wrap" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:16px;padding:7px 10px;margin-bottom:1px;display:inline-flex;align-items:center;justify-content:center"><span class="mnb-icon" style="font-size:18px">💬</span></span>
-    <span class="mnb-label" style="color:var(--accent);font-weight:800">Chat</span>
+    <span class="mnb-icon-wrap"><span class="mnb-icon" style="font-size:18px">💬</span></span>
+    <span class="mnb-label">Chat</span>
   </button>
   <button class="mobile-nav-btn" onclick="showPage('journal')" data-page="journal">
-    <span class="mnb-icon">📔</span><span class="mnb-label">Diario</span>
+    <span class="mnb-icon-wrap"><span class="mnb-icon">📔</span></span><span class="mnb-label">Diario</span>
   </button>
   <button class="mobile-nav-btn" onclick="showPage('wellness');setTimeout(()=>openWellness('breath'),100)" data-page="wellness">
-    <span class="mnb-icon">🌬️</span><span class="mnb-label">Respirar</span>
+    <span class="mnb-icon-wrap"><span class="mnb-icon">🌬️</span></span><span class="mnb-label">Respirar</span>
   </button>
   <button class="mobile-nav-btn" onclick="openMobileMoreSheet();clearProfileDot()" id="mnb-more-btn">
     <span class="mnb-icon-wrap"><span class="mnb-icon">⋯</span><span class="mnb-profile-dot" id="tab-profile-dot" style="display:none"></span></span>
@@ -1025,6 +1025,9 @@ function closeSplash(){
     <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('analytics')"><span class="nav-btn-ic">📊</span>Analítica</button>
     <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('sensors')"><span class="nav-btn-ic">📱</span>Sensores</button>
     <button class="nav-btn" onclick="closeMobileMoreSheet();startTest()"><span class="nav-btn-ic">✨</span>Test Emocional</button>
+    <div style="border-top:1px solid var(--border,#eef0ff);margin:8px 0"></div>
+    <button class="nav-btn" onclick="toggleTheme()"><span class="nav-btn-ic">🌙</span>Modo oscuro</button>
+    <button class="nav-btn" onclick="closeMobileMoreSheet();doLogout()"><span class="nav-btn-ic">🚪</span>Salir</button>
   </div>
 </div>
 <script>
@@ -2859,11 +2862,11 @@ async function b2bSubmitContact() {
   </div>
 
   <!-- Tabs -->
-  <div style="display:flex;gap:8px;margin-bottom:18px">
-    <button id="journal-tab-list" class="btn-sm accent" onclick="showJournalTab('list')" style="flex:1;padding:10px">📋 Entradas</button>
-    <button id="journal-tab-timeline" class="btn-sm" onclick="showJournalTab('timeline')" style="flex:1;padding:10px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">🌊 Viaje</button>
-    <button id="journal-tab-calendar" class="btn-sm" onclick="showJournalTab('calendar')" style="flex:1;padding:10px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">📅 Calendario</button>
-    <button id="journal-tab-reflexion" class="btn-sm" onclick="showJournalTab('reflexion')" style="flex:1;padding:10px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">💭 Preguntas</button>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px">
+    <button id="journal-tab-list" class="btn-sm accent" onclick="showJournalTab('list')" style="flex:1 1 130px;min-width:0;padding:10px">📋 Entradas</button>
+    <button id="journal-tab-timeline" class="btn-sm" onclick="showJournalTab('timeline')" style="flex:1 1 130px;min-width:0;padding:10px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">🌊 Viaje</button>
+    <button id="journal-tab-calendar" class="btn-sm" onclick="showJournalTab('calendar')" style="flex:1 1 130px;min-width:0;padding:10px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">📅 Calendario</button>
+    <button id="journal-tab-reflexion" class="btn-sm" onclick="showJournalTab('reflexion')" style="flex:1 1 130px;min-width:0;padding:10px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">💭 Preguntas</button>
   </div>
 
   <!-- Vista: lista de entradas -->
@@ -6714,7 +6717,7 @@ async function _generateObservaAI() {
   const prompt = `Eres Zyra, asistente de bienestar emocional empática y perspicaz. Basándote en los datos del usuario, da UNA observación perceptiva y personal (2-3 oraciones, máx 55 palabras). Habla en segunda persona, con calidez, como una buena amiga que te conoce bien. No menciones los números crudos — interpreta el patrón humano detrás de ellos. Datos: emociones más frecuentes: ${topEmo||"variadas"}; promedio de ánimo por día de la semana (escala 1-5): ${daySum||"sin datos suficientes"}; total días activos: ${tot}.`;
   try {
     const r = await api("/chat","POST",{message:prompt,noSave:true});
-    const txt = r.reply || r.message || "";
+    const txt = r.response || r.message || "";
     if (txt) {
       localStorage.setItem("zyra_observa_ai_"+_getWeekKey(), txt);
       const card = document.getElementById("prof-zyra-observa-card");
@@ -6842,7 +6845,7 @@ async function _manifiestoNext(id) {
 
   try {
     const r = await api("/chat", "POST", { message: userMsg, systemOverride: sysPrompt, noSave: true, mode: "manifiesto" });
-    const text = (r.reply || "").trim();
+    const text = (r.response || "").trim();
     if (!text) throw new Error("empty");
     localStorage.setItem("zyra_manifiesto", text);
     renderManifiesto();
@@ -6942,7 +6945,7 @@ async function _generarCartaCompasion(weekKey) {
 
   try {
     const r = await api("/chat", "POST", { message: userMsg, systemOverride: sysPrompt, noSave: true, mode: "compasion" });
-    const text = (r.reply || "").trim();
+    const text = (r.response || "").trim();
     if (!text) throw new Error("empty");
     localStorage.setItem(`zyra_carta_compasion_${weekKey}`, text);
     _renderCartaCompasionContent(document.getElementById("prof-compasion-card"), text, weekKey);
@@ -9541,7 +9544,7 @@ function _maybeShowEveningNudge() {
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
         <button onclick="localStorage.setItem('${dismissKey}','1');document.getElementById('zyra-evening-nudge').style.opacity='0';setTimeout(()=>{const e=document.getElementById('zyra-evening-nudge');if(e)e.remove();showPage('assistant');setTimeout(()=>{newChat();setTimeout(_cierreStart,800)},200)},300)" style="background:rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.4);color:#a78bfa;border-radius:10px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">🌙 Cierre del día</button>
         ${!hasJournal ? `<button onclick="localStorage.setItem('${dismissKey}','1');document.getElementById('zyra-evening-nudge').style.opacity='0';setTimeout(()=>{const e=document.getElementById('zyra-evening-nudge');if(e)e.remove();showPage('journal');setTimeout(toggleJournalForm,200)},300)" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:var(--accent);border-radius:10px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">📔 Diario del día</button>` : ""}
-        <button onclick="localStorage.setItem('${dismissKey}','1');this.closest('#zyra-evening-nudge').remove()" style="background:transparent;border:1px solid rgba(255,255,255,.1);color:var(--text3);border-radius:10px;padding:7px 12px;font-size:12px;cursor:pointer">Después</button>
+        <button onclick="localStorage.setItem('${dismissKey}','1');this.closest('#zyra-evening-nudge').remove()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.22);color:#e2e8f0;border-radius:10px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer">Después</button>
       </div>
     </div>
   </div>`;
@@ -9919,9 +9922,15 @@ function renderJournalMemory(entries) {
 function renderMoodMiniTrend(history) {
   const wrap = document.getElementById("mood-mini-trend");
   const bars = document.getElementById("mood-mini-trend-bars");
-  if (!wrap || !bars || history.length < 3) { if(wrap) wrap.style.display="none"; return; }
+  // Un dia puede tener varios registros (varios check-ins seguidos); quedarse solo
+  // con el ultimo de cada dia para que "Tendencia - 7 dias" sean 7 dias reales,
+  // no 7 registros que a veces repetian el mismo dia varias veces.
+  const _byDay = new Map();
+  (history || []).forEach(h => _byDay.set(new Date(h.date).toDateString(), h));
+  const daily = Array.from(_byDay.values());
+  if (!wrap || !bars || daily.length < 3) { if(wrap) wrap.style.display="none"; return; }
   wrap.style.display = "";
-  const last7 = history.slice(-7);
+  const last7 = daily.slice(-7);
   const W = 264, H = 80, PL = 6, PR = 6, PT = 8, PB = 28;
   const cW = W - PL - PR, cH = H - PT - PB;
   const pts = last7.map((h, i) => {
@@ -10185,7 +10194,12 @@ const _MOOD_VAL = { feliz:5, motivado:5, esperanzado:4, tranquilo:4, confundido:
 function renderChart(history) {
   const el = document.getElementById("emotion-chart");
   if(!history || !history.length) { el.innerHTML = '<div class="chart-empty"><span style="font-size:32px;opacity:.3">📊</span><span>Registra emociones para ver la gráfica</span></div>'; return; }
-  const last = history.slice(-14);
+  // Igual que en la tendencia de 7 dias: quedarse con el ultimo registro de cada
+  // dia para no repetir la misma fecha varias veces si hubo varios check-ins.
+  const _byDay = new Map();
+  history.forEach(h => _byDay.set(new Date(h.date).toDateString(), h));
+  const daily = Array.from(_byDay.values());
+  const last = daily.slice(-14);
   // W ajustado al ancho real de la tarjeta (.db-rail-card ≈ 264px de contenido);
   // antes era 560 y el SVG se escalaba a la mitad, dejando textos y puntos ilegibles.
   const W = 264, H = 118, PL = 10, PR = 10, PT = 16, PB = 30;
@@ -10725,7 +10739,7 @@ async function _getReflexionQuestion(emo, today) {
     const sysPrompt = `Eres Zyra. Genera UNA sola pregunta de reflexión profunda para ${name}. La pregunta debe ser específica, personal, y provocar una respuesta honesta. NO uses preguntas cliché. La pregunta debe ir al fondo de la experiencia humana. Solo devuelve la pregunta, sin puntos ni comillas extra.`;
     const ctx = emo ? `Hoy se siente: ${emo}. Emociones recientes: ${recentEmos.join(", ")}.` : `Emociones recientes: ${recentEmos.join(", ") || "ninguna registrada"}.`;
     const r = await api("/chat", "POST", { message: ctx, systemOverride: sysPrompt, noSave: true, mode: "reflexion" });
-    const q = (r.reply || "").trim().replace(/^"|"$/g, "");
+    const q = (r.response || "").trim().replace(/^"|"$/g, "");
     if (q && q.length > 10) {
       localStorage.setItem(todayKey, q);
       return q;
@@ -12791,7 +12805,7 @@ async function _genMedAI(force) {
 
   try {
     const r = await api("/chat", "POST", { message: userMsg, systemOverride: sysPrompt, noSave: true, mode: "meditacion" });
-    const text = (r.reply || "").trim();
+    const text = (r.response || "").trim();
     if (!text) throw new Error("empty");
     localStorage.setItem(cachedKey, text);
     area.innerHTML = `
@@ -20187,6 +20201,7 @@ const _TOUR_STEPS = [
 ];
 
 let _tourStep  = 0;
+let _tourTypewriterTimer = null;
 let _tourActive = false;
 
 function startTour() {
@@ -20217,12 +20232,15 @@ function _renderTourStep() {
   // Bubble text (typewriter)
   const bubble = document.getElementById('zyra-tour-bubble');
   if (bubble) {
+    // Si el paso anterior todavia estaba escribiendo, cortarlo -- si no, los dos
+    // intervalos escriben en el mismo texto a la vez y las letras salen mezcladas.
+    if (_tourTypewriterTimer) clearInterval(_tourTypewriterTimer);
     bubble.textContent = '';
     let ci = 0;
     const txt = s.bubble;
-    const typ = setInterval(() => {
+    _tourTypewriterTimer = setInterval(() => {
       bubble.textContent += txt[ci++];
-      if (ci >= txt.length) clearInterval(typ);
+      if (ci >= txt.length) { clearInterval(_tourTypewriterTimer); _tourTypewriterTimer = null; }
     }, 18);
   }
 
@@ -22265,7 +22283,7 @@ async function _cpNext() {
   let compassionMsg = "";
   try {
     const r = await api("/chat", "POST", { message: uMsg, systemOverride: sysP, noSave: true, mode: "compasion" });
-    compassionMsg = (r.reply || "").trim();
+    compassionMsg = (r.response || "").trim();
   } catch(e) {}
 
   if (!compassionMsg) compassionMsg = `${name}, lo que sientes es real y válido. No estás solo/a en esto. Mereces la misma amabilidad que le darías a alguien que amas.`;
@@ -23150,7 +23168,7 @@ async function _genSleepStory(force) {
 
   try {
     const r = await api("/chat", "POST", { message: userMsg, systemOverride: sysPrompt, noSave: true, mode: "sleep_story" });
-    const text = (r.reply || "").trim();
+    const text = (r.response || "").trim();
     if (!text) throw new Error("empty");
     localStorage.setItem(cacheKey, text);
     area.innerHTML = `<div id="sleep-story-text" style="font-size:13px;color:var(--text);line-height:1.9;padding:14px;background:rgba(0,0,0,.04);border-radius:12px;max-height:240px;overflow-y:auto;white-space:pre-wrap;margin-bottom:12px">${safeHtml(text)}</div>
@@ -23793,8 +23811,16 @@ const HABIT_DEFAULTS = [
 ];
 
 function getHabits() {
-  try { return JSON.parse(localStorage.getItem("zyra_habits") || "null") || HABIT_DEFAULTS; }
+  let habits;
+  try { habits = JSON.parse(localStorage.getItem("zyra_habits") || "null") || HABIT_DEFAULTS; }
   catch { return HABIT_DEFAULTS; }
+  // Autorepara hábitos guardados sin emoji/color (bug viejo del servidor que los
+  // perdía al sincronizar) — evita que se vea "undefined" en la tarjeta.
+  return habits.map(h => {
+    if (h.emoji && h.color) return h;
+    const fallback = HABIT_DEFAULTS.find(d => d.id === h.id);
+    return { ...h, emoji: h.emoji || fallback?.emoji || "⭐", color: h.color || fallback?.color || "#6366f1" };
+  });
 }
 function saveHabits(h) {
   localStorage.setItem("zyra_habits", JSON.stringify(h));
@@ -24830,11 +24856,19 @@ async function shareDayCard() {
   ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
   // Ambient glow
   const g1 = ctx.createRadialGradient(W*0.3, H*0.35, 0, W*0.3, H*0.35, W*0.6);
-  g1.addColorStop(0, accentCol + "22"); g1.addColorStop(1, "transparent");
+  g1.addColorStop(0, accentCol + "3d"); g1.addColorStop(1, "transparent");
   ctx.fillStyle = g1; ctx.fillRect(0, 0, W, H);
   const g2 = ctx.createRadialGradient(W*0.8, H*0.65, 0, W*0.8, H*0.65, W*0.5);
-  g2.addColorStop(0, "#8b5cf622"); g2.addColorStop(1, "transparent");
+  g2.addColorStop(0, "#8b5cf63d"); g2.addColorStop(1, "transparent");
   ctx.fillStyle = g2; ctx.fillRect(0, 0, W, H);
+  const g3 = ctx.createRadialGradient(W*0.15, H*0.85, 0, W*0.15, H*0.85, W*0.4);
+  g3.addColorStop(0, "#0ea5e922"); g3.addColorStop(1, "transparent");
+  ctx.fillStyle = g3; ctx.fillRect(0, 0, W, H);
+  // Textura sutil de puntos, para que el fondo no se vea tan vacío/plano
+  ctx.fillStyle = "rgba(255,255,255,.035)";
+  for (let py = 60; py < H; py += 46) {
+    for (let px = 60; px < W; px += 46) { ctx.beginPath(); ctx.arc(px, py, 1.6, 0, Math.PI*2); ctx.fill(); }
+  }
   // Top bar
   ctx.font = "bold 52px -apple-system,sans-serif";
   const lgrd = ctx.createLinearGradient(80, 0, 320, 0);
@@ -24859,15 +24893,16 @@ async function shareDayCard() {
     ctx.font = "400 48px -apple-system,sans-serif"; ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.textAlign = "center";
     ctx.fillText(`Así fue el día de ${userName}`, W/2, H*0.52);
   }
-  // Stats row
+  // Stats row — siempre las 4 tarjetas (aunque estén en 0) para que la fila no
+  // se vea vacía/solitaria en días con poca actividad registrada.
   const stats = [];
-  if (streak > 0) stats.push({ label:"Racha", val: `🔥 ${streak}d` });
+  stats.push({ label:"Racha", val: `🔥 ${streak}d` });
   const water = parseInt(localStorage.getItem("zyra_water_" + today) || "0");
-  if (water > 0) stats.push({ label:"Agua", val: `💧 ${water}/8` });
+  stats.push({ label:"Agua", val: `💧 ${water}/8` });
   const journalDone = !!localStorage.getItem("zyra_journal_saved_" + today);
-  if (journalDone) stats.push({ label:"Diario", val:"📔 ✓" });
+  stats.push({ label:"Diario", val: journalDone ? "📔 ✓" : "📔 —" });
   const breathDone = parseInt(localStorage.getItem("zyra_breath_" + today) || "0");
-  if (breathDone) stats.push({ label:"Respiración", val:`🫁 ${breathDone}` });
+  stats.push({ label:"Respiración", val:`🫁 ${breathDone}` });
   if (stats.length > 0) {
     const boxW = Math.min(220, (W - 160) / stats.length - 20);
     const startX = (W - (stats.length * (boxW + 20) - 20)) / 2;

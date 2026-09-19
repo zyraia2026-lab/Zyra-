@@ -1365,27 +1365,30 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
   /* Textos */
   .auth-card h1 { color: white !important; font-size: 24px; margin-bottom: 4px; }
   .auth-sub { color: rgba(255,255,255,0.5) !important; font-size: 13px; margin-bottom: 22px; }
-  .form-group label { color: rgba(255,255,255,0.5) !important; }
+  /* Estos van SOLO dentro de .auth-card (login/registro) — sin ese prefijo se
+     colaban a cualquier .form-group del sitio en móvil (perfil, etc.), dejando
+     labels e inputs blancos sobre fondo blanco, invisibles. */
+  .auth-card .form-group label { color: rgba(255,255,255,0.5) !important; }
 
   /* Inputs */
-  .form-group input {
+  .auth-card .form-group input {
     background: rgba(255,255,255,0.09) !important;
     border-color: rgba(255,255,255,0.14) !important;
     color: white !important;
     -webkit-text-fill-color: white !important;
     font-size: 16px !important;
   }
-  .form-group input::placeholder {
+  .auth-card .form-group input::placeholder {
     color: rgba(255,255,255,0.28) !important;
     -webkit-text-fill-color: rgba(255,255,255,0.28) !important;
   }
-  .form-group input:focus {
+  .auth-card .form-group input:focus {
     background: rgba(255,255,255,0.14) !important;
     border-color: rgba(99,102,241,0.8) !important;
     box-shadow: 0 0 0 4px rgba(99,102,241,0.22) !important;
     -webkit-text-fill-color: white !important;
   }
-  .form-group .input-icon { filter: brightness(10); opacity: .45; }
+  .auth-card .form-group .input-icon { filter: brightness(10); opacity: .45; }
 
   /* Ocultar el divider "o" en móvil */
   .auth-divider { display: none !important; }
@@ -1905,7 +1908,8 @@ nav#app-shared-nav {
 .add-form{background:#f0f9ff;border:2px solid #bae6fd;border-radius:var(--r-lg);padding:22px;margin-bottom:18px;display:none;animation:slideDown .3s var(--ease)}
 @keyframes slideDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
 .add-form.show{display:block}
-.form-row{display:flex;gap:10px;margin-bottom:12px}
+.form-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.form-row > input, .form-row > select, .form-row > textarea { min-width: 0; flex: 1 1 140px; }
 .form-row input,.form-row select,.form-row textarea{flex:1;padding:11px 14px;border:2px solid var(--border);border-radius:var(--r-md);font-size:13px;outline:none;background:white;color:var(--text);transition:all .2s;-webkit-text-fill-color:var(--text)}
 .form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--sky);box-shadow:var(--shadow-glow)}
 .form-row input::placeholder,.form-row textarea::placeholder{color:var(--placeholder);-webkit-text-fill-color:var(--placeholder)}
@@ -1928,7 +1932,7 @@ nav#app-shared-nav {
 .jitem-expand-btn:hover{opacity:1}
 .jitem-zyra-insight{margin-top:10px;padding:10px 12px;background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.18);border-radius:10px;font-size:11.5px;color:var(--text2,#374151);line-height:1.6;display:flex;gap:8px;align-items:flex-start;animation:fadeUp .3s ease both}
 .jitem-zyra-insight img{width:18px;height:18px;border-radius:50%;flex-shrink:0;margin-top:1px}
-.journal-meta{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+.journal-meta{display:flex;flex-wrap:wrap;justify-content:flex-start;align-items:center;gap:8px;margin-top:10px}
 .journal-date{font-size:11px;color:var(--text3)}
 
 /* ═══════════════════════════════════════════
@@ -1956,7 +1960,7 @@ nav#app-shared-nav {
 .hist-item:hover .hist-del{opacity:1}
 .hist-del:hover{color:var(--red)}
 .chat-box{flex:1;background:var(--bg2);border:2px solid var(--border);border-radius:var(--r-lg);display:flex;flex-direction:column;max-height:calc(100vh - 116px);overflow:hidden;box-shadow:var(--shadow-xs)}
-.chat-header{padding:18px 24px;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:16px;background:white}
+.chat-header{padding:18px 24px;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:16px;background:var(--bg2)}
 .mob-hist-toggle{display:none}
 .mob-sidebar-backdrop{display:none}
 .mob-sidebar-close{display:none}
@@ -2213,7 +2217,7 @@ textarea.chat-ta::placeholder{color:var(--placeholder);-webkit-text-fill-color:v
   .test-card{padding:28px 20px}
   .assistant-body{flex-direction:column;padding:0;gap:0;flex:1;max-width:100%}
   .sidebar{display:none}
-  .chat-box{border-radius:0;border-left:none;border-right:none;border-top:none;flex:1;max-height:calc(100vh - 60px - 82px)}
+  .chat-box{border-radius:0;border-left:none;border-right:none;border-top:none;flex:1;max-height:calc(100dvh - 60px - 82px)}
   .ai-badge{display:none}
   .msg-bubble{max-width:88%;font-size:13.5px}
   .stat-card{padding:14px 12px}
@@ -3022,12 +3026,14 @@ body {
     .btn-call::before { font-size: 16px; }
   }
 
-  /* ── Chat messages: altura correcta restando nav arriba + tabbar abajo ── */
+  /* ── Chat messages: altura correcta restando nav arriba + tabbar abajo ──
+     dvh (no vh) para que la barra de direcciones del navegador al aparecer/
+     ocultarse al hacer scroll no haga "saltar" el alto del chat. */
   .chat-box {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 60px - 60px - env(safe-area-inset-bottom, 0px));
-    max-height: calc(100vh - 60px - 60px - env(safe-area-inset-bottom, 0px));
+    height: calc(100dvh - 60px - 60px - env(safe-area-inset-bottom, 0px));
+    max-height: calc(100dvh - 60px - 60px - env(safe-area-inset-bottom, 0px));
     overflow: hidden;
     border-radius: 0 !important;
   }
@@ -3235,7 +3241,12 @@ body {
   .mobile-nav-btn .mnb-icon { font-size: 20px; line-height: 1; transition: transform .12s var(--bounce); }
   .mobile-nav-btn.active .mnb-icon { transform: scale(1.12); }
   .mobile-nav-btn .mnb-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
-  .mnb-icon-wrap { position: relative; display: inline-flex; }
+  .mobile-nav-btn.active .mnb-label { color: var(--accent); font-weight: 800; }
+  .mnb-icon-wrap { position: relative; display: inline-flex; align-items: center; justify-content: center; border-radius: 16px; padding: 7px 10px; margin-bottom: 1px; transition: background .15s var(--ease); }
+  /* Antes solo el tab de Chat tenia esta pildora morada a proposito, fija, sin
+     importar en que pagina estuvieras -- por eso parecia "activo" siempre.
+     Ahora cualquier tab activo la recibe, y solo el activo. */
+  .mobile-nav-btn.active .mnb-icon-wrap { background: linear-gradient(135deg,#6366f1,#8b5cf6); }
   .mnb-mission-dot {
     position: absolute; top: -2px; right: -4px;
     width: 8px; height: 8px; border-radius: 50%;
