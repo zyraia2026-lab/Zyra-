@@ -1905,7 +1905,7 @@ nav#app-shared-nav {
 .goal-del{background:none;border:none;cursor:pointer;color:var(--text4);font-size:16px;opacity:0;transition:opacity .12s var(--ease),background .12s var(--ease),color .12s var(--ease),transform .1s var(--ease);width:28px;height:28px;border-radius:var(--r-xs);display:flex;align-items:center;justify-content:center}
 .goal-item:hover .goal-del{opacity:1}
 .goal-del:hover{background:#fef2f2;color:var(--red)}
-.add-form{background:#f0f9ff;border:2px solid #bae6fd;border-radius:var(--r-lg);padding:22px;margin-bottom:18px;display:none;animation:slideDown .3s var(--ease)}
+.add-form{background:rgba(99,102,241,.07);border:2px solid rgba(99,102,241,.22);border-radius:var(--r-lg);padding:22px;margin-bottom:18px;display:none;animation:slideDown .3s var(--ease)}
 @keyframes slideDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
 .add-form.show{display:block}
 .form-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
@@ -2845,6 +2845,13 @@ body {
 
   /* ── Chat en móvil ── */
   #page-assistant .container { padding: 0; }
+
+  /* Forzar apilado vertical en formularios de 2 campos (titulo+emocion, meta+
+     categoria, etc) -- en pantallas angostas el select se salia del contenedor
+     aunque tuviera flex-wrap, porque el select no se encoge bien. Apilado
+     vertical no falla nunca, cada campo usa el 100% del ancho disponible. */
+  .form-row { flex-direction: column; }
+  .form-row > input, .form-row > select, .form-row > textarea { width: 100%; box-sizing: border-box; flex-basis: auto; }
 
   .chat-header {
     padding: 10px 14px;
