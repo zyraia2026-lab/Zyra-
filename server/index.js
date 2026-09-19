@@ -130,6 +130,16 @@ app.use(express.static(path.join(__dirname, "../client"), {
     if (filePath.endsWith("styles.css")) {
       res.setHeader("Cache-Control", "public, max-age=300");
     }
+    // manifest.json define el ícono con el que Android/iOS instalan la PWA —
+    // si queda en caché 1 día, un cambio de logo tarda en reflejarse incluso
+    // antes de instalar (después de instalada, el ícono queda fijo en el
+    // sistema operativo — eso ya no lo arregla ningún header, solo reinstalar).
+    if (filePath.endsWith("manifest.json")) {
+      res.setHeader("Cache-Control", "no-cache, must-revalidate");
+    }
+    if (filePath.endsWith("logo-nuevo.png")) {
+      res.setHeader("Cache-Control", "public, max-age=300");
+    }
   }
 }));
 
