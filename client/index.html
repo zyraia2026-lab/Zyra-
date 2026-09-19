@@ -3082,11 +3082,11 @@ async function b2bSubmitContact() {
         <textarea class="chat-ta" id="chat-input" placeholder="Cuéntame lo que sea... · /ayuda para comandos" oninput="onInput()" onkeydown="onKey(event)"></textarea>
         <button class="btn-send" id="btn-send" onclick="sendMsg()">➤</button>
       </div>
-      <div style="display:flex;justify-content:space-between;height:16px;margin-bottom:2px">
+      <div style="display:flex;justify-content:space-between;min-height:0;margin-bottom:0">
         <div id="voice-status" style="font-size:11px;color:var(--sky);text-align:left"></div>
         <div id="chat-char-count" style="font-size:11px;color:var(--text3);display:none"></div>
       </div>
-      <div id="chat-msgs-remaining" style="font-size:11px;text-align:right;height:14px;margin-bottom:2px;padding-right:4px"></div>
+      <div id="chat-msgs-remaining" style="font-size:11px;text-align:right;margin-bottom:0;padding-right:4px"></div>
       <div class="disclaimer">Zyra es un acompañamiento emocional con IA. No reemplaza atención psicológica profesional.</div>
     </div>
   </div>
