@@ -1518,10 +1518,14 @@ nav#app-shared-nav {
 .sb-streak-bar { height: 5px; background: rgba(249,115,22,.15); border-radius: 99px; overflow: hidden; }
 .sb-streak-bar-fill { height: 100%; background: linear-gradient(90deg,#f97316,#fbbf24); border-radius: 99px; transition: width .4s ease; }
 .sb-streak-sub { font-size: 10.5px; color: #a8a29e; margin-top: 7px; font-weight: 600; }
+[data-theme="dark"] .sb-streak-card { background: linear-gradient(135deg,rgba(249,115,22,.16),rgba(251,191,36,.08)); border-color: rgba(249,115,22,.3); }
+[data-theme="dark"] .sb-streak-top { color: #d6bfae; }
+[data-theme="dark"] .sb-streak-sub { color: #a89a8c; }
 
 /* Tarjeta de perfil mini, al fondo de la barra lateral */
 .sb-profile-card { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 10px; border-radius: 14px; cursor: pointer; transition: background .15s; }
 .sb-profile-card:hover { background: #f1f2ff; }
+[data-theme="dark"] .sb-profile-card:hover { background: rgba(99,102,241,.12); }
 .sb-profile-card .avatar { width: 34px; height: 34px; font-size: 12.5px; }
 .sb-profile-name { font-size: 13px; font-weight: 800; color: var(--text, #0f172a); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sb-profile-level { font-size: 10.5px; color: #94a3b8; font-weight: 600; }
@@ -1535,6 +1539,7 @@ nav#app-shared-nav {
   display: flex; align-items: center; gap: 10px;
   padding: 0 28px;
 }
+[data-theme="dark"] #app-shared-topbar { background: rgba(20,22,36,0.88); border-bottom-color: rgba(255,255,255,0.07); }
 .sb-topbar-pill {
   display: flex; align-items: center; gap: 8px;
   background: rgba(56,189,248,.1); border: 1px solid rgba(56,189,248,.25);
