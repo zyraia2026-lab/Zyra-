@@ -18492,7 +18492,13 @@ async function openShareProgress() {
     const colorMap={feliz:'#f59e0b',tranquilo:'#10b981',ansioso:'#f97316',triste:'#6366f1',enojado:'#ef4444',motivado:'#8b5cf6',agotado:'#94a3b8',esperanzado:'#06b6d4'};
     const bar=document.getElementById('share-emotion-bar');
     if(bar&&hist.length){
-      bar.innerHTML=hist.map(e=>`<div style="flex:1;height:${20+Math.random()*20}px;background:${colorMap[e.emotion]||'#6366f1'};border-radius:4px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:2px;font-size:14px">${emojiMap[e.emotion]||'😌'}</div>`).join('');
+      // Alto real segun la emocion de ese dia (antes era aleatorio, sin relacion con los datos)
+      bar.innerHTML=hist.map(e=>{
+        const v = _MOOD_VAL[e.emotion] || 3;
+        const norm = Math.max(0, Math.min(1, (v - 2) / 3));
+        const h = Math.round((10 + 30 * norm));
+        return `<div style="flex:1;height:${h}px;background:${colorMap[e.emotion]||'#6366f1'};border-radius:4px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:2px;font-size:14px">${emojiMap[e.emotion]||'😌'}</div>`;
+      }).join('');
     }
     const sessionsCount = d.profile?.sessionsCount||0;
     const sessions=document.getElementById('share-sessions'); if(sessions) sessions.textContent=sessionsCount;
@@ -18545,7 +18551,11 @@ async function shareProgress() {
   const barsTotal = barW*hist.length + (hist.length-1)*4;
   let bx=20;
   hist.forEach(e=>{
-    const h=(0.5+0.5*Math.random())*barH; // simple random height (same as preview)
+    // Alto real segun la emocion de ese dia (antes era Math.random() -- puro
+    // ruido sin relacion con los datos, por eso la grafica no decia nada).
+    const v = _MOOD_VAL[e.emotion] || 3;
+    const norm = Math.max(0, Math.min(1, (v - 2) / 3)); // _MOOD_VAL va de 2 a 5
+    const h = (0.22 + 0.78 * norm) * barH; // piso minimo para que la barra siempre se vea
     ctx.fillStyle=colorMap[e.emotion]||'#6366f1';
     ctx.roundRect(bx, barY-h, barW, h, 4); ctx.fill();
     bx+=barW+4;
