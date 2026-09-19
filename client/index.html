@@ -18496,8 +18496,11 @@ async function openShareProgress() {
       bar.innerHTML=hist.map(e=>{
         const v = _MOOD_VAL[e.emotion] || 3;
         const norm = Math.max(0, Math.min(1, (v - 2) / 3));
-        const h = Math.round((10 + 30 * norm));
-        return `<div style="flex:1;height:${h}px;background:${colorMap[e.emotion]||'#6366f1'};border-radius:4px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:2px;font-size:14px">${emojiMap[e.emotion]||'😌'}</div>`;
+        // Piso mas alto (24px) para que el emoji siempre quepa visible dentro
+        // de la barra -- antes con animos bajos la barra quedaba de 10px y el
+        // emoji no se alcanzaba a ver.
+        const h = Math.round(24 + 16 * norm);
+        return `<div style="flex:1;height:${h}px;background:${colorMap[e.emotion]||'#6366f1'};border-radius:4px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:2px;font-size:14px;overflow:visible">${emojiMap[e.emotion]||'😌'}</div>`;
       }).join('');
     }
     const sessionsCount = d.profile?.sessionsCount||0;
