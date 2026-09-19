@@ -23,14 +23,37 @@ function truncateAtSentence(text, maxLen) {
 // Circuit breaker: si un proveedor responde 401/429 (sin credito, sin API key,
 // bloqueado), dejar de intentarlo por un rato en vez de perder tiempo en CADA
 // mensaje esperando una respuesta que ya sabemos que va a fallar igual.
-const _ttsCooldownUntil = { elevenlabs: 0, streamelements: 0 };
-const COOLDOWN_MS = { elevenlabs: 60 * 60 * 1000, streamelements: 24 * 60 * 60 * 1000 };
+const _ttsCooldownUntil = { fishaudio: 0, elevenlabs: 0, streamelements: 0 };
+const COOLDOWN_MS = { fishaudio: 60 * 60 * 1000, elevenlabs: 60 * 60 * 1000, streamelements: 24 * 60 * 60 * 1000 };
 function _isOnCooldown(provider) { return Date.now() < _ttsCooldownUntil[provider]; }
 function _markCooldown(provider, status) {
   if (status === 401 || status === 429) {
     _ttsCooldownUntil[provider] = Date.now() + COOLDOWN_MS[provider];
     console.warn(`[TTS] ${provider} en cooldown ${COOLDOWN_MS[provider]/60000}min tras status ${status}`);
   }
+}
+
+async function fishAudioAudio(text) {
+  if (!process.env.FISH_AUDIO_API_KEY || !process.env.FISH_AUDIO_VOICE_ID) {
+    throw new Error("Fish Audio no configurado");
+  }
+  if (_isOnCooldown("fishaudio")) throw new Error("Fish Audio en cooldown");
+  const clean = truncateAtSentence(normalizeTTSText(text), 600);
+  const r = await fetch("https://api.fish.audio/v1/tts", {
+    method: "POST",
+    signal: AbortSignal.timeout(15000),
+    headers: {
+      "Authorization": "Bearer " + process.env.FISH_AUDIO_API_KEY,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      text: clean,
+      reference_id: process.env.FISH_AUDIO_VOICE_ID,
+      format: "mp3",
+    }),
+  });
+  if (!r.ok) { _markCooldown("fishaudio", r.status); throw new Error("Fish Audio " + r.status); }
+  return r;
 }
 
 async function elevenLabsAudio(text) {
@@ -87,31 +110,38 @@ async function googleTTSAudio(text) {
   return r;
 }
 
-/* ── POST /api/tts/speak ── ElevenLabs → StreamElements Dalia Neural → Google TTS */
+/* ── POST /api/tts/speak ── Fish Audio → ElevenLabs → StreamElements Dalia Neural → Google TTS */
 exports.speak = async (req, res) => {
   try {
     const { text } = req.body;
     if (!text?.trim()) return res.status(400).json({ message: "Texto requerido" });
 
     let audioBuffer = null;
-    let provider = "elevenlabs";
+    let provider = "fishaudio";
     try {
-      const r = await elevenLabsAudio(text);
+      const r = await fishAudioAudio(text);
       audioBuffer = Buffer.from(await r.arrayBuffer());
-    } catch(e) {
-      console.warn("[TTS/speak] ElevenLabs:", e.message, "→ StreamElements");
-      provider = "streamelements";
+    } catch(e0) {
+      console.warn("[TTS/speak] Fish Audio:", e0.message, "→ ElevenLabs");
+      provider = "elevenlabs";
       try {
-        const r = await streamElementsAudio(text);
+        const r = await elevenLabsAudio(text);
         audioBuffer = Buffer.from(await r.arrayBuffer());
-      } catch(e2) {
-        console.warn("[TTS/speak] StreamElements:", e2.message, "→ Google TTS");
-        provider = "google";
+      } catch(e) {
+        console.warn("[TTS/speak] ElevenLabs:", e.message, "→ StreamElements");
+        provider = "streamelements";
         try {
-          const r = await googleTTSAudio(text);
+          const r = await streamElementsAudio(text);
           audioBuffer = Buffer.from(await r.arrayBuffer());
-        } catch(e3) {
-          throw new Error("TTS no disponible: " + e3.message);
+        } catch(e2) {
+          console.warn("[TTS/speak] StreamElements:", e2.message, "→ Google TTS");
+          provider = "google";
+          try {
+            const r = await googleTTSAudio(text);
+            audioBuffer = Buffer.from(await r.arrayBuffer());
+          } catch(e3) {
+            throw new Error("TTS no disponible: " + e3.message);
+          }
         }
       }
     }
@@ -123,11 +153,19 @@ exports.speak = async (req, res) => {
   }
 };
 
-/* ── POST /api/tts/audio ── ElevenLabs → StreamElements Dalia Neural → Google TTS */
+/* ── POST /api/tts/audio ── Fish Audio → ElevenLabs → StreamElements Dalia Neural → Google TTS */
 exports.audio = async (req, res) => {
   try {
     const { text } = req.body;
     if (!text?.trim()) return res.status(400).json({ message: "Texto requerido" });
+
+    try {
+      const r = await fishAudioAudio(text);
+      res.set("Content-Type", "audio/mpeg");
+      res.set("X-TTS-Provider", "fishaudio");
+      res.send(Buffer.from(await r.arrayBuffer()));
+      return;
+    } catch(e0) { console.warn("[TTS] Fish Audio:", e0.message, "→ ElevenLabs"); }
 
     try {
       const r = await elevenLabsAudio(text);
