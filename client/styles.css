@@ -2996,8 +2996,15 @@ body {
     gap: 8px;
     padding: 10px 12px;
     flex-wrap: nowrap;
-    overflow: visible;
+    /* Antes "overflow: visible" sin scroll -- cuando los botones (buscar,
+       exportar, llamada) no cabian, quedaban fuera de la pantalla sin forma
+       de llegar a ellos. Con scroll horizontal siempre son alcanzables. */
+    overflow-x: auto;
+    overflow-y: visible;
+    scrollbar-width: none;
   }
+  .chat-header::-webkit-scrollbar { display: none; }
+  .chat-header > * { flex-shrink: 0; }
   .chat-header > div:nth-child(2) { flex: 1; min-width: 0; overflow: hidden; }
   .chat-name   { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .chat-status { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
@@ -3159,9 +3166,11 @@ body {
   .vc-ctrl-label { font-size: 9px; }
 }
 
-/* ── Teléfonos muy pequeños (< 380px) ── */
+/* ── Teléfonos muy pequeños (< 380px) ──
+   Antes se ocultaba .btn-call por completo aqui -- dejaba la llamada de voz
+   inalcanzable en celulares chicos. Ahora el header hace scroll horizontal
+   (ver arriba), asi que el boton solo se desliza en vez de desaparecer. */
 @media (max-width: 380px) {
-  .btn-call { display: none; } /* En pantallas muy chicas, quitar el botón de llamada del header */
   .chat-header::after {
     content: '';
   }
