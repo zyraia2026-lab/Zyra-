@@ -20,10 +20,24 @@ function truncateAtSentence(text, maxLen) {
   return slice;
 }
 
+// Circuit breaker: si un proveedor responde 401/429 (sin credito, sin API key,
+// bloqueado), dejar de intentarlo por un rato en vez de perder tiempo en CADA
+// mensaje esperando una respuesta que ya sabemos que va a fallar igual.
+const _ttsCooldownUntil = { elevenlabs: 0, streamelements: 0 };
+const COOLDOWN_MS = { elevenlabs: 60 * 60 * 1000, streamelements: 24 * 60 * 60 * 1000 };
+function _isOnCooldown(provider) { return Date.now() < _ttsCooldownUntil[provider]; }
+function _markCooldown(provider, status) {
+  if (status === 401 || status === 429) {
+    _ttsCooldownUntil[provider] = Date.now() + COOLDOWN_MS[provider];
+    console.warn(`[TTS] ${provider} en cooldown ${COOLDOWN_MS[provider]/60000}min tras status ${status}`);
+  }
+}
+
 async function elevenLabsAudio(text) {
   if (!process.env.ELEVENLABS_API_KEY || !process.env.ELEVENLABS_VOICE_ID) {
     throw new Error("ElevenLabs no configurado");
   }
+  if (_isOnCooldown("elevenlabs")) throw new Error("ElevenLabs en cooldown");
   const clean = truncateAtSentence(normalizeTTSText(text), 600);
   const url = `https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVENLABS_VOICE_ID}`;
   const r = await fetch(url, {
@@ -40,11 +54,12 @@ async function elevenLabsAudio(text) {
       voice_settings: { stability: 0.5, similarity_boost: 0.75 },
     }),
   });
-  if (!r.ok) throw new Error("ElevenLabs " + r.status);
+  if (!r.ok) { _markCooldown("elevenlabs", r.status); throw new Error("ElevenLabs " + r.status); }
   return r;
 }
 
 async function streamElementsAudio(text) {
+  if (_isOnCooldown("streamelements")) throw new Error("StreamElements en cooldown");
   const clean = truncateAtSentence(normalizeTTSText(text), 320);
   const url = `https://api.streamelements.com/kappa/v2/speech?voice=es-MX-DaliaNeural&text=${encodeURIComponent(clean)}`;
   const r = await fetch(url, {
@@ -54,7 +69,7 @@ async function streamElementsAudio(text) {
       "Referer": "https://streamelements.com/",
     },
   });
-  if (!r.ok) throw new Error("StreamElements " + r.status);
+  if (!r.ok) { _markCooldown("streamelements", r.status); throw new Error("StreamElements " + r.status); }
   return r;
 }
 

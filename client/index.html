@@ -17238,8 +17238,11 @@ async function vcSendMessage(text) {
     vcSpeak(response, false);
   } catch(e) {
     if (!vcActive) return;
-    const err = 'Ups, tuve un pequeño problema. ¿Puedes intentarlo de nuevo?';
+    // Mostrar el motivo real cuando el servidor lo manda (ej. límite del plan) en vez
+    // de siempre el mismo mensaje generico que no dice qué pasó de verdad.
+    const err = (e?.message && e.message !== 'Error') ? e.message : 'Ups, tuve un pequeño problema. ¿Puedes intentarlo de nuevo?';
     vcAddMessage('bot', err); vcSpeak(err, false);
+    if (e?.data?.limitReached) zyraToast(err, 'error', 6000);
   }
 }
 
