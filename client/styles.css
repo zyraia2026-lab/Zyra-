@@ -1910,10 +1910,10 @@ nav#app-shared-nav {
 .add-form.show{display:block}
 .form-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
 .form-row > input, .form-row > select, .form-row > textarea { min-width: 0; flex: 1 1 140px; }
-.form-row input,.form-row select,.form-row textarea{flex:1;padding:11px 14px;border:2px solid var(--border);border-radius:var(--r-md);font-size:13px;outline:none;background:white;color:var(--text);transition:all .2s;-webkit-text-fill-color:var(--text)}
+.form-row input,.form-row select,.form-row textarea{flex:1;padding:11px 14px;border:2px solid var(--border);border-radius:var(--r-md);font-size:13px;outline:none;background:var(--surface);color:var(--text);transition:all .2s;-webkit-text-fill-color:var(--text)}
 .form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--sky);box-shadow:var(--shadow-glow)}
 .form-row input::placeholder,.form-row textarea::placeholder{color:var(--placeholder);-webkit-text-fill-color:var(--placeholder)}
-.form-row select option{background:white;color:var(--text)}
+.form-row select option{background:var(--surface);color:var(--text)}
 
 /* ═══════════════════════════════════════════
    JOURNAL
