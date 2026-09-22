@@ -5,6 +5,7 @@ const S = new mongoose.Schema({
   key:      { type: String, required: true, unique: true }, // email o "reset_email"
   code:     { type: String, required: true },
   expires:  { type: Date,   required: true },
+  attempts: { type: Number, default: 0 },    // intentos fallidos — el código se invalida tras varios
   data:     { type: Object, default: {} },   // userData o { userId }
 }, { timestamps: true });
 

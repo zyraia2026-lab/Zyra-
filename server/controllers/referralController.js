@@ -2,11 +2,28 @@ const User = require("../models/User");
 
 const REWARD_DAYS = 7;
 
+async function genUniqueReferralCode() {
+  const gen = () => "ZYRA" + Math.random().toString(36).slice(2, 8).toUpperCase();
+  let code = gen();
+  while (await User.exists({ referralCode: code })) code = gen();
+  return code;
+}
+
 exports.getInfo = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select("referralCode referralCount referredBy referralRewardUsed").lean();
+    let user = await User.findById(req.user._id).select("referralCode referralCount referredBy referralRewardUsed").lean();
+
+    // Cuentas creadas antes de que existiera esta función nunca recibieron
+    // código (solo se generaba al registrarse) — se asigna aquí en el primer
+    // acceso en vez de necesitar una migración aparte.
+    if (!user.referralCode) {
+      const code = await genUniqueReferralCode();
+      await User.findByIdAndUpdate(req.user._id, { referralCode: code });
+      user = { ...user, referralCode: code };
+    }
+
     res.json({
-      referralCode:       user.referralCode || null,
+      referralCode:       user.referralCode,
       referralCount:      user.referralCount || 0,
       referredBy:         !!user.referredBy,
       referralRewardUsed: user.referralRewardUsed || false,

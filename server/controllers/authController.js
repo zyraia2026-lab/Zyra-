@@ -14,16 +14,28 @@ const isValidEmail = (e) => EMAIL_RE.test(String(e || "").toLowerCase());
 async function saveOTP(key, code, data = {}) {
   await OTP.findOneAndUpdate(
     { key },
-    { key, email: data.email || key.replace("reset_",""), code, expires: expiresAt(), data },
+    { key, email: data.email || key.replace("reset_",""), code, expires: expiresAt(), data, attempts: 0 },
     { upsert: true, new: true }
   );
 }
 
+const MAX_OTP_ATTEMPTS = 5;
+
 async function verifyOTP(key, code) {
-  const otp = await OTP.findOne({ key }).select("expires code data").lean();
+  const otp = await OTP.findOne({ key }).select("expires code data attempts").lean();
   if (!otp)                      return { error: "No hay un código pendiente para este correo" };
   if (new Date() > otp.expires)  { await OTP.deleteOne({ key }); return { error: "El código expiró. Intenta de nuevo" }; }
-  if (otp.code !== code.trim())  return { error: "Código incorrecto. Inténtalo de nuevo" };
+  if (otp.code !== String(code || "").trim()) {
+    // Límite de intentos por código — evita que alguien lo adivine repartiendo
+    // los intentos entre varias IPs (el rate-limit de la ruta es por IP).
+    const attempts = (otp.attempts || 0) + 1;
+    if (attempts >= MAX_OTP_ATTEMPTS) {
+      await OTP.deleteOne({ key });
+      return { error: "Demasiados intentos fallidos. Solicita un código nuevo." };
+    }
+    await OTP.updateOne({ key }, { attempts });
+    return { error: "Código incorrecto. Inténtalo de nuevo" };
+  }
   await OTP.deleteOne({ key });
   return { data: otp.data };
 }
@@ -151,7 +163,7 @@ exports.resendCode = async (req, res) => {
     if (!existing) return res.status(400).json({ message: "No hay un proceso pendiente para este correo" });
 
     const code = generateCode();
-    await OTP.findOneAndUpdate({ key: existing.key }, { code, expires: expiresAt() });
+    await OTP.findOneAndUpdate({ key: existing.key }, { code, expires: expiresAt(), attempts: 0 });
     try {
       await sendVerificationCode(email, code, existing.data?.name || "");
     } catch(emailErr) {

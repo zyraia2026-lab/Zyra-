@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;0,800;1,700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="styles.css?v=20260817"/>
+<!-- Twemoji: reemplaza los emojis nativos (pixelados en muchos Android/WebView) por SVG nítidos -->
+<script defer src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js" crossorigin="anonymous"></script>
 
 <!-- ══ PWA META TAGS ══ -->
 <link rel="manifest" href="/manifest.json"/>
@@ -1802,7 +1804,7 @@ async function b2bSubmitContact() {
     const body = `Contacto B2B de Zyra\n\nNombre: ${nombre}\nEmpresa: ${empresa || 'No especificada'}\nEmail: ${email}\nTamaño: ${size || 'No especificado'}\n\nMensaje:\n${texto || 'Sin mensaje'}`;
     // Usar mailto como fallback - en producción conectar con un endpoint real
     const mailtoUrl = `mailto:zyra.ia.2026@gmail.com?subject=${encodeURIComponent('Consulta B2B — ' + (empresa||nombre))}&body=${encodeURIComponent(body)}`;
-    window.open(mailtoUrl);
+    if (_isNativeApp()) window.open(mailtoUrl, '_system'); else window.open(mailtoUrl);
     if (msg) { msg.textContent = '¡Listo! Se abrió tu cliente de correo. Si no se abrió, escríbenos a zyra.ia.2026@gmail.com'; msg.style.display='block'; msg.style.color='#a5b4fc'; }
   } catch(e) {
     if (msg) { msg.textContent = 'Escríbenos directamente a zyra.ia.2026@gmail.com'; msg.style.display='block'; msg.style.color='#a5b4fc'; }
@@ -3944,6 +3946,65 @@ window.addEventListener('unhandledrejection', e => {
 window.YT_ENABLED      = false;
 window.SPOTIFY_ENABLED = false;
 const LOGO = "/Imagenes/zyra-avatar.png";
+
+// ══════════════════════════════════════════
+//  NAVEGACIÓN EXTERNA (enlaces a Spotify/YouTube/Maps/mailto, etc.)
+//  Dentro de la APK (Capacitor) el WebView nativo NO abre pestañas nuevas:
+//  un <a target="_blank"> o window.open() simplemente no hacía nada al tocarlo.
+//  Se enruta todo por el navegador del sistema (plugin @capacitor/browser)
+//  cuando corre empaquetada; en la web normal se comporta igual que antes.
+// ══════════════════════════════════════════
+function _isNativeApp() {
+  return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
+function zyraOpenExternal(url) {
+  if (!url) return;
+  const nativeBrowser = window.Capacitor?.Plugins?.Browser;
+  if (_isNativeApp() && nativeBrowser?.open) {
+    nativeBrowser.open({ url }).catch(() => { window.open(url, '_blank', 'noopener'); });
+  } else {
+    window.open(url, '_blank', 'noopener');
+  }
+}
+document.addEventListener('click', (e) => {
+  if (!_isNativeApp()) return;
+  const a = e.target.closest?.('a[href]');
+  if (!a) return;
+  const href = a.getAttribute('href') || '';
+  const isExternal = a.target === '_blank' || /^https?:\/\//i.test(href) || href.startsWith('mailto:') || href.startsWith('tel:');
+  if (!isExternal) return;
+  e.preventDefault();
+  if (href.startsWith('mailto:') || href.startsWith('tel:')) { window.open(href, '_system'); return; }
+  zyraOpenExternal(href);
+}, true);
+// ══════════════════════════════════════════
+//  EMOJIS NÍTIDOS (Twemoji)
+//  Los emojis se escriben como caracteres normales y los dibuja la fuente
+//  del sistema — en muchos Android/WebView esa fuente es de baja resolución
+//  y se ven pixelados. Twemoji los reemplaza por SVG que se ven igual en
+//  cualquier dispositivo. Se re-aplica solo, con una pausa corta después de
+//  cada tanda de cambios en la página (chat en vivo, cambios de pantalla,
+//  etc.) para no repintar en cada letra mientras algo se está escribiendo.
+// ══════════════════════════════════════════
+(function initTwemoji() {
+  let debounceTimer = null;
+  function run(node) {
+    if (!window.twemoji) return;
+    try { window.twemoji.parse(node || document.body, { folder: 'svg', ext: '.svg' }); } catch(_) {}
+  }
+  function scheduleRun() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => run(document.body), 500);
+  }
+  function start() {
+    if (!window.twemoji) { setTimeout(start, 300); return; }
+    run(document.body);
+    new MutationObserver(scheduleRun).observe(document.body, { childList: true, subtree: true, characterData: true });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
+})();
+
 let token = localStorage.getItem("zyra_token");
 let user  = (() => { try { return JSON.parse(localStorage.getItem("zyra_user") || "null"); } catch(e) { localStorage.removeItem("zyra_user"); return null; } })();
 
@@ -4564,7 +4625,7 @@ function initGdprBanner() {
     if (!TAB_ORDER.includes(cur)) return;
     // Don't swipe if inside a horizontally scrollable element
     const el = document.elementFromPoint(t.clientX, t.clientY);
-    if (el && el.closest('.wellness-tabs, .cards-row, .mood-row, .nav-links, [style*="overflow-x"]')) return;
+    if (el && el.closest('.wellness-tabs, .cards-row, .mood-row, .emotions-grid, .nav-links, [style*="overflow-x"]')) return;
     const idx = TAB_ORDER.indexOf(cur);
     if (dx < 0 && idx < TAB_ORDER.length - 1) showPage(TAB_ORDER[idx + 1]);
     else if (dx > 0 && idx > 0) showPage(TAB_ORDER[idx - 1]);
@@ -6816,10 +6877,13 @@ let _stepLastTs      = 0;
 let _stepAbove       = false;
 let _stepEMA         = 9.8;       // señal suavizada (filtro por tiempo, no por muestras)
 let _stepWin         = [];        // ventana deslizante (~1.5s) para medir el rango real de la señal
-let _stepUseNoGrav   = false;     // true si el OS ya quitó la gravedad
+let _stepUseNoGrav   = false;     // true si el OS ya quitó la gravedad — se decide UNA vez al calibrar, no por evento
+let _stepGravDecided = false;
 let _stepCalibrating = true;      // true durante los primeros ~1.2s
 let _stepCalTs       = 0;
 let _stepDebugTs     = 0;
+let _stepLastEvtTs   = 0;         // hora del último evento devicemotion recibido (watchdog + detectar segundo plano)
+let _stepNoSensorTimer = null;
 
 // Heurística simple: ¿este dispositivo es un celular/tablet (con acelerómetro real)
 // o un PC/laptop? Sirve para no prometer "pasos" donde no hay sensor de movimiento.
@@ -6847,18 +6911,45 @@ async function startPhoneSteps() {
   _stepLastTs      = 0;
   _stepCalibrating = true;
   _stepCalTs       = Date.now();
+  _stepGravDecided = false;
+  _stepLastEvtTs   = 0;
   _stepActive      = true;
   window.addEventListener('devicemotion', _onPhoneMotion, { passive: true });
+  document.addEventListener('visibilitychange', _onStepVisibilityChange);
   localStorage.setItem('zyra_steps_active', '1');
   renderWatchCard();
   renderWatchWidget();
   zyraToast('👟 Calibrando acelerómetro…', 'info', 1800);
   setTimeout(() => { if (_stepActive) zyraToast('👟 Contando pasos — lleva el celular contigo', 'success', 3000); }, 2000);
+
+  // Vigía: si tras 3s no llegó ni un evento del sensor, el dispositivo/navegador
+  // no lo soporta (o lo bloqueó) — antes esto se quedaba "activo" en silencio para siempre.
+  clearTimeout(_stepNoSensorTimer);
+  _stepNoSensorTimer = setTimeout(() => {
+    if (_stepActive && _stepLastEvtTs === 0) {
+      zyraToast('⚠ No se detecta el sensor de movimiento en este dispositivo/navegador.', 'error', 4500);
+    }
+  }, 3000);
+}
+
+function _onStepVisibilityChange() {
+  // Al volver de segundo plano, el hueco de tiempo hace que la ventana de
+  // muestras quede vacía y la primera lectura nueva puede traer un salto
+  // brusco (layout/animaciones al reanudar) que antes se contaba como paso
+  // falso. Se limpia el estado y se re-calibra brevemente al volver.
+  if (document.visibilityState === 'visible' && _stepActive) {
+    _stepWin = [];
+    _stepAbove = false;
+    _stepCalibrating = true;
+    _stepCalTs = Date.now();
+  }
 }
 
 function stopPhoneSteps() {
   _stepActive = false;
   window.removeEventListener('devicemotion', _onPhoneMotion);
+  document.removeEventListener('visibilitychange', _onStepVisibilityChange);
+  clearTimeout(_stepNoSensorTimer);
   _savePhoneSteps();
   syncHealthToServer({ steps: { count: _stepCount, date: new Date().toDateString() } });
   localStorage.removeItem('zyra_steps_active');
@@ -6877,16 +6968,31 @@ function _dbgStepWrite(text) {
 
 function _onPhoneMotion(evt) {
   if (!_stepActive) return;
+  const now = Date.now();
 
-  // Preferir acceleration (sin gravedad) si el dispositivo la soporta
-  const rawNoGrav = evt.acceleration;
-  const rawGrav   = evt.accelerationIncludingGravity;
-  _stepUseNoGrav  = rawNoGrav && rawNoGrav.x != null && (Math.abs(rawNoGrav.x) + Math.abs(rawNoGrav.y) + Math.abs(rawNoGrav.z)) > 0.01;
-  const a = _stepUseNoGrav ? rawNoGrav : rawGrav;
+  // Si volvimos de un hueco grande (app en segundo plano, pestaña oculta, etc.)
+  // la primera muestra suele traer un salto brusco — se descarta en vez de
+  // dejar que dispare un "paso" falso.
+  const gap = _stepLastEvtTs ? now - _stepLastEvtTs : 0;
+  _stepLastEvtTs = now;
+  if (gap > 2000) { _stepWin = []; _stepAbove = false; return; }
+
+  // Preferir acceleration (sin gravedad) si el dispositivo la soporta — pero la
+  // decisión se toma UNA sola vez (al primer evento válido) y se mantiene fija.
+  // Antes se re-evaluaba en cada evento y, en teléfonos donde el navegador
+  // reporta 'acceleration' de forma intermitente, la señal saltaba entre una
+  // magnitud ~0 (sin gravedad) y ~9.8 (con gravedad) de un evento a otro,
+  // generando "pasos" falsos por ese salto y no por movimiento real.
+  if (!_stepGravDecided) {
+    const rawNoGrav = evt.acceleration;
+    _stepUseNoGrav = !!(rawNoGrav && rawNoGrav.x != null &&
+      (Math.abs(rawNoGrav.x) + Math.abs(rawNoGrav.y) + Math.abs(rawNoGrav.z)) > 0.01);
+    _stepGravDecided = true;
+  }
+  const a = _stepUseNoGrav ? evt.acceleration : evt.accelerationIncludingGravity;
   if (!a || a.x == null) { _dbgStepWrite('⚠ sin datos del sensor'); return; }
 
   const mag = Math.sqrt((a.x||0)**2 + (a.y||0)**2 + (a.z||0)**2);
-  const now = Date.now();
 
   // Filtro de paso bajo POR TIEMPO (no por cantidad de muestras) — 'devicemotion'
   // dispara a frecuencias muy distintas según el teléfono.
@@ -6940,7 +7046,17 @@ function _savePhoneSteps() {
   const today = new Date().toDateString();
   const saved = (() => { try { return JSON.parse(localStorage.getItem('zyra_phone_steps') || '{}'); } catch(_) { return {}; } })();
   if (saved.date === today) _stepCount = saved.steps || 0;
-  localStorage.removeItem('zyra_steps_active'); // no auto-reactivar (iOS requiere gesto)
+  const wasActive = localStorage.getItem('zyra_steps_active') === '1' && saved.date === today;
+  localStorage.removeItem('zyra_steps_active');
+  // En Android el sensor no requiere gesto del usuario (requestPermission solo
+  // existe en iOS 13+) — si el conteo estaba activo y la página se recargó
+  // (login, actualización del Service Worker, etc.), antes quedaba "pausado"
+  // en silencio hasta que el usuario volviera a pulsar "Activar pasos" a mano,
+  // lo que se sentía como que el podómetro "se detenía solo". Se reanuda solo.
+  const needsGesture = typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function';
+  if (wasActive && !needsGesture) {
+    setTimeout(() => { try { startPhoneSteps(); } catch(_) {} }, 300);
+  }
 })();
 
 // Resetear pasos a medianoche
@@ -7338,7 +7454,7 @@ function _handleHR(bpm) {
 
 let _lastStepsSyncTs = 0;
 function _handleSteps(steps) {
-  if (!steps || steps < 0) return;
+  if (steps == null || steps < 0) return;
   _watchSteps = steps;
   const today = new Date().toDateString();
   localStorage.setItem('zyra_watch_steps', JSON.stringify({ steps, ts: Date.now(), date: today }));
@@ -8079,7 +8195,7 @@ async function openBillingPortal() {
   if (btn) { btn.textContent = "⏳ Cargando..."; btn.disabled = true; }
   try {
     const d = await api("/payments/portal", "POST");
-    if (d.url) { window.open(d.url, "_blank"); }
+    if (d.url) { zyraOpenExternal(d.url); }
     else zyraToast(d.message || "Error al abrir portal", "error");
   } catch(e) {
     zyraToast(e.message || "Gestiona tu suscripción en soporte@zyra.app", "info", 5000);
@@ -17383,7 +17499,7 @@ function vcPlayCurrentSong() {
 function vcOpenYT() {
   if(!vcCurrentSong) return;
   const q = encodeURIComponent(vcCurrentSong.title+' '+vcCurrentSong.artist);
-  window.open('https://www.youtube.com/results?search_query='+q,'_blank');
+  zyraOpenExternal('https://www.youtube.com/results?search_query='+q);
   const frame=document.getElementById('vc-yt-frame');
   if(frame){frame.style.display='none';frame.innerHTML='';}
 }
@@ -17987,12 +18103,12 @@ async function playMorningSong(title, artist) {
     const d = await api(`/yt/search?q=${encodeURIComponent(title + ' ' + artist + ' official')}`);
     const videoId = d.videoId || (d.items && d.items[0]?.id?.videoId);
     if (videoId) {
-      window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank', 'noopener');
+      zyraOpenExternal(`https://www.youtube.com/watch?v=${videoId}`);
     } else {
-      window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(title + ' ' + artist)}`, '_blank', 'noopener');
+      zyraOpenExternal(`https://www.youtube.com/results?search_query=${encodeURIComponent(title + ' ' + artist)}`);
     }
   } catch(e) {
-    window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(title + ' ' + artist)}`, '_blank', 'noopener');
+    zyraOpenExternal(`https://www.youtube.com/results?search_query=${encodeURIComponent(title + ' ' + artist)}`);
   }
 }
 
