@@ -8,8 +8,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;0,800;1,700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="styles.css?v=20260919"/>
-<!-- Twemoji: reemplaza los emojis nativos (pixelados en muchos Android/WebView) por SVG nítidos -->
-<script defer src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js" crossorigin="anonymous"></script>
 
 <!-- ══ PWA META TAGS ══ -->
 <link rel="manifest" href="/manifest.json"/>
@@ -4096,34 +4094,6 @@ document.addEventListener('click', (e) => {
   if (href.startsWith('mailto:') || href.startsWith('tel:')) { window.open(href, '_system'); return; }
   zyraOpenExternal(href);
 }, true);
-// ══════════════════════════════════════════
-//  EMOJIS NÍTIDOS (Twemoji)
-//  Los emojis se escriben como caracteres normales y los dibuja la fuente
-//  del sistema — en muchos Android/WebView esa fuente es de baja resolución
-//  y se ven pixelados. Twemoji los reemplaza por SVG que se ven igual en
-//  cualquier dispositivo. Se re-aplica solo, con una pausa corta después de
-//  cada tanda de cambios en la página (chat en vivo, cambios de pantalla,
-//  etc.) para no repintar en cada letra mientras algo se está escribiendo.
-// ══════════════════════════════════════════
-(function initTwemoji() {
-  let debounceTimer = null;
-  function run(node) {
-    if (!window.twemoji) return;
-    try { window.twemoji.parse(node || document.body, { folder: 'svg', ext: '.svg' }); } catch(_) {}
-  }
-  function scheduleRun() {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => run(document.body), 500);
-  }
-  function start() {
-    if (!window.twemoji) { setTimeout(start, 300); return; }
-    run(document.body);
-    new MutationObserver(scheduleRun).observe(document.body, { childList: true, subtree: true, characterData: true });
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
-  else start();
-})();
-
 let token = localStorage.getItem("zyra_token");
 let user  = (() => { try { return JSON.parse(localStorage.getItem("zyra_user") || "null"); } catch(e) { localStorage.removeItem("zyra_user"); return null; } })();
 
