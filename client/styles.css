@@ -1365,27 +1365,30 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
   /* Textos */
   .auth-card h1 { color: white !important; font-size: 24px; margin-bottom: 4px; }
   .auth-sub { color: rgba(255,255,255,0.5) !important; font-size: 13px; margin-bottom: 22px; }
-  .form-group label { color: rgba(255,255,255,0.5) !important; }
+  /* Estos van SOLO dentro de .auth-card (login/registro) — sin ese prefijo se
+     colaban a cualquier .form-group del sitio en móvil (perfil, etc.), dejando
+     labels e inputs blancos sobre fondo blanco, invisibles. */
+  .auth-card .form-group label { color: rgba(255,255,255,0.5) !important; }
 
   /* Inputs */
-  .form-group input {
+  .auth-card .form-group input {
     background: rgba(255,255,255,0.09) !important;
     border-color: rgba(255,255,255,0.14) !important;
     color: white !important;
     -webkit-text-fill-color: white !important;
     font-size: 16px !important;
   }
-  .form-group input::placeholder {
+  .auth-card .form-group input::placeholder {
     color: rgba(255,255,255,0.28) !important;
     -webkit-text-fill-color: rgba(255,255,255,0.28) !important;
   }
-  .form-group input:focus {
+  .auth-card .form-group input:focus {
     background: rgba(255,255,255,0.14) !important;
     border-color: rgba(99,102,241,0.8) !important;
     box-shadow: 0 0 0 4px rgba(99,102,241,0.22) !important;
     -webkit-text-fill-color: white !important;
   }
-  .form-group .input-icon { filter: brightness(10); opacity: .45; }
+  .auth-card .form-group .input-icon { filter: brightness(10); opacity: .45; }
 
   /* Ocultar el divider "o" en móvil */
   .auth-divider { display: none !important; }
@@ -1475,6 +1478,7 @@ nav#app-shared-nav {
   box-shadow: 1px 0 24px rgba(99,102,241,0.06);
   overflow-y: auto;
 }
+[data-theme="dark"] nav#app-shared-nav { background: rgba(20,22,36,0.94); border-right-color: rgba(255,255,255,0.07); }
 .nav-inner {
   display: flex; flex-direction: column;
   min-height: 100%;
@@ -1515,10 +1519,14 @@ nav#app-shared-nav {
 .sb-streak-bar { height: 5px; background: rgba(249,115,22,.15); border-radius: 99px; overflow: hidden; }
 .sb-streak-bar-fill { height: 100%; background: linear-gradient(90deg,#f97316,#fbbf24); border-radius: 99px; transition: width .4s ease; }
 .sb-streak-sub { font-size: 10.5px; color: #a8a29e; margin-top: 7px; font-weight: 600; }
+[data-theme="dark"] .sb-streak-card { background: linear-gradient(135deg,rgba(249,115,22,.16),rgba(251,191,36,.08)); border-color: rgba(249,115,22,.3); }
+[data-theme="dark"] .sb-streak-top { color: #d6bfae; }
+[data-theme="dark"] .sb-streak-sub { color: #a89a8c; }
 
 /* Tarjeta de perfil mini, al fondo de la barra lateral */
 .sb-profile-card { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 10px; border-radius: 14px; cursor: pointer; transition: background .15s; }
 .sb-profile-card:hover { background: #f1f2ff; }
+[data-theme="dark"] .sb-profile-card:hover { background: rgba(99,102,241,.12); }
 .sb-profile-card .avatar { width: 34px; height: 34px; font-size: 12.5px; }
 .sb-profile-name { font-size: 13px; font-weight: 800; color: var(--text, #0f172a); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sb-profile-level { font-size: 10.5px; color: #94a3b8; font-weight: 600; }
@@ -1532,6 +1540,7 @@ nav#app-shared-nav {
   display: flex; align-items: center; gap: 10px;
   padding: 0 28px;
 }
+[data-theme="dark"] #app-shared-topbar { background: rgba(20,22,36,0.88); border-bottom-color: rgba(255,255,255,0.07); }
 .sb-topbar-pill {
   display: flex; align-items: center; gap: 8px;
   background: rgba(56,189,248,.1); border: 1px solid rgba(56,189,248,.25);
@@ -1551,6 +1560,28 @@ nav#app-shared-nav {
   transition: transform .2s;
 }
 .avatar:hover { transform: scale(1.08); }
+
+/* Marcos de perfil comprados en la Tienda -- se aplican sobre .avatar y
+   sobre el avatar grande de Perfil (#profile-avatar-big). */
+.avatar-frame-glow {
+  box-shadow: 0 0 0 3px rgba(167,139,250,.9), 0 0 18px 4px rgba(167,139,250,.55);
+  animation: avatarGlowPulse 2.2s ease-in-out infinite;
+}
+@keyframes avatarGlowPulse {
+  0%,100% { box-shadow: 0 0 0 3px rgba(167,139,250,.9), 0 0 14px 3px rgba(167,139,250,.45); }
+  50%     { box-shadow: 0 0 0 3px rgba(167,139,250,1),  0 0 22px 7px rgba(167,139,250,.75); }
+}
+.avatar-frame-rainbow {
+  box-shadow: 0 0 0 3px transparent;
+  position: relative;
+}
+.avatar-frame-rainbow::before {
+  content: ""; position: absolute; inset: -4px; border-radius: 50%;
+  background: conic-gradient(from 0deg, #f43f5e, #f59e0b, #eab308, #22c55e, #06b6d4, #6366f1, #a855f7, #f43f5e);
+  animation: avatarRainbowSpin 3.5s linear infinite;
+  z-index: -1;
+}
+@keyframes avatarRainbowSpin { to { transform: rotate(360deg); } }
 
 .btn-icon {
   background: #f1f2ff; border: 1.5px solid #e0e2ff;
@@ -1796,7 +1827,7 @@ nav#app-shared-nav {
 .chart-bar { width: 100%; border-radius: 8px 8px 0 0; transition: height .6s cubic-bezier(.34,1.56,.64,1); min-height: 4px; }
 .chart-emoji { font-size: 11px; text-align: center; }
 .chart-date { font-size: 8px; color: #94a3b8; text-align: center; }
-.chart-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: #94a3b8; font-size: 13px; flex-direction: column; gap: 10px; }
+.chart-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text3, #64748b); font-size: 13px; text-align: center; flex-direction: column; gap: 10px; }
 
 /* ═══════════════════════════════════════════
    CONVERSATIONS
@@ -1806,6 +1837,7 @@ nav#app-shared-nav {
 .conv-item:active { transform: scale(0.97) !important; }
 .conv-title { font-size: 13px; font-weight: 600; margin-bottom: 3px; color: #1e293b; }
 .conv-date { font-size: 11px; color: #94a3b8; }
+[data-theme="dark"] .conv-title { color: var(--text); }
 .empty { text-align: center; padding: 18px 12px; color: #94a3b8; font-size: 13px; }
 .empty-icon { font-size: 30px; margin-bottom: 8px; opacity: .35; display: block; }
 
@@ -1862,6 +1894,11 @@ nav#app-shared-nav {
 .goal-item:hover { background: white; border-color: #e0e2ff; box-shadow: 0 4px 14px rgba(99,102,241,0.08); }
 .goal-item:active { transform: scale(0.97) !important; }
 .goal-item.done { opacity: .5; }
+/* La tarjeta no tiene click propio — solo botones adentro (check/editar/borrar/progreso/notas/
+   Plan IA). Que su animación no se dispare al tocar esos botones (mismo bug que tuvo el diario). */
+.goal-item:has(.goal-check:hover), .goal-item:has(.goal-check:active),
+.goal-item:has(button:hover), .goal-item:has(button:active)
+{ transform: none !important; background: #f8f9ff !important; border-color: transparent !important; box-shadow: none !important; }
 
 .goal-check:hover{border-color:var(--green);transform:scale(1.1)}
 .goal-check.checked{background:var(--green);border-color:var(--green);color:white;box-shadow:0 0 0 3px rgba(5,150,105,.15)}
@@ -1875,14 +1912,15 @@ nav#app-shared-nav {
 .goal-del{background:none;border:none;cursor:pointer;color:var(--text4);font-size:16px;opacity:0;transition:opacity .12s var(--ease),background .12s var(--ease),color .12s var(--ease),transform .1s var(--ease);width:28px;height:28px;border-radius:var(--r-xs);display:flex;align-items:center;justify-content:center}
 .goal-item:hover .goal-del{opacity:1}
 .goal-del:hover{background:#fef2f2;color:var(--red)}
-.add-form{background:#f0f9ff;border:2px solid #bae6fd;border-radius:var(--r-lg);padding:22px;margin-bottom:18px;display:none;animation:slideDown .3s var(--ease)}
+.add-form{background:rgba(99,102,241,.07);border:2px solid rgba(99,102,241,.22);border-radius:var(--r-lg);padding:22px;margin-bottom:18px;display:none;animation:slideDown .3s var(--ease)}
 @keyframes slideDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
 .add-form.show{display:block}
-.form-row{display:flex;gap:10px;margin-bottom:12px}
-.form-row input,.form-row select,.form-row textarea{flex:1;padding:11px 14px;border:2px solid var(--border);border-radius:var(--r-md);font-size:13px;outline:none;background:white;color:var(--text);transition:all .2s;-webkit-text-fill-color:var(--text)}
+.form-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.form-row > input, .form-row > select, .form-row > textarea { min-width: 0; flex: 1 1 140px; }
+.form-row input,.form-row select,.form-row textarea{flex:1;padding:11px 14px;border:2px solid var(--border);border-radius:var(--r-md);font-size:13px;outline:none;background:var(--surface);color:var(--text);transition:all .2s;-webkit-text-fill-color:var(--text)}
 .form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--sky);box-shadow:var(--shadow-glow)}
 .form-row input::placeholder,.form-row textarea::placeholder{color:var(--placeholder);-webkit-text-fill-color:var(--placeholder)}
-.form-row select option{background:white;color:var(--text)}
+.form-row select option{background:var(--surface);color:var(--text)}
 
 /* ═══════════════════════════════════════════
    JOURNAL
@@ -1890,6 +1928,10 @@ nav#app-shared-nav {
 .journal-item{padding:18px;border-radius:var(--r-md);background:white;border:2px solid var(--border);margin-bottom:10px;cursor:pointer;transition:border-color .12s var(--ease),box-shadow .12s var(--ease),transform .12s var(--ease);box-shadow:var(--shadow-xs)}
 .journal-item:hover{border-color:#ddd6fe;box-shadow:var(--shadow-sm);transform:translateX(4px)}
 .journal-item:active{transform:scale(0.97) !important;}
+/* La animación de la tarjeta no debe dispararse por pasar/pulsar un botón de acción
+   (favorita/copiar/editar/borrar) — antes "favorito" se sentía como si hiciera otra cosa. */
+.journal-item:has(.btn-xs:hover),
+.journal-item:has(.btn-xs:active){transform:none !important;border-color:var(--border) !important;box-shadow:var(--shadow-xs) !important}
 .journal-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px}
 .journal-preview{font-size:12px;color:var(--text3);line-height:1.6;overflow:hidden;display:-webkit-box;line-clamp:2;-webkit-line-clamp:2;-webkit-box-orient:vertical;transition:none}
 .journal-preview.expanded{display:block;-webkit-line-clamp:unset;line-clamp:unset;overflow:visible}
@@ -1897,7 +1939,7 @@ nav#app-shared-nav {
 .jitem-expand-btn:hover{opacity:1}
 .jitem-zyra-insight{margin-top:10px;padding:10px 12px;background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.18);border-radius:10px;font-size:11.5px;color:var(--text2,#374151);line-height:1.6;display:flex;gap:8px;align-items:flex-start;animation:fadeUp .3s ease both}
 .jitem-zyra-insight img{width:18px;height:18px;border-radius:50%;flex-shrink:0;margin-top:1px}
-.journal-meta{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+.journal-meta{display:flex;flex-wrap:wrap;justify-content:flex-start;align-items:center;gap:8px;margin-top:10px}
 .journal-date{font-size:11px;color:var(--text3)}
 
 /* ═══════════════════════════════════════════
@@ -1925,7 +1967,7 @@ nav#app-shared-nav {
 .hist-item:hover .hist-del{opacity:1}
 .hist-del:hover{color:var(--red)}
 .chat-box{flex:1;background:var(--bg2);border:2px solid var(--border);border-radius:var(--r-lg);display:flex;flex-direction:column;max-height:calc(100vh - 116px);overflow:hidden;box-shadow:var(--shadow-xs)}
-.chat-header{padding:18px 24px;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:16px;background:white}
+.chat-header{padding:18px 24px;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:16px;background:var(--bg2)}
 .mob-hist-toggle{display:none}
 .mob-sidebar-backdrop{display:none}
 .mob-sidebar-close{display:none}
@@ -2015,6 +2057,10 @@ textarea.chat-ta::placeholder{color:var(--placeholder);-webkit-text-fill-color:v
 .card-item { display: flex; align-items: center; gap: 11px; border-radius: 14px; padding: 11px 15px; text-decoration: none; transition: transform .12s var(--ease), box-shadow .12s var(--ease), background .12s var(--ease), border-color .12s var(--ease); cursor: pointer; border: 1.5px solid var(--border); background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.05); width: 100%; box-sizing: border-box; min-width: 0; }
 .card-item:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(99,102,241,0.12); }
 .card-item:active { transform: scale(0.96) !important; }
+/* Algunas variantes (tip de respiracion, etc) traen un boton adentro sin ser ellas mismas
+   clicables — que su animacion no se dispare al tocar ese boton (mismo bug del diario). */
+.card-item:has(button:hover), .card-item:has(button:active)
+{ transform: none !important; box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important; }
 .card-item.song  { border-color: #a7f3d0; background: #ecfdf5; }
 .card-item.song:hover { background: #d1fae5; border-color: #6ee7b7; }
 .card-item.book  { border-color: #fde68a; background: #fffbeb; }
@@ -2178,7 +2224,7 @@ textarea.chat-ta::placeholder{color:var(--placeholder);-webkit-text-fill-color:v
   .test-card{padding:28px 20px}
   .assistant-body{flex-direction:column;padding:0;gap:0;flex:1;max-width:100%}
   .sidebar{display:none}
-  .chat-box{border-radius:0;border-left:none;border-right:none;border-top:none;flex:1;max-height:calc(100vh - 60px - 82px)}
+  .chat-box{border-radius:0;border-left:none;border-right:none;border-top:none;flex:1;max-height:calc(100dvh - 60px - 82px)}
   .ai-badge{display:none}
   .msg-bubble{max-width:88%;font-size:13.5px}
   .stat-card{padding:14px 12px}
@@ -2807,6 +2853,13 @@ body {
   /* ── Chat en móvil ── */
   #page-assistant .container { padding: 0; }
 
+  /* Forzar apilado vertical en formularios de 2 campos (titulo+emocion, meta+
+     categoria, etc) -- en pantallas angostas el select se salia del contenedor
+     aunque tuviera flex-wrap, porque el select no se encoge bien. Apilado
+     vertical no falla nunca, cada campo usa el 100% del ancho disponible. */
+  .form-row { flex-direction: column; }
+  .form-row > input, .form-row > select, .form-row > textarea { width: 100%; box-sizing: border-box; flex-basis: auto; }
+
   .chat-header {
     padding: 10px 14px;
     gap: 8px;
@@ -2943,8 +2996,15 @@ body {
     gap: 8px;
     padding: 10px 12px;
     flex-wrap: nowrap;
-    overflow: visible;
+    /* Antes "overflow: visible" sin scroll -- cuando los botones (buscar,
+       exportar, llamada) no cabian, quedaban fuera de la pantalla sin forma
+       de llegar a ellos. Con scroll horizontal siempre son alcanzables. */
+    overflow-x: auto;
+    overflow-y: visible;
+    scrollbar-width: none;
   }
+  .chat-header::-webkit-scrollbar { display: none; }
+  .chat-header > * { flex-shrink: 0; }
   .chat-header > div:nth-child(2) { flex: 1; min-width: 0; overflow: hidden; }
   .chat-name   { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .chat-status { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
@@ -2987,12 +3047,14 @@ body {
     .btn-call::before { font-size: 16px; }
   }
 
-  /* ── Chat messages: altura correcta restando nav arriba + tabbar abajo ── */
+  /* ── Chat messages: altura correcta restando nav arriba + tabbar abajo ──
+     dvh (no vh) para que la barra de direcciones del navegador al aparecer/
+     ocultarse al hacer scroll no haga "saltar" el alto del chat. */
   .chat-box {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 60px - 60px - env(safe-area-inset-bottom, 0px));
-    max-height: calc(100vh - 60px - 60px - env(safe-area-inset-bottom, 0px));
+    height: calc(100dvh - 60px - 60px - env(safe-area-inset-bottom, 0px));
+    max-height: calc(100dvh - 60px - 60px - env(safe-area-inset-bottom, 0px));
     overflow: hidden;
     border-radius: 0 !important;
   }
@@ -3104,9 +3166,11 @@ body {
   .vc-ctrl-label { font-size: 9px; }
 }
 
-/* ── Teléfonos muy pequeños (< 380px) ── */
+/* ── Teléfonos muy pequeños (< 380px) ──
+   Antes se ocultaba .btn-call por completo aqui -- dejaba la llamada de voz
+   inalcanzable en celulares chicos. Ahora el header hace scroll horizontal
+   (ver arriba), asi que el boton solo se desliza en vez de desaparecer. */
 @media (max-width: 380px) {
-  .btn-call { display: none; } /* En pantallas muy chicas, quitar el botón de llamada del header */
   .chat-header::after {
     content: '';
   }
@@ -3200,7 +3264,12 @@ body {
   .mobile-nav-btn .mnb-icon { font-size: 20px; line-height: 1; transition: transform .12s var(--bounce); }
   .mobile-nav-btn.active .mnb-icon { transform: scale(1.12); }
   .mobile-nav-btn .mnb-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
-  .mnb-icon-wrap { position: relative; display: inline-flex; }
+  .mobile-nav-btn.active .mnb-label { color: var(--accent); font-weight: 800; }
+  .mnb-icon-wrap { position: relative; display: inline-flex; align-items: center; justify-content: center; border-radius: 16px; padding: 7px 10px; margin-bottom: 1px; transition: background .15s var(--ease); }
+  /* Antes solo el tab de Chat tenia esta pildora morada a proposito, fija, sin
+     importar en que pagina estuvieras -- por eso parecia "activo" siempre.
+     Ahora cualquier tab activo la recibe, y solo el activo. */
+  .mobile-nav-btn.active .mnb-icon-wrap { background: linear-gradient(135deg,#6366f1,#8b5cf6); }
   .mnb-mission-dot {
     position: absolute; top: -2px; right: -4px;
     width: 8px; height: 8px; border-radius: 50%;
@@ -3684,6 +3753,10 @@ body {
 .reward-card:hover { transform: translateY(-4px) scale(1.02); border-color: var(--rcard-accent, var(--accent)); box-shadow: 0 12px 28px var(--rcard-shadow, rgba(99,102,241,.25)); }
 .reward-card:hover::before { opacity: 1; }
 .reward-card:active { transform: scale(0.94) !important; }
+/* El boton "Equipar" adentro ya usa stopPropagation en JS, pero eso no evita que el
+   CSS :hover/:active del padre se dispare igual al tocar un boton hijo (mismo bug del diario). */
+.reward-card:has(button:hover), .reward-card:has(button:active)
+{ transform: none !important; border-color: var(--border) !important; box-shadow: none !important; }
 .reward-card.owned { border-color: #10b981; background: rgba(16,185,129,.08); }
 .reward-card.cant-afford { opacity: .55; }
 .reward-card.cant-afford:hover { transform: none; box-shadow: none; }
@@ -4013,6 +4086,22 @@ body {
   from { transform: translateY(100%); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }
 }
+
+@keyframes zyraModalPop {
+  from { opacity: 0; transform: scale(.94) translateY(10px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+/* ── Modal de términos ── */
+.terms-doc-link {
+  transition: background .2s ease, border-color .2s ease, transform .15s ease;
+}
+.terms-doc-link:hover { background: rgba(255,255,255,.09) !important; border-color: rgba(255,255,255,.18) !important; transform: translateY(-1px); }
+
+.terms-check-card { transition: background .2s ease, border-color .2s ease, box-shadow .2s ease; }
+.terms-check-card.accent:has(input:checked) { background: rgba(99,102,241,.14) !important; border-color: rgba(99,102,241,.5) !important; box-shadow: 0 0 0 3px rgba(99,102,241,.12); }
+.terms-check-card.danger:has(input:checked) { background: rgba(239,68,68,.11)  !important; border-color: rgba(239,68,68,.5)  !important; box-shadow: 0 0 0 3px rgba(239,68,68,.12); }
+.terms-check-card.success:has(input:checked) { background: rgba(16,185,129,.11) !important; border-color: rgba(16,185,129,.5) !important; box-shadow: 0 0 0 3px rgba(16,185,129,.12); }
 
 /* ── Streaming chat cursor ── */
 .stream-cursor {

@@ -1390,12 +1390,13 @@ Usa este contexto con naturalidad — no lo menciones todo de golpe. El historia
 ════════════════════════════════════════ */
 exports.sendMessage = async (req, res) => {
   try {
-    let { message, conversationId, history, mode, noSave, dailyContext, healthContext } = req.body;
+    let { message, conversationId, history, mode, noSave, dailyContext, healthContext, systemOverride } = req.body;
     const isVoice = mode === 'voice';
     if (!message?.trim()) return res.status(400).json({ message: "Mensaje vacío" });
     message = message.trim().substring(0, 2000);
     if (dailyContext) dailyContext = String(dailyContext).substring(0, 600);
     if (healthContext) healthContext = String(healthContext).substring(0, 300);
+    if (systemOverride) systemOverride = String(systemOverride).substring(0, 2000);
     const musicReq           = wantsMusic(message);
     const musicFollowUp      = !musicReq && isMusicFollowUp(message, history);
     const effectiveMusicReq  = musicReq || musicFollowUp;
@@ -1413,11 +1414,18 @@ exports.sendMessage = async (req, res) => {
     );
 
     let systemPrompt = `Eres Zyra — la mejor amiga de quien te habla. Hablas SOLO en español latinoamericano, natural y cálido. CERO palabras en inglés mezcladas (nada de "down", "cool", "random", "ok", "mood"). Respuestas cortas, 2-3 oraciones máximo. No eres IA, eres Zyra.`;
-    try {
-      const built = await buildSystemPrompt(req.user._id, req.user.name, message);
-      systemPrompt = built.prompt;
-    } catch(e) {
-      console.error("buildSystemPrompt error:", e.message);
+    if (systemOverride) {
+      // Tareas puntuales de generación (manifiesto, carta, meditación, etc.) traen su
+      // propia instrucción y no deben sonar como el chat normal de Zyra ni cargar su
+      // memoria/contexto habitual.
+      systemPrompt = systemOverride;
+    } else {
+      try {
+        const built = await buildSystemPrompt(req.user._id, req.user.name, message);
+        systemPrompt = built.prompt;
+      } catch(e) {
+        console.error("buildSystemPrompt error:", e.message);
+      }
     }
 
     if (dailyContext) {
@@ -1435,6 +1443,13 @@ exports.sendMessage = async (req, res) => {
     // Señal de alerta emocional — no dramatizar, solo estar presente
     if (req.safetyWarning) {
       systemPrompt += `\n\n🔴 IMPORTANTE: Detecté que lo que escribió podría indicar angustia emocional real. Quédate presente, pregunta qué está pasando, no des consejos todavía. Si hay dolor real, pregunta directamente: "¿Estás bien de verdad?" o "¿Qué tan pesado está esto?". No normalices ni minimices. No menciones líneas de ayuda todavía salvo que la situación lo requiera.`;
+    }
+
+    // Sin cargas disponibles este periodo — modo ligero: la app nunca se
+    // bloquea, solo responde más corto y sin análisis profundo (igual que
+    // ChatGPT cuando se acaba el límite del modelo grande).
+    if (req.cargasLight) {
+      systemPrompt += `\n\n🪫 MODO LIGERO: se acabaron las cargas de este periodo. Responde en UNA frase corta, cálida, sin análisis profundo ni recomendaciones elaboradas. Puedes mencionar de forma breve y natural que las cargas vuelven pronto, sin sonar a mensaje de sistema.`;
     }
 
     // Solicitud de música incompleta — pedir aclaración
@@ -1724,7 +1739,8 @@ exports.sendMessage = async (req, res) => {
       cards,
       conversationId: conv?._id,
       plan: userPlan,
-      messagesRemaining: req.messagesRemaining ?? null,
+      cargasRemaining: req.cargasRemaining ?? null,
+      cargasLight: !!req.cargasLight,
     });
 
   } catch(e) {
@@ -1816,6 +1832,10 @@ exports.streamMessage = async (req, res) => {
 
     if (req.safetyWarning) {
       systemPrompt += `\n\n🔴 IMPORTANTE: Detecté que lo que escribió podría indicar angustia emocional real. Quédate presente, pregunta qué está pasando, no des consejos todavía. Si hay dolor real, pregunta directamente: "¿Estás bien de verdad?" o "¿Qué tan pesado está esto?". No normalices ni minimices. No menciones líneas de ayuda todavía salvo que la situación lo requiera.`;
+    }
+
+    if (req.cargasLight) {
+      systemPrompt += `\n\n🪫 MODO LIGERO: se acabaron las cargas de este periodo. Responde en UNA frase corta, cálida, sin análisis profundo ni recomendaciones elaboradas. Puedes mencionar de forma breve y natural que las cargas vuelven pronto, sin sonar a mensaje de sistema.`;
     }
 
     if (incompleteMusicReq) {
@@ -2093,7 +2113,8 @@ exports.streamMessage = async (req, res) => {
       cards,
       conversationId: conv?._id,
       plan: userPlan,
-      messagesRemaining: req.messagesRemaining ?? null,
+      cargasRemaining: req.cargasRemaining ?? null,
+      cargasLight: !!req.cargasLight,
       convLimitReached: convLimitReached || undefined,
     });
     res.end();

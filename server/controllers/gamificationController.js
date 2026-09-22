@@ -85,7 +85,7 @@ function checkAchievements(p, newStreak, newCoins, completedMissions, journalCou
 /* GET /api/gamification/status */
 exports.getStatus = async (req, res) => {
   try {
-    let p = await Profile.findOne({ user: req.user._id }).select("streakDays coins equippedBadge missionsCompletedToday missionsResetAt achievements unlockedItems streakFreezes").lean();
+    let p = await Profile.findOne({ user: req.user._id }).select("streakDays coins equippedBadge equippedFrame missionsCompletedToday missionsResetAt achievements unlockedItems streakFreezes").lean();
     if (!p) p = (await Profile.create({ user: req.user._id })).toObject();
 
     const needsReset = isMissionsReset(p);
@@ -102,6 +102,7 @@ exports.getStatus = async (req, res) => {
       streak:        p.streakDays || 0,
       coins:         p.coins || 0,
       equippedBadge: p.equippedBadge || "",
+      equippedFrame: p.equippedFrame || "",
       missions,
       missionsCompleted: completedToday.length,
       missionsTotal:     DAILY_MISSIONS.length,
@@ -187,7 +188,7 @@ exports.recordVisit = async (req, res) => {
       const msg = STREAK_PUSH[streakHit];
       sendToUser(req.user._id, {
         title: msg.title, body: msg.body,
-        icon: "/Imagenes/1000154669.png", badge: "/Imagenes/1000154669.png",
+        icon: "/Imagenes/logo-nuevo.png", badge: "/Imagenes/logo-nuevo.png",
         tag: "zyra-streak-milestone", data: { url: "/?p=gamification" },
       }).catch(() => {});
     }
@@ -300,17 +301,176 @@ exports.redeemReward = async (req, res) => {
   } catch(e) { res.status(500).json({ message: e.message }); }
 };
 
-/* POST /api/gamification/equip/:itemId  — equipar badge */
+/* POST /api/gamification/test-start — revisa y descuenta 1 uso del test emocional.
+   Update atomico (pipeline) en vez de leer-y-luego-escribir -- la version
+   anterior tenia una condicion de carrera: varias solicitudes en paralelo
+   podian leer el mismo conteo antes de que cualquiera escribiera, y todas
+   pasaban el limite diario a la vez. */
+exports.startTest = async (req, res) => {
+  try {
+    const { getPlan, LIMITS } = require("../middleware/planGate");
+    const { plan } = getPlan(req.user);
+    const limits = LIMITS[plan] || LIMITS.free;
+
+    if (limits.testPerDay === Infinity) return res.json({ allowed: true });
+
+    const now = new Date();
+    const col = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+    const today = col.getUTCFullYear() + "-" + String(col.getUTCMonth() + 1).padStart(2, "0") + "-" + String(col.getUTCDate()).padStart(2, "0");
+
+    await Profile.findOneAndUpdate({ user: req.user._id }, {}, { upsert: true }).catch(() => {});
+
+    const updated = await Profile.findOneAndUpdate(
+      { user: req.user._id },
+      [{
+        $set: {
+          testUsedToday: {
+            $cond: [
+              { $eq: [{ $dateToString: { format: "%Y-%m-%d", date: { $ifNull: ["$testResetAt", new Date(0)] }, timezone: "America/Bogota" } }, today] },
+              { $add: [{ $ifNull: ["$testUsedToday", 0] }, 1] },
+              1,
+            ],
+          },
+          testResetAt: now,
+        },
+      }],
+      { new: true }
+    ).select("testUsedToday").lean();
+
+    const usedAfter = updated?.testUsedToday ?? 1;
+    if (usedAfter > limits.testPerDay) {
+      // Ya se paso del limite -- revertir el conteo que se acabo de sumar
+      // (no queremos que un intento rechazado siga inflando el numero).
+      await Profile.findOneAndUpdate({ user: req.user._id }, { $inc: { testUsedToday: -1 } });
+      return res.status(403).json({
+        allowed: false,
+        message: `Ya usaste el test emocional ${limits.testPerDay === 1 ? "hoy" : limits.testPerDay + " veces hoy"}. Vuelve mañana, o mejora tu plan para repetirlo más veces.`,
+      });
+    }
+
+    res.json({ allowed: true, testUsed: usedAfter, testPerDay: limits.testPerDay });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+};
+
+/* POST /api/gamification/song-start — cupo semanal de canciones completas (YouTube) por plan.
+   Gratis nunca tiene cupo (se queda con la vista previa de 30s de Spotify). */
+exports.checkSongQuota = async (req, res) => {
+  try {
+    const { getPlan, LIMITS } = require("../middleware/planGate");
+    const { plan } = getPlan(req.user);
+    const limits = LIMITS[plan] || LIMITS.free;
+
+    if (limits.songsPerWeek === Infinity) return res.json({ allowed: true });
+    if (limits.songsPerWeek === 0) {
+      return res.status(403).json({
+        allowed: false,
+        songsPerWeek: 0,
+        message: "Las canciones completas son parte de los planes Básico y Premium. Con el plan Gratis escuchas la vista previa de 30 segundos.",
+      });
+    }
+
+    const now = new Date();
+
+    await Profile.findOneAndUpdate({ user: req.user._id }, {}, { upsert: true }).catch(() => {});
+
+    const updated = await Profile.findOneAndUpdate(
+      { user: req.user._id },
+      [{
+        $set: {
+          songsUsedThisWeek: {
+            $cond: [
+              {
+                $and: [
+                  { $eq: [{ $isoWeekYear: { date: { $ifNull: ["$songsResetAt", new Date(0)] }, timezone: "America/Bogota" } }, { $isoWeekYear: { date: now, timezone: "America/Bogota" } }] },
+                  { $eq: [{ $isoWeek:     { date: { $ifNull: ["$songsResetAt", new Date(0)] }, timezone: "America/Bogota" } }, { $isoWeek:     { date: now, timezone: "America/Bogota" } }] },
+                ],
+              },
+              { $add: [{ $ifNull: ["$songsUsedThisWeek", 0] }, 1] },
+              1,
+            ],
+          },
+          songsResetAt: now,
+        },
+      }],
+      { new: true }
+    ).select("songsUsedThisWeek").lean();
+
+    const usedAfter = updated?.songsUsedThisWeek ?? 1;
+    if (usedAfter > limits.songsPerWeek) {
+      // Ya se paso del limite -- revertir el conteo que se acabo de sumar.
+      await Profile.findOneAndUpdate({ user: req.user._id }, { $inc: { songsUsedThisWeek: -1 } });
+      return res.status(403).json({
+        allowed: false,
+        songsUsedThisWeek: limits.songsPerWeek,
+        songsPerWeek: limits.songsPerWeek,
+        message: `Ya escuchaste tus ${limits.songsPerWeek} canciones completas de esta semana. Mejora tu plan para escuchar sin límite.`,
+      });
+    }
+
+    res.json({ allowed: true, songsUsedThisWeek: usedAfter, songsPerWeek: limits.songsPerWeek });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+};
+
+/* POST /api/gamification/exercise-start — cupo diario de ejercicios guiados
+   (respiración, meditación con IA, reestructuración cognitiva) por plan. */
+exports.checkExerciseQuota = async (req, res) => {
+  try {
+    const { getPlan, LIMITS } = require("../middleware/planGate");
+    const { plan } = getPlan(req.user);
+    const limits = LIMITS[plan] || LIMITS.free;
+
+    if (limits.exercisesPerDay === Infinity) return res.json({ allowed: true });
+
+    const now = new Date();
+    const col = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+    const today = col.getUTCFullYear() + "-" + String(col.getUTCMonth() + 1).padStart(2, "0") + "-" + String(col.getUTCDate()).padStart(2, "0");
+
+    await Profile.findOneAndUpdate({ user: req.user._id }, {}, { upsert: true }).catch(() => {});
+
+    const updated = await Profile.findOneAndUpdate(
+      { user: req.user._id },
+      [{
+        $set: {
+          exercisesUsedToday: {
+            $cond: [
+              { $eq: [{ $dateToString: { format: "%Y-%m-%d", date: { $ifNull: ["$exercisesResetAt", new Date(0)] }, timezone: "America/Bogota" } }, today] },
+              { $add: [{ $ifNull: ["$exercisesUsedToday", 0] }, 1] },
+              1,
+            ],
+          },
+          exercisesResetAt: now,
+        },
+      }],
+      { new: true }
+    ).select("exercisesUsedToday").lean();
+
+    const usedAfter = updated?.exercisesUsedToday ?? 1;
+    if (usedAfter > limits.exercisesPerDay) {
+      await Profile.findOneAndUpdate({ user: req.user._id }, { $inc: { exercisesUsedToday: -1 } });
+      return res.status(403).json({
+        allowed: false,
+        exercisesUsedToday: limits.exercisesPerDay,
+        exercisesPerDay: limits.exercisesPerDay,
+        message: `Ya usaste tus ${limits.exercisesPerDay} ejercicios guiados de hoy. Vuelve mañana, o mejora tu plan para hacer más.`,
+      });
+    }
+
+    res.json({ allowed: true, exercisesUsedToday: usedAfter, exercisesPerDay: limits.exercisesPerDay });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+};
+
+/* POST /api/gamification/equip/:itemId  — equipar badge o marco de perfil */
 exports.equipItem = async (req, res) => {
   try {
     let p = await Profile.findOne({ user: req.user._id }).select("unlockedItems").lean();
     if (!p) return res.status(404).json({ message: "Perfil no encontrado" });
-    const item = REWARDS.find(r => r.id === req.params.itemId && r.type === "badge");
+    const item = REWARDS.find(r => r.id === req.params.itemId && (r.type === "badge" || r.type === "frame"));
     if (!item) return res.status(400).json({ message: "Ítem no encontrado" });
     if (!(p.unlockedItems || []).includes(item.id)) {
       return res.status(403).json({ message: "No has desbloqueado este ítem" });
     }
-    await Profile.findOneAndUpdate({ user: req.user._id }, { equippedBadge: item.id, updatedAt: new Date() });
-    res.json({ success: true, equippedBadge: item.id });
+    const field = item.type === "badge" ? "equippedBadge" : "equippedFrame";
+    await Profile.findOneAndUpdate({ user: req.user._id }, { [field]: item.id, updatedAt: new Date() });
+    res.json({ success: true, [field]: item.id });
   } catch(e) { res.status(500).json({ message: e.message }); }
 };

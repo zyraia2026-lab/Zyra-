@@ -3,7 +3,7 @@ const { rateLimit } = require("express-rate-limit");
 const { sendMessage, streamMessage, journalPrompt } = require("../controllers/chatController");
 const { protect }           = require("../middleware/auth");
 const { safetyGuard }       = require("../middleware/safetyGuard");
-const { checkMessageLimit } = require("../middleware/planGate");
+const { checkCargas }       = require("../middleware/cargasGate");
 
 // Max 30 mensajes por minuto por usuario (evita scripts abusivos)
 const chatLimiter = rateLimit({
@@ -17,7 +17,9 @@ const chatLimiter = rateLimit({
   validate: { keyGeneratorIpFallback: false },
 });
 
-r.post("/",              protect, chatLimiter, checkMessageLimit, safetyGuard, sendMessage);
-r.post("/stream",        protect, chatLimiter, checkMessageLimit, safetyGuard, streamMessage);
+// safetyGuard va antes: si el mensaje es de crisis, responde y corta ahí
+// mismo sin llegar a descontar cargas -- el modo emergencia nunca cuesta.
+r.post("/",              protect, chatLimiter, safetyGuard, checkCargas(1), sendMessage);
+r.post("/stream",        protect, chatLimiter, safetyGuard, checkCargas(1), streamMessage);
 r.post("/journal-prompt", protect, journalPrompt);
 module.exports = r;

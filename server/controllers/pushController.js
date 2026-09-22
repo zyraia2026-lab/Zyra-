@@ -99,11 +99,20 @@ exports.sendDailyReminders = async () => {
     const min  = now.getUTCMinutes();
 
     // ── 1. Recordatorio diario personalizado (con emoción) ──
-    const profiles = await Profile.find({
+    let profiles = await Profile.find({
       reminderEnabled: true,
       reminderHour:    hour,
       reminderMinute:  min,
     }).select("user lastReminderSentAt currentEmotion").lean();
+
+    // Notificaciones push: el plan Gratis solo ve avisos dentro de la app,
+    // no push -- filtramos aquí antes de enviar nada.
+    const User = require("../models/User");
+    const paidUserIds = new Set(
+      (await User.find({ _id: { $in: profiles.map(p => p.user) }, plan: { $ne: "free" } }).select("_id").lean())
+        .map(u => String(u._id))
+    );
+    profiles = profiles.filter(p => paidUserIds.has(String(p.user)));
 
     const DEDUP_MS = 50 * 60 * 1000;
     let sent = 0;
@@ -114,8 +123,8 @@ exports.sendDailyReminders = async () => {
       await sendToUser(p.user, {
         title: "Zyra te habló 💜",
         body:  msg,
-        icon:  "/Imagenes/1000154669.png",
-        badge: "/Imagenes/1000154669.png",
+        icon:  "/Imagenes/logo-nuevo.png",
+        badge: "/Imagenes/logo-nuevo.png",
         tag:   "zyra-daily",
         data:  { url: "/?p=assistant" },
       });
@@ -151,8 +160,8 @@ exports.sendDailyReminders = async () => {
         await sendToUser(p.user, {
           title: "Zyra te extraña 💜",
           body:  msg,
-          icon:  "/Imagenes/1000154669.png",
-          badge: "/Imagenes/1000154669.png",
+          icon:  "/Imagenes/logo-nuevo.png",
+          badge: "/Imagenes/logo-nuevo.png",
           tag:   "zyra-reengagement",
           data:  { url: "/?p=assistant" },
         });
@@ -193,8 +202,8 @@ exports.sendDailyReminders = async () => {
           await sendToUser(uid, {
             title: today.length ? "⚠️ Meta que vence hoy" : "🔔 Meta que vence mañana",
             body,
-            icon:  "/Imagenes/1000154669.png",
-            badge: "/Imagenes/1000154669.png",
+            icon:  "/Imagenes/logo-nuevo.png",
+            badge: "/Imagenes/logo-nuevo.png",
             tag:   "zyra-goals",
             data:  { url: "/?p=goals" },
           });
@@ -308,8 +317,8 @@ exports.sendProactiveCheckIn = async () => {
       await sendToUser(p.user, {
         title,
         body,
-        icon:  "/Imagenes/1000154669.png",
-        badge: "/Imagenes/1000154669.png",
+        icon:  "/Imagenes/logo-nuevo.png",
+        badge: "/Imagenes/logo-nuevo.png",
         tag:   "zyra-proactive",
         data:  { url: "/?p=assistant" },
       });
@@ -374,8 +383,8 @@ exports.sendSundayReflection = async () => {
 
       await sendToUser(p.user, {
         title, body,
-        icon:  "/Imagenes/1000154669.png",
-        badge: "/Imagenes/1000154669.png",
+        icon:  "/Imagenes/logo-nuevo.png",
+        badge: "/Imagenes/logo-nuevo.png",
         tag:   "zyra-sunday",
         data:  { url: "/?p=journal" },
       });
@@ -431,8 +440,8 @@ exports.sendEveningCheckIn = async () => {
       await sendToUser(p.user, {
         title: m.title,
         body:  m.body,
-        icon:  "/Imagenes/1000154669.png",
-        badge: "/Imagenes/1000154669.png",
+        icon:  "/Imagenes/logo-nuevo.png",
+        badge: "/Imagenes/logo-nuevo.png",
         tag:   "zyra-evening",
         data:  { url: "/?p=dashboard" },
       });
@@ -492,8 +501,8 @@ exports.sendMemoryFollowUps = async () => {
       await sendToUser(uid, {
         title: `Zyra se acordó 💜`,
         body:  `Me contaste algo sobre esto que pasa ${whenStr}: ${shortContent}`,
-        icon:  "/Imagenes/1000154669.png",
-        badge: "/Imagenes/1000154669.png",
+        icon:  "/Imagenes/logo-nuevo.png",
+        badge: "/Imagenes/logo-nuevo.png",
         tag:   "zyra-followup",
         data:  { url: "/?p=assistant" },
       });

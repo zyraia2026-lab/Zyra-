@@ -15,18 +15,18 @@ try {
 const PLANS = {
   basic: {
     name:        "Zyra Plan Básico",
-    description: "100 mensajes/día · 10 metas · Diario ilimitado · Contacto emergencia",
-    monthly:     990000,   // $9,900 COP
-    annual:      9900000,  // $99,000 COP (ahorra 17%)
+    description: "1.800 cargas/mes · 6 llamadas de 10 min · Diario ilimitado · Contacto emergencia",
+    monthly:     1190000,   // $11,900 COP
+    annual:      11900000,  // $119,000 COP
     currency:    "cop",
     durationMonthly: 30,
     durationAnnual:  365,
   },
   premium: {
     name:        "Zyra Plan Premium",
-    description: "Mensajes ilimitados · Todo incluido · Llamadas de voz IA · Reportes PDF",
-    monthly:     2490000,  // $24,900 COP
-    annual:      24900000, // $249,000 COP (ahorra 17%)
+    description: "6.000 cargas/mes · 12 llamadas de 20 min · Todo ilimitado · Reportes PDF",
+    monthly:     1990000,  // $19,900 COP
+    annual:      19900000, // $199,000 COP
     currency:    "cop",
     durationMonthly: 30,
     durationAnnual:  365,
@@ -43,9 +43,13 @@ exports.createCheckout = async (req, res) => {
     const isAnnual = period === "annual";
 
     if (!stripe) {
-      // Modo demo: actualizar plan directamente (para pruebas sin Stripe).
-      // Restringido al admin -- sin esto, cualquier usuario real podía llamar
-      // este endpoint y quedar en plan pago gratis mientras Stripe no esté configurado.
+      // Modo demo: actualizar plan directamente (para pruebas sin Stripe
+      // configurado). Restringido de nuevo al admin -- se abrió para
+      // cualquier cuenta solo durante la expo (ya pasó). Sin esto, cualquier
+      // usuario real que se registre podía llamar este endpoint y quedar en
+      // plan pago gratis para siempre, porque no hay pasarela real
+      // configurada (ni la va a haber pronto -- Stripe no opera en Colombia
+      // y las pasarelas locales piden RUT/NIT real).
       if (!process.env.ADMIN_EMAIL || req.user.email !== process.env.ADMIN_EMAIL) {
         return res.status(503).json({ message: "Los pagos aún no están disponibles. Intenta más tarde." });
       }

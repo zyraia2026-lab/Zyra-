@@ -97,6 +97,19 @@ app.use(express.urlencoded({ extended: false, limit: "2mb" }));
 // ── Sanitizar MongoDB injection ($where, $gt, etc.)
 app.use(mongoSanitize());
 
+// ── Límite de tasa general para toda la API -- red de respaldo para las
+// rutas que no tienen su propio limitador especifico (admin, journal,
+// goals, referral, etc). Las rutas sensibles (auth, chat, pagos) ya tienen
+// su propio limite mas estricto encima de este.
+const { rateLimit: apiRateLimit } = require("express-rate-limit");
+app.use("/api", apiRateLimit({
+  windowMs: 60 * 1000,
+  max: 240,
+  keyGenerator: (req) => req.user?._id?.toString() || req.ip || "unknown",
+  message: { message: "Demasiadas solicitudes. Espera un momento." },
+  standardHeaders: true, legacyHeaders: false, validate: { keyGeneratorIpFallback: false },
+}));
+
 app.use(express.static(path.join(__dirname, "../client"), {
   maxAge: process.env.NODE_ENV === "production" ? "1d" : 0,
   etag: true,
@@ -111,6 +124,21 @@ app.use(express.static(path.join(__dirname, "../client"), {
       res.setHeader("Content-Type", "application/vnd.android.package-archive");
       res.setHeader("Content-Disposition", 'attachment; filename="Zyra.apk"');
       res.setHeader("Cache-Control", "no-cache");
+    }
+    // styles.css tiene un ?v= que hay que recordar subir en cada deploy que lo toque;
+    // como red de seguridad si se nos olvida, que el navegador lo refresque solo en minutos, no en 1 día.
+    if (filePath.endsWith("styles.css")) {
+      res.setHeader("Cache-Control", "public, max-age=300");
+    }
+    // manifest.json define el ícono con el que Android/iOS instalan la PWA —
+    // si queda en caché 1 día, un cambio de logo tarda en reflejarse incluso
+    // antes de instalar (después de instalada, el ícono queda fijo en el
+    // sistema operativo — eso ya no lo arregla ningún header, solo reinstalar).
+    if (filePath.endsWith("manifest.json")) {
+      res.setHeader("Cache-Control", "no-cache, must-revalidate");
+    }
+    if (filePath.endsWith("logo-nuevo.png")) {
+      res.setHeader("Cache-Control", "public, max-age=300");
     }
   }
 }));
@@ -135,6 +163,7 @@ app.use("/api/weekly-report", require("./routes/weeklyReport"));
 app.use("/api/referral",      require("./routes/referral"));
 app.use("/api/future-notes",  require("./routes/futureNotes"));
 app.use("/api/admin",         require("./routes/admin"));
+app.use("/api/voice",         require("./routes/voice"));
 app.use("/api/spotify",       require("./routes/spotify"));
 
 app.get("/api/health", (req, res) => res.json({ status: "OK", ai: "Zyra/Groq", version: "5.0" }));
@@ -174,8 +203,8 @@ setInterval(async () => {
       await sendToUser(note.user, {
         title: "📬 Una nota de tu pasado llegó",
         body: note.message.length > 100 ? note.message.slice(0, 97) + "…" : note.message,
-        icon: "/Imagenes/1000154669.png",
-        badge: "/Imagenes/1000154669.png",
+        icon: "/Imagenes/logo-nuevo.png",
+        badge: "/Imagenes/logo-nuevo.png",
         tag: "zyra-future-note",
         data: { url: "/?p=journal" },
       });

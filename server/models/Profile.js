@@ -25,6 +25,18 @@ const S = new mongoose.Schema({
   achievements:           [{ type: String }],
   unlockedItems:          [{ type: String }],
   equippedBadge:          { type: String, default: "" },
+  equippedFrame:          { type: String, default: "" },
+
+  // ── Cupos del plan: llamadas y test emocional ──
+  callsUsedThisMonth:     { type: Number, default: 0 },
+  callsResetAt:           { type: Date, default: null },
+  lastCallStartedAt:      { type: Date, default: null },
+  testUsedToday:          { type: Number, default: 0 },
+  testResetAt:            { type: Date, default: null },
+  songsUsedThisWeek:      { type: Number, default: 0 },
+  songsResetAt:           { type: Date, default: null },
+  exercisesUsedToday:     { type: Number, default: 0 },
+  exercisesResetAt:       { type: Date, default: null },
 
   // ── Contacto de emergencia ──
   emergencyContact: {

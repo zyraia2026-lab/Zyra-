@@ -3,10 +3,13 @@ const Profile = require("../models/Profile");
 const OTP     = require("../models/OTPCode");
 const jwt     = require("jsonwebtoken");
 const bcrypt  = require("bcryptjs");
+const { randomInt } = require("crypto");
 const { sendVerificationCode, sendWelcomeEmail, sendPasswordResetCode } = require("../utils/emailService");
 
 const tk = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || "7d" });
-const generateCode = () => Math.floor(100000 + Math.random() * 900000).toString();
+// crypto.randomInt (CSPRNG) en vez de Math.random() -- este codigo protege
+// registro/login/reset de contraseña, no debe depender de un PRNG normal.
+const generateCode = () => randomInt(100000, 1000000).toString();
 const expiresAt = () => new Date(Date.now() + 10 * 60 * 1000);
 const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,253}\.[^\s@]{2,}$/;
 const isValidEmail = (e) => EMAIL_RE.test(String(e || "").toLowerCase());

@@ -2,6 +2,7 @@ const express    = require("express");
 const router     = express.Router();
 const { protect }     = require("../middleware/auth");
 const { requirePlan } = require("../middleware/planGate");
+const { checkCargas } = require("../middleware/cargasGate");
 const Profile      = require("../models/Profile");
 const Conversation = require("../models/Conversation");
 const Goal         = require("../models/Goal");
@@ -18,7 +19,7 @@ const ECOLORS = {
   cansado:"#94a3b8", motivado:"#22c55e", solo:"#8b5cf6",
 };
 
-router.post("/pdf", protect, requirePlan("premium"), async (req, res) => {
+router.post("/pdf", protect, requirePlan("premium"), checkCargas(5), async (req, res) => {
   try {
     let PDFDocument;
     try { PDFDocument = require("pdfkit"); }

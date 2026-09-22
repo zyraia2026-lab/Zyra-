@@ -2,6 +2,7 @@ const Profile     = require("../models/Profile");
 const Goal        = require("../models/Goal");
 const Journal     = require("../models/Journal");
 const Conversation= require("../models/Conversation");
+const { getPlan }  = require("../middleware/planGate");
 
 const POSITIVE = new Set(["feliz","tranquilo","esperanzado","motivado"]);
 const NEGATIVE  = new Set(["ansioso","triste","enojado","agotado","confundido"]);
@@ -30,7 +31,11 @@ exports.getOverview = async (req, res) => {
       Conversation.countDocuments({ user: req.user._id }),
     ]);
 
-    const history = profile?.emotionHistory || [];
+    // Gráficos de progreso: Gratis ve últimos 7 días, Básico últimos 30,
+    // Premium histórico completo.
+    const { limits } = getPlan(req.user);
+    const graphCutoff = limits.graphDays === Infinity ? null : new Date(Date.now() - limits.graphDays * 86400000);
+    const history = (profile?.emotionHistory || []).filter(h => !graphCutoff || new Date(h.date) >= graphCutoff);
 
     // ── Frecuencia de emociones ──
     const freq = {};

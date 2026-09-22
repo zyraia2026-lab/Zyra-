@@ -229,8 +229,8 @@ exports.cronGenerateAll = async () => {
         await sendToUser(u._id, {
           title: "📊 Tu reporte semanal llegó",
           body,
-          icon:  "/Imagenes/1000154669.png",
-          badge: "/Imagenes/1000154669.png",
+          icon:  "/Imagenes/logo-nuevo.png",
+          badge: "/Imagenes/logo-nuevo.png",
           tag:   "zyra-weekly-report",
           data:  { url: "/?p=weekly-report" },
         }).catch(() => {});

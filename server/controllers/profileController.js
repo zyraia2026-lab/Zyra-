@@ -35,6 +35,15 @@ exports.updateProfile = async (req, res) => {
     if (update.reminderMinute !== undefined && (update.reminderMinute < 0 || update.reminderMinute > 59))
       return res.status(400).json({ message: "Minuto de recordatorio inválido" });
 
+    // El tema "default" es gratis; los demas (ocean/forest/sunset/midnight)
+    // se venden en la Tienda -- sin esto cualquiera podia ponerselos gratis
+    // desde Perfil sin haberlos comprado nunca.
+    if (update.theme !== undefined && update.theme !== "default") {
+      const current = await Profile.findOne({ user: req.user._id }).select("unlockedItems").lean();
+      const owned = (current?.unlockedItems || []).includes("theme_" + update.theme);
+      if (!owned) return res.status(403).json({ message: "No has desbloqueado ese tema. Cómpralo en la Tienda." });
+    }
+
     update.updatedAt = Date.now();
     const p = await Profile.findOneAndUpdate(
       { user: req.user._id }, update, { new: true, upsert: true }
@@ -423,15 +432,11 @@ exports.deleteAccount = async (req, res) => {
 exports.getPlanStatus = async (req, res) => {
   try {
     const User = require("../models/User");
-    const { getPlan, LIMITS } = require("../middleware/planGate");
-    const user = await User.findById(req.user._id).select("plan planExpiresAt planActivatedAt messagesResetAt messagesUsedToday").lean();
+    const { getPlan } = require("../middleware/planGate");
+    const { getCargasStatus } = require("../middleware/cargasGate");
+    const user = await User.findById(req.user._id).select("plan planExpiresAt planActivatedAt").lean();
     const { plan, limits, expired } = getPlan(user);
-
-    const now   = new Date();
-    const _col  = (d) => { const c = new Date(d.getTime() - 5*60*60*1000); return c.getUTCFullYear()+"-"+(c.getUTCMonth()+1)+"-"+c.getUTCDate(); };
-    const reset = user.messagesResetAt ? new Date(user.messagesResetAt) : null;
-    const sameDay = reset && _col(reset) === _col(now);
-    const messagesUsedToday = sameDay ? (user.messagesUsedToday || 0) : 0;
+    const cargasStatus = await getCargasStatus({ _id: req.user._id, plan: user.plan, planExpiresAt: user.planExpiresAt });
 
     res.json({
       success: true,
@@ -440,8 +445,9 @@ exports.getPlanStatus = async (req, res) => {
       planExpiresAt:     user.planExpiresAt || null,
       planActivatedAt:   user.planActivatedAt || null,
       limits,
-      messagesUsedToday,
-      messagesRemaining: limits.messagesPerDay === Infinity ? null : Math.max(0, limits.messagesPerDay - messagesUsedToday),
+      cargas:    cargasStatus.cargas,
+      cargasMax: cargasStatus.cargasMax,
+      cargasCycle: cargasStatus.cycle,
     });
   } catch(e) { res.status(500).json({ message: e.message }); }
 };
