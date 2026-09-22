@@ -4704,24 +4704,31 @@ function initGdprBanner() {
 /* ── SWIPE NAVIGATION entre tabs principales (mobile) ── */
 (function initSwipeNav() {
   const TAB_ORDER = ['dashboard','assistant','journal','wellness','profile'];
-  let _sx = null, _sy = null;
+  const EXCLUDE_SEL = '.wellness-tabs, .cards-row, .mood-row, .emotions-grid, .nav-links, [style*="overflow-x"]';
+  let _sx = null, _sy = null, _sExcluded = false;
   document.addEventListener('touchstart', e => {
     const t = e.touches[0];
     _sx = t.clientX; _sy = t.clientY;
+    // Se revisa en dónde EMPIEZA el toque, no en dónde termina: al deslizar,
+    // el dedo se aleja del elemento inicial (esa es la naturaleza de un swipe),
+    // así que comprobar el punto final casi nunca coincidía con la zona
+    // excluida aunque el gesto sí hubiera empezado ahí — dejaba pasar el
+    // cambio de módulo igual sobre cosas como la cuadrícula de emociones.
+    _sExcluded = !!(e.target && e.target.closest && e.target.closest(EXCLUDE_SEL));
   }, { passive: true });
   document.addEventListener('touchend', e => {
     if (_sx === null) return;
     const t = e.changedTouches[0];
     const dx = t.clientX - _sx;
     const dy = t.clientY - _sy;
-    _sx = null; _sy = null;
+    const excluded = _sExcluded;
+    _sx = null; _sy = null; _sExcluded = false;
     if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.8) return;
     // Only swipe on tab pages
     const cur = window._zyraCurrentPage || 'dashboard';
     if (!TAB_ORDER.includes(cur)) return;
-    // Don't swipe if inside a horizontally scrollable element
-    const el = document.elementFromPoint(t.clientX, t.clientY);
-    if (el && el.closest('.wellness-tabs, .cards-row, .mood-row, .emotions-grid, .nav-links, [style*="overflow-x"]')) return;
+    // No cambiar de módulo si el gesto empezó dentro de una zona excluida
+    if (excluded) return;
     const idx = TAB_ORDER.indexOf(cur);
     if (dx < 0 && idx < TAB_ORDER.length - 1) showPage(TAB_ORDER[idx + 1]);
     else if (dx > 0 && idx > 0) showPage(TAB_ORDER[idx - 1]);
@@ -7000,6 +7007,7 @@ function _compartirCartaCompasion(weekKey) {
 let _stepCount       = 0;
 let _stepActive      = false;
 let _stepLastTs      = 0;
+let _stepStreak      = 0;         // candidatos consecutivos con ritmo de caminata plausible
 let _stepAbove       = false;
 let _stepEMA         = 9.8;       // señal suavizada (filtro por tiempo, no por muestras)
 let _stepWin         = [];        // ventana deslizante (~1.5s) para medir el rango real de la señal
@@ -7035,6 +7043,7 @@ async function startPhoneSteps() {
   _stepWin         = [];
   _stepAbove       = false;
   _stepLastTs      = 0;
+  _stepStreak      = 0;
   _stepCalibrating = true;
   _stepCalTs       = Date.now();
   _stepGravDecided = false;
@@ -7066,6 +7075,7 @@ function _onStepVisibilityChange() {
   if (document.visibilityState === 'visible' && _stepActive) {
     _stepWin = [];
     _stepAbove = false;
+    _stepStreak = 0;
     _stepCalibrating = true;
     _stepCalTs = Date.now();
   }
@@ -7154,11 +7164,34 @@ function _onPhoneMotion(evt) {
     _stepAbove = true;
   } else if (_stepAbove && _stepEMA < lower) {
     _stepAbove = false;
-    if (_stepLastTs === 0 || now - _stepLastTs > 280) { // min. ~280ms entre pasos (evita rebotes dobles)
+    // El umbral se auto-calibra al rango de la señal reciente, así que CUALQUIER
+    // ruido (temblor de la mano, vibraciones de la mesa) con el celular quieto
+    // también genera "cruces" — porque el umbral se calcula a partir de ese
+    // mismo ruido. Un cruce aislado ya no cuenta solo: se exige que al menos
+    // dos cruces seguidos caigan en un ritmo de caminata real (250-1800ms
+    // entre uno y otro). El ruido rara vez sostiene ese ritmo dos veces seguidas;
+    // caminar sí, por naturaleza.
+    const interval = _stepLastTs ? now - _stepLastTs : 0;
+    const plausibleCadence = interval >= 250 && interval <= 1800;
+    if (plausibleCadence) {
+      _stepStreak++;
       _stepLastTs = now;
-      _stepCount++;
-      _handleSteps(_stepCount);
-      if (_stepCount % 5 === 0) _savePhoneSteps(); // guardar cada 5 pasos
+      if (_stepStreak === 2) {
+        // El primer cruce de la racha se quedó pendiente sin contar — al
+        // confirmarse el segundo, se suman los dos de una vez.
+        _stepCount += 2;
+        _handleSteps(_stepCount);
+        _savePhoneSteps();
+      } else if (_stepStreak > 2) {
+        _stepCount++;
+        _handleSteps(_stepCount);
+        if (_stepCount % 5 === 0) _savePhoneSteps();
+      }
+    } else {
+      // Cruce aislado o ritmo roto — puede ser el inicio real de una caminata,
+      // pero no se cuenta hasta que el siguiente cruce lo confirme.
+      _stepStreak = 1;
+      _stepLastTs = now;
     }
   }
 }
