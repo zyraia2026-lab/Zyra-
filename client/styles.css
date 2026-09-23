@@ -4420,3 +4420,47 @@ body {
   .emo-scroll::-webkit-scrollbar { display: none; }
   .emo-scroll > button { scroll-snap-align: start; }
 }
+
+/* ── Campos y columnas que no se salen de su recuadro ──
+   Un <input> dentro de una fila flex (o una columna de grid) tiene por defecto
+   un ancho mínimo igual a su tamaño "natural" (~20 caracteres) y NO se encoge.
+   En celular, con la letra a 16px (necesaria para que iPhone no haga zoom),
+   ese mínimo es más ancho que el espacio disponible: el campo empujaba la
+   tarjeta fuera de la pantalla y el botón de al lado quedaba cortado.
+   Con min-width:0 se encogen al espacio real; el texto largo del placeholder
+   termina en "…" en vez de salirse. */
+input, textarea, select { min-width: 0; max-width: 100%; box-sizing: border-box; }
+input:not([type="range"]):not([type="checkbox"]):not([type="radio"]) { text-overflow: ellipsis; }
+.grid2 > *, .grid-3 > *, .grid-4 > * { min-width: 0; }
+/* Palabras muy largas (correos, enlaces, nombres) se parten solo si no caben,
+   en vez de salirse del recuadro. No cambia nada del texto que ya cabe. */
+body { overflow-wrap: break-word; }
+/* Columnas de las cuadrículas escritas en línea: que el texto largo no las
+   ensanche más allá de su recuadro. */
+[style*="display:grid"] > * { min-width: 0; }
+/* Los títulos de las tarjetas pasan a una segunda línea en vez de quedar
+   cortados con "…" cuando no caben (ej. "7. Inteligencia artificial — …"). */
+.card-header { gap: 8px; }
+.card-header .card-title { white-space: normal; flex: 1 1 auto; min-width: 0; }
+
+/* ── Selector de emociones de "Bienestar emocional" en celular ──
+   Con 5 columnas fijas, etiquetas como "ESPERANZADO" ensanchaban las columnas
+   más allá de la tarjeta: la última columna (Enojado, Nostálgico) quedaba
+   oculta y la penúltima cortada. En celular pasa a ser una fila deslizable
+   (igual que la del inicio): se ven completos y se desliza para ver el resto. */
+@media (max-width: 768px) {
+  .emotions-grid {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    padding: 4px 2px 6px;
+  }
+  .emotions-grid::-webkit-scrollbar { display: none; }
+  .emotions-grid .emotion-btn { flex: 0 0 84px; min-width: 0; padding: 10px 4px !important; scroll-snap-align: start; }
+  .emotions-grid .emotion-label { font-size: 9px; letter-spacing: 0; white-space: nowrap; }
+}

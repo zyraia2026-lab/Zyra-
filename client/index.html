@@ -1707,7 +1707,8 @@ function closeMobileMoreSheet() {
 .b2b-input:focus{border-color:#6366f1}
 .b2b-input::placeholder{color:#555b7a}
 .b2b-label{font-size:12px;font-weight:700;color:#7880a0;margin-bottom:6px;display:block;text-transform:uppercase;letter-spacing:.5px}
-@media(max-width:640px){.b2b-nav{padding:0 16px}.b2b-stats{gap:32px}}
+@media(max-width:640px){.b2b-nav{padding:0 16px;gap:10px}.b2b-nav .lp-logo{min-width:0}.b2b-form-grid{grid-template-columns:1fr !important}.b2b-nav .lp-btn-ghost,.b2b-nav .lp-btn-solid{padding:8px 12px;font-size:12px;white-space:nowrap}.b2b-stats{gap:32px}}
+@media(max-width:380px){.b2b-nav .lp-logo-text{display:none}}
 </style>
 <div class="b2b-page">
   <!-- Nav -->
@@ -1841,7 +1842,7 @@ function closeMobileMoreSheet() {
     <h2 class="lp-section-title" style="font-family:'Playfair Display',serif;font-size:clamp(24px,4vw,38px);font-weight:800;color:#e8eaf6;margin-bottom:12px">Hablemos</h2>
     <p style="color:#7880a0;font-size:15px;margin-bottom:40px">Te respondemos en menos de 24 horas hábiles.</p>
     <div class="b2b-contact-form">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="b2b-form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
         <div>
           <label class="b2b-label" for="b2b-nombre">Nombre</label>
           <input class="b2b-input" id="b2b-nombre" type="text" placeholder="Tu nombre"/>
@@ -2456,7 +2457,7 @@ async function b2bSubmitContact() {
           <span id="intention-saved-badge" style="display:none;font-size:10px;color:#10b981;font-weight:700">✓ Guardada</span>
         </div>
         <div style="display:flex;gap:8px">
-          <input id="daily-intention-input" type="text" maxlength="120" placeholder="¿Con qué intención quieres vivir este día?" style="flex:1;background:rgba(255,255,255,.06);border:1.5px solid rgba(99,102,241,.25);border-radius:12px;color:var(--text);font-size:13px;padding:9px 14px;outline:none;font-family:inherit" onkeydown="if(event.key==='Enter')saveDailyIntention()"/>
+          <input id="daily-intention-input" type="text" maxlength="120" placeholder="Intención para hoy…" style="flex:1;background:rgba(255,255,255,.06);border:1.5px solid rgba(99,102,241,.25);border-radius:12px;color:var(--text);font-size:13px;padding:9px 14px;outline:none;font-family:inherit" onkeydown="if(event.key==='Enter')saveDailyIntention()"/>
           <button onclick="saveDailyIntention()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;border-radius:10px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">Guardar</button>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px" id="intention-chips">
@@ -2918,7 +2919,7 @@ async function b2bSubmitContact() {
       </div>
       <!-- Búsqueda, filtro y orden -->
       <div style="display:flex;gap:8px;padding:12px 0 4px;border-top:1px solid var(--border);margin-top:12px;flex-wrap:wrap">
-        <input id="journal-search-input" type="search" placeholder="🔍 Buscar..." style="flex:1;min-width:120px;padding:9px 13px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:13px;outline:none" oninput="filterJournal()"/>
+        <input id="journal-search-input" type="search" placeholder="🔍 Buscar..." style="flex:1 1 180px;min-width:0;padding:9px 13px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:13px;outline:none" oninput="filterJournal()"/>
         <select id="journal-filter-emotion" style="padding:9px 10px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:13px;outline:none" onchange="filterJournal()">
           <option value="">Todas</option>
           <option value="feliz">😊 Feliz</option>
