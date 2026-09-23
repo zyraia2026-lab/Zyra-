@@ -59,6 +59,19 @@ function isMissionsReset(p) {
   if (!reset) return true;
   return colDateStr(reset) !== colDateStr(new Date());
 }
+// Número de día de calendario en hora Colombia. La racha compara DÍAS, no
+// bloques de 24h: antes, entrar a las 11pm y volver a las 8am del día
+// siguiente daba "0 días" (la racha no subía), y entrar lunes 8am y volver
+// miércoles 7am daba "1 día" (la racha seguía aunque faltó el martes).
+function colDayIndex(d) {
+  return Math.floor((new Date(d).getTime() - 5 * 60 * 60 * 1000) / 86400000);
+}
+// Racha activa = hubo actividad hoy o ayer (hora Colombia).
+function isStreakActive(p) {
+  if (!p || !p.lastActiveDate || !(p.streakDays > 0)) return false;
+  return colDayIndex(new Date()) - colDayIndex(p.lastActiveDate) <= 1;
+}
+exports.isStreakActive = isStreakActive;
 
 function checkAchievements(p, newStreak, newCoins, completedMissions, journalCount) {
   const earned = [...(p.achievements || [])];
@@ -113,15 +126,17 @@ exports.getStatus = async (req, res) => {
   } catch(e) { res.status(500).json({ message: e.message }); }
 };
 
-/* POST /api/gamification/visit  — llamar al abrir la app (actualiza racha) */
-exports.recordVisit = async (req, res) => {
-  try {
-    let p = await Profile.findOne({ user: req.user._id }).select("streakDays lastActiveDate coins sessionsCount achievements missionsCompletedToday missionsResetAt streakFreezes unlockedItems").lean();
-    if (!p) p = (await Profile.create({ user: req.user._id })).toObject();
+/* Registra actividad de HOY para un usuario y actualiza su racha (+ monedas,
+   logros y push de hitos). Lo usa /visit al abrir la app y también el sistema
+   de referidos, para que al aplicar un código ambos amigos queden con la
+   racha activa. Es idempotente dentro del mismo día. */
+async function applyVisit(userId, { countSession = true } = {}) {
+    let p = await Profile.findOne({ user: userId }).select("streakDays lastActiveDate coins sessionsCount achievements missionsCompletedToday missionsResetAt streakFreezes unlockedItems").lean();
+    if (!p) p = (await Profile.create({ user: userId })).toObject();
 
     const now  = new Date();
     const last = p.lastActiveDate ? new Date(p.lastActiveDate) : null;
-    const diff = last ? Math.floor((now - last) / 86400000) : null;
+    const diff = last ? colDayIndex(now) - colDayIndex(last) : null;
 
     let streak = p.streakDays || 0;
     let coinsEarned = 0;
@@ -146,8 +161,10 @@ exports.recordVisit = async (req, res) => {
     } else if (diff === 1) {
       streak += 1;
       coinsEarned = 5; // bonus día consecutivo
+    } else if (streak < 1) {
+      streak = 1;      // diff 0 (o reloj desfasado) sin racha previa
     }
-    // diff === 0: mismo día, no cambiar
+    // diff === 0 con racha: mismo día, no cambiar
 
     const newCoins = (p.coins || 0) + coinsEarned;
     const { earned, fresh } = checkAchievements(p, streak, newCoins, null);
@@ -164,7 +181,7 @@ exports.recordVisit = async (req, res) => {
       lastActiveDate: now,
       coins:          newCoins + achBonus,
       achievements:   earned,
-      sessionsCount:  (p.sessionsCount || 0) + (diff !== 0 ? 1 : 0),
+      sessionsCount:  (p.sessionsCount || 0) + (countSession && diff !== 0 ? 1 : 0),
       updatedAt:      now,
     };
     if (freezeUsed) update.streakFreezes = Math.max(0, freezes - 1);
@@ -174,7 +191,7 @@ exports.recordVisit = async (req, res) => {
       update.missionsResetAt = now;
     }
 
-    await Profile.findOneAndUpdate({ user: req.user._id }, update);
+    await Profile.findOneAndUpdate({ user: userId }, update);
 
     // Push notification para hitos de racha (fire-and-forget)
     const STREAK_PUSH = {
@@ -186,15 +203,14 @@ exports.recordVisit = async (req, res) => {
     if (streakHit) {
       const { sendToUser } = require("./pushController");
       const msg = STREAK_PUSH[streakHit];
-      sendToUser(req.user._id, {
+      sendToUser(userId, {
         title: msg.title, body: msg.body,
         icon: "/Imagenes/logo-nuevo.png", badge: "/Imagenes/logo-nuevo.png",
         tag: "zyra-streak-milestone", data: { url: "/?p=gamification" },
       }).catch(() => {});
     }
 
-    res.json({
-      success: true,
+    return {
       streak,
       coinsEarned: coinsEarned + achBonus,
       newAchievements: fresh.map(id => ACHIEVEMENTS.find(a => a.id === id)).filter(Boolean),
@@ -202,7 +218,14 @@ exports.recordVisit = async (req, res) => {
       freezeUsed,
       streakFreezes: freezeUsed ? Math.max(0, freezes - 1) : freezes,
       previousStreak: streakReset ? previousStreak : undefined,
-    });
+    };
+}
+exports.applyVisit = applyVisit;
+
+/* POST /api/gamification/visit  — llamar al abrir la app (actualiza racha) */
+exports.recordVisit = async (req, res) => {
+  try {
+    res.json({ success: true, ...(await applyVisit(req.user._id)) });
   } catch(e) { res.status(500).json({ message: e.message }); }
 };
 

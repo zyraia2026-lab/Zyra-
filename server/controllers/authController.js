@@ -5,6 +5,7 @@ const jwt     = require("jsonwebtoken");
 const bcrypt  = require("bcryptjs");
 const { randomInt } = require("crypto");
 const { sendVerificationCode, sendWelcomeEmail, sendPasswordResetCode } = require("../utils/emailService");
+const { genUniqueReferralCode } = require("./referralController");
 
 const tk = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || "7d" });
 // crypto.randomInt (CSPRNG) en vez de Math.random() -- este codigo protege
@@ -82,9 +83,7 @@ exports.registerVerify = async (req, res) => {
     if (await User.exists({ email }))
       return res.status(400).json({ message: "Este correo ya está registrado" });
 
-    const genCode = () => "ZYRA" + Math.random().toString(36).slice(2,8).toUpperCase();
-    let referralCode = genCode();
-    while (await User.exists({ referralCode })) referralCode = genCode();
+    const referralCode = await genUniqueReferralCode();
     const userDoc = new User({ name, email, password, referralCode });
     if (prehashed) userDoc._prehashed = true;
     const user = await userDoc.save();
