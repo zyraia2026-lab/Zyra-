@@ -4396,3 +4396,27 @@ body {
 .pomo-amb-btn { flex: 1; max-width: 90px; padding: 7px 4px; border-radius: 10px; font-size: 11px; cursor: pointer; transition: all .18s; text-align: center; line-height: 1.5; font-family: inherit; }
 .pomo-amb-btn:hover { border-color: var(--accent) !important; color: var(--accent) !important; background: rgba(99,102,241,.1) !important; }
 [data-theme="dark"] .pomo-amb-btn, :root:not([data-theme="light"]) .pomo-amb-btn { background: var(--surface); border-color: var(--border); }
+
+/* ── Fila rápida de emociones del inicio ("¿Cómo te sientes ahora?") ──
+   En computador los botones se acomodan en varias líneas. En celular son UNA
+   fila que se desliza de lado para ver los emojis ocultos. overscroll-behavior
+   evita que el navegador tome el gesto como "atrás/adelante" al llegar al
+   borde, y el manejador de swipe entre módulos ignora los toques que empiezan
+   aquí (ver initSwipeNav). */
+.emo-scroll { display: flex; flex-wrap: wrap; gap: 6px; }
+.emo-scroll > button { flex-shrink: 0; white-space: nowrap; }
+@media (max-width: 768px) {
+  .emo-scroll {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    touch-action: pan-x pan-y;
+    padding-bottom: 2px;
+  }
+  .emo-scroll::-webkit-scrollbar { display: none; }
+  .emo-scroll > button { scroll-snap-align: start; }
+}

@@ -7,7 +7,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;0,800;1,700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="styles.css?v=20260919"/>
+<link rel="stylesheet" href="styles.css?v=20260922"/>
 
 <!-- ══ PWA META TAGS ══ -->
 <link rel="manifest" href="/manifest.json"/>
@@ -2232,7 +2232,7 @@ async function b2bSubmitContact() {
     </div>
     <div style="border-top:1px solid var(--border,rgba(99,102,241,.1));padding-top:12px">
       <p style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin:0 0 9px" id="quick-emo-label">¿Cómo te sientes ahora?</p>
-      <div id="quick-emo-circles" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      <div id="quick-emo-circles" class="emo-scroll"></div>
     </div>
   </div>
 
@@ -4704,7 +4704,21 @@ function initGdprBanner() {
 /* ── SWIPE NAVIGATION entre tabs principales (mobile) ── */
 (function initSwipeNav() {
   const TAB_ORDER = ['dashboard','assistant','journal','wellness','profile'];
-  const EXCLUDE_SEL = '.wellness-tabs, .cards-row, .mood-row, .emotions-grid, .nav-links, [style*="overflow-x"]';
+  const EXCLUDE_SEL = '.wellness-tabs, .cards-row, .mood-row, .emotions-grid, .emo-scroll, .nav-links, [style*="overflow-x"], [role="dialog"], input, textarea, select';
+  // ¿El toque empezó dentro de algo que se desplaza de lado (una fila de emojis,
+  // pestañas, tablas…)? Ahí deslizar debe mover ESA fila, no cambiar de módulo.
+  // Se revisa el estilo real calculado, así cubre también las filas que solo se
+  // vuelven deslizables en celular vía CSS (media queries), que el selector
+  // [style*="overflow-x"] no detecta.
+  function _startsInHScroller(el) {
+    for (; el && el !== document.body; el = el.parentElement) {
+      if (el.scrollWidth > el.clientWidth + 2) {
+        const ox = getComputedStyle(el).overflowX;
+        if (ox === 'auto' || ox === 'scroll') return true;
+      }
+    }
+    return false;
+  }
   let _sx = null, _sy = null, _sExcluded = false;
   document.addEventListener('touchstart', e => {
     const t = e.touches[0];
@@ -4714,7 +4728,7 @@ function initGdprBanner() {
     // así que comprobar el punto final casi nunca coincidía con la zona
     // excluida aunque el gesto sí hubiera empezado ahí — dejaba pasar el
     // cambio de módulo igual sobre cosas como la cuadrícula de emociones.
-    _sExcluded = !!(e.target && e.target.closest && e.target.closest(EXCLUDE_SEL));
+    _sExcluded = !!(e.target && e.target.closest && e.target.closest(EXCLUDE_SEL)) || _startsInHScroller(e.target);
   }, { passive: true });
   document.addEventListener('touchend', e => {
     if (_sx === null) return;
