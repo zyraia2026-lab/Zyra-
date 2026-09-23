@@ -7006,14 +7006,16 @@ function _compartirCartaCompasion(weekKey) {
 // ══════════════════════════════════════════
 let _stepCount       = 0;
 let _stepActive      = false;
-let _stepLastTs      = 0;
-let _stepStreak      = 0;         // candidatos consecutivos con ritmo de caminata plausible
-let _stepAbove       = false;
-let _stepEMA         = 9.8;       // señal suavizada (filtro por tiempo, no por muestras)
-let _stepWin         = [];        // ventana deslizante (~1.5s) para medir el rango real de la señal
-let _stepUseNoGrav   = false;     // true si el OS ya quitó la gravedad — se decide UNA vez al calibrar, no por evento
-let _stepGravDecided = false;
-let _stepCalibrating = true;      // true durante los primeros ~1.2s
+let _stepLastTs      = 0;         // hora del último pico aceptado como paso
+let _stepPending     = 0;         // pasos detectados aún sin confirmar (la caminata no se ha confirmado)
+let _stepWalking     = false;     // true cuando ya hay una caminata confirmada en curso
+let _stepAbove       = false;     // true mientras la señal está por encima del umbral (buscando el pico)
+let _stepPeak        = 0;         // pico máximo de la señal en el cruce actual
+let _stepAmp         = 1.5;       // amplitud típica de los últimos pasos (m/s²) — umbral adaptativo
+let _stepLP          = null;      // magnitud suavizada (quita el ruido de alta frecuencia)
+let _stepBase        = null;      // línea base lenta (≈ gravedad) que se resta a la señal
+let _stepPrevT       = 0;         // hora de la muestra anterior (filtros por tiempo real, no por muestra)
+let _stepCalibrating = true;      // true durante el primer ~1s
 let _stepCalTs       = 0;
 let _stepDebugTs     = 0;
 let _stepLastEvtTs   = 0;         // hora del último evento devicemotion recibido (watchdog + detectar segundo plano)
@@ -7039,14 +7041,7 @@ async function startPhoneSteps() {
   const today = new Date().toDateString();
   const saved = (() => { try { return JSON.parse(localStorage.getItem('zyra_phone_steps') || '{}'); } catch(_) { return {}; } })();
   _stepCount       = saved.date === today ? (saved.steps || 0) : 0;
-  _stepEMA         = 9.8;
-  _stepWin         = [];
-  _stepAbove       = false;
-  _stepLastTs      = 0;
-  _stepStreak      = 0;
-  _stepCalibrating = true;
-  _stepCalTs       = Date.now();
-  _stepGravDecided = false;
+  _resetStepDetector();
   _stepLastEvtTs   = 0;
   _stepActive      = true;
   window.addEventListener('devicemotion', _onPhoneMotion, { passive: true });
@@ -7072,13 +7067,23 @@ function _onStepVisibilityChange() {
   // muestras quede vacía y la primera lectura nueva puede traer un salto
   // brusco (layout/animaciones al reanudar) que antes se contaba como paso
   // falso. Se limpia el estado y se re-calibra brevemente al volver.
-  if (document.visibilityState === 'visible' && _stepActive) {
-    _stepWin = [];
-    _stepAbove = false;
-    _stepStreak = 0;
-    _stepCalibrating = true;
-    _stepCalTs = Date.now();
-  }
+  if (document.visibilityState === 'visible' && _stepActive) _resetStepDetector();
+}
+
+// Deja el detector como recién encendido (filtros, umbral y caminata en curso)
+// y lo re-calibra ~1s. No toca el total de pasos del día.
+function _resetStepDetector() {
+  _stepLP          = null;
+  _stepBase        = null;
+  _stepPrevT       = 0;
+  _stepAbove       = false;
+  _stepPeak        = 0;
+  _stepAmp         = 1.5;
+  _stepLastTs      = 0;
+  _stepPending     = 0;
+  _stepWalking     = false;
+  _stepCalibrating = true;
+  _stepCalTs       = Date.now();
 }
 
 function stopPhoneSteps() {
@@ -7102,97 +7107,101 @@ function _dbgStepWrite(text) {
   if (el) el.textContent = text;
 }
 
+// Parámetros del detector (m/s² y ms). Valores típicos de un paso real con el
+// celular en la mano o el bolsillo: 1–4 m/s² por encima de la gravedad, cada
+// 0.35–1.2 s. El ruido de la mano quieta o de una mesa rara vez pasa de 0.3.
+const STEP_MIN_PEAK     = 0.7;   // pico mínimo absoluto para considerar un paso
+const STEP_MIN_INTERVAL = 280;   // más rápido que esto es rebote del mismo paso (talón + punta)
+const STEP_MAX_INTERVAL = 2000;  // más lento que esto ya no es una caminata continua
+const STEP_CONFIRM      = 4;     // pasos seguidos con ritmo regular antes de empezar a contar
+
 function _onPhoneMotion(evt) {
   if (!_stepActive) return;
   const now = Date.now();
 
   // Si volvimos de un hueco grande (app en segundo plano, pestaña oculta, etc.)
-  // la primera muestra suele traer un salto brusco — se descarta en vez de
+  // la primera muestra suele traer un salto brusco — se re-calibra en vez de
   // dejar que dispare un "paso" falso.
   const gap = _stepLastEvtTs ? now - _stepLastEvtTs : 0;
   _stepLastEvtTs = now;
-  if (gap > 2000) { _stepWin = []; _stepAbove = false; return; }
+  if (gap > 2000) { _resetStepDetector(); return; }
 
-  // Preferir acceleration (sin gravedad) si el dispositivo la soporta — pero la
-  // decisión se toma UNA sola vez (al primer evento válido) y se mantiene fija.
-  // Antes se re-evaluaba en cada evento y, en teléfonos donde el navegador
-  // reporta 'acceleration' de forma intermitente, la señal saltaba entre una
-  // magnitud ~0 (sin gravedad) y ~9.8 (con gravedad) de un evento a otro,
-  // generando "pasos" falsos por ese salto y no por movimiento real.
-  if (!_stepGravDecided) {
-    const rawNoGrav = evt.acceleration;
-    _stepUseNoGrav = !!(rawNoGrav && rawNoGrav.x != null &&
-      (Math.abs(rawNoGrav.x) + Math.abs(rawNoGrav.y) + Math.abs(rawNoGrav.z)) > 0.01);
-    _stepGravDecided = true;
+  // Se usa SIEMPRE la aceleración CON gravedad. La magnitud de la aceleración
+  // "sin gravedad" (evt.acceleration) es siempre positiva: el cuerpo que sube y
+  // el que baja dan dos picos por cada paso y el conteo salía casi al doble.
+  // Con gravedad, la magnitud oscila UNA vez por paso alrededor de ~9.8.
+  let mag;
+  const g = evt.accelerationIncludingGravity;
+  if (g && g.x != null) {
+    mag = Math.sqrt((g.x||0)**2 + (g.y||0)**2 + (g.z||0)**2);
+  } else {
+    const a = evt.acceleration;
+    if (!a || a.x == null) { _dbgStepWrite('⚠ sin datos del sensor'); return; }
+    mag = 9.81 + Math.sqrt((a.x||0)**2 + (a.y||0)**2 + (a.z||0)**2);
   }
-  const a = _stepUseNoGrav ? evt.acceleration : evt.accelerationIncludingGravity;
-  if (!a || a.x == null) { _dbgStepWrite('⚠ sin datos del sensor'); return; }
 
-  const mag = Math.sqrt((a.x||0)**2 + (a.y||0)**2 + (a.z||0)**2);
-
-  // Filtro de paso bajo POR TIEMPO (no por cantidad de muestras) — 'devicemotion'
-  // dispara a frecuencias muy distintas según el teléfono.
-  _stepEMA = _stepEMA * 0.7 + mag * 0.3;
+  // Filtros por TIEMPO real (cada celular manda entre 15 y 200 muestras/s; un
+  // filtro "por muestra" se comportaba distinto en cada modelo).
+  if (_stepLP === null) { _stepLP = _stepBase = mag; _stepPrevT = now; return; }
+  const dt = Math.min(0.2, Math.max(0.005, (now - _stepPrevT) / 1000));
+  _stepPrevT = now;
+  _stepLP   += (mag - _stepLP)   * (dt / (0.06 + dt)); // paso bajo ~2.5 Hz: quita vibraciones
+  _stepBase += (mag - _stepBase) * (dt / (1.2  + dt)); // línea base lenta ≈ gravedad
+  const sig = _stepLP - _stepBase;                      // movimiento real, centrado en 0
 
   if (_stepCalibrating) {
     _dbgStepWrite(`calibrando… mag ${mag.toFixed(2)}`);
-    if (now - _stepCalTs > 1200) _stepCalibrating = false;
+    if (now - _stepCalTs > 1000) _stepCalibrating = false;
     return;
   }
 
-  // Umbral ADAPTATIVO: en vez de un número fijo (que varía muchísimo de un
-  // teléfono a otro según cómo reporte su acelerómetro), medimos el rango
-  // real (máx-mín) de la señal en la última ventana de ~1.5s y el umbral es
-  // una fracción de ESE rango — así se auto-calibra a la sensibilidad real
-  // de cada celular en vez de adivinar un valor absoluto a ciegas.
-  _stepWin.push({ t: now, v: _stepEMA });
-  while (_stepWin.length && now - _stepWin[0].t > 1500) _stepWin.shift();
-  const vals  = _stepWin.map(s => s.v);
-  const vMax  = Math.max(...vals), vMin = Math.min(...vals);
-  const range = vMax - vMin;
-  const mid   = (vMax + vMin) / 2;
+  // Si pasó demasiado tiempo sin pasos, la caminata terminó: lo pendiente se
+  // descarta (era un gesto suelto) y el umbral vuelve a su valor inicial.
+  if (_stepLastTs && now - _stepLastTs > STEP_MAX_INTERVAL) {
+    _stepPending = 0;
+    _stepWalking = false;
+    _stepLastTs  = 0;
+    _stepAmp     = 1.5;
+  }
 
-  _dbgStepWrite(`mag ${mag.toFixed(2)} · señal ${_stepEMA.toFixed(2)} · rango ${range.toFixed(2)} · pasos ${_stepCount}`);
+  // Umbral adaptativo con piso fijo: se ajusta a la fuerza de los pasos
+  // recientes (caminar suave vs. trotar) pero nunca baja al nivel del ruido.
+  const thrHigh = Math.max(STEP_MIN_PEAK, _stepAmp * 0.4);
 
-  const MIN_RANGE = 0.12; // sin esto, con el celular quieto el ruido cuenta "pasos" solo
-  if (range < MIN_RANGE) return;
+  _dbgStepWrite(`señal ${sig.toFixed(2)} · umbral ${thrHigh.toFixed(2)} · pendientes ${_stepPending} · pasos ${_stepCount}`);
 
-  const upper = mid + range * 0.22;
-  const lower = mid - range * 0.12;
+  if (!_stepAbove) {
+    if (sig > thrHigh) { _stepAbove = true; _stepPeak = sig; }
+    return;
+  }
+  if (sig > _stepPeak) _stepPeak = sig;
+  if (sig > 0) return; // aún no termina el pico: esperar a que la señal vuelva a la base
 
-  if (!_stepAbove && _stepEMA > upper) {
-    _stepAbove = true;
-  } else if (_stepAbove && _stepEMA < lower) {
-    _stepAbove = false;
-    // El umbral se auto-calibra al rango de la señal reciente, así que CUALQUIER
-    // ruido (temblor de la mano, vibraciones de la mesa) con el celular quieto
-    // también genera "cruces" — porque el umbral se calcula a partir de ese
-    // mismo ruido. Un cruce aislado ya no cuenta solo: se exige que al menos
-    // dos cruces seguidos caigan en un ritmo de caminata real (250-1800ms
-    // entre uno y otro). El ruido rara vez sostiene ese ritmo dos veces seguidas;
-    // caminar sí, por naturaleza.
-    const interval = _stepLastTs ? now - _stepLastTs : 0;
-    const plausibleCadence = interval >= 250 && interval <= 1800;
-    if (plausibleCadence) {
-      _stepStreak++;
-      _stepLastTs = now;
-      if (_stepStreak === 2) {
-        // El primer cruce de la racha se quedó pendiente sin contar — al
-        // confirmarse el segundo, se suman los dos de una vez.
-        _stepCount += 2;
-        _handleSteps(_stepCount);
-        _savePhoneSteps();
-      } else if (_stepStreak > 2) {
-        _stepCount++;
-        _handleSteps(_stepCount);
-        if (_stepCount % 5 === 0) _savePhoneSteps();
-      }
-    } else {
-      // Cruce aislado o ritmo roto — puede ser el inicio real de una caminata,
-      // pero no se cuenta hasta que el siguiente cruce lo confirme.
-      _stepStreak = 1;
-      _stepLastTs = now;
-    }
+  // La señal subió por encima del umbral y volvió a la base → un pico completo.
+  _stepAbove = false;
+  const interval = _stepLastTs ? now - _stepLastTs : 0;
+  if (_stepLastTs && interval < STEP_MIN_INTERVAL) return; // rebote del mismo paso
+
+  _stepAmp    = _stepAmp * 0.7 + _stepPeak * 0.3;
+  _stepLastTs = now;
+
+  if (_stepWalking) {
+    _stepCount++;
+    _handleSteps(_stepCount);
+    if (_stepCount % 5 === 0) _savePhoneSteps();
+    return;
+  }
+
+  // Aún no hay caminata confirmada: se acumulan pasos pendientes y solo se
+  // suman cuando hay STEP_CONFIRM seguidos. Mover el celular, tomarlo de la
+  // mesa o gesticular da 1–2 picos sueltos, que así no cuentan.
+  _stepPending++;
+  if (_stepPending >= STEP_CONFIRM) {
+    _stepCount  += _stepPending;
+    _stepPending = 0;
+    _stepWalking = true;
+    _handleSteps(_stepCount);
+    _savePhoneSteps();
   }
 }
 
