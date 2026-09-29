@@ -1390,12 +1390,13 @@ Usa este contexto con naturalidad — no lo menciones todo de golpe. El historia
 ════════════════════════════════════════ */
 exports.sendMessage = async (req, res) => {
   try {
-    let { message, conversationId, history, mode, noSave, dailyContext, healthContext } = req.body;
+    let { message, conversationId, history, mode, noSave, dailyContext, healthContext, systemOverride } = req.body;
     const isVoice = mode === 'voice';
     if (!message?.trim()) return res.status(400).json({ message: "Mensaje vacío" });
     message = message.trim().substring(0, 2000);
     if (dailyContext) dailyContext = String(dailyContext).substring(0, 600);
     if (healthContext) healthContext = String(healthContext).substring(0, 300);
+    if (systemOverride) systemOverride = String(systemOverride).substring(0, 2000);
     const musicReq           = wantsMusic(message);
     const musicFollowUp      = !musicReq && isMusicFollowUp(message, history);
     const effectiveMusicReq  = musicReq || musicFollowUp;
@@ -1413,11 +1414,18 @@ exports.sendMessage = async (req, res) => {
     );
 
     let systemPrompt = `Eres Zyra — la mejor amiga de quien te habla. Hablas SOLO en español latinoamericano, natural y cálido. CERO palabras en inglés mezcladas (nada de "down", "cool", "random", "ok", "mood"). Respuestas cortas, 2-3 oraciones máximo. No eres IA, eres Zyra.`;
-    try {
-      const built = await buildSystemPrompt(req.user._id, req.user.name, message);
-      systemPrompt = built.prompt;
-    } catch(e) {
-      console.error("buildSystemPrompt error:", e.message);
+    if (systemOverride) {
+      // Tareas puntuales de generación (manifiesto, carta, meditación, etc.) traen su
+      // propia instrucción y no deben sonar como el chat normal de Zyra ni cargar su
+      // memoria/contexto habitual.
+      systemPrompt = systemOverride;
+    } else {
+      try {
+        const built = await buildSystemPrompt(req.user._id, req.user.name, message);
+        systemPrompt = built.prompt;
+      } catch(e) {
+        console.error("buildSystemPrompt error:", e.message);
+      }
     }
 
     if (dailyContext) {

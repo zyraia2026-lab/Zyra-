@@ -7,7 +7,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;0,800;1,700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="styles.css?v=20260817"/>
+<link rel="stylesheet" href="styles.css?v=20260922"/>
 
 <!-- ══ PWA META TAGS ══ -->
 <link rel="manifest" href="/manifest.json"/>
@@ -41,10 +41,10 @@
 <meta name="twitter:image" content="https://zyra-app.onrender.com/Imagenes/zyra-avatar.png"/>
 
 <!-- Favicon -->
-<link rel="icon" type="image/png" href="/Imagenes/1000154669.png"/>
-<link rel="shortcut icon" href="/Imagenes/1000154669.png"/>
+<link rel="icon" type="image/png" href="/Imagenes/logo-nuevo.png"/>
+<link rel="shortcut icon" href="/Imagenes/logo-nuevo.png"/>
 <!-- iOS touch icon fallback -->
-<link rel="apple-touch-icon" href="/Imagenes/1000154669.png"/>
+<link rel="apple-touch-icon" href="/Imagenes/logo-nuevo.png"/>
 </head>
 <body>
 <a href="#page-dashboard" class="skip-link">Saltar al contenido principal</a>
@@ -461,14 +461,21 @@ function closeSplash(){
 
 <!-- ══ TERMS ACCEPTANCE — FIRST TIME ══ -->
 <div id="zyra-terms-overlay" role="dialog" aria-modal="true" aria-labelledby="terms-overlay-title" style="display:none;position:fixed;inset:0;z-index:9700;background:rgba(0,0,0,.92);backdrop-filter:blur(16px);align-items:center;justify-content:center;padding:16px">
-  <div style="background:var(--bg2,#141624);border:1px solid rgba(99,102,241,.3);border-radius:28px;max-width:520px;width:100%;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 40px 100px rgba(0,0,0,.7)">
+  <div style="position:relative;background:#141624;border:1px solid rgba(99,102,241,.3);border-radius:28px;max-width:520px;width:100%;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 40px 100px rgba(0,0,0,.7),0 0 0 1px rgba(99,102,241,.06);animation:zyraModalPop .4s cubic-bezier(.16,1,.3,1)">
+
+    <!-- Barra superior decorativa -->
+    <div style="height:4px;flex-shrink:0;background:linear-gradient(90deg,#6366f1,#a855f7,#818cf8)"></div>
 
     <!-- Header -->
-    <div style="padding:28px 28px 0;flex-shrink:0">
-      <div style="text-align:center;margin-bottom:20px">
-        <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:28px">🌊</div>
-        <h2 id="terms-overlay-title" style="font-size:20px;font-weight:800;margin:0 0 6px;color:var(--text,#e8eaf6)">Antes de continuar</h2>
-        <p style="font-size:13px;color:var(--text3,#7880a0);margin:0;line-height:1.5">Por favor lee y acepta nuestros términos para usar Zyra</p>
+    <div style="position:relative;padding:30px 28px 0;flex-shrink:0;overflow:hidden">
+      <div style="position:absolute;top:-60px;left:50%;transform:translateX(-50%);width:220px;height:180px;background:radial-gradient(circle,rgba(139,92,246,.35),transparent 70%);pointer-events:none"></div>
+      <div style="position:relative;text-align:center;margin-bottom:20px">
+        <div style="width:68px;height:68px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 6px 24px rgba(99,102,241,.5),0 0 0 4px rgba(99,102,241,.12);padding:13px">
+          <img src="/Imagenes/logo-nuevo.png" alt="Zyra" style="width:100%;height:100%;object-fit:contain"/>
+        </div>
+        <div style="font-size:11px;font-weight:800;color:#818cf8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Bienvenido a Zyra</div>
+        <h2 id="terms-overlay-title" style="font-size:21px;font-weight:800;margin:0 0 6px;color:#e8eaf6;letter-spacing:-.3px">Antes de continuar</h2>
+        <p style="font-size:13px;color:#7880a0;margin:0;line-height:1.5">Por favor lee y acepta nuestros términos para usar Zyra</p>
       </div>
     </div>
 
@@ -476,45 +483,66 @@ function closeSplash(){
     <div id="terms-scroll-area" style="flex:1;overflow-y:auto;padding:0 28px;min-height:0" onscroll="onTermsScroll(this)">
 
       <!-- Puntos clave -->
-      <div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:16px;padding:18px;margin-bottom:16px">
-        <div style="font-size:12px;font-weight:700;color:#818cf8;text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px">Resumen de lo que aceptas</div>
-        <div style="font-size:13px;color:var(--text2,#c0c4d8);line-height:2.1">
-          ✅ Usarás Zyra solo para apoyo emocional personal<br/>
-          ✅ Eres mayor de 13 años<br/>
-          ✅ Entiendes que Zyra <strong>no reemplaza</strong> atención médica o terapia<br/>
-          ✅ Tus datos están protegidos y nunca los vendemos<br/>
-          ✅ Puedes exportar o eliminar tus datos cuando quieras<br/>
-          ✅ Las suscripciones se renuevan automáticamente y puedes cancelar
+      <div style="background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.06));border:1.5px solid rgba(99,102,241,.22);border-radius:18px;padding:20px;margin-bottom:16px">
+        <div style="font-size:12px;font-weight:800;color:#818cf8;text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px">Resumen de lo que aceptas</div>
+        <div style="display:flex;flex-direction:column;gap:11px">
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <span style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:900;margin-top:1px">✓</span>
+            <span style="font-size:13px;color:#c0c4d8;line-height:1.5">Usarás Zyra solo para apoyo emocional personal</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <span style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:900;margin-top:1px">✓</span>
+            <span style="font-size:13px;color:#c0c4d8;line-height:1.5">Eres mayor de 13 años</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <span style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:900;margin-top:1px">✓</span>
+            <span style="font-size:13px;color:#c0c4d8;line-height:1.5">Entiendes que Zyra <strong style="color:#e8eaf6">no reemplaza</strong> atención médica o terapia</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <span style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:900;margin-top:1px">✓</span>
+            <span style="font-size:13px;color:#c0c4d8;line-height:1.5">Tus datos están protegidos y nunca los vendemos</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <span style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:900;margin-top:1px">✓</span>
+            <span style="font-size:13px;color:#c0c4d8;line-height:1.5">Puedes exportar o eliminar tus datos cuando quieras</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <span style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:900;margin-top:1px">✓</span>
+            <span style="font-size:13px;color:#c0c4d8;line-height:1.5">Las suscripciones se renuevan automáticamente y puedes cancelar</span>
+          </div>
         </div>
       </div>
 
       <!-- Aviso salud mental destacado -->
-      <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.25);border-radius:14px;padding:16px;margin-bottom:16px">
-        <div style="font-size:13px;color:#f87171;font-weight:700;margin-bottom:6px">⚕️ Aviso importante de salud</div>
-        <div style="font-size:12px;color:var(--text2,#c0c4d8);line-height:1.7">
-          Zyra es una herramienta de bienestar emocional con IA. <strong>No es un servicio médico, psicológico ni de emergencias.</strong> Si estás en crisis, llama a la Línea 106 (Colombia) o al 112.
+      <div style="display:flex;gap:12px;align-items:flex-start;background:rgba(239,68,68,.08);border:1.5px solid rgba(239,68,68,.28);border-radius:16px;padding:16px;margin-bottom:16px">
+        <span style="flex-shrink:0;width:30px;height:30px;border-radius:50%;background:rgba(239,68,68,.18);display:flex;align-items:center;justify-content:center;font-size:15px">⚕️</span>
+        <div>
+          <div style="font-size:13px;color:#f87171;font-weight:800;margin-bottom:5px">Aviso importante de salud</div>
+          <div style="font-size:12px;color:#c0c4d8;line-height:1.7">
+            Zyra es una herramienta de bienestar emocional con IA. <strong style="color:#e8eaf6">No es un servicio médico, psicológico ni de emergencias.</strong> Si estás en crisis, llama a la Línea 106 (Colombia) o al 112.
+          </div>
         </div>
       </div>
 
       <!-- Links a documentos completos -->
       <div style="display:flex;gap:10px;margin-bottom:16px">
-        <button onclick="window.open('/legal?tab=terms','_blank','noopener')" style="flex:1;padding:11px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:var(--text2,#c0c4d8);font-size:12px;cursor:pointer;font-weight:600">📄 Leer Términos completos ↗</button>
-        <button onclick="window.open('/legal?tab=privacy','_blank','noopener')" style="flex:1;padding:11px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:var(--text2,#c0c4d8);font-size:12px;cursor:pointer;font-weight:600">🔒 Leer Privacidad completa ↗</button>
+        <button class="terms-doc-link" onclick="window.open('/legal?tab=terms','_blank','noopener')" style="flex:1;padding:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:#c0c4d8;font-size:12px;cursor:pointer;font-weight:700">📄 Términos completos ↗</button>
+        <button class="terms-doc-link" onclick="window.open('/legal?tab=privacy','_blank','noopener')" style="flex:1;padding:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:#c0c4d8;font-size:12px;cursor:pointer;font-weight:700">🔒 Privacidad completa ↗</button>
       </div>
 
       <!-- Checkboxes -->
       <div style="padding-bottom:4px">
-        <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15);border-radius:12px;margin-bottom:10px">
-          <input type="checkbox" id="tc-check-1" style="margin-top:2px;flex-shrink:0;accent-color:#6366f1;width:17px;height:17px" onchange="updateTermsBtn()"/>
-          <span style="font-size:13px;color:var(--text,#e8eaf6);line-height:1.5">He leído, entendido y acepto los <strong><a onclick="showLegal('terms');event.stopPropagation()" style="color:#818cf8;cursor:pointer;text-decoration:underline">Términos y Condiciones de Uso</a></strong> y la <strong><a onclick="showLegal('privacy');event.stopPropagation()" style="color:#818cf8;cursor:pointer;text-decoration:underline">Política de Privacidad y Tratamiento de Datos</a></strong> de Zyra. Autorizo el tratamiento de mis datos personales según lo descrito.</span>
+        <label class="terms-check-card accent" style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:rgba(99,102,241,.06);border:1.5px solid rgba(99,102,241,.18);border-radius:14px;margin-bottom:10px">
+          <input type="checkbox" id="tc-check-1" style="margin-top:2px;flex-shrink:0;accent-color:#6366f1;width:18px;height:18px" onchange="updateTermsBtn()"/>
+          <span style="font-size:13px;color:#e8eaf6;line-height:1.5">He leído, entendido y acepto los <strong><a onclick="showLegal('terms');event.stopPropagation()" style="color:#818cf8;cursor:pointer;text-decoration:underline">Términos y Condiciones de Uso</a></strong> y la <strong><a onclick="showLegal('privacy');event.stopPropagation()" style="color:#818cf8;cursor:pointer;text-decoration:underline">Política de Privacidad y Tratamiento de Datos</a></strong> de Zyra. Autorizo el tratamiento de mis datos personales según lo descrito.</span>
         </label>
-        <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.15);border-radius:12px;margin-bottom:10px">
-          <input type="checkbox" id="tc-check-2" style="margin-top:2px;flex-shrink:0;accent-color:#ef4444;width:17px;height:17px" onchange="updateTermsBtn()"/>
-          <span style="font-size:13px;color:var(--text,#e8eaf6);line-height:1.5">Entiendo que Zyra es una herramienta de bienestar emocional con IA y <strong>NO reemplaza</strong> la atención de un profesional de salud mental, psicólogo, psiquiatra ni servicio de emergencias.</span>
+        <label class="terms-check-card danger" style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:rgba(239,68,68,.05);border:1.5px solid rgba(239,68,68,.18);border-radius:14px;margin-bottom:10px">
+          <input type="checkbox" id="tc-check-2" style="margin-top:2px;flex-shrink:0;accent-color:#ef4444;width:18px;height:18px" onchange="updateTermsBtn()"/>
+          <span style="font-size:13px;color:#e8eaf6;line-height:1.5">Entiendo que Zyra es una herramienta de bienestar emocional con IA y <strong>NO reemplaza</strong> la atención de un profesional de salud mental, psicólogo, psiquiatra ni servicio de emergencias.</span>
         </label>
-        <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.15);border-radius:12px">
-          <input type="checkbox" id="tc-check-3" style="margin-top:2px;flex-shrink:0;accent-color:#10b981;width:17px;height:17px" onchange="updateTermsBtn()"/>
-          <span style="font-size:13px;color:var(--text,#e8eaf6);line-height:1.5">Confirmo que tengo <strong>13 años o más</strong>. Si tengo entre 13 y 17 años, cuento con el consentimiento de mis padres o tutores. Si voy a contratar un plan de pago, confirmo ser mayor de 18 años.</span>
+        <label class="terms-check-card success" style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:14px;background:rgba(16,185,129,.05);border:1.5px solid rgba(16,185,129,.18);border-radius:14px">
+          <input type="checkbox" id="tc-check-3" style="margin-top:2px;flex-shrink:0;accent-color:#10b981;width:18px;height:18px" onchange="updateTermsBtn()"/>
+          <span style="font-size:13px;color:#e8eaf6;line-height:1.5">Confirmo que tengo <strong>13 años o más</strong>. Si tengo entre 13 y 17 años, cuento con el consentimiento de mis padres o tutores. Si voy a contratar un plan de pago, confirmo ser mayor de 18 años.</span>
         </label>
       </div>
 
@@ -524,10 +552,10 @@ function closeSplash(){
     <!-- Footer con botón -->
     <div style="padding:20px 28px;border-top:1px solid rgba(255,255,255,.07);flex-shrink:0">
       <button id="btn-accept-terms" onclick="acceptTermsAndContinue()" disabled
-        style="width:100%;padding:15px;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;transition:all .3s;background:rgba(99,102,241,.3);color:rgba(255,255,255,.4)">
+        style="width:100%;padding:16px;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;transition:all .3s;background:rgba(99,102,241,.3);color:rgba(255,255,255,.4);box-shadow:0 6px 24px rgba(99,102,241,.25)">
         Acepta los tres puntos para continuar
       </button>
-      <p style="text-align:center;font-size:11px;color:var(--text3,#7880a0);margin:10px 0 0">
+      <p style="text-align:center;font-size:11px;color:#7880a0;margin:10px 0 0">
         Versión v1.1 — 6 de julio de 2026 · <a href="mailto:zyra.ia.2026@gmail.com" style="color:#818cf8">Contacto legal</a>
       </p>
     </div>
@@ -730,7 +758,7 @@ function closeSplash(){
 <!-- ══ ONBOARDING TOUR ══ -->
 <div id="zyra-tour-overlay" role="dialog" aria-modal="true" style="display:none;position:fixed;inset:0;z-index:10000;pointer-events:none">
   <div id="zyra-tour-backdrop" style="position:absolute;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(3px);pointer-events:all"></div>
-  <div id="zyra-tour-card" style="position:absolute;bottom:0;left:0;right:0;pointer-events:all;background:var(--bg2,#141624);border-radius:28px 28px 0 0;border-top:1px solid rgba(99,102,241,.25);padding:28px 24px 40px;max-width:520px;margin:0 auto;animation:slideUp .35s cubic-bezier(.16,1,.3,1)">
+  <div id="zyra-tour-card" style="position:absolute;bottom:0;left:0;right:0;pointer-events:all;background:#141624;border-radius:28px 28px 0 0;border-top:1px solid rgba(99,102,241,.25);padding:28px 24px 40px;max-width:520px;margin:0 auto;animation:slideUp .35s cubic-bezier(.16,1,.3,1)">
     <!-- Progress bar -->
     <div style="height:3px;background:rgba(255,255,255,.08);border-radius:99px;margin-bottom:24px;overflow:hidden">
       <div id="zyra-tour-progress" style="height:100%;background:linear-gradient(90deg,#6366f1,#a855f7);border-radius:99px;transition:width .4s ease"></div>
@@ -742,14 +770,14 @@ function closeSplash(){
       </div>
       <div style="flex:1;min-width:0">
         <div style="font-size:11px;font-weight:800;color:#818cf8;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Zyra te explica</div>
-        <div id="zyra-tour-bubble" style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:0 16px 16px 16px;padding:14px 16px;font-size:14px;color:var(--text,#e8eaf6);line-height:1.65"></div>
+        <div id="zyra-tour-bubble" style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:0 16px 16px 16px;padding:14px 16px;font-size:14px;color:#e8eaf6;line-height:1.65"></div>
       </div>
     </div>
     <!-- Feature highlight -->
     <div id="zyra-tour-feature" style="background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.08));border:1.5px solid rgba(99,102,241,.25);border-radius:18px;padding:16px 18px;margin-bottom:22px;display:flex;align-items:center;gap:14px">
       <div id="zyra-tour-feat-icon" style="font-size:32px;flex-shrink:0"></div>
       <div>
-        <div id="zyra-tour-feat-title" style="font-size:15px;font-weight:800;color:var(--text,#e8eaf6);margin-bottom:4px"></div>
+        <div id="zyra-tour-feat-title" style="font-size:15px;font-weight:800;color:#e8eaf6;margin-bottom:4px"></div>
         <div id="zyra-tour-feat-desc" style="font-size:12px;color:rgba(200,205,255,.65);line-height:1.5"></div>
       </div>
     </div>
@@ -927,7 +955,7 @@ function closeSplash(){
       <div class="share-card">
         <div style="position:relative;z-index:1">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
-            <img src="/Imagenes/1000154669.png" style="width:32px;height:32px;border-radius:8px"/>
+            <img src="/Imagenes/logo-nuevo.png" style="width:32px;height:32px;border-radius:8px"/>
             <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:800;color:white">Zyra</span>
           </div>
           <div id="share-week-title" style="font-size:13px;color:rgba(255,255,255,.6);margin-bottom:6px">Mi semana emocional</div>
@@ -951,14 +979,14 @@ function closeSplash(){
     <span class="mnb-label">Inicio</span>
   </button>
   <button class="mobile-nav-btn" onclick="showPage('assistant')" data-page="assistant" style="position:relative">
-    <span class="mnb-icon-wrap" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:16px;padding:7px 10px;margin-bottom:1px;display:inline-flex;align-items:center;justify-content:center"><span class="mnb-icon" style="font-size:18px">💬</span></span>
-    <span class="mnb-label" style="color:var(--accent);font-weight:800">Chat</span>
+    <span class="mnb-icon-wrap"><span class="mnb-icon" style="font-size:18px">💬</span></span>
+    <span class="mnb-label">Chat</span>
   </button>
   <button class="mobile-nav-btn" onclick="showPage('journal')" data-page="journal">
-    <span class="mnb-icon">📔</span><span class="mnb-label">Diario</span>
+    <span class="mnb-icon-wrap"><span class="mnb-icon">📔</span></span><span class="mnb-label">Diario</span>
   </button>
   <button class="mobile-nav-btn" onclick="showPage('wellness');setTimeout(()=>openWellness('breath'),100)" data-page="wellness">
-    <span class="mnb-icon">🌬️</span><span class="mnb-label">Respirar</span>
+    <span class="mnb-icon-wrap"><span class="mnb-icon">🌬️</span></span><span class="mnb-label">Respirar</span>
   </button>
   <button class="mobile-nav-btn" onclick="openMobileMoreSheet();clearProfileDot()" id="mnb-more-btn">
     <span class="mnb-icon-wrap"><span class="mnb-icon">⋯</span><span class="mnb-profile-dot" id="tab-profile-dot" style="display:none"></span></span>
@@ -997,6 +1025,9 @@ function closeSplash(){
     <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('analytics')"><span class="nav-btn-ic">📊</span>Analítica</button>
     <button class="nav-btn" onclick="closeMobileMoreSheet();showPage('sensors')"><span class="nav-btn-ic">📱</span>Sensores</button>
     <button class="nav-btn" onclick="closeMobileMoreSheet();startTest()"><span class="nav-btn-ic">✨</span>Test Emocional</button>
+    <div style="border-top:1px solid var(--border,#eef0ff);margin:8px 0"></div>
+    <button class="nav-btn" onclick="toggleTheme()"><span class="nav-btn-ic">🌙</span>Modo oscuro</button>
+    <button class="nav-btn" onclick="closeMobileMoreSheet();doLogout()"><span class="nav-btn-ic">🚪</span>Salir</button>
   </div>
 </div>
 <script>
@@ -1043,7 +1074,7 @@ function closeMobileMoreSheet() {
   <!-- ══ Barra lateral (desktop) ══ -->
   <div class="nav-inner">
     <div class="nav-logo" onclick="showPage('dashboard')" style="cursor:pointer">
-      <img src="/Imagenes/1000154669.png" class="nav-logo-img" alt="Zyra"/>
+      <img src="/Imagenes/logo-nuevo.png" class="nav-logo-img" alt="Zyra"/>
       <span class="nav-brand">Zyra</span>
     </div>
 
@@ -1399,7 +1430,7 @@ function closeMobileMoreSheet() {
   </div>
 
   <div class="card" id="friends-list-wrap" style="display:none;margin-top:20px">
-    <div class="card-header"><span class="card-title">👥 Amigos que invitaste</span></div>
+    <div class="card-header"><span class="card-title">👥 Tus amigos en Zyra</span></div>
     <div id="friends-list"></div>
   </div>
 </div>
@@ -1475,7 +1506,7 @@ function closeMobileMoreSheet() {
 <!-- Nav -->
 <nav class="lp-nav">
   <div class="lp-logo">
-    <img src="/Imagenes/1000154669.png" alt="Zyra"/>
+    <img src="/Imagenes/logo-nuevo.png" alt="Zyra"/>
     <span class="lp-logo-text">Zyra</span>
   </div>
   <div class="lp-nav-btns">
@@ -1676,13 +1707,14 @@ function closeMobileMoreSheet() {
 .b2b-input:focus{border-color:#6366f1}
 .b2b-input::placeholder{color:#555b7a}
 .b2b-label{font-size:12px;font-weight:700;color:#7880a0;margin-bottom:6px;display:block;text-transform:uppercase;letter-spacing:.5px}
-@media(max-width:640px){.b2b-nav{padding:0 16px}.b2b-stats{gap:32px}}
+@media(max-width:640px){.b2b-nav{padding:0 16px;gap:10px}.b2b-nav .lp-logo{min-width:0}.b2b-form-grid{grid-template-columns:1fr !important}.b2b-nav .lp-btn-ghost,.b2b-nav .lp-btn-solid{padding:8px 12px;font-size:12px;white-space:nowrap}.b2b-stats{gap:32px}}
+@media(max-width:380px){.b2b-nav .lp-logo-text{display:none}}
 </style>
 <div class="b2b-page">
   <!-- Nav -->
   <nav class="b2b-nav">
     <div class="lp-logo" onclick="showPage('landing')" style="cursor:pointer">
-      <img src="/Imagenes/1000154669.png" alt="Zyra" style="width:32px;height:32px;border-radius:10px"/>
+      <img src="/Imagenes/logo-nuevo.png" alt="Zyra" style="width:32px;height:32px;border-radius:10px"/>
       <span class="lp-logo-text">Zyra</span>
       <span style="font-size:11px;background:rgba(251,191,36,.15);color:#fbbf24;border:1px solid rgba(251,191,36,.3);border-radius:6px;padding:2px 8px;font-weight:700;margin-left:6px">Empresas</span>
     </div>
@@ -1810,7 +1842,7 @@ function closeMobileMoreSheet() {
     <h2 class="lp-section-title" style="font-family:'Playfair Display',serif;font-size:clamp(24px,4vw,38px);font-weight:800;color:#e8eaf6;margin-bottom:12px">Hablemos</h2>
     <p style="color:#7880a0;font-size:15px;margin-bottom:40px">Te respondemos en menos de 24 horas hábiles.</p>
     <div class="b2b-contact-form">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="b2b-form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
         <div>
           <label class="b2b-label" for="b2b-nombre">Nombre</label>
           <input class="b2b-input" id="b2b-nombre" type="text" placeholder="Tu nombre"/>
@@ -1880,7 +1912,7 @@ async function b2bSubmitContact() {
     const body = `Contacto B2B de Zyra\n\nNombre: ${nombre}\nEmpresa: ${empresa || 'No especificada'}\nEmail: ${email}\nTamaño: ${size || 'No especificado'}\n\nMensaje:\n${texto || 'Sin mensaje'}`;
     // Usar mailto como fallback - en producción conectar con un endpoint real
     const mailtoUrl = `mailto:zyra.ia.2026@gmail.com?subject=${encodeURIComponent('Consulta B2B — ' + (empresa||nombre))}&body=${encodeURIComponent(body)}`;
-    window.open(mailtoUrl);
+    if (_isNativeApp()) window.open(mailtoUrl, '_system'); else window.open(mailtoUrl);
     if (msg) { msg.textContent = '¡Listo! Se abrió tu cliente de correo. Si no se abrió, escríbenos a zyra.ia.2026@gmail.com'; msg.style.display='block'; msg.style.color='#a5b4fc'; }
   } catch(e) {
     if (msg) { msg.textContent = 'Escríbenos directamente a zyra.ia.2026@gmail.com'; msg.style.display='block'; msg.style.color='#a5b4fc'; }
@@ -1904,7 +1936,7 @@ async function b2bSubmitContact() {
 
     <!-- Logo top-left -->
     <div class="auth-left-brand">
-      <img src="Imagenes/1000154669.png" alt="Zyra"/>
+      <img src="Imagenes/logo-nuevo.png" alt="Zyra"/>
       <span class="auth-left-brand-name">Zyra</span>
     </div>
 
@@ -1951,12 +1983,12 @@ async function b2bSubmitContact() {
   <div class="auth-right">
     <!-- Header visible solo en móvil -->
     <div class="auth-mobile-header" style="display:none">
-      <img src="Imagenes/1000154669.png" alt="Zyra"/>
+      <img src="Imagenes/logo-nuevo.png" alt="Zyra"/>
       <span>Zyra</span>
     </div>
     <div class="auth-card">
       <div class="auth-logo-wrap">
-        <img src="Imagenes/1000154669.png" class="auth-logo-img" alt="Zyra"/>
+        <img src="Imagenes/logo-nuevo.png" class="auth-logo-img" alt="Zyra"/>
         <span class="auth-brand">Zyra</span>
       </div>
       <h1>Bienvenido de vuelta</h1>
@@ -2015,7 +2047,7 @@ async function b2bSubmitContact() {
     <div class="auth-slide-overlay"></div>
     <div class="auth-slide-dots" id="auth-slide-dots-reg"></div>
     <div class="auth-left-brand">
-      <img src="Imagenes/1000154669.png" alt="Zyra"/>
+      <img src="Imagenes/logo-nuevo.png" alt="Zyra"/>
       <span class="auth-left-brand-name">Zyra</span>
     </div>
     <div class="auth-live-badge">
@@ -2054,12 +2086,12 @@ async function b2bSubmitContact() {
   <div class="auth-right">
     <!-- Header visible solo en móvil -->
     <div class="auth-mobile-header" style="display:none">
-      <img src="Imagenes/1000154669.png" alt="Zyra"/>
+      <img src="Imagenes/logo-nuevo.png" alt="Zyra"/>
       <span>Zyra</span>
     </div>
     <div class="auth-card">
       <div class="auth-logo-wrap">
-        <img src="Imagenes/1000154669.png" class="auth-logo-img" alt="Zyra"/>
+        <img src="Imagenes/logo-nuevo.png" class="auth-logo-img" alt="Zyra"/>
         <span class="auth-brand">Zyra</span>
       </div>
       <h1>Crea tu cuenta</h1>
@@ -2201,7 +2233,7 @@ async function b2bSubmitContact() {
     </div>
     <div style="border-top:1px solid var(--border,rgba(99,102,241,.1));padding-top:12px">
       <p style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin:0 0 9px" id="quick-emo-label">¿Cómo te sientes ahora?</p>
-      <div id="quick-emo-circles" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      <div id="quick-emo-circles" class="emo-scroll"></div>
     </div>
   </div>
 
@@ -2425,7 +2457,7 @@ async function b2bSubmitContact() {
           <span id="intention-saved-badge" style="display:none;font-size:10px;color:#10b981;font-weight:700">✓ Guardada</span>
         </div>
         <div style="display:flex;gap:8px">
-          <input id="daily-intention-input" type="text" maxlength="120" placeholder="¿Con qué intención quieres vivir este día?" style="flex:1;background:rgba(255,255,255,.06);border:1.5px solid rgba(99,102,241,.25);border-radius:12px;color:var(--text);font-size:13px;padding:9px 14px;outline:none;font-family:inherit" onkeydown="if(event.key==='Enter')saveDailyIntention()"/>
+          <input id="daily-intention-input" type="text" maxlength="120" placeholder="Intención para hoy…" style="flex:1;background:rgba(255,255,255,.06);border:1.5px solid rgba(99,102,241,.25);border-radius:12px;color:var(--text);font-size:13px;padding:9px 14px;outline:none;font-family:inherit" onkeydown="if(event.key==='Enter')saveDailyIntention()"/>
           <button onclick="saveDailyIntention()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;border-radius:10px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">Guardar</button>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px" id="intention-chips">
@@ -2831,11 +2863,11 @@ async function b2bSubmitContact() {
   </div>
 
   <!-- Tabs -->
-  <div style="display:flex;gap:8px;margin-bottom:18px">
-    <button id="journal-tab-list" class="btn-sm accent" onclick="showJournalTab('list')" style="flex:1;padding:10px">📋 Entradas</button>
-    <button id="journal-tab-timeline" class="btn-sm" onclick="showJournalTab('timeline')" style="flex:1;padding:10px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">🌊 Viaje</button>
-    <button id="journal-tab-calendar" class="btn-sm" onclick="showJournalTab('calendar')" style="flex:1;padding:10px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">📅 Calendario</button>
-    <button id="journal-tab-reflexion" class="btn-sm" onclick="showJournalTab('reflexion')" style="flex:1;padding:10px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">💭 Preguntas</button>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px">
+    <button id="journal-tab-list" class="btn-sm accent" onclick="showJournalTab('list')" style="flex:1 1 130px;min-width:0;padding:10px">📋 Entradas</button>
+    <button id="journal-tab-timeline" class="btn-sm" onclick="showJournalTab('timeline')" style="flex:1 1 130px;min-width:0;padding:10px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">🌊 Viaje</button>
+    <button id="journal-tab-calendar" class="btn-sm" onclick="showJournalTab('calendar')" style="flex:1 1 130px;min-width:0;padding:10px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">📅 Calendario</button>
+    <button id="journal-tab-reflexion" class="btn-sm" onclick="showJournalTab('reflexion')" style="flex:1 1 130px;min-width:0;padding:10px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">💭 Preguntas</button>
   </div>
 
   <!-- Vista: lista de entradas -->
@@ -2887,7 +2919,7 @@ async function b2bSubmitContact() {
       </div>
       <!-- Búsqueda, filtro y orden -->
       <div style="display:flex;gap:8px;padding:12px 0 4px;border-top:1px solid var(--border);margin-top:12px;flex-wrap:wrap">
-        <input id="journal-search-input" type="search" placeholder="🔍 Buscar..." style="flex:1;min-width:120px;padding:9px 13px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:13px;outline:none" oninput="filterJournal()"/>
+        <input id="journal-search-input" type="search" placeholder="🔍 Buscar..." style="flex:1 1 180px;min-width:0;padding:9px 13px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:13px;outline:none" oninput="filterJournal()"/>
         <select id="journal-filter-emotion" style="padding:9px 10px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:13px;outline:none" onchange="filterJournal()">
           <option value="">Todas</option>
           <option value="feliz">😊 Feliz</option>
@@ -3006,7 +3038,7 @@ async function b2bSubmitContact() {
     <div class="chat-header">
       <button class="mob-hist-toggle" onclick="openMobileHistory()" aria-label="Ver conversaciones anteriores" title="Conversaciones">☰</button>
       <div class="chat-zyra-avatar" id="chat-zyra-av" style="position:relative;overflow:visible">
-        <img src="/Imagenes/1000154669.png" alt="Zyra" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+        <img src="/Imagenes/logo-nuevo.png" alt="Zyra" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
         <div id="chat-zyra-svg-fb" style="display:none"></div>
         <div style="position:absolute;bottom:-2px;right:-2px;width:12px;height:12px;border-radius:50%;background:#22c55e;border:2px solid var(--surface)"></div>
       </div>
@@ -3051,11 +3083,11 @@ async function b2bSubmitContact() {
         <textarea class="chat-ta" id="chat-input" placeholder="Cuéntame lo que sea... · /ayuda para comandos" oninput="onInput()" onkeydown="onKey(event)"></textarea>
         <button class="btn-send" id="btn-send" onclick="sendMsg()">➤</button>
       </div>
-      <div style="display:flex;justify-content:space-between;height:16px;margin-bottom:2px">
+      <div style="display:flex;justify-content:space-between;min-height:0;margin-bottom:0">
         <div id="voice-status" style="font-size:11px;color:var(--sky);text-align:left"></div>
         <div id="chat-char-count" style="font-size:11px;color:var(--text3);display:none"></div>
       </div>
-      <div id="chat-msgs-remaining" style="font-size:11px;text-align:right;height:14px;margin-bottom:2px;padding-right:4px"></div>
+      <div id="chat-msgs-remaining" style="font-size:11px;text-align:right;margin-bottom:0;padding-right:4px"></div>
       <div class="disclaimer">Zyra es un acompañamiento emocional con IA. No reemplaza atención psicológica profesional.</div>
     </div>
   </div>
@@ -3579,7 +3611,7 @@ async function b2bSubmitContact() {
   <div class="auth-right" style="width:100%;max-width:480px;margin:auto">
     <div class="auth-card">
       <div class="auth-logo-wrap">
-        <img src="Imagenes/1000154669.png" class="auth-logo-img" alt="Zyra"/>
+        <img src="Imagenes/logo-nuevo.png" class="auth-logo-img" alt="Zyra"/>
         <span class="auth-brand">Zyra</span>
       </div>
       <h1>¿Olvidaste tu contraseña?</h1>
@@ -3607,7 +3639,7 @@ async function b2bSubmitContact() {
   <div class="auth-right" style="width:100%;max-width:480px;margin:auto">
     <div class="auth-card">
       <div class="auth-logo-wrap">
-        <img src="Imagenes/1000154669.png" class="auth-logo-img" alt="Zyra"/>
+        <img src="Imagenes/logo-nuevo.png" class="auth-logo-img" alt="Zyra"/>
         <span class="auth-brand">Zyra</span>
       </div>
       <h1>Nueva contraseña</h1>
@@ -4032,10 +4064,52 @@ window.addEventListener('unhandledrejection', e => {
 window.YT_ENABLED      = false;
 window.SPOTIFY_ENABLED = false;
 const LOGO = "/Imagenes/zyra-avatar.png";
+
+// ══════════════════════════════════════════
+//  NAVEGACIÓN EXTERNA (enlaces a Spotify/YouTube/Maps/mailto, etc.)
+//  Dentro de la APK (Capacitor) el WebView nativo NO abre pestañas nuevas:
+//  un <a target="_blank"> o window.open() simplemente no hacía nada al tocarlo.
+//  Se enruta todo por el navegador del sistema (plugin @capacitor/browser)
+//  cuando corre empaquetada; en la web normal se comporta igual que antes.
+// ══════════════════════════════════════════
+function _isNativeApp() {
+  return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
+function zyraOpenExternal(url) {
+  if (!url) return;
+  const nativeBrowser = window.Capacitor?.Plugins?.Browser;
+  if (_isNativeApp() && nativeBrowser?.open) {
+    nativeBrowser.open({ url }).catch(() => { window.open(url, '_blank', 'noopener'); });
+  } else {
+    window.open(url, '_blank', 'noopener');
+  }
+}
+document.addEventListener('click', (e) => {
+  if (!_isNativeApp()) return;
+  const a = e.target.closest?.('a[href]');
+  if (!a) return;
+  const href = a.getAttribute('href') || '';
+  const isExternal = a.target === '_blank' || /^https?:\/\//i.test(href) || href.startsWith('mailto:') || href.startsWith('tel:');
+  if (!isExternal) return;
+  e.preventDefault();
+  if (href.startsWith('mailto:') || href.startsWith('tel:')) { window.open(href, '_system'); return; }
+  zyraOpenExternal(href);
+}, true);
 let token = localStorage.getItem("zyra_token");
 let user  = (() => { try { return JSON.parse(localStorage.getItem("zyra_user") || "null"); } catch(e) { localStorage.removeItem("zyra_user"); return null; } })();
 
 function _homePage() { return "dashboard"; }
+
+// Enlace de invitación de un amigo: /?ref=ZYRAXXXXXX
+(() => {
+  const p = new URLSearchParams(location.search);
+  const ref = (p.get('ref') || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!ref) return;
+  try { localStorage.setItem('zyra_pending_ref', ref); } catch(_) {}
+  p.delete('ref');
+  const qs = p.toString();
+  history.replaceState({}, '', location.pathname + (qs ? '?' + qs : ''));
+})();
 
 // Manejar redirect de OAuth (Google, Spotify, Facebook)
 (() => {
@@ -4492,6 +4566,7 @@ async function doLoginVerify() {
     loadFeatureConfig();
     loadPlanStatus();
     loadGamification();
+    applyPendingReferral();
     setTimeout(updateNotifBadge, 1500);
     if (d.user.termsAcceptedAt) localStorage.setItem("zyra_terms_accepted", TERMS_VER);
     if (!d.user.termsAcceptedAt) {
@@ -4546,6 +4621,7 @@ async function doRegisterVerify() {
       api("/auth/update-profile", "PUT", { name: user.name }).catch(() => {});
     }
     loadFeatureConfig();
+    applyPendingReferral();
     if (d.user.termsAcceptedAt) localStorage.setItem("zyra_terms_accepted", TERMS_VER);
     if (!d.user.termsAcceptedAt) {
       _termsNextAction = "test";
@@ -4642,24 +4718,45 @@ function initGdprBanner() {
 /* ── SWIPE NAVIGATION entre tabs principales (mobile) ── */
 (function initSwipeNav() {
   const TAB_ORDER = ['dashboard','assistant','journal','wellness','profile'];
-  let _sx = null, _sy = null;
+  const EXCLUDE_SEL = '.wellness-tabs, .cards-row, .mood-row, .emotions-grid, .emo-scroll, .nav-links, [style*="overflow-x"], [role="dialog"], input, textarea, select';
+  // ¿El toque empezó dentro de algo que se desplaza de lado (una fila de emojis,
+  // pestañas, tablas…)? Ahí deslizar debe mover ESA fila, no cambiar de módulo.
+  // Se revisa el estilo real calculado, así cubre también las filas que solo se
+  // vuelven deslizables en celular vía CSS (media queries), que el selector
+  // [style*="overflow-x"] no detecta.
+  function _startsInHScroller(el) {
+    for (; el && el !== document.body; el = el.parentElement) {
+      if (el.scrollWidth > el.clientWidth + 2) {
+        const ox = getComputedStyle(el).overflowX;
+        if (ox === 'auto' || ox === 'scroll') return true;
+      }
+    }
+    return false;
+  }
+  let _sx = null, _sy = null, _sExcluded = false;
   document.addEventListener('touchstart', e => {
     const t = e.touches[0];
     _sx = t.clientX; _sy = t.clientY;
+    // Se revisa en dónde EMPIEZA el toque, no en dónde termina: al deslizar,
+    // el dedo se aleja del elemento inicial (esa es la naturaleza de un swipe),
+    // así que comprobar el punto final casi nunca coincidía con la zona
+    // excluida aunque el gesto sí hubiera empezado ahí — dejaba pasar el
+    // cambio de módulo igual sobre cosas como la cuadrícula de emociones.
+    _sExcluded = !!(e.target && e.target.closest && e.target.closest(EXCLUDE_SEL)) || _startsInHScroller(e.target);
   }, { passive: true });
   document.addEventListener('touchend', e => {
     if (_sx === null) return;
     const t = e.changedTouches[0];
     const dx = t.clientX - _sx;
     const dy = t.clientY - _sy;
-    _sx = null; _sy = null;
+    const excluded = _sExcluded;
+    _sx = null; _sy = null; _sExcluded = false;
     if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.8) return;
     // Only swipe on tab pages
     const cur = window._zyraCurrentPage || 'dashboard';
     if (!TAB_ORDER.includes(cur)) return;
-    // Don't swipe if inside a horizontally scrollable element
-    const el = document.elementFromPoint(t.clientX, t.clientY);
-    if (el && el.closest('.wellness-tabs, .cards-row, .mood-row, .nav-links, [style*="overflow-x"]')) return;
+    // No cambiar de módulo si el gesto empezó dentro de una zona excluida
+    if (excluded) return;
     const idx = TAB_ORDER.indexOf(cur);
     if (dx < 0 && idx < TAB_ORDER.length - 1) showPage(TAB_ORDER[idx + 1]);
     else if (dx > 0 && idx > 0) showPage(TAB_ORDER[idx - 1]);
@@ -6686,7 +6783,7 @@ async function _generateObservaAI() {
   const prompt = `Eres Zyra, asistente de bienestar emocional empática y perspicaz. Basándote en los datos del usuario, da UNA observación perceptiva y personal (2-3 oraciones, máx 55 palabras). Habla en segunda persona, con calidez, como una buena amiga que te conoce bien. No menciones los números crudos — interpreta el patrón humano detrás de ellos. Datos: emociones más frecuentes: ${topEmo||"variadas"}; promedio de ánimo por día de la semana (escala 1-5): ${daySum||"sin datos suficientes"}; total días activos: ${tot}.`;
   try {
     const r = await api("/chat","POST",{message:prompt,noSave:true});
-    const txt = r.reply || r.message || "";
+    const txt = r.response || r.message || "";
     if (txt) {
       localStorage.setItem("zyra_observa_ai_"+_getWeekKey(), txt);
       const card = document.getElementById("prof-zyra-observa-card");
@@ -6814,7 +6911,7 @@ async function _manifiestoNext(id) {
 
   try {
     const r = await api("/chat", "POST", { message: userMsg, systemOverride: sysPrompt, noSave: true, mode: "manifiesto" });
-    const text = (r.reply || "").trim();
+    const text = (r.response || "").trim();
     if (!text) throw new Error("empty");
     localStorage.setItem("zyra_manifiesto", text);
     renderManifiesto();
@@ -6914,7 +7011,7 @@ async function _generarCartaCompasion(weekKey) {
 
   try {
     const r = await api("/chat", "POST", { message: userMsg, systemOverride: sysPrompt, noSave: true, mode: "compasion" });
-    const text = (r.reply || "").trim();
+    const text = (r.response || "").trim();
     if (!text) throw new Error("empty");
     localStorage.setItem(`zyra_carta_compasion_${weekKey}`, text);
     _renderCartaCompasionContent(document.getElementById("prof-compasion-card"), text, weekKey);
@@ -6937,14 +7034,20 @@ function _compartirCartaCompasion(weekKey) {
 // ══════════════════════════════════════════
 let _stepCount       = 0;
 let _stepActive      = false;
-let _stepLastTs      = 0;
-let _stepAbove       = false;
-let _stepEMA         = 9.8;       // señal suavizada (filtro por tiempo, no por muestras)
-let _stepWin         = [];        // ventana deslizante (~1.5s) para medir el rango real de la señal
-let _stepUseNoGrav   = false;     // true si el OS ya quitó la gravedad
-let _stepCalibrating = true;      // true durante los primeros ~1.2s
+let _stepLastTs      = 0;         // hora del último pico aceptado como paso
+let _stepPending     = 0;         // pasos detectados aún sin confirmar (la caminata no se ha confirmado)
+let _stepWalking     = false;     // true cuando ya hay una caminata confirmada en curso
+let _stepAbove       = false;     // true mientras la señal está por encima del umbral (buscando el pico)
+let _stepPeak        = 0;         // pico máximo de la señal en el cruce actual
+let _stepAmp         = 1.5;       // amplitud típica de los últimos pasos (m/s²) — umbral adaptativo
+let _stepLP          = null;      // magnitud suavizada (quita el ruido de alta frecuencia)
+let _stepBase        = null;      // línea base lenta (≈ gravedad) que se resta a la señal
+let _stepPrevT       = 0;         // hora de la muestra anterior (filtros por tiempo real, no por muestra)
+let _stepCalibrating = true;      // true durante el primer ~1s
 let _stepCalTs       = 0;
 let _stepDebugTs     = 0;
+let _stepLastEvtTs   = 0;         // hora del último evento devicemotion recibido (watchdog + detectar segundo plano)
+let _stepNoSensorTimer = null;
 
 // Heurística simple: ¿este dispositivo es un celular/tablet (con acelerómetro real)
 // o un PC/laptop? Sirve para no prometer "pasos" donde no hay sensor de movimiento.
@@ -6966,24 +7069,56 @@ async function startPhoneSteps() {
   const today = new Date().toDateString();
   const saved = (() => { try { return JSON.parse(localStorage.getItem('zyra_phone_steps') || '{}'); } catch(_) { return {}; } })();
   _stepCount       = saved.date === today ? (saved.steps || 0) : 0;
-  _stepEMA         = 9.8;
-  _stepWin         = [];
-  _stepAbove       = false;
-  _stepLastTs      = 0;
-  _stepCalibrating = true;
-  _stepCalTs       = Date.now();
+  _resetStepDetector();
+  _stepLastEvtTs   = 0;
   _stepActive      = true;
   window.addEventListener('devicemotion', _onPhoneMotion, { passive: true });
+  document.addEventListener('visibilitychange', _onStepVisibilityChange);
   localStorage.setItem('zyra_steps_active', '1');
   renderWatchCard();
   renderWatchWidget();
   zyraToast('👟 Calibrando acelerómetro…', 'info', 1800);
   setTimeout(() => { if (_stepActive) zyraToast('👟 Contando pasos — lleva el celular contigo', 'success', 3000); }, 2000);
+
+  // Vigía: si tras 3s no llegó ni un evento del sensor, el dispositivo/navegador
+  // no lo soporta (o lo bloqueó) — antes esto se quedaba "activo" en silencio para siempre.
+  clearTimeout(_stepNoSensorTimer);
+  _stepNoSensorTimer = setTimeout(() => {
+    if (_stepActive && _stepLastEvtTs === 0) {
+      zyraToast('⚠ No se detecta el sensor de movimiento en este dispositivo/navegador.', 'error', 4500);
+    }
+  }, 3000);
+}
+
+function _onStepVisibilityChange() {
+  // Al volver de segundo plano, el hueco de tiempo hace que la ventana de
+  // muestras quede vacía y la primera lectura nueva puede traer un salto
+  // brusco (layout/animaciones al reanudar) que antes se contaba como paso
+  // falso. Se limpia el estado y se re-calibra brevemente al volver.
+  if (document.visibilityState === 'visible' && _stepActive) _resetStepDetector();
+}
+
+// Deja el detector como recién encendido (filtros, umbral y caminata en curso)
+// y lo re-calibra ~1s. No toca el total de pasos del día.
+function _resetStepDetector() {
+  _stepLP          = null;
+  _stepBase        = null;
+  _stepPrevT       = 0;
+  _stepAbove       = false;
+  _stepPeak        = 0;
+  _stepAmp         = 1.5;
+  _stepLastTs      = 0;
+  _stepPending     = 0;
+  _stepWalking     = false;
+  _stepCalibrating = true;
+  _stepCalTs       = Date.now();
 }
 
 function stopPhoneSteps() {
   _stepActive = false;
   window.removeEventListener('devicemotion', _onPhoneMotion);
+  document.removeEventListener('visibilitychange', _onStepVisibilityChange);
+  clearTimeout(_stepNoSensorTimer);
   _savePhoneSteps();
   syncHealthToServer({ steps: { count: _stepCount, date: new Date().toDateString() } });
   localStorage.removeItem('zyra_steps_active');
@@ -7000,59 +7135,101 @@ function _dbgStepWrite(text) {
   if (el) el.textContent = text;
 }
 
+// Parámetros del detector (m/s² y ms). Valores típicos de un paso real con el
+// celular en la mano o el bolsillo: 1–4 m/s² por encima de la gravedad, cada
+// 0.35–1.2 s. El ruido de la mano quieta o de una mesa rara vez pasa de 0.3.
+const STEP_MIN_PEAK     = 0.7;   // pico mínimo absoluto para considerar un paso
+const STEP_MIN_INTERVAL = 280;   // más rápido que esto es rebote del mismo paso (talón + punta)
+const STEP_MAX_INTERVAL = 2000;  // más lento que esto ya no es una caminata continua
+const STEP_CONFIRM      = 4;     // pasos seguidos con ritmo regular antes de empezar a contar
+
 function _onPhoneMotion(evt) {
   if (!_stepActive) return;
-
-  // Preferir acceleration (sin gravedad) si el dispositivo la soporta
-  const rawNoGrav = evt.acceleration;
-  const rawGrav   = evt.accelerationIncludingGravity;
-  _stepUseNoGrav  = rawNoGrav && rawNoGrav.x != null && (Math.abs(rawNoGrav.x) + Math.abs(rawNoGrav.y) + Math.abs(rawNoGrav.z)) > 0.01;
-  const a = _stepUseNoGrav ? rawNoGrav : rawGrav;
-  if (!a || a.x == null) { _dbgStepWrite('⚠ sin datos del sensor'); return; }
-
-  const mag = Math.sqrt((a.x||0)**2 + (a.y||0)**2 + (a.z||0)**2);
   const now = Date.now();
 
-  // Filtro de paso bajo POR TIEMPO (no por cantidad de muestras) — 'devicemotion'
-  // dispara a frecuencias muy distintas según el teléfono.
-  _stepEMA = _stepEMA * 0.7 + mag * 0.3;
+  // Si volvimos de un hueco grande (app en segundo plano, pestaña oculta, etc.)
+  // la primera muestra suele traer un salto brusco — se re-calibra en vez de
+  // dejar que dispare un "paso" falso.
+  const gap = _stepLastEvtTs ? now - _stepLastEvtTs : 0;
+  _stepLastEvtTs = now;
+  if (gap > 2000) { _resetStepDetector(); return; }
+
+  // Se usa SIEMPRE la aceleración CON gravedad. La magnitud de la aceleración
+  // "sin gravedad" (evt.acceleration) es siempre positiva: el cuerpo que sube y
+  // el que baja dan dos picos por cada paso y el conteo salía casi al doble.
+  // Con gravedad, la magnitud oscila UNA vez por paso alrededor de ~9.8.
+  let mag;
+  const g = evt.accelerationIncludingGravity;
+  if (g && g.x != null) {
+    mag = Math.sqrt((g.x||0)**2 + (g.y||0)**2 + (g.z||0)**2);
+  } else {
+    const a = evt.acceleration;
+    if (!a || a.x == null) { _dbgStepWrite('⚠ sin datos del sensor'); return; }
+    mag = 9.81 + Math.sqrt((a.x||0)**2 + (a.y||0)**2 + (a.z||0)**2);
+  }
+
+  // Filtros por TIEMPO real (cada celular manda entre 15 y 200 muestras/s; un
+  // filtro "por muestra" se comportaba distinto en cada modelo).
+  if (_stepLP === null) { _stepLP = _stepBase = mag; _stepPrevT = now; return; }
+  const dt = Math.min(0.2, Math.max(0.005, (now - _stepPrevT) / 1000));
+  _stepPrevT = now;
+  _stepLP   += (mag - _stepLP)   * (dt / (0.06 + dt)); // paso bajo ~2.5 Hz: quita vibraciones
+  _stepBase += (mag - _stepBase) * (dt / (1.2  + dt)); // línea base lenta ≈ gravedad
+  const sig = _stepLP - _stepBase;                      // movimiento real, centrado en 0
 
   if (_stepCalibrating) {
     _dbgStepWrite(`calibrando… mag ${mag.toFixed(2)}`);
-    if (now - _stepCalTs > 1200) _stepCalibrating = false;
+    if (now - _stepCalTs > 1000) _stepCalibrating = false;
     return;
   }
 
-  // Umbral ADAPTATIVO: en vez de un número fijo (que varía muchísimo de un
-  // teléfono a otro según cómo reporte su acelerómetro), medimos el rango
-  // real (máx-mín) de la señal en la última ventana de ~1.5s y el umbral es
-  // una fracción de ESE rango — así se auto-calibra a la sensibilidad real
-  // de cada celular en vez de adivinar un valor absoluto a ciegas.
-  _stepWin.push({ t: now, v: _stepEMA });
-  while (_stepWin.length && now - _stepWin[0].t > 1500) _stepWin.shift();
-  const vals  = _stepWin.map(s => s.v);
-  const vMax  = Math.max(...vals), vMin = Math.min(...vals);
-  const range = vMax - vMin;
-  const mid   = (vMax + vMin) / 2;
+  // Si pasó demasiado tiempo sin pasos, la caminata terminó: lo pendiente se
+  // descarta (era un gesto suelto) y el umbral vuelve a su valor inicial.
+  if (_stepLastTs && now - _stepLastTs > STEP_MAX_INTERVAL) {
+    _stepPending = 0;
+    _stepWalking = false;
+    _stepLastTs  = 0;
+    _stepAmp     = 1.5;
+  }
 
-  _dbgStepWrite(`mag ${mag.toFixed(2)} · señal ${_stepEMA.toFixed(2)} · rango ${range.toFixed(2)} · pasos ${_stepCount}`);
+  // Umbral adaptativo con piso fijo: se ajusta a la fuerza de los pasos
+  // recientes (caminar suave vs. trotar) pero nunca baja al nivel del ruido.
+  const thrHigh = Math.max(STEP_MIN_PEAK, _stepAmp * 0.4);
 
-  const MIN_RANGE = 0.12; // sin esto, con el celular quieto el ruido cuenta "pasos" solo
-  if (range < MIN_RANGE) return;
+  _dbgStepWrite(`señal ${sig.toFixed(2)} · umbral ${thrHigh.toFixed(2)} · pendientes ${_stepPending} · pasos ${_stepCount}`);
 
-  const upper = mid + range * 0.22;
-  const lower = mid - range * 0.12;
+  if (!_stepAbove) {
+    if (sig > thrHigh) { _stepAbove = true; _stepPeak = sig; }
+    return;
+  }
+  if (sig > _stepPeak) _stepPeak = sig;
+  if (sig > 0) return; // aún no termina el pico: esperar a que la señal vuelva a la base
 
-  if (!_stepAbove && _stepEMA > upper) {
-    _stepAbove = true;
-  } else if (_stepAbove && _stepEMA < lower) {
-    _stepAbove = false;
-    if (_stepLastTs === 0 || now - _stepLastTs > 280) { // min. ~280ms entre pasos (evita rebotes dobles)
-      _stepLastTs = now;
-      _stepCount++;
-      _handleSteps(_stepCount);
-      if (_stepCount % 5 === 0) _savePhoneSteps(); // guardar cada 5 pasos
-    }
+  // La señal subió por encima del umbral y volvió a la base → un pico completo.
+  _stepAbove = false;
+  const interval = _stepLastTs ? now - _stepLastTs : 0;
+  if (_stepLastTs && interval < STEP_MIN_INTERVAL) return; // rebote del mismo paso
+
+  _stepAmp    = _stepAmp * 0.7 + _stepPeak * 0.3;
+  _stepLastTs = now;
+
+  if (_stepWalking) {
+    _stepCount++;
+    _handleSteps(_stepCount);
+    if (_stepCount % 5 === 0) _savePhoneSteps();
+    return;
+  }
+
+  // Aún no hay caminata confirmada: se acumulan pasos pendientes y solo se
+  // suman cuando hay STEP_CONFIRM seguidos. Mover el celular, tomarlo de la
+  // mesa o gesticular da 1–2 picos sueltos, que así no cuentan.
+  _stepPending++;
+  if (_stepPending >= STEP_CONFIRM) {
+    _stepCount  += _stepPending;
+    _stepPending = 0;
+    _stepWalking = true;
+    _handleSteps(_stepCount);
+    _savePhoneSteps();
   }
 }
 
@@ -7065,7 +7242,17 @@ function _savePhoneSteps() {
   const today = new Date().toDateString();
   const saved = (() => { try { return JSON.parse(localStorage.getItem('zyra_phone_steps') || '{}'); } catch(_) { return {}; } })();
   if (saved.date === today) _stepCount = saved.steps || 0;
-  localStorage.removeItem('zyra_steps_active'); // no auto-reactivar (iOS requiere gesto)
+  const wasActive = localStorage.getItem('zyra_steps_active') === '1' && saved.date === today;
+  localStorage.removeItem('zyra_steps_active');
+  // En Android el sensor no requiere gesto del usuario (requestPermission solo
+  // existe en iOS 13+) — si el conteo estaba activo y la página se recargó
+  // (login, actualización del Service Worker, etc.), antes quedaba "pausado"
+  // en silencio hasta que el usuario volviera a pulsar "Activar pasos" a mano,
+  // lo que se sentía como que el podómetro "se detenía solo". Se reanuda solo.
+  const needsGesture = typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function';
+  if (wasActive && !needsGesture) {
+    setTimeout(() => { try { startPhoneSteps(); } catch(_) {} }, 300);
+  }
 })();
 
 // Resetear pasos a medianoche
@@ -7463,7 +7650,7 @@ function _handleHR(bpm) {
 
 let _lastStepsSyncTs = 0;
 function _handleSteps(steps) {
-  if (!steps || steps < 0) return;
+  if (steps == null || steps < 0) return;
   _watchSteps = steps;
   const today = new Date().toDateString();
   localStorage.setItem('zyra_watch_steps', JSON.stringify({ steps, ts: Date.now(), date: today }));
@@ -8204,7 +8391,7 @@ async function openBillingPortal() {
   if (btn) { btn.textContent = "⏳ Cargando..."; btn.disabled = true; }
   try {
     const d = await api("/payments/portal", "POST");
-    if (d.url) { window.open(d.url, "_blank"); }
+    if (d.url) { zyraOpenExternal(d.url); }
     else zyraToast(d.message || "Error al abrir portal", "error");
   } catch(e) {
     zyraToast(e.message || "Gestiona tu suscripción en soporte@zyra.app", "info", 5000);
@@ -8262,13 +8449,17 @@ async function loadFriendsList() {
     list.innerHTML = friends.map(f => {
       const initial = (f.name || "?").charAt(0).toUpperCase();
       const date = f.joinedAt ? new Date(f.joinedAt).toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" }) : "";
+      const sub = f.relation === "inviter" ? "Te invitó a Zyra" : `Se unió el ${date}`;
+      const streak = f.streakActive
+        ? `<span style="font-size:11px;color:#f97316;font-weight:800;white-space:nowrap">🔥 ${f.streak} día${f.streak === 1 ? "" : "s"}</span>`
+        : `<span style="font-size:11px;color:var(--text3);font-weight:600;white-space:nowrap">Racha en pausa</span>`;
       return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
         <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#10b981,#34d399);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0">${initial}</div>
         <div style="flex:1;min-width:0">
-          <div style="font-size:13.5px;font-weight:700;color:var(--text)">${escHtml(f.name || "Usuario")}</div>
-          <div style="font-size:11px;color:var(--text3)">Se unió el ${date}</div>
+          <div style="font-size:13.5px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(f.name || "Usuario")}</div>
+          <div style="font-size:11px;color:var(--text3)">${sub} · ✓ 7 días Premium</div>
         </div>
-        <span style="font-size:11px;color:#34d399;font-weight:700">✓ 7 días Premium</span>
+        ${streak}
       </div>`;
     }).join("");
     const rows = list.querySelectorAll("div[style*='border-bottom']");
@@ -8316,8 +8507,12 @@ function copyReferralCode() {
     .catch(() => zyraToast(_referralCode, "info", 6000));
 }
 function shareReferral() {
-  const code = _referralCode || "tu código";
-  const text = `Únete a Zyra, tu IA de bienestar emocional 🌿\nUsa mi código ${code} al registrarte y recibe 7 días Premium gratis ✦`;
+  if (!_referralCode) return;
+  const code = _referralCode;
+  // El registro no tiene campo para el código: el enlace lo guarda y se aplica
+  // solo al crear la cuenta / iniciar sesión (ver applyPendingReferral).
+  const link = `${location.origin}/?ref=${encodeURIComponent(code)}`;
+  const text = `Únete a Zyra, tu IA de bienestar emocional 🌿\nEntra con mi enlace y los dos recibimos 7 días Premium gratis y una racha activa 🔥\n${link}\n\n(O escribe mi código ${code} en la sección Amigos)`;
   if (navigator.share) {
     navigator.share({ title: "Zyra — Invitación", text }).catch(() => {});
   } else {
@@ -8326,17 +8521,47 @@ function shareReferral() {
       .catch(() => {});
   }
 }
+// Mismo formato que el servidor: " zyra-ab12 cd " → "ZYRAAB12CD"
+function _normRefCode(c) { return String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }
+
+async function _afterReferralApplied(d) {
+  zyraToast(d.message || "¡Código aplicado! 7 días Premium activados ✦", "success", 6000);
+  // Cada recarga es independiente: si una falla, las demás igual se ejecutan
+  // (la racha de los dos queda activa y el contador debe reflejarlo).
+  for (const fn of [loadPlanStatus, loadGamification, loadReferral, loadFriendsList, loadSubscriptionInfo]) {
+    try { await fn(); } catch(_) {}
+  }
+}
+
 async function applyReferral() {
-  const code = document.getElementById("referral-apply-input")?.value?.trim().toUpperCase();
+  const code = _normRefCode(document.getElementById("referral-apply-input")?.value);
   if (!code || code.length < 6) { zyraToast("Ingresa un código válido", "error"); return; }
   try {
     const d = await api("/referral/apply", "POST", { code });
-    zyraToast(d.message || "¡Código aplicado! 7 días Premium activados ✦", "success", 5000);
-    await loadPlanStatus();
-    loadReferral();
-    loadSubscriptionInfo();
+    const inp = document.getElementById("referral-apply-input"); if (inp) inp.value = "";
+    await _afterReferralApplied(d);
   } catch(e) {
     zyraToast(e.message || "Código inválido o ya utilizado", "error");
+  }
+}
+
+// Código recibido por enlace (?ref=CODIGO): se guarda al abrir el enlace y se
+// aplica una sola vez cuando ya hay sesión (registro, login u OAuth).
+async function applyPendingReferral() {
+  let code = null;
+  try { code = localStorage.getItem("zyra_pending_ref"); } catch(_) {}
+  if (!code || !token) return;
+  try {
+    const d = await api("/referral/apply", "POST", { code });
+    try { localStorage.removeItem("zyra_pending_ref"); } catch(_) {}
+    await _afterReferralApplied(d);
+  } catch(e) {
+    // Sin conexión o fallo del servidor (status 0 / 5xx): se reintenta en la
+    // próxima carga. Cualquier otro caso (ya usó un código, es su propio
+    // código, no existe): se descarta en silencio.
+    if (e.status >= 400 && e.status < 500) {
+      try { localStorage.removeItem("zyra_pending_ref"); } catch(_) {}
+    }
   }
 }
 
@@ -9513,7 +9738,7 @@ function _maybeShowEveningNudge() {
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
         <button onclick="localStorage.setItem('${dismissKey}','1');document.getElementById('zyra-evening-nudge').style.opacity='0';setTimeout(()=>{const e=document.getElementById('zyra-evening-nudge');if(e)e.remove();showPage('assistant');setTimeout(()=>{newChat();setTimeout(_cierreStart,800)},200)},300)" style="background:rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.4);color:#a78bfa;border-radius:10px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">🌙 Cierre del día</button>
         ${!hasJournal ? `<button onclick="localStorage.setItem('${dismissKey}','1');document.getElementById('zyra-evening-nudge').style.opacity='0';setTimeout(()=>{const e=document.getElementById('zyra-evening-nudge');if(e)e.remove();showPage('journal');setTimeout(toggleJournalForm,200)},300)" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:var(--accent);border-radius:10px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">📔 Diario del día</button>` : ""}
-        <button onclick="localStorage.setItem('${dismissKey}','1');this.closest('#zyra-evening-nudge').remove()" style="background:transparent;border:1px solid rgba(255,255,255,.1);color:var(--text3);border-radius:10px;padding:7px 12px;font-size:12px;cursor:pointer">Después</button>
+        <button onclick="localStorage.setItem('${dismissKey}','1');this.closest('#zyra-evening-nudge').remove()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.22);color:#e2e8f0;border-radius:10px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer">Después</button>
       </div>
     </div>
   </div>`;
@@ -9891,10 +10116,16 @@ function renderJournalMemory(entries) {
 function renderMoodMiniTrend(history) {
   const wrap = document.getElementById("mood-mini-trend");
   const bars = document.getElementById("mood-mini-trend-bars");
-  if (!wrap || !bars || history.length < 3) { if(wrap) wrap.style.display="none"; return; }
+  // Un dia puede tener varios registros (varios check-ins seguidos); quedarse solo
+  // con el ultimo de cada dia para que "Tendencia - 7 dias" sean 7 dias reales,
+  // no 7 registros que a veces repetian el mismo dia varias veces.
+  const _byDay = new Map();
+  (history || []).forEach(h => _byDay.set(new Date(h.date).toDateString(), h));
+  const daily = Array.from(_byDay.values());
+  if (!wrap || !bars || daily.length < 3) { if(wrap) wrap.style.display="none"; return; }
   wrap.style.display = "";
-  const last7 = history.slice(-7);
-  const W = 360, H = 80, PL = 4, PR = 4, PT = 8, PB = 28;
+  const last7 = daily.slice(-7);
+  const W = 264, H = 80, PL = 6, PR = 6, PT = 8, PB = 28;
   const cW = W - PL - PR, cH = H - PT - PB;
   const pts = last7.map((h, i) => {
     const v = (_MOOD_VAL[h.emotion] || 3) - 1;
@@ -9911,8 +10142,8 @@ function renderMoodMiniTrend(history) {
   }
   const fill = path + ` L ${pts[pts.length-1].x} ${H-PB} L ${pts[0].x} ${H-PB} Z`;
   const dots = pts.map(p => `<circle cx="${p.x}" cy="${p.y}" r="3.5" fill="${p.em.color}" stroke="var(--bg2)" stroke-width="1.5"><title>${p.em.label} — ${p.day}</title></circle>`).join("");
-  const emojis = pts.map(p => `<text x="${p.x}" y="${p.y-7}" text-anchor="middle" style="font-size:10px">${p.em.emoji}</text>`).join("");
-  const labels = pts.map(p => `<text x="${p.x}" y="${H-PB+12}" text-anchor="middle" style="font-size:9px;fill:var(--text3)">${p.day}</text>`).join("");
+  const emojis = pts.map(p => `<text x="${p.x}" y="${p.y-7}" text-anchor="middle" style="font-size:12px">${p.em.emoji}</text>`).join("");
+  const labels = pts.map(p => `<text x="${p.x}" y="${H-PB+12}" text-anchor="middle" style="font-size:10px;fill:var(--text3)">${p.day}</text>`).join("");
   bars.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:${H}px;display:block;overflow:visible">
     <defs>
       <linearGradient id="mtg" x1="0" y1="0" x2="0" y2="1">
@@ -10157,8 +10388,15 @@ const _MOOD_VAL = { feliz:5, motivado:5, esperanzado:4, tranquilo:4, confundido:
 function renderChart(history) {
   const el = document.getElementById("emotion-chart");
   if(!history || !history.length) { el.innerHTML = '<div class="chart-empty"><span style="font-size:32px;opacity:.3">📊</span><span>Registra emociones para ver la gráfica</span></div>'; return; }
-  const last = history.slice(-14);
-  const W = 560, H = 130, PL = 8, PR = 8, PT = 12, PB = 36;
+  // Igual que en la tendencia de 7 dias: quedarse con el ultimo registro de cada
+  // dia para no repetir la misma fecha varias veces si hubo varios check-ins.
+  const _byDay = new Map();
+  history.forEach(h => _byDay.set(new Date(h.date).toDateString(), h));
+  const daily = Array.from(_byDay.values());
+  const last = daily.slice(-14);
+  // W ajustado al ancho real de la tarjeta (.db-rail-card ≈ 264px de contenido);
+  // antes era 560 y el SVG se escalaba a la mitad, dejando textos y puntos ilegibles.
+  const W = 264, H = 118, PL = 10, PR = 10, PT = 16, PB = 30;
   const cW = W - PL - PR, cH = H - PT - PB;
   const pts = last.map((h, i) => {
     const v = (_MOOD_VAL[h.emotion] || 3) - 1; // 0-4
@@ -10174,21 +10412,26 @@ function renderChart(history) {
     const cp = (pts[i].x - pts[i-1].x) * 0.45;
     path += ` C ${pts[i-1].x+cp} ${pts[i-1].y}, ${pts[i].x-cp} ${pts[i].y}, ${pts[i].x} ${pts[i].y}`;
   }
-  const fillPath = path + ` L ${pts[pts.length-1].x} ${H-PB} L ${pts[0].x} ${H-PB} Z`;
-  const dots = pts.map((p,i) => `<circle cx="${p.x}" cy="${p.y}" r="4" fill="${p.em.color}" stroke="var(--bg2)" stroke-width="2"><title>${p.em.label} (${p.label})</title></circle>`).join("");
-  const labels = pts.filter((_,i)=> last.length<=7 || i%2===0).map(p => `<text x="${p.x}" y="${H-PB+14}" text-anchor="middle" style="font-size:9px;fill:var(--text3)">${p.label}</text>`).join("");
-  const emojis = pts.map(p => `<text x="${p.x}" y="${p.y-8}" text-anchor="middle" style="font-size:11px">${p.em.emoji}</text>`).join("");
-  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:${H}px;display:block;overflow:visible">
+  const fillPath = pts.length > 1 ? (path + ` L ${pts[pts.length-1].x} ${H-PB} L ${pts[0].x} ${H-PB} Z`) : "";
+  const dots = pts.map((p,i) => `<circle cx="${p.x}" cy="${p.y}" r="3.5" fill="${p.em.color}" stroke="var(--bg2)" stroke-width="2"><title>${p.em.label} (${p.label})</title></circle>`).join("");
+  const labels = pts.filter((_,i)=> last.length<=5 || i%2===0).map(p => `<text x="${p.x}" y="${H-PB+16}" text-anchor="middle" style="font-size:10px;fill:var(--text3)">${p.label}</text>`).join("");
+  const emojis = pts.map(p => `<text x="${p.x}" y="${p.y-9}" text-anchor="middle" style="font-size:13px">${p.em.emoji}</text>`).join("");
+  const sparseHint = last.length < 4 ? `<div style="font-size:11px;color:var(--text3);text-align:center;margin-top:8px">Sigue registrando cómo te sientes para ver tu tendencia completa</div>` : "";
+  // .chart-wrap es flex-row (lo usa tambien el chart de barras) — envolver todo en un
+  // solo div para que el mensaje caiga debajo del svg en vez de al lado, afuera de la tarjeta.
+  el.innerHTML = `<div style="width:100%">
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:${H}px;display:block;overflow:visible">
     <defs>
       <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="#6366f1" stop-opacity="0.35"/>
         <stop offset="100%" stop-color="#6366f1" stop-opacity="0"/>
       </linearGradient>
     </defs>
-    <path d="${fillPath}" fill="url(#cg)"/>
-    <path d="${path}" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    ${fillPath ? `<path d="${fillPath}" fill="url(#cg)"/>` : ""}
+    ${path.includes("C") ? `<path d="${path}" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : ""}
     ${dots}${emojis}${labels}
-  </svg>`;
+    </svg>${sparseHint}
+  </div>`;
 }
 function renderDashConvs(convs) {
   const el = document.getElementById("dash-convs");
@@ -10690,7 +10933,7 @@ async function _getReflexionQuestion(emo, today) {
     const sysPrompt = `Eres Zyra. Genera UNA sola pregunta de reflexión profunda para ${name}. La pregunta debe ser específica, personal, y provocar una respuesta honesta. NO uses preguntas cliché. La pregunta debe ir al fondo de la experiencia humana. Solo devuelve la pregunta, sin puntos ni comillas extra.`;
     const ctx = emo ? `Hoy se siente: ${emo}. Emociones recientes: ${recentEmos.join(", ")}.` : `Emociones recientes: ${recentEmos.join(", ") || "ninguna registrada"}.`;
     const r = await api("/chat", "POST", { message: ctx, systemOverride: sysPrompt, noSave: true, mode: "reflexion" });
-    const q = (r.reply || "").trim().replace(/^"|"$/g, "");
+    const q = (r.response || "").trim().replace(/^"|"$/g, "");
     if (q && q.length > 10) {
       localStorage.setItem(todayKey, q);
       return q;
@@ -11292,7 +11535,7 @@ function renderJournal(entries, updateCache = true) {
     return `<div class="journal-item" id="jitem-${e._id}" style="${_bc}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div class="journal-title">${em?em.emoji+" ":""}${safeHtml(e.title||"Entrada sin título")}</div>
-        <div style="display:flex;gap:6px">
+        <div style="display:flex;gap:6px" onclick="event.stopPropagation()">
           <button class="btn-xs" title="${isFav?"Quitar de favoritas":"Guardar como favorita"}" onclick="toggleFavEntry('${e._id}')" style="color:${isFav?"#f59e0b":"var(--text3)"}">${isFav?"⭐":"☆"}</button>
           <button class="btn-xs" title="Copiar entrada" onclick="copyJournalEntry(${JSON.stringify(e.title||'')},${JSON.stringify(e.content||'')},this)">📋</button>
           <button class="btn-xs" onclick="openEditJournal('${e._id}')" aria-label="Editar entrada: ${safeHtml(e.title||'Entrada sin título')}">✏</button>
@@ -12023,8 +12266,8 @@ function showTestResult() {
     movie:      `<button class="btn-primary" style="width:auto;padding:13px 28px" onclick="showPage('assistant');setTimeout(()=>{document.getElementById('chat-input').value='Recomiéndame una película para ver hoy';sendMsg();},600)">🎬 Que Zyra recomiende algo</button>`,
   };
   const insightsHtml = insights.length ? `
-    <div style="margin:16px 0 0;padding:14px 16px;background:rgba(255,255,255,.06);border-radius:12px;text-align:left">
-      ${insights.map(i => `<div style="font-size:12px;color:rgba(255,255,255,.75);line-height:1.6;margin-bottom:6px">💡 ${i}</div>`).join("")}
+    <div style="margin:16px 0 0;padding:14px 16px;background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.15);border-radius:12px;text-align:left">
+      ${insights.map(i => `<div style="font-size:12px;color:var(--text2,#334155);line-height:1.6;margin-bottom:6px">💡 ${i}</div>`).join("")}
     </div>` : "";
   document.getElementById("test-page-wrap").innerHTML = `
     <div class="test-header">
@@ -12756,7 +12999,7 @@ async function _genMedAI(force) {
 
   try {
     const r = await api("/chat", "POST", { message: userMsg, systemOverride: sysPrompt, noSave: true, mode: "meditacion" });
-    const text = (r.reply || "").trim();
+    const text = (r.response || "").trim();
     if (!text) throw new Error("empty");
     localStorage.setItem(cachedKey, text);
     area.innerHTML = `
@@ -13752,7 +13995,7 @@ function speakText(btn, text) {
   const clean = cleanTTS(text); if(!clean) return;
   const utt = new SpeechSynthesisUtterance(clean);
   utt.lang = "es-MX"; utt.rate = 0.90;
-  utt.pitch = (ttsVoice && _isTTSFemale(ttsVoice)) ? 1.2 : 1.8;
+  utt.pitch = 1.0;
   if(ttsVoice) utt.voice = ttsVoice;
   if(btn) { btn.classList.add("speaking"); btn.textContent = "⏹"; currentTTSBtn = btn; }
   utt.onend = () => { if(btn) { btn.classList.remove("speaking"); btn.textContent = "🔊"; } currentTTSBtn = null; };
@@ -16726,6 +16969,7 @@ function _initApp() {
     loadFeatureConfig();
     loadPlanStatus();
     loadGamification();
+    applyPendingReferral();
     // Nombre en la barra lateral: no depende de datos pesados, se puede
     // poner apenas hay usuario -- la app ahora puede entrar directo al Chat
     // sin pasar nunca por Inicio, y loadDashboard() (que llena esto) solo
@@ -17209,8 +17453,11 @@ async function vcSendMessage(text) {
     vcSpeak(response, false);
   } catch(e) {
     if (!vcActive) return;
-    const err = 'Ups, tuve un pequeño problema. ¿Puedes intentarlo de nuevo?';
+    // Mostrar el motivo real cuando el servidor lo manda (ej. límite del plan) en vez
+    // de siempre el mismo mensaje generico que no dice qué pasó de verdad.
+    const err = (e?.message && e.message !== 'Error') ? e.message : 'Ups, tuve un pequeño problema. ¿Puedes intentarlo de nuevo?';
     vcAddMessage('bot', err); vcSpeak(err, false);
+    if (e?.data?.limitReached) zyraToast(err, 'error', 6000);
   }
 }
 
@@ -17229,15 +17476,24 @@ async function vcSpeak(text, isGreeting) {
   vcSetWaveLabel('Escucha a Zyra...');
   vcSetWaveActive(true, true);
 
-  // Prioridad 1: voz neural del browser (Dalia Online Natural — sin latencia, mejor calidad)
-  await _waitForTTSVoices();
-  if (vcMuted) { vcSpeaking = false; vcSetBodyClass(false); return; }
-  if (_hasPremiumTTSVoice()) {
-    vcUseBrowserTTS(clean, isGreeting);
-    return;
-  }
+  // Red de seguridad: si por lo que sea el audio nunca dispara onend/onerror (bug
+  // conocido del Web Speech API tras varios cancel()+speak() seguidos), esto evita
+  // que la llamada se quede "trabada" sin volver a escuchar al usuario.
+  const myWatchdog = ++_vcWatchdogGen;
+  const watchdogMs = Math.min(45000, Math.max(6000, clean.length * 120) + 5000);
+  setTimeout(() => {
+    if (_vcWatchdogGen === myWatchdog && vcSpeaking) {
+      console.warn('vcSpeak watchdog: el audio no terminó a tiempo, se fuerza fin de turno');
+      _vcSpeakGen++; // invalida cualquier onend/onerror tardío para que no se dispare dos veces
+      window.speechSynthesis.cancel();
+      if (_vcAudioPlaying) { try { _vcAudioPlaying.pause(); } catch(e){} _vcAudioPlaying = null; }
+      vcOnSpeakEnd(isGreeting);
+    }
+  }, watchdogMs);
 
-  // Prioridad 2: backend TTS (StreamElements → Google TTS) + D-ID en background
+  // Voz del backend (neural — StreamElements/ElevenLabs) primero: es consistente
+  // para todos, sin depender de qué voz local tenga instalada el navegador. Si
+  // falla, vcSpeakBackend cae sola a la voz local del navegador como respaldo.
   await vcSpeakBackend(clean, isGreeting);
 }
 
@@ -17278,6 +17534,7 @@ function vcStartListening() {
 
 let _vcAudioPlaying = null; // referencia al audio activo de Zyra
 let _vcSpeakGen = 0; // generación para evitar que cancel() dispare onerror de la utterance anterior
+let _vcWatchdogGen = 0; // generación propia del watchdog anti-congelamiento (independiente de _vcSpeakGen)
 
 async function vcSpeakBackend(clean, isGreeting) {
   const load = document.getElementById('vc-avatar-loading');
@@ -17356,8 +17613,8 @@ function vcUseBrowserTTS(clean, isGreeting) {
     if (_vcSpeakGen !== myGen) return; // superseded by a newer vcSpeak call
     const utt = new SpeechSynthesisUtterance(clean);
     utt.lang = 'es-MX';
-    utt.rate  = isGreeting ? 0.84 : 0.87;
-    utt.pitch = (ttsVoice && _isTTSFemale(ttsVoice)) ? 1.2 : 1.8;
+    utt.rate  = isGreeting ? 0.92 : 0.96;
+    utt.pitch = 1.0;
     utt.volume = 1;
     if (ttsVoice) utt.voice = ttsVoice;
     utt.onend  = () => { if (_vcSpeakGen === myGen) vcOnSpeakEnd(isGreeting); };
@@ -17383,7 +17640,7 @@ function _speakWSA(text, btn) {
   _waitForTTSVoices().then(() => {
     const utt = new SpeechSynthesisUtterance(clean);
     utt.lang = "es-MX"; utt.rate = 0.88; utt.volume = 1;
-    utt.pitch = (ttsVoice && _isTTSFemale(ttsVoice)) ? 1.2 : 1.8;
+    utt.pitch = 1.0;
     if (ttsVoice) utt.voice = ttsVoice;
     utt.onend  = () => { if (btn) { btn.classList.remove("speaking"); btn.textContent = "🔊"; } if (currentTTSBtn===btn) currentTTSBtn=null; };
     utt.onerror = () => { if (btn) { btn.classList.remove("speaking","loading"); btn.textContent = "🔊"; } if (currentTTSBtn===btn) currentTTSBtn=null; };
@@ -17584,7 +17841,7 @@ function vcPlayCurrentSong() {
 function vcOpenYT() {
   if(!vcCurrentSong) return;
   const q = encodeURIComponent(vcCurrentSong.title+' '+vcCurrentSong.artist);
-  window.open('https://www.youtube.com/results?search_query='+q,'_blank');
+  zyraOpenExternal('https://www.youtube.com/results?search_query='+q);
   const frame=document.getElementById('vc-yt-frame');
   if(frame){frame.style.display='none';frame.innerHTML='';}
 }
@@ -18189,12 +18446,12 @@ async function playMorningSong(title, artist) {
     const d = await api(`/yt/search?q=${encodeURIComponent(title + ' ' + artist + ' official')}`);
     const videoId = d.videoId || (d.items && d.items[0]?.id?.videoId);
     if (videoId) {
-      window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank', 'noopener');
+      zyraOpenExternal(`https://www.youtube.com/watch?v=${videoId}`);
     } else {
-      window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(title + ' ' + artist)}`, '_blank', 'noopener');
+      zyraOpenExternal(`https://www.youtube.com/results?search_query=${encodeURIComponent(title + ' ' + artist)}`);
     }
   } catch(e) {
-    window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(title + ' ' + artist)}`, '_blank', 'noopener');
+    zyraOpenExternal(`https://www.youtube.com/results?search_query=${encodeURIComponent(title + ' ' + artist)}`);
   }
 }
 
@@ -18436,7 +18693,16 @@ async function openShareProgress() {
     const colorMap={feliz:'#f59e0b',tranquilo:'#10b981',ansioso:'#f97316',triste:'#6366f1',enojado:'#ef4444',motivado:'#8b5cf6',agotado:'#94a3b8',esperanzado:'#06b6d4'};
     const bar=document.getElementById('share-emotion-bar');
     if(bar&&hist.length){
-      bar.innerHTML=hist.map(e=>`<div style="flex:1;height:${20+Math.random()*20}px;background:${colorMap[e.emotion]||'#6366f1'};border-radius:4px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:2px;font-size:14px">${emojiMap[e.emotion]||'😌'}</div>`).join('');
+      // Alto real segun la emocion de ese dia (antes era aleatorio, sin relacion con los datos)
+      bar.innerHTML=hist.map(e=>{
+        const v = _MOOD_VAL[e.emotion] || 3;
+        const norm = Math.max(0, Math.min(1, (v - 2) / 3));
+        // Piso mas alto (24px) para que el emoji siempre quepa visible dentro
+        // de la barra -- antes con animos bajos la barra quedaba de 10px y el
+        // emoji no se alcanzaba a ver.
+        const h = Math.round(24 + 16 * norm);
+        return `<div style="flex:1;height:${h}px;background:${colorMap[e.emotion]||'#6366f1'};border-radius:4px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:2px;font-size:14px;overflow:visible">${emojiMap[e.emotion]||'😌'}</div>`;
+      }).join('');
     }
     const sessionsCount = d.profile?.sessionsCount||0;
     const sessions=document.getElementById('share-sessions'); if(sessions) sessions.textContent=sessionsCount;
@@ -18489,7 +18755,11 @@ async function shareProgress() {
   const barsTotal = barW*hist.length + (hist.length-1)*4;
   let bx=20;
   hist.forEach(e=>{
-    const h=(0.5+0.5*Math.random())*barH; // simple random height (same as preview)
+    // Alto real segun la emocion de ese dia (antes era Math.random() -- puro
+    // ruido sin relacion con los datos, por eso la grafica no decia nada).
+    const v = _MOOD_VAL[e.emotion] || 3;
+    const norm = Math.max(0, Math.min(1, (v - 2) / 3)); // _MOOD_VAL va de 2 a 5
+    const h = (0.22 + 0.78 * norm) * barH; // piso minimo para que la barra siempre se vea
     ctx.fillStyle=colorMap[e.emotion]||'#6366f1';
     ctx.roundRect(bx, barY-h, barW, h, 4); ctx.fill();
     bx+=barW+4;
@@ -20145,6 +20415,7 @@ const _TOUR_STEPS = [
 ];
 
 let _tourStep  = 0;
+let _tourTypewriterTimer = null;
 let _tourActive = false;
 
 function startTour() {
@@ -20175,12 +20446,15 @@ function _renderTourStep() {
   // Bubble text (typewriter)
   const bubble = document.getElementById('zyra-tour-bubble');
   if (bubble) {
+    // Si el paso anterior todavia estaba escribiendo, cortarlo -- si no, los dos
+    // intervalos escriben en el mismo texto a la vez y las letras salen mezcladas.
+    if (_tourTypewriterTimer) clearInterval(_tourTypewriterTimer);
     bubble.textContent = '';
     let ci = 0;
     const txt = s.bubble;
-    const typ = setInterval(() => {
+    _tourTypewriterTimer = setInterval(() => {
       bubble.textContent += txt[ci++];
-      if (ci >= txt.length) clearInterval(typ);
+      if (ci >= txt.length) { clearInterval(_tourTypewriterTimer); _tourTypewriterTimer = null; }
     }, 18);
   }
 
@@ -22223,7 +22497,7 @@ async function _cpNext() {
   let compassionMsg = "";
   try {
     const r = await api("/chat", "POST", { message: uMsg, systemOverride: sysP, noSave: true, mode: "compasion" });
-    compassionMsg = (r.reply || "").trim();
+    compassionMsg = (r.response || "").trim();
   } catch(e) {}
 
   if (!compassionMsg) compassionMsg = `${name}, lo que sientes es real y válido. No estás solo/a en esto. Mereces la misma amabilidad que le darías a alguien que amas.`;
@@ -23108,7 +23382,7 @@ async function _genSleepStory(force) {
 
   try {
     const r = await api("/chat", "POST", { message: userMsg, systemOverride: sysPrompt, noSave: true, mode: "sleep_story" });
-    const text = (r.reply || "").trim();
+    const text = (r.response || "").trim();
     if (!text) throw new Error("empty");
     localStorage.setItem(cacheKey, text);
     area.innerHTML = `<div id="sleep-story-text" style="font-size:13px;color:var(--text);line-height:1.9;padding:14px;background:rgba(0,0,0,.04);border-radius:12px;max-height:240px;overflow-y:auto;white-space:pre-wrap;margin-bottom:12px">${safeHtml(text)}</div>
@@ -23751,8 +24025,16 @@ const HABIT_DEFAULTS = [
 ];
 
 function getHabits() {
-  try { return JSON.parse(localStorage.getItem("zyra_habits") || "null") || HABIT_DEFAULTS; }
+  let habits;
+  try { habits = JSON.parse(localStorage.getItem("zyra_habits") || "null") || HABIT_DEFAULTS; }
   catch { return HABIT_DEFAULTS; }
+  // Autorepara hábitos guardados sin emoji/color (bug viejo del servidor que los
+  // perdía al sincronizar) — evita que se vea "undefined" en la tarjeta.
+  return habits.map(h => {
+    if (h.emoji && h.color) return h;
+    const fallback = HABIT_DEFAULTS.find(d => d.id === h.id);
+    return { ...h, emoji: h.emoji || fallback?.emoji || "⭐", color: h.color || fallback?.color || "#6366f1" };
+  });
 }
 function saveHabits(h) {
   localStorage.setItem("zyra_habits", JSON.stringify(h));
@@ -24788,11 +25070,19 @@ async function shareDayCard() {
   ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
   // Ambient glow
   const g1 = ctx.createRadialGradient(W*0.3, H*0.35, 0, W*0.3, H*0.35, W*0.6);
-  g1.addColorStop(0, accentCol + "22"); g1.addColorStop(1, "transparent");
+  g1.addColorStop(0, accentCol + "3d"); g1.addColorStop(1, "transparent");
   ctx.fillStyle = g1; ctx.fillRect(0, 0, W, H);
   const g2 = ctx.createRadialGradient(W*0.8, H*0.65, 0, W*0.8, H*0.65, W*0.5);
-  g2.addColorStop(0, "#8b5cf622"); g2.addColorStop(1, "transparent");
+  g2.addColorStop(0, "#8b5cf63d"); g2.addColorStop(1, "transparent");
   ctx.fillStyle = g2; ctx.fillRect(0, 0, W, H);
+  const g3 = ctx.createRadialGradient(W*0.15, H*0.85, 0, W*0.15, H*0.85, W*0.4);
+  g3.addColorStop(0, "#0ea5e922"); g3.addColorStop(1, "transparent");
+  ctx.fillStyle = g3; ctx.fillRect(0, 0, W, H);
+  // Textura sutil de puntos, para que el fondo no se vea tan vacío/plano
+  ctx.fillStyle = "rgba(255,255,255,.035)";
+  for (let py = 60; py < H; py += 46) {
+    for (let px = 60; px < W; px += 46) { ctx.beginPath(); ctx.arc(px, py, 1.6, 0, Math.PI*2); ctx.fill(); }
+  }
   // Top bar
   ctx.font = "bold 52px -apple-system,sans-serif";
   const lgrd = ctx.createLinearGradient(80, 0, 320, 0);
@@ -24817,15 +25107,16 @@ async function shareDayCard() {
     ctx.font = "400 48px -apple-system,sans-serif"; ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.textAlign = "center";
     ctx.fillText(`Así fue el día de ${userName}`, W/2, H*0.52);
   }
-  // Stats row
+  // Stats row — siempre las 4 tarjetas (aunque estén en 0) para que la fila no
+  // se vea vacía/solitaria en días con poca actividad registrada.
   const stats = [];
-  if (streak > 0) stats.push({ label:"Racha", val: `🔥 ${streak}d` });
+  stats.push({ label:"Racha", val: `🔥 ${streak}d` });
   const water = parseInt(localStorage.getItem("zyra_water_" + today) || "0");
-  if (water > 0) stats.push({ label:"Agua", val: `💧 ${water}/8` });
+  stats.push({ label:"Agua", val: `💧 ${water}/8` });
   const journalDone = !!localStorage.getItem("zyra_journal_saved_" + today);
-  if (journalDone) stats.push({ label:"Diario", val:"📔 ✓" });
+  stats.push({ label:"Diario", val: journalDone ? "📔 ✓" : "📔 —" });
   const breathDone = parseInt(localStorage.getItem("zyra_breath_" + today) || "0");
-  if (breathDone) stats.push({ label:"Respiración", val:`🫁 ${breathDone}` });
+  stats.push({ label:"Respiración", val:`🫁 ${breathDone}` });
   if (stats.length > 0) {
     const boxW = Math.min(220, (W - 160) / stats.length - 20);
     const startX = (W - (stats.length * (boxW + 20) - 20)) / 2;

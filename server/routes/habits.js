@@ -23,9 +23,10 @@ r.put("/", protect, async (req, res) => {
     if (!Array.isArray(habits)) return res.status(400).json({ message: "habits debe ser un array" });
     if (habits.length > 50) return res.status(400).json({ message: "Máximo 50 hábitos permitidos" });
     const sanitized = habits.slice(0, 50).map(h => ({
-      id:   String(h.id   || "").substring(0, 50),
-      name: String(h.name || "").substring(0, 100),
-      icon: String(h.icon || "").substring(0, 10),
+      id:    String(h.id    || "").substring(0, 50),
+      name:  String(h.name  || "").substring(0, 100),
+      emoji: String(h.emoji || "").substring(0, 10),
+      color: String(h.color || "").substring(0, 20),
       category: String(h.category || "").substring(0, 50),
       frequency: String(h.frequency || "daily").substring(0, 20),
     }));

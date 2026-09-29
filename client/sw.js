@@ -2,7 +2,7 @@
 const CACHE_NAME = 'zyra-v5.5';
 const STATIC_ASSETS = [
   '/', '/index.html', '/styles.css', '/manifest.json',
-  '/Imagenes/1000154669.png',
+  '/Imagenes/logo-nuevo.png',
 ];
 
 self.addEventListener('install', e => {
@@ -93,7 +93,7 @@ self.addEventListener('fetch', e => {
 self.addEventListener('push', e => {
   let data = {};
   try { data = e.data?.json() || {}; } catch(_) {}
-  const ICON = '/Imagenes/1000154669.png';
+  const ICON = '/Imagenes/logo-nuevo.png';
   e.waitUntil(
     self.registration.showNotification(data.title || 'Zyra ✦', {
       body:    data.body  || 'Tienes un mensaje de Zyra',

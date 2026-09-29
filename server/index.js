@@ -125,6 +125,21 @@ app.use(express.static(path.join(__dirname, "../client"), {
       res.setHeader("Content-Disposition", 'attachment; filename="Zyra.apk"');
       res.setHeader("Cache-Control", "no-cache");
     }
+    // styles.css tiene un ?v= que hay que recordar subir en cada deploy que lo toque;
+    // como red de seguridad si se nos olvida, que el navegador lo refresque solo en minutos, no en 1 día.
+    if (filePath.endsWith("styles.css")) {
+      res.setHeader("Cache-Control", "public, max-age=300");
+    }
+    // manifest.json define el ícono con el que Android/iOS instalan la PWA —
+    // si queda en caché 1 día, un cambio de logo tarda en reflejarse incluso
+    // antes de instalar (después de instalada, el ícono queda fijo en el
+    // sistema operativo — eso ya no lo arregla ningún header, solo reinstalar).
+    if (filePath.endsWith("manifest.json")) {
+      res.setHeader("Cache-Control", "no-cache, must-revalidate");
+    }
+    if (filePath.endsWith("logo-nuevo.png")) {
+      res.setHeader("Cache-Control", "public, max-age=300");
+    }
   }
 }));
 
@@ -188,8 +203,8 @@ setInterval(async () => {
       await sendToUser(note.user, {
         title: "📬 Una nota de tu pasado llegó",
         body: note.message.length > 100 ? note.message.slice(0, 97) + "…" : note.message,
-        icon: "/Imagenes/1000154669.png",
-        badge: "/Imagenes/1000154669.png",
+        icon: "/Imagenes/logo-nuevo.png",
+        badge: "/Imagenes/logo-nuevo.png",
         tag: "zyra-future-note",
         data: { url: "/?p=journal" },
       });

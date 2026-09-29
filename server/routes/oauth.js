@@ -1,8 +1,16 @@
 const router = require('express').Router();
 const jwt    = require('jsonwebtoken');
+const crypto = require('crypto');
+const cookie = require('cookie');
 const User   = require('../models/User');
 
 const BASE = process.env.APP_URL || 'https://zyra-app-8qva.onrender.com';
+const STATE_COOKIE = 'zyra_oauth_state';
+
+function readCookie(req, name) {
+  const parsed = cookie.parse(req.headers.cookie || '');
+  return parsed[name];
+}
 
 const PROVIDERS = {
   google: {
@@ -44,11 +52,25 @@ router.get('/:provider', (req, res) => {
   const cfg = PROVIDERS[req.params.provider];
   if (!cfg || !cfg.clientId()) return res.redirect(`${BASE}/?auth_error=not_configured`);
 
+  // Parámetro 'state' anti-CSRF: sin esto, cualquiera podía enviarle a una
+  // víctima un link al callback con un 'code' propio y quedaba logueada en
+  // la cuenta del atacante sin darse cuenta (login CSRF). Se guarda en una
+  // cookie de corta duración y se compara con lo que el proveedor devuelve.
+  const state = crypto.randomBytes(16).toString('hex');
+  res.setHeader('Set-Cookie', cookie.serialize(STATE_COOKIE, state, {
+    httpOnly: true,
+    secure:   process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge:   600,
+    path:     '/api/auth',
+  }));
+
   const params = new URLSearchParams({
     client_id:     cfg.clientId(),
     redirect_uri:  `${BASE}/api/auth/${req.params.provider}/callback`,
     response_type: 'code',
     scope:         cfg.scope,
+    state,
     ...(cfg.extra || {}),
   });
   res.redirect(`${cfg.authUrl}?${params}`);
@@ -58,9 +80,20 @@ router.get('/:provider', (req, res) => {
 router.get('/:provider/callback', async (req, res) => {
   const { provider } = req.params;
   const cfg = PROVIDERS[provider];
-  const { code, error } = req.query;
+  const { code, error, state } = req.query;
+
+  // Limpiar la cookie de state sin importar el resultado
+  res.setHeader('Set-Cookie', cookie.serialize(STATE_COOKIE, '', {
+    httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 0, path: '/api/auth',
+  }));
 
   if (error || !code || !cfg) return res.redirect(`${BASE}/?auth_error=cancelled`);
+
+  const expectedState = readCookie(req, STATE_COOKIE);
+  if (!state || !expectedState || state !== expectedState) {
+    console.error(`[OAuth ${provider}] state inválido o ausente`);
+    return res.redirect(`${BASE}/?auth_error=${encodeURIComponent('Sesión de inicio de sesión expirada. Intenta de nuevo.')}`);
+  }
 
   try {
     // Intercambiar code por tokens
