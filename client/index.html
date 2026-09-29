@@ -8447,7 +8447,7 @@ async function loadFriendsList() {
     if (!friends.length) { wrap.style.display = "none"; return; }
     wrap.style.display = "";
     list.innerHTML = friends.map(f => {
-      const initial = (f.name || "?").charAt(0).toUpperCase();
+      const initial = escHtml((f.name || "?").charAt(0).toUpperCase());
       const date = f.joinedAt ? new Date(f.joinedAt).toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" }) : "";
       const sub = f.relation === "inviter" ? "Te invitó a Zyra" : `Se unió el ${date}`;
       const streak = f.streakActive

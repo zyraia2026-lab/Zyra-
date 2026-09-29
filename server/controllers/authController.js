@@ -32,12 +32,14 @@ async function verifyOTP(key, code) {
   if (otp.code !== String(code || "").trim()) {
     // Límite de intentos por código — evita que alguien lo adivine repartiendo
     // los intentos entre varias IPs (el rate-limit de la ruta es por IP).
-    const attempts = (otp.attempts || 0) + 1;
+    // $inc atómico: dos intentos fallidos simultáneos ya no pueden leer el
+    // mismo "attempts" y pisarse el conteo entre sí.
+    const updated = await OTP.findOneAndUpdate({ key }, { $inc: { attempts: 1 } }, { new: true }).select("attempts").lean();
+    const attempts = updated?.attempts ?? MAX_OTP_ATTEMPTS;
     if (attempts >= MAX_OTP_ATTEMPTS) {
       await OTP.deleteOne({ key });
       return { error: "Demasiados intentos fallidos. Solicita un código nuevo." };
     }
-    await OTP.updateOne({ key }, { attempts });
     return { error: "Código incorrecto. Inténtalo de nuevo" };
   }
   await OTP.deleteOne({ key });
