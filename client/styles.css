@@ -3571,6 +3571,11 @@ body {
 .zyra-toast-close:hover { opacity: 1; }
 @keyframes zyraToastIn  { from{opacity:0;transform:translateY(-12px) scale(.96)} to{opacity:1;transform:none} }
 @keyframes zyraToastOut { from{opacity:1;transform:none} to{opacity:0;transform:translateY(-12px) scale(.96)} }
+/* En móvil el encabezado ocupa más del alto disponible que en escritorio --
+   un toast a 18px del borde queda encima de la barra de racha/ánimo. */
+@media (max-width: 768px) {
+  #zyra-toast-stack { top: calc(env(safe-area-inset-top, 0px) + 72px); }
+}
 
 /* Confirm modal */
 #zyra-confirm-overlay {
