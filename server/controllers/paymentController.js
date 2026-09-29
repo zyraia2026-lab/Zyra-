@@ -44,15 +44,13 @@ exports.createCheckout = async (req, res) => {
 
     if (!stripe) {
       // Modo demo: actualizar plan directamente (para pruebas sin Stripe
-      // configurado). Restringido de nuevo al admin -- se abrió para
-      // cualquier cuenta solo durante la expo (ya pasó). Sin esto, cualquier
-      // usuario real que se registre podía llamar este endpoint y quedar en
-      // plan pago gratis para siempre, porque no hay pasarela real
-      // configurada (ni la va a haber pronto -- Stripe no opera en Colombia
-      // y las pasarelas locales piden RUT/NIT real).
-      if (!process.env.ADMIN_EMAIL || req.user.email !== process.env.ADMIN_EMAIL) {
-        return res.status(503).json({ message: "Los pagos aún no están disponibles. Intenta más tarde." });
-      }
+      // configurado). ABIERTO A CUALQUIER CUENTA de nuevo, temporalmente,
+      // para pruebas del equipo -- volver a restringir a ADMIN_EMAIL antes
+      // de que la app quede pública, porque sin pasarela real configurada
+      // (ni la va a haber pronto -- Stripe no opera en Colombia y las
+      // pasarelas locales piden RUT/NIT real), cualquier usuario que se
+      // registre puede llamar este endpoint y quedar en plan pago gratis
+      // para siempre.
       const duration = isAnnual ? PLANS[plan].durationAnnual : PLANS[plan].durationMonthly;
       const expires = new Date();
       expires.setDate(expires.getDate() + duration);
