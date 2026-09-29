@@ -4387,7 +4387,7 @@ function showPage(name) {
 
   // ── URL history para navegación con botón atrás ──
   if (!window._zyraPopstateNav) {  // no pushear si venimos de popstate
-    const url = (name !== 'login' && name !== 'register' && name !== 'verify-login' && name !== 'verify-register') ? '/?p=' + name : '/';
+    const url = authPages.includes(name) ? '/' : '/?p=' + name;
     if (!window._zyraNavInit) {
       window._zyraNavInit = true;
       if (history.replaceState) history.replaceState({page: name}, '', url);
@@ -16776,9 +16776,15 @@ function _initApp() {
     updateNav();
     checkPinOnLoad();
     loadAndApplyTheme();
-    // Respetar deep link (?p=) o ir al dashboard
+    // Respetar deep link (?p=) o ir al dashboard -- usar la MISMA lista que
+    // showPage() (window.ZYRA_AUTH_PAGES), no una lista local incompleta.
+    // Antes esta lista local no incluía 'landing': si alguien quedaba en la
+    // página de aterrizaje (sin sesión) la URL guardaba "?p=landing", y al
+    // volver a abrir la app YA logueado, esta restauraba esa "landing"
+    // guardada en vez de ir al dashboard -- se veía logueado pero sin barra
+    // de navegación ni tabbar, porque esas SÍ ocultan correctamente 'landing'.
     const urlPage = _urlPs.get('p');
-    const authPages = ['login','register','verify-login','verify-register'];
+    const authPages = window.ZYRA_AUTH_PAGES || ['landing','login','register','verify-login','verify-register','forgot-password','reset-password','voice-call'];
     const startPage = (urlPage && !authPages.includes(urlPage)) ? urlPage : _homePage();
     showPage(startPage);
     setTimeout(() => checkOnboarding(), 1000);
