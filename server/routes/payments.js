@@ -20,6 +20,7 @@ const verifyLimiter = rateLimit({
 });
 
 r.post("/checkout", protect, checkoutLimiter, P.createCheckout);
+r.post("/wompi/webhook", P.wompiWebhook);
 r.get("/verify",    protect, verifyLimiter,   P.verifySession);
 r.post("/cancel",   protect, P.cancelPlan);
 r.post("/portal",   protect, P.billingPortal);

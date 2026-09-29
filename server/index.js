@@ -61,7 +61,7 @@ app.use(helmet({
       connectSrc:     ["'self'", "https://api.groq.com", "https://api.streamelements.com", "https://www.youtube.com", "https://www.youtube-nocookie.com", "https://i.ytimg.com", "https://api.spotify.com", "https://accounts.spotify.com"],
       objectSrc:      ["'none'"],
       baseUri:        ["'self'"],
-      formAction:     ["'self'"],
+      formAction:     ["'self'", "https://checkout.wompi.co"],
       frameAncestors: ["'none'"],
     },
   },

@@ -16963,6 +16963,24 @@ function _initApp() {
   } else if (cancelled === "1") {
     history.replaceState({}, "", "/");
     zyraToast("Pago cancelado. Puedes intentarlo de nuevo cuando quieras.", "info");
+  } else if (urlParams.get("wompi_redirect") === "1" && token) {
+    // Wompi no soporta consultar el estado de la transacción desde el cliente
+    // -- el que confirma de verdad es el webhook. Le damos un momento a que
+    // llegue y luego refrescamos el plan.
+    history.replaceState({}, "", "/?p=planes");
+    const planBefore = _zyraCurrentPlan;
+    zyraToast("Verificando tu pago…", "info", 3000);
+    setTimeout(async () => {
+      await loadPlanStatus();
+      if (_zyraCurrentPlan !== planBefore && _zyraCurrentPlan !== "free") {
+        const _planNames = { basic: "Básico", premium: "Premium" };
+        zyraToast(`¡Pago exitoso! Plan ${_planNames[_zyraCurrentPlan] || _zyraCurrentPlan} activado ✦`, "success", 5000);
+        for (let i = 0; i < 20; i++) setTimeout(() => launchConfetti(), i * 80);
+      } else {
+        zyraToast("Si tu pago fue aprobado, tu plan se activa en unos segundos más. Si no ves el cambio, escríbenos.", "info", 7000);
+      }
+      if (typeof loadPlanesPage === "function") loadPlanesPage();
+    }, 2500);
   }
 
   if(token){
@@ -20357,6 +20375,28 @@ async function processPayment() {
       await loadPlanStatus();
       if (typeof loadPlanesPage === 'function') loadPlanesPage();
       for (let i = 0; i < 20; i++) setTimeout(() => launchConfetti(), i * 80);
+    } else if (result.wompi) {
+      // Web Checkout de Wompi: formulario GET real hacia checkout.wompi.co
+      // (no es una redirección simple, Wompi espera estos campos como form data)
+      const form = document.createElement('form');
+      form.method = 'GET';
+      form.action = 'https://checkout.wompi.co/p/';
+      const fields = {
+        'public-key':           result.publicKey,
+        'currency':             result.currency,
+        'amount-in-cents':      result.amountInCents,
+        'reference':            result.reference,
+        'signature:integrity':  result.signature,
+        'redirect-url':         result.redirectUrl,
+        'customer-data:email':  result.customerEmail,
+      };
+      Object.entries(fields).forEach(([name, value]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden'; input.name = name; input.value = value;
+        form.appendChild(input);
+      });
+      document.body.appendChild(form);
+      form.submit();
     } else if (result.url) {
       if (typeof result.url === 'string' && result.url.startsWith('https://')) {
         window.location.href = result.url;

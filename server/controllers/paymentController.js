@@ -1,5 +1,17 @@
+const crypto  = require("crypto");
 const User    = require("../models/User");
 const Payment = require("../models/Payment");
+
+const WOMPI_PUBLIC_KEY = process.env.WOMPI_PUBLIC_KEY || "";
+if (WOMPI_PUBLIC_KEY) console.log("💳 Wompi conectado correctamente" + (WOMPI_PUBLIC_KEY.startsWith("pub_test_") ? " (sandbox)" : ""));
+
+// Firma de integridad del Web Checkout: SHA256(reference + amountInCents + currency + secreto)
+// https://docs.wompi.co/docs/colombia/widget-checkout-web/
+function wompiIntegritySignature(reference, amountInCents, currency) {
+  return crypto.createHash("sha256")
+    .update(`${reference}${amountInCents}${currency}${process.env.WOMPI_INTEGRITY_SECRET}`)
+    .digest("hex");
+}
 
 let stripe = null;
 try {
@@ -41,6 +53,27 @@ exports.createCheckout = async (req, res) => {
       return res.status(400).json({ message: "Plan inválido" });
     }
     const isAnnual = period === "annual";
+
+    if (WOMPI_PUBLIC_KEY) {
+      const p = PLANS[plan];
+      const amountInCents = isAnnual ? p.annual : p.monthly; // ya vienen en "centavos" (COP x100)
+      // Referencia codifica quién y qué plan es -- el webhook no tiene sesión,
+      // solo el payload de Wompi, así que esto es lo único que lo conecta de
+      // vuelta al usuario correcto.
+      const reference = `zyra_${req.user._id}_${plan}_${period}_${Date.now()}`;
+      const signature = wompiIntegritySignature(reference, amountInCents, "COP");
+      const appUrl = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
+      return res.json({
+        wompi: true,
+        publicKey: WOMPI_PUBLIC_KEY,
+        currency: "COP",
+        amountInCents,
+        reference,
+        signature,
+        redirectUrl: `${appUrl}/?p=planes&wompi_redirect=1`,
+        customerEmail: req.user.email,
+      });
+    }
 
     if (!stripe) {
       // Modo demo: actualizar plan directamente (para pruebas sin Stripe
@@ -259,6 +292,55 @@ exports.webhook = async (req, res) => {
   }
 
   res.status(200).json({ received: true });
+};
+
+/* ── Webhook de Wompi (sin auth -- se valida con checksum propio de Wompi) ──
+   https://docs.wompi.co/docs/colombia/eventos/
+   El checksum se calcula sobre los VALORES ya parseados del JSON (no bytes
+   crudos como Stripe), así que puede ir después del parser normal de express.json(). */
+exports.wompiWebhook = async (req, res) => {
+  try {
+    const { data, signature, timestamp } = req.body || {};
+    const tx = data?.transaction;
+    if (!tx || !signature?.checksum || !Array.isArray(signature?.properties)) {
+      return res.status(400).json({ message: "Payload inválido" });
+    }
+
+    const values = signature.properties.map(path =>
+      path.split(".").reduce((o, k) => (o == null ? o : o[k]), data)
+    );
+    const base = values.join("") + timestamp + process.env.WOMPI_EVENTS_SECRET;
+    const checksum = crypto.createHash("sha256").update(base).digest("hex");
+    if (checksum !== signature.checksum) {
+      console.error("Wompi webhook: checksum inválido");
+      return res.status(400).json({ message: "Firma inválida" });
+    }
+
+    if (tx.status === "APPROVED") {
+      // reference = zyra_<userId>_<plan>_<period>_<timestamp>
+      const parts = String(tx.reference || "").split("_");
+      if (parts[0] === "zyra" && parts.length >= 5 && PLANS[parts[2]]) {
+        const [, userId, plan, period] = parts;
+        const isAnnualWh = period === "annual";
+        const duration = isAnnualWh ? PLANS[plan].durationAnnual : PLANS[plan].durationMonthly;
+        const expires = new Date();
+        expires.setDate(expires.getDate() + duration);
+        await User.findByIdAndUpdate(userId, { plan, planExpiresAt: expires, planActivatedAt: new Date() }).catch(() => {});
+        await Payment.findOneAndUpdate(
+          { wompiTransactionId: tx.id },
+          { user: userId, plan, period: isAnnualWh ? "annual" : "monthly", amount: tx.amount_in_cents, currency: "cop", wompiTransactionId: tx.id },
+          { upsert: true, new: true }
+        ).catch(() => {});
+        console.log(`✅ [Wompi] Plan ${plan} activado para usuario ${userId}`);
+      }
+    }
+
+    res.status(200).json({ received: true });
+  } catch(e) {
+    console.error("wompiWebhook error:", e.message);
+    // Confirmar recepción igual -- un bug nuestro no debe hacer que Wompi reintente indefinidamente.
+    res.status(200).json({ received: true });
+  }
 };
 
 /* ── Historial de pagos ── */
