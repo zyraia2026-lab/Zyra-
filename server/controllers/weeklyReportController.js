@@ -120,7 +120,14 @@ REGLAS DE VOZ (críticas):
     reasoning_effort: "low",
   });
 
-  return r.choices[0]?.message?.content?.trim() || null;
+  let text = r.choices[0]?.message?.content?.trim() || null;
+  if (text) {
+    // El modelo a veces envuelve la respuesta en un bloque de código markdown
+    // (```html ... ```) aunque se le pide HTML crudo -- se quita por si acaso,
+    // si no queda "```html" como texto visible al inicio del reporte.
+    text = text.replace(/^```(?:html)?\s*\n?/i, "").replace(/\n?```\s*$/, "").trim();
+  }
+  return text;
 }
 
 /* ── Generar reporte ── */
