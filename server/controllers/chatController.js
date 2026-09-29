@@ -266,6 +266,7 @@ const wantsZyraFavorites = m => /(?:(?:tu|tus)\s*(?:canc[ií]ones?|m[uú]sica|fa
 const wantsBook   = m => /libro|leer|lectura|qu[eé] leo|recom[ií]enda.*libro/.test(m.toLowerCase());
 const wantsQuote  = m => /frase|cita|motivaci[oó]n|algo.*motivador|palabras.*famosas/.test(m.toLowerCase());
 const wantsMovie  = m => /pel[ií]cula|peliculas|ver algo|qu[eé] veo|recom[ií]enda.*pel[ií]|algo.*ver|netflix|prime|disney|serie|film|c[ií]ne/.test(m.toLowerCase());
+const wantsPlanInfo = m => /\bplan(es)?\b|premium|suscrip|cu[aá]nto (cuesta|vale|sale)|precio|cobran|pagar|pago|actualizar (mi |el )?plan|mejorar (mi |el )?plan|cargas?\b/i.test(m);
 
 // Detecta "quiero música de" sin artista — mensaje incompleto o ambiguo
 function isIncompleteMusicRequest(message) {
@@ -957,7 +958,7 @@ async function getReasoningContext(message) {
 /* ════════════════════════════════════════
    SYSTEM PROMPT
 ════════════════════════════════════════ */
-async function buildSystemPrompt(userId, userName, message = "") {
+async function buildSystemPrompt(userId, userName, message = "", userPlan = "free") {
   const [profile, goals, journals] = await Promise.all([
     Profile.findOne({ user: userId }).select("currentEmotion emotionHistory negativeStreakCount sessionsCount streakDays achievements onboardingReason bio lastActiveDate").lean().catch(() => null),
     Goal.find({ user: userId }).sort({ createdAt:-1 }).limit(10).select("title completed priority progress dueDate category").lean().catch(() => []),
@@ -1151,6 +1152,18 @@ async function buildSystemPrompt(userId, userName, message = "") {
     : await getMemoriesForPrompt(userId);
   if (persistentMemories) {
     memoryBlock += `\n\n════ LO QUE RECUERDAS DE ${firstName.toUpperCase()} ════\n${persistentMemories}\nCada recuerdo trae entre corchetes hace cuánto se guardó. Los [event] son momentos puntuales (un partido, una cita, un examen, un viaje) — si pasaron hace más de 1-2 semanas YA TERMINARON: no preguntes por ellos como si siguieran pendientes ni des a entender que son de ahora; si vienen al caso, menciónalos en pasado. Los [situation] (ruptura, trabajo nuevo, duelo) pueden seguir vigentes semanas pero también se resuelven, usa criterio según la fecha. Los [personal], [relationship], [preference] y [goal] normalmente son datos permanentes, esos sí los das por vigentes.`;
+  }
+
+  // ── Info de planes -- SOLO si la pregunta actual es sobre planes/precios/pagos.
+  // Sin esto, Zyra (que se piensa persona, no la app) no tiene ni idea de sus
+  // propios planes y termina diciendo que "no maneja la parte de pagos".
+  if (message && wantsPlanInfo(message)) {
+    const planLabel = { free: "Gratis", basic: "Básico", premium: "Premium" }[userPlan] || "Gratis";
+    memoryBlock += `\n\n════ PLANES DE ZYRA (${firstName} tiene el plan ${planLabel} ahora mismo) ════
+- Gratis ($0): 20 cargas/día, 2 llamadas de voz al mes (5 min c/u), test emocional 1x/día, música con vista previa de 30s, 5 ejercicios guiados/día, gráficos de los últimos 7 días.
+- Básico ($11.900 COP/mes o $119.000/año): 1.800 cargas/mes, 6 llamadas/mes (10 min c/u), test emocional 3x/día, 20 canciones completas por semana, 15 ejercicios guiados/día, contacto de emergencia, gráficos de 30 días.
+- Premium ($19.900 COP/mes o $199.000/año): 6.000 cargas/mes, 12 llamadas/mes (20 min c/u), test emocional ilimitado, música ilimitada, ejercicios ilimitados, exportar diario, histórico completo, sin anuncios.
+Si pregunta por precios, qué incluye su plan, o cómo actualizar: respóndele con estos datos reales, en tu tono normal. Para pagar le dices que vaya a la página de Planes (menú → Planes) y elija ahí. NUNCA digas que no manejas la parte de pagos ni mandes todo a soporte sin más — esto sí lo sabes.`;
   }
 
   // ── Hora, fecha y momento del día (zona horaria Colombia UTC-5) ──
@@ -1421,7 +1434,7 @@ exports.sendMessage = async (req, res) => {
       systemPrompt = systemOverride;
     } else {
       try {
-        const built = await buildSystemPrompt(req.user._id, req.user.name, message);
+        const built = await buildSystemPrompt(req.user._id, req.user.name, message, req.user.plan);
         systemPrompt = built.prompt;
       } catch(e) {
         console.error("buildSystemPrompt error:", e.message);
@@ -1819,7 +1832,7 @@ exports.streamMessage = async (req, res) => {
 
     let systemPrompt = `Eres Zyra — la mejor amiga de quien te habla. Hablas SOLO en español latinoamericano, natural y cálido. CERO palabras en inglés mezcladas (nada de "down", "cool", "random", "ok", "mood"). Respuestas cortas, 2-3 oraciones máximo. No eres IA, eres Zyra.`;
     try {
-      const built = await buildSystemPrompt(req.user._id, req.user.name, message);
+      const built = await buildSystemPrompt(req.user._id, req.user.name, message, req.user.plan);
       systemPrompt = built.prompt;
     } catch(e) { console.error("buildSystemPrompt/stream error:", e.message); }
 
