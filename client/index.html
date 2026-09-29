@@ -1536,12 +1536,12 @@ function closeMobileMoreSheet() {
 <section class="lp-features">
   <div class="lp-section-label">¿Qué puedes hacer?</div>
   <h2 class="lp-section-title">Todo lo que necesitas para tu bienestar</h2>
-  <p class="lp-section-sub">No es una app de meditación genérica. Zyra te conoce, te recuerda y está contigo.</p>
+  <p class="lp-section-sub">No es un chatbot con respuestas guionadas que se repiten. Zyra recuerda lo que le cuentas.</p>
   <div class="lp-feat-grid">
     <div class="lp-feat-card">
       <span class="lp-feat-icon">💬</span>
-      <div class="lp-feat-title">Chat con Zyra IA</div>
-      <div class="lp-feat-desc">Habla de lo que sea — trabajo, relaciones, ansiedad, días malos. Zyra escucha sin juzgar y responde como una amiga de verdad.</div>
+      <div class="lp-feat-title">Chat con memoria real</div>
+      <div class="lp-feat-desc">Habla de lo que sea — trabajo, relaciones, ansiedad, días malos. Zyra recuerda lo que le contaste la semana pasada, así que nunca partes de cero ni te suena a libreto.</div>
     </div>
     <div class="lp-feat-card">
       <span class="lp-feat-icon">📔</span>
@@ -3446,7 +3446,17 @@ async function b2bSubmitContact() {
     <div style="padding:20px 28px;border-top:1px solid rgba(255,255,255,.07);display:flex;gap:12px;flex-wrap:wrap;align-items:center">
       <button onclick="generateWeeklyReport(true)" class="btn-sm accent" id="btn-regenerate-report">↺ Regenerar</button>
       <button onclick="openWeeklyReportHistory()" class="btn-sm" style="color:var(--text3)">📂 Ver anteriores</button>
+      <button onclick="toggleShareReportPanel()" class="btn-sm" style="color:var(--text3)">🤝 Compartir</button>
       <button onclick="closeWeeklyReport()" class="btn-sm" style="color:var(--text3);margin-left:auto">Cerrar</button>
+    </div>
+    <div id="wr-share-panel" style="display:none;padding:18px 28px 22px;border-top:1px solid rgba(255,255,255,.07)">
+      <div style="font-size:12.5px;color:var(--text3);line-height:1.6;margin-bottom:14px">Envía este reporte por correo a quien tú quieras — un psicólogo, un familiar, alguien de confianza. No reemplaza una evaluación profesional, pero puede ser un buen punto de partida para una conversación real.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <input id="wr-share-name" type="text" placeholder="Nombre (opcional)" style="flex:1;min-width:140px;padding:10px 12px;background:var(--surface,#1e2235);border:1.5px solid var(--border,#2a2f45);border-radius:10px;color:var(--text,#e8eaf6);font-size:13px;outline:none;box-sizing:border-box"/>
+        <input id="wr-share-email" type="email" placeholder="correo@ejemplo.com" style="flex:1;min-width:180px;padding:10px 12px;background:var(--surface,#1e2235);border:1.5px solid var(--border,#2a2f45);border-radius:10px;color:var(--text,#e8eaf6);font-size:13px;outline:none;box-sizing:border-box"/>
+      </div>
+      <button onclick="shareWeeklyReport()" id="btn-share-report" class="btn-sm accent" style="width:100%;justify-content:center">Enviar reporte</button>
+      <div id="wr-share-sent" style="margin-top:12px;font-size:12px;color:var(--text3)"></div>
     </div>
     <div id="wr-history-panel" style="display:none;padding:0 28px 24px;border-top:1px solid rgba(255,255,255,.05)">
       <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;padding:16px 0 10px">Reportes anteriores</div>
@@ -5991,6 +6001,10 @@ async function generateWeeklyReport(force = false) {
   try {
     const d = await api(`/weekly-report/generate${force ? "?force=1" : ""}`, "POST");
     const r = d.report;
+    _currentWeeklyReportId = r._id;
+    _currentWeeklyReportShares = r.shares || [];
+    const sharePanel = document.getElementById("wr-share-panel");
+    if (sharePanel) sharePanel.style.display = "none";
     // Mark report as viewed for this week's notification
     localStorage.setItem("zyra_report_viewed_" + _thisWeekMonday(), "1");
     setTimeout(updateNotifBadge, 300);
@@ -6016,6 +6030,46 @@ async function generateWeeklyReport(force = false) {
     </div>`;
   }
   if(btn) { btn.disabled = false; btn.textContent = "↺ Regenerar"; }
+}
+
+let _currentWeeklyReportId = null;
+let _currentWeeklyReportShares = [];
+function toggleShareReportPanel() {
+  const panel = document.getElementById("wr-share-panel");
+  if (!panel) return;
+  const show = panel.style.display === "none";
+  panel.style.display = show ? "block" : "none";
+  if (show) renderShareStatus();
+}
+function renderShareStatus() {
+  const el = document.getElementById("wr-share-sent");
+  if (!el) return;
+  if (!_currentWeeklyReportShares.length) { el.textContent = ""; return; }
+  const names = _currentWeeklyReportShares.map(s => s.name || s.email).join(", ");
+  el.textContent = `Ya se lo enviaste a: ${names}`;
+}
+async function shareWeeklyReport() {
+  const emailInput = document.getElementById("wr-share-email");
+  const nameInput  = document.getElementById("wr-share-name");
+  const btn        = document.getElementById("btn-share-report");
+  const statusEl   = document.getElementById("wr-share-sent");
+  const email = emailInput?.value?.trim() || "";
+  const name  = nameInput?.value?.trim() || "";
+  if (!email || !email.includes("@")) { zyraToast("Escribe un correo válido", "error"); return; }
+  if (!_currentWeeklyReportId) { zyraToast("Genera el reporte primero", "error"); return; }
+  if (btn) { btn.disabled = true; btn.textContent = "Enviando..."; }
+  try {
+    const d = await api(`/weekly-report/${_currentWeeklyReportId}/share`, "POST", { email, name });
+    _currentWeeklyReportShares = d.shares || _currentWeeklyReportShares;
+    if (emailInput) emailInput.value = "";
+    if (nameInput) nameInput.value = "";
+    zyraToast(`Reporte enviado a ${name || email} ✦`, "success");
+    renderShareStatus();
+  } catch(e) {
+    if (statusEl) statusEl.textContent = "";
+    zyraToast(e.message || "No se pudo enviar el reporte", "error");
+  }
+  if (btn) { btn.disabled = false; btn.textContent = "Enviar reporte"; }
 }
 
 async function openWeeklyReportHistory() {

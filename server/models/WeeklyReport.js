@@ -8,6 +8,11 @@ const S = new mongoose.Schema({
   mainEmotion: { type: String, default: "" },
   insights:    [String],
   emotionData: { type: mongoose.Schema.Types.Mixed, default: {} },
+  shares: [{
+    email:  { type: String, required: true },
+    name:   { type: String, default: "" },
+    sentAt: { type: Date, default: Date.now },
+  }],
   createdAt:   { type: Date, default: Date.now },
 });
 

@@ -189,6 +189,53 @@ const sendWeeklyReport = async (toEmail, userName, html, data) => {
   });
 };
 
+// Reporte semanal compartido a un tercero (psicólogo, familiar, consejero) --
+// arma las estadísticas a partir de lo que el reporte ya guardado SÍ tiene
+// (emotionData/mainEmotion/insights), no de los datos crudos de cuando se
+// generó por primera vez (esos no se persisten). El encabezado deja claro
+// que es un reporte compartido, no uno dirigido al destinatario.
+const sendSharedWeeklyReport = async (toEmail, recipientName, userName, report) => {
+  const EMOTION_EMOJI = { feliz:"😊", tranquilo:"😌", ansioso:"😰", triste:"😢", enojado:"😤", confundido:"🤔", esperanzado:"🌟", agotado:"😮‍💨", motivado:"💪", nostalgico:"🌅" };
+  const POSITIVE = new Set(["feliz","tranquilo","esperanzado","motivado"]);
+  const freq = report.emotionData || {};
+  const total = Object.values(freq).reduce((s, n) => s + n, 0);
+  const positive = Object.entries(freq).reduce((s, [e, n]) => s + (POSITIVE.has(e) ? n : 0), 0);
+  const positivity = total > 0 ? Math.round((positive / total) * 100) : 0;
+  const topEmoji = EMOTION_EMOJI[report.mainEmotion] || "💙";
+  const weekStart = new Date(report.weekOf);
+  const weekEnd = new Date(weekStart.getTime() + 7 * 86400000);
+
+  await sendBrevoEmail({
+    to: toEmail,
+    subject: `${esc(userName)} compartió su reporte de bienestar Zyra contigo ${topEmoji}`,
+    html: wrap(`
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="font-size:40px;margin-bottom:8px;">${topEmoji}</div>
+        <h2 style="color:#f0f0ff;margin:0;font-size:20px;">Hola${recipientName ? " " + esc(recipientName) : ""}, ${esc(userName)} quiso compartir esto contigo</h2>
+        <p style="color:#7a7a9a;font-size:13px;margin:8px 0 0;">
+          Semana del ${weekStart.toLocaleDateString("es-CO")} al ${weekEnd.toLocaleDateString("es-CO")}
+        </p>
+      </div>
+      <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+        <div style="flex:1;min-width:110px;background:rgba(99,102,241,.1);border-radius:12px;padding:14px;text-align:center">
+          <div style="font-size:24px;font-weight:800;color:#818cf8">${positivity}%</div>
+          <div style="font-size:11px;color:#7a7a9a;margin-top:4px">Positividad</div>
+        </div>
+        <div style="flex:1;min-width:110px;background:rgba(16,185,129,.1);border-radius:12px;padding:14px;text-align:center">
+          <div style="font-size:24px;font-weight:800;color:#34d399">${total}</div>
+          <div style="font-size:11px;color:#7a7a9a;margin-top:4px">Registros</div>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:20px;margin-bottom:20px;color:#c8c8e8;font-size:14px;line-height:1.8">
+        ${report.html}
+      </div>
+      <p style="color:#7a7a9a;font-size:12px;text-align:center;margin-top:20px;line-height:1.6">
+        Este análisis lo generó la IA de Zyra a partir de lo que ${esc(userName)} registró en la app.<br/>No reemplaza una evaluación profesional.
+      </p>
+    `),
+  });
+};
+
 const sendCrisisAlert = async (toEmail, contactName, userName, message) => {
   try {
     await sendBrevoEmail({
@@ -246,4 +293,4 @@ const sendNudgeEmail = async (toEmail, userName = "") => {
   }
 };
 
-module.exports = { sendVerificationCode, sendWelcomeEmail, sendPasswordResetCode, sendWeeklyReport, sendCrisisAlert, sendNudgeEmail };
+module.exports = { sendVerificationCode, sendWelcomeEmail, sendPasswordResetCode, sendWeeklyReport, sendSharedWeeklyReport, sendCrisisAlert, sendNudgeEmail };

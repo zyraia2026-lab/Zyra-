@@ -3,7 +3,9 @@ const Profile      = require("../models/Profile");
 const Goal         = require("../models/Goal");
 const Journal      = require("../models/Journal");
 const Conversation = require("../models/Conversation");
-const { sendWeeklyReport } = require("../utils/emailService");
+const { sendWeeklyReport, sendSharedWeeklyReport } = require("../utils/emailService");
+
+const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,253}\.[^\s@]{2,}$/;
 
 let groq = null;
 try {
@@ -194,6 +196,30 @@ exports.getOne = async (req, res) => {
     if (!r) return res.status(404).json({ message: "Reporte no encontrado" });
     res.json({ success: true, report: r });
   } catch(e) { res.status(500).json({ message: e.message }); }
+};
+
+/* ── Compartir un reporte con alguien más (psicólogo, familiar, consejero) ── */
+exports.shareReport = async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const name  = String(req.body.name || "").trim().slice(0, 100);
+    if (!EMAIL_RE.test(email)) {
+      return res.status(400).json({ message: "Correo inválido" });
+    }
+
+    const report = await WeeklyReport.findOne({ _id: req.params.id, user: req.user._id });
+    if (!report) return res.status(404).json({ message: "Reporte no encontrado" });
+
+    await sendSharedWeeklyReport(email, name, req.user.name, report);
+
+    report.shares.push({ email, name, sentAt: new Date() });
+    await report.save();
+
+    res.json({ success: true, shares: report.shares });
+  } catch(e) {
+    console.error("shareReport:", e.message);
+    res.status(500).json({ message: "No se pudo enviar el reporte. Intenta de nuevo." });
+  }
 };
 
 /* ── Cron: generar reportes automáticos cada lunes ── */
