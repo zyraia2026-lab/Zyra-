@@ -25,9 +25,9 @@ services:
 
       # ── URLs (cambiar por tu dominio Render) ──────────
       - key: APP_URL
-        sync: false                # https://zyra-app.onrender.com
+        sync: false                # https://zyra-app-8qva.onrender.com
       - key: ALLOWED_ORIGINS
-        sync: false                # https://zyra-app.onrender.com
+        sync: false                # https://zyra-app-8qva.onrender.com
 
       # ── IA (Groq) ──────────────────────────────────────
       - key: GROQ_API_KEY

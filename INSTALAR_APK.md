@@ -56,7 +56,7 @@ npx cap sync android
    - **Build Command**: `npm install`
    - **Start Command**: `node server/index.js`
    - **Environment**: agrega las variables de tu `.env`
-5. Tu URL pública será `https://zyra-app.onrender.com`
+5. Tu URL pública será `https://zyra-app-8qva.onrender.com` (o el subdominio que Render te asigne si "zyra-app" ya está tomado)
 
 ---
 

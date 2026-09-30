@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /api/
 
-Sitemap: https://zyra-app.onrender.com/sitemap.xml
+Sitemap: https://zyra-app-8qva.onrender.com/sitemap.xml

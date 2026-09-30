@@ -4,7 +4,7 @@
   "webDir": "client",
   "bundledWebRuntime": false,
   "server": {
-    "url": "https://zyra-app.onrender.com",
+    "url": "https://zyra-app-8qva.onrender.com",
     "androidScheme": "https",
     "cleartext": false
   },
