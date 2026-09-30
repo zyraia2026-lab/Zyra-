@@ -4418,6 +4418,7 @@ function showPage(name) {
   window._zyraCurrentPage = name;
   document.body.dataset.page = name;
   if (typeof closeMobileMoreSheet === "function") closeMobileMoreSheet();
+  if (typeof stopCameraHR === "function" && document.getElementById('camera-hr-overlay')) stopCameraHR();
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
   const pg = document.getElementById("page-" + name);
   if(pg) pg.classList.add("active");
@@ -7961,6 +7962,10 @@ async function startCameraHR() {
     const track = _cameraHRStream.getVideoTracks()[0];
     try { await track.applyConstraints({ advanced: [{ torch: true }] }); } catch(_) {}
 
+    // Salvavidas: si el usuario cambia de app o apaga la pantalla con esto
+    // abierto, apagar la camara igual (si no, el flash se queda prendido).
+    document.addEventListener('visibilitychange', _cameraHRVisHandler);
+
   } catch(e) {
     stopCameraHR();
     zyraToast('No se pudo acceder a la cámara. Permite el permiso en el navegador.', 'error', 5000);
@@ -8086,10 +8091,20 @@ function _rppgCalculateBPM(samples) {
   return Math.round(60000 / avgMs);
 }
 
+function _cameraHRVisHandler() {
+  if (document.hidden) stopCameraHR();
+}
+
 function stopCameraHR() {
   if (_cameraHRInterval) { clearInterval(_cameraHRInterval); _cameraHRInterval = null; }
   if (_cameraHRTimer)    { clearTimeout(_cameraHRTimer);     _cameraHRTimer    = null; }
+  document.removeEventListener('visibilitychange', _cameraHRVisHandler);
   if (_cameraHRStream) {
+    // Apagar el flash explicitamente antes de soltar el track — en algunos
+    // Android (ej. MIUI/HyperOS) solo detener el track no siempre apaga
+    // la linterna de inmediato.
+    const track = _cameraHRStream.getVideoTracks()[0];
+    if (track) { try { track.applyConstraints({ advanced: [{ torch: false }] }); } catch(_) {} }
     _cameraHRStream.getTracks().forEach(t => { try { t.stop(); } catch(_) {} });
     _cameraHRStream = null;
   }
