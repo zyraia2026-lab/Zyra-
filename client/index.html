@@ -7540,6 +7540,11 @@ async function _watchDiscoverServices(server) {
     await new Promise(r => setTimeout(r, 120));
     await _watchWrite(_watchRxChar, [0xAB,0x00,0x04,0xFF,0x84,0x01,0x00]);
     if (_watchDebug) console.log('[Watch] Handshake Da Fit enviado');
+    await new Promise(r => setTimeout(r, 120));
+    // Protocolo "FreeFit"/Jieli (com.czw.*): sin checksum, comando crudo [0x60, tipo, on/off].
+    // tipo: 0=pulso, 1=presión, 2=oxígeno. La respuesta 0xE1 trae pulso+presión+oxígeno juntos.
+    await _watchWrite(_watchRxChar, [0x60, 0x00, 0x01]);
+    if (_watchDebug) console.log('[Watch] Comando FreeFit (medicion tiempo real) enviado');
   } else {
     if (_watchDebug) console.log('[Watch] ⚠️ Sin write char — el UUID del reloj no está en nuestra lista');
   }
@@ -7566,6 +7571,15 @@ function _onWatchDataAuto(event, svcUuid, charUuid) {
   if (text && /^[A-Za-z]{2,}[:=]/.test(text)) { _onWatchData(event); return; }
 
   if (bytes.length < 1) return;
+
+  // ── FreeFit/Jieli (com.czw.*): 0xE1 = pulso+presión+oxígeno en tiempo real ──
+  if (bytes[0] === 0xE1 && bytes.length >= 8) {
+    if (bytes[1] >= 30 && bytes[1] <= 220) _handleHR(bytes[1]);
+    if (bytes[2] > 0 && bytes[3] > 0) _handleBP(bytes[2], bytes[3]);
+    if (bytes[4] > 0 && bytes[4] <= 100) _handleSpO2(bytes[4]);
+    return;
+  }
+  if (bytes[0] === 0xE0) return; // ack de "cambio de tipo de medicion" — ignorar
 
   // ── Da Fit / Y13: magic 0xAB ──
   if (bytes[0] === 0xAB && bytes.length >= 4) {
@@ -7732,6 +7746,20 @@ function _handleBattery(pct) {
   syncHealthToServer({ watchBattery: pct, watchName: localStorage.getItem('zyra_watch_name') || '' });
   _updateWatchUI();
   if (pct <= 15) zyraToast(`⌚ Batería del reloj al ${pct}% — cárgalo pronto`, 'info');
+}
+
+function _handleBP(sys, dia) {
+  if (sys < 40 || sys > 260 || dia < 20 || dia > 200) return;
+  const data = { sys, dia, ts: Date.now() };
+  localStorage.setItem('zyra_watch_bp', JSON.stringify(data));
+  _updateWatchUI();
+}
+
+function _handleSpO2(pct) {
+  if (pct < 50 || pct > 100) return;
+  const data = { pct, ts: Date.now() };
+  localStorage.setItem('zyra_watch_spo2', JSON.stringify(data));
+  _updateWatchUI();
 }
 
 function _handleSleep(raw) {
@@ -8078,6 +8106,9 @@ function renderWatchCard() {
     ? `<span style="color:var(--text3)">Hace ${hrAge > 0 ? hrAge + 'min' : 'ahora'}</span>`
     : '<span style="color:var(--text3)">Sin medición</span>';
 
+  const bpData   = (() => { try { const d = JSON.parse(localStorage.getItem('zyra_watch_bp') || 'null'); if (!d) return null; return (Date.now() - d.ts) > 60*60000 ? null : d; } catch(e) { return null; } })();
+  const spo2Data = (() => { try { const d = JSON.parse(localStorage.getItem('zyra_watch_spo2') || 'null'); if (!d) return null; return (Date.now() - d.ts) > 60*60000 ? null : d; } catch(e) { return null; } })();
+
   // ── Panel de sensores de este dispositivo (siempre visible arriba) ──
   const _isPhone = _isPhoneDevice();
   const sensorPanel = `
@@ -8175,6 +8206,17 @@ function renderWatchCard() {
           ${sparkline}
           <div style="font-size:10px;color:var(--text3);min-width:28px;text-align:right">${maxBPM}</div>
         </div>
+      </div>` : ''}
+      ${(bpData || spo2Data) ? `
+      <div style="margin-top:10px;display:flex;gap:8px">
+        ${bpData ? `<div style="flex:1;background:rgba(99,102,241,.05);border:1px solid rgba(99,102,241,.15);border-radius:12px;padding:8px;text-align:center">
+          <div style="font-size:9.5px;color:var(--text3);font-weight:600">🩸 PRESIÓN</div>
+          <div style="font-size:14px;font-weight:800;color:var(--text)">${bpData.sys}/${bpData.dia}</div>
+        </div>` : ''}
+        ${spo2Data ? `<div style="flex:1;background:rgba(14,165,233,.05);border:1px solid rgba(14,165,233,.15);border-radius:12px;padding:8px;text-align:center">
+          <div style="font-size:9.5px;color:var(--text3);font-weight:600">🫁 OXÍGENO</div>
+          <div style="font-size:14px;font-weight:800;color:var(--text)">${spo2Data.pct}%</div>
+        </div>` : ''}
       </div>` : ''}
       <div style="margin-top:10px;text-align:center;display:flex;gap:8px;justify-content:center">
         <button onclick="localStorage.removeItem('zyra_watch_paired');localStorage.removeItem('zyra_watch_name');_watchReset();renderWatchCard()" style="background:none;border:none;color:var(--text3);font-size:10px;cursor:pointer;opacity:.5">✕ Olvidar reloj</button>
