@@ -7867,6 +7867,16 @@ function _updateWatchUI() {
   if (bEl && _watchBattery !== null) bEl.textContent = _watchBattery + '%';
 }
 
+// Si hay un reloj conectado, mide desde ahí; si no, cae a la cámara del celular.
+async function measurePulse() {
+  if (_watchConnected && _watchRxChar) {
+    zyraToast('💓 Midiendo desde tu reloj… espera unos segundos', 'info', 4000);
+    await _watchWrite(_watchRxChar, [0x60, 0x00, 0x01]);
+    return;
+  }
+  startCameraHR();
+}
+
 // ══════════════════════════════════════════
 //  CÁMARA HR — Fotopletismografía (rPPG)
 // ══════════════════════════════════════════
@@ -8139,7 +8149,7 @@ function renderWatchCard() {
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <button onclick="startCameraHR()" style="background:linear-gradient(135deg,#ec4899,#f43f5e);border:none;color:#fff;border-radius:12px;padding:12px 8px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(236,72,153,.3)">💓 Medir pulso</button>
+        <button onclick="measurePulse()" style="background:linear-gradient(135deg,#ec4899,#f43f5e);border:none;color:#fff;border-radius:12px;padding:12px 8px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(236,72,153,.3)">💓 Medir pulso</button>
         ${!_isPhone
           ? `<div style="display:flex;align-items:center;justify-content:center;text-align:center;background:rgba(255,255,255,.05);border:1.5px dashed rgba(255,255,255,.15);color:var(--text3);border-radius:12px;padding:8px;font-size:10.5px;line-height:1.3">📱 Actívalos desde tu celular</div>`
           : _stepActive
