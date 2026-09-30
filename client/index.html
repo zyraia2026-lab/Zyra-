@@ -7423,9 +7423,20 @@ async function _watchGattConnect() {
 
   // Keep-alive: escribe HR command cada 5s para que el reloj sepa que seguimos aquí
   if (_watchKeepAlive) clearInterval(_watchKeepAlive);
+  let _watchKeepAliveTicks = 0;
   _watchKeepAlive = setInterval(async () => {
     if (!server.connected) { clearInterval(_watchKeepAlive); _watchKeepAlive = null; return; }
-    if (_watchRxChar) await _watchWrite(_watchRxChar, [0xAB,0x00,0x04,0xFF,0x84,0x01,0x00]);
+    if (!_watchRxChar) return;
+    await _watchWrite(_watchRxChar, [0xAB,0x00,0x04,0xFF,0x84,0x01,0x00]);
+    // Cada ~20s reactivar medicion en tiempo real por si el reloj la apago sola
+    // (algunos relojes la cortan solos para ahorrar bateria) — asi una medicion
+    // que el usuario haga directo en el reloj no se pierde por estar "dormida".
+    _watchKeepAliveTicks++;
+    if (_watchKeepAliveTicks % 4 === 0) {
+      await _watchWrite(_watchRxChar, [0x60, 0x00, 0x01]);
+      await new Promise(r => setTimeout(r, 100));
+      await _watchWrite(_watchRxChar, [0x31, 0x01]);
+    }
   }, 5000);
 
   // Discovery: suscribir notificaciones y enviar handshake (en background)
@@ -7849,23 +7860,29 @@ function stopHealthPolling() {
 }
 
 /* ── ENVIAR AL RELOJ ──
-   Protocolo real FreeFit/Jieli (com.czw.*): MSG_PUSH=0x73, en paquetes
-   de [0x73, indice, tipo(8=generico), ...hasta 17 bytes utf-8], uno
-   cada 100ms — el mismo formato que usa la app oficial para mandar
-   notificaciones de WhatsApp/SMS/etc al reloj. */
+   El reloj se identifica a si mismo como "modo ZK" (FUNCTION_LIST
+   devuelve deviceMode=7), asi que usa la variante ZK del protocolo
+   FreeFit/Jieli (com.czw.*): header 0x23 (no 0x73), en paquetes de
+   [0x23, indice, tipo(8=generico), ...hasta 17 bytes utf-8], y el
+   ULTIMO paquete siempre lleva un byte extra 0xFF al final que le
+   dice al reloj "aqui termina el mensaje". */
 async function _watchSend(text) {
   if (!_watchConnected || !_watchRxChar) return false;
   try {
     const bytes = new TextEncoder().encode(String(text).slice(0, 200));
     const CHUNK = 17;
-    const n = Math.max(1, Math.ceil(bytes.length / CHUNK));
-    for (let i = 0; i < n; i++) {
-      const slice = bytes.slice(i * CHUNK, i * CHUNK + CHUNK);
-      const packet = new Uint8Array(3 + slice.length);
-      packet[0] = 0x73; packet[1] = i; packet[2] = 8;
+    const fullChunks = Math.floor(bytes.length / CHUNK);
+    const rem = bytes.length % CHUNK;
+    const totalPackets = fullChunks + 1; // el ultimo siempre lleva el resto (0-16 bytes) + terminador
+    for (let i = 0; i < totalPackets; i++) {
+      const isLast = i === totalPackets - 1;
+      const slice = isLast ? bytes.slice(i * CHUNK, i * CHUNK + rem) : bytes.slice(i * CHUNK, i * CHUNK + CHUNK);
+      const packet = new Uint8Array(3 + slice.length + (isLast ? 1 : 0));
+      packet[0] = 0x23; packet[1] = i; packet[2] = 8;
       packet.set(slice, 3);
+      if (isLast) packet[3 + slice.length] = 0xFF;
       await _watchWrite(_watchRxChar, packet);
-      if (i < n - 1) await new Promise(r => setTimeout(r, 100));
+      if (!isLast) await new Promise(r => setTimeout(r, 100));
     }
     return true;
   } catch(e) { return false; }
