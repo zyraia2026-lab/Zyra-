@@ -7863,9 +7863,11 @@ function stopHealthPolling() {
    El reloj se identifica a si mismo como "modo ZK" (FUNCTION_LIST
    devuelve deviceMode=7), asi que usa la variante ZK del protocolo
    FreeFit/Jieli (com.czw.*): header 0x23 (no 0x73), en paquetes de
-   [0x23, indice, tipo(8=generico), ...hasta 17 bytes utf-8], y el
-   ULTIMO paquete siempre lleva un byte extra 0xFF al final que le
-   dice al reloj "aqui termina el mensaje". */
+   [0x23, indice, tipo, ...hasta 17 bytes utf-8], y el ULTIMO paquete
+   siempre lleva un byte extra 0xFF al final que le dice al reloj
+   "aqui termina el mensaje". Probado en el reloj real: el tipo debe
+   ser una categoria reconocida (1 = SMS) — el tipo "generico" (8) se
+   escribe sin error pero el reloj lo descarta y nunca lo muestra. */
 async function _watchSend(text) {
   if (!_watchConnected || !_watchRxChar) return false;
   try {
@@ -7878,7 +7880,7 @@ async function _watchSend(text) {
       const isLast = i === totalPackets - 1;
       const slice = isLast ? bytes.slice(i * CHUNK, i * CHUNK + rem) : bytes.slice(i * CHUNK, i * CHUNK + CHUNK);
       const packet = new Uint8Array(3 + slice.length + (isLast ? 1 : 0));
-      packet[0] = 0x23; packet[1] = i; packet[2] = 8;
+      packet[0] = 0x23; packet[1] = i; packet[2] = 1; // tipo 1 = SMS (categoria reconocida)
       packet.set(slice, 3);
       if (isLast) packet[3 + slice.length] = 0xFF;
       await _watchWrite(_watchRxChar, packet);
