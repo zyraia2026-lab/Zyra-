@@ -7422,21 +7422,13 @@ async function _watchGattConnect() {
   renderWatchWidget();
 
   // Keep-alive: escribe HR command cada 5s para que el reloj sepa que seguimos aquí
+  // (solo mantiene el enlace vivo — NO vuelve a pedir una medicion nueva, eso
+  // forzaba al reloj a "medir pulso" en pantalla cada rato sin que el usuario
+  // lo pidiera).
   if (_watchKeepAlive) clearInterval(_watchKeepAlive);
-  let _watchKeepAliveTicks = 0;
   _watchKeepAlive = setInterval(async () => {
     if (!server.connected) { clearInterval(_watchKeepAlive); _watchKeepAlive = null; return; }
-    if (!_watchRxChar) return;
-    await _watchWrite(_watchRxChar, [0xAB,0x00,0x04,0xFF,0x84,0x01,0x00]);
-    // Cada ~20s reactivar medicion en tiempo real por si el reloj la apago sola
-    // (algunos relojes la cortan solos para ahorrar bateria) — asi una medicion
-    // que el usuario haga directo en el reloj no se pierde por estar "dormida".
-    _watchKeepAliveTicks++;
-    if (_watchKeepAliveTicks % 4 === 0) {
-      await _watchWrite(_watchRxChar, [0x60, 0x00, 0x01]);
-      await new Promise(r => setTimeout(r, 100));
-      await _watchWrite(_watchRxChar, [0x31, 0x01]);
-    }
+    if (_watchRxChar) await _watchWrite(_watchRxChar, [0xAB,0x00,0x04,0xFF,0x84,0x01,0x00]);
   }, 5000);
 
   // Discovery: suscribir notificaciones y enviar handshake (en background)
@@ -7589,7 +7581,7 @@ function _onWatchDataAuto(event, svcUuid, charUuid) {
 
   // ── FreeFit/Jieli (com.czw.*): 0xE1 = pulso+presión+oxígeno en tiempo real ──
   if (bytes[0] === 0xE1 && bytes.length >= 8) {
-    if ((localStorage.getItem('zyra_pulse_source') || 'phone') === 'watch' && bytes[1] >= 30 && bytes[1] <= 220) _handleHR(bytes[1]);
+    if (bytes[1] >= 30 && bytes[1] <= 220) _handleHR(bytes[1]);
     if (bytes[2] > 0 && bytes[3] > 0) _handleBP(bytes[2], bytes[3]);
     if (bytes[4] > 0 && bytes[4] <= 100) _handleSpO2(bytes[4]);
     return;
@@ -7598,10 +7590,8 @@ function _onWatchDataAuto(event, svcUuid, charUuid) {
 
   // ── FreeFit/Jieli: 0xB2/0xB3 = pasos en tiempo real (steps, calorias, distancia) ──
   if ((bytes[0] === 0xB2 || bytes[0] === 0xB3) && bytes.length >= 12 && bytes[1] === 1) {
-    if ((localStorage.getItem('zyra_steps_source') || 'phone') === 'watch') {
-      const steps = (bytes[2]<<24 | bytes[3]<<16 | bytes[4]<<8 | bytes[5]) >>> 0;
-      _handleSteps(steps);
-    }
+    const steps = (bytes[2]<<24 | bytes[3]<<16 | bytes[4]<<8 | bytes[5]) >>> 0;
+    _handleSteps(steps);
     return;
   }
   if (bytes[0] === 0xB1) return; // ack de "activar pasos tiempo real" — ignorar
@@ -7923,19 +7913,15 @@ function _updateWatchUI() {
   if (bEl && _watchBattery !== null) bEl.textContent = _watchBattery + '%';
 }
 
-// Respeta la fuente que el usuario eligio (reloj o camara del celular)
-async function measurePulse() {
-  const src = localStorage.getItem('zyra_pulse_source') || 'phone';
-  if (src === 'watch') {
-    if (_watchConnected && _watchRxChar) {
-      zyraToast('💓 Midiendo desde tu reloj… espera unos segundos', 'info', 4000);
-      await _watchWrite(_watchRxChar, [0x60, 0x00, 0x01]);
-    } else {
-      zyraToast('⌚ Tu reloj no está conectado — reconéctalo o cambia la fuente a celular', 'info', 5000);
-    }
+// Pide una medicion nueva directo al reloj conectado (boton dedicado en la
+// tarjeta del reloj — separado del boton de camara de "Este celular").
+async function measureWithWatch() {
+  if (!_watchConnected || !_watchRxChar) {
+    zyraToast('⌚ Tu reloj no está conectado', 'info', 4000);
     return;
   }
-  startCameraHR();
+  zyraToast('💓 Midiendo desde tu reloj… espera unos segundos', 'info', 4000);
+  await _watchWrite(_watchRxChar, [0x60, 0x00, 0x01]);
 }
 
 // ══════════════════════════════════════════
@@ -8141,19 +8127,6 @@ function stopCameraHR() {
   if (overlay) overlay.remove();
 }
 
-// Elegir si el pulso/pasos se leen del celular o del reloj conectado
-function setSensorSource(group, source) {
-  const key = group === 'pulse' ? 'zyra_pulse_source' : 'zyra_steps_source';
-  const prev = localStorage.getItem(key) || 'phone';
-  if (prev === source) return;
-  localStorage.setItem(key, source);
-  if (group === 'steps') {
-    if (source === 'phone' && _isPhoneDevice() && !_stepActive) startPhoneSteps();
-    if (source === 'watch' && _stepActive) stopPhoneSteps();
-  }
-  renderWatchCard();
-}
-
 /* ── RENDERIZAR TARJETA PERFIL ── */
 function renderWatchCard() {
   const card = document.getElementById('prof-watch-card');
@@ -8207,18 +8180,8 @@ function renderWatchCard() {
   const bpData   = (() => { try { const d = JSON.parse(localStorage.getItem('zyra_watch_bp') || 'null'); if (!d) return null; return (Date.now() - d.ts) > 60*60000 ? null : d; } catch(e) { return null; } })();
   const spo2Data = (() => { try { const d = JSON.parse(localStorage.getItem('zyra_watch_spo2') || 'null'); if (!d) return null; return (Date.now() - d.ts) > 60*60000 ? null : d; } catch(e) { return null; } })();
 
-  // ── Panel de sensores de este dispositivo (siempre visible arriba) ──
+  // ── Panel de sensores de este dispositivo (siempre visible arriba) — SOLO celular/computador ──
   const _isPhone = _isPhoneDevice();
-  const pulseSrc = localStorage.getItem('zyra_pulse_source') || 'phone';
-  const stepsSrc = localStorage.getItem('zyra_steps_source') || 'phone';
-  const sourceToggle = (label, group, current) => `
-    <div style="display:flex;align-items:center;gap:6px">
-      <span style="font-size:9.5px;color:var(--text3);font-weight:700">${label}</span>
-      <div style="display:flex;background:rgba(255,255,255,.06);border-radius:99px;padding:2px;gap:2px">
-        <button onclick="setSensorSource('${group}','phone')" style="border:none;border-radius:99px;padding:3px 9px;font-size:10px;font-weight:700;cursor:pointer;background:${current==='phone'?'linear-gradient(135deg,#6366f1,#4f46e5)':'transparent'};color:${current==='phone'?'#fff':'var(--text3)'}">📱</button>
-        <button onclick="setSensorSource('${group}','watch')" style="border:none;border-radius:99px;padding:3px 9px;font-size:10px;font-weight:700;cursor:pointer;background:${current==='watch'?'linear-gradient(135deg,#6366f1,#4f46e5)':'transparent'};color:${current==='watch'?'#fff':'var(--text3)'}">⌚</button>
-      </div>
-    </div>`;
   const sensorPanel = `
     <div style="background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(236,72,153,.07));border:1.5px solid rgba(16,185,129,.35);border-radius:20px;padding:18px 20px;margin-bottom:14px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
@@ -8232,10 +8195,6 @@ function renderWatchCard() {
           ? 'Usa la cámara para medir el pulso y el acelerómetro para contar tus pasos'
           : 'Mide tu pulso con la cámara de este computador. Los pasos se cuentan desde tu celular (con la misma cuenta) y aparecen aquí solos.'}
       </div>
-      ${paired ? `<div style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:14px;padding:10px 12px;background:rgba(255,255,255,.03);border-radius:12px">
-        ${sourceToggle('Pulso', 'pulse', pulseSrc)}
-        ${sourceToggle('Pasos', 'steps', stepsSrc)}
-      </div>` : ''}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
         <div style="background:rgba(236,72,153,.08);border:1px solid rgba(236,72,153,.2);border-radius:14px;padding:12px;text-align:center">
           <div style="font-size:10px;color:#ec4899;font-weight:700;margin-bottom:4px">💓 PULSO</div>
@@ -8251,14 +8210,12 @@ function renderWatchCard() {
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <button onclick="measurePulse()" style="background:linear-gradient(135deg,#ec4899,#f43f5e);border:none;color:#fff;border-radius:12px;padding:12px 8px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(236,72,153,.3)">${pulseSrc==='watch' ? '💓 Medir con reloj' : '💓 Medir pulso'}</button>
-        ${stepsSrc === 'watch'
-          ? `<div style="display:flex;align-items:center;justify-content:center;text-align:center;background:rgba(255,255,255,.05);border:1.5px dashed rgba(255,255,255,.15);color:var(--text3);border-radius:12px;padding:8px;font-size:10.5px;line-height:1.3">⌚ Pasos por reloj</div>`
-          : !_isPhone
-            ? `<div style="display:flex;align-items:center;justify-content:center;text-align:center;background:rgba(255,255,255,.05);border:1.5px dashed rgba(255,255,255,.15);color:var(--text3);border-radius:12px;padding:8px;font-size:10.5px;line-height:1.3">📱 Actívalos desde tu celular</div>`
-            : _stepActive
-              ? `<button onclick="stopPhoneSteps()" style="background:rgba(16,185,129,.12);border:1.5px solid rgba(16,185,129,.3);color:#10b981;border-radius:12px;padding:12px 8px;font-size:12px;font-weight:700;cursor:pointer">⏹ Pausar pasos</button>`
-              : `<button onclick="startPhoneSteps()" style="background:linear-gradient(135deg,#6366f1,#4f46e5);border:none;color:#fff;border-radius:12px;padding:12px 8px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(99,102,241,.3)">👟 Activar pasos</button>`}
+        <button onclick="startCameraHR()" style="background:linear-gradient(135deg,#ec4899,#f43f5e);border:none;color:#fff;border-radius:12px;padding:12px 8px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(236,72,153,.3)">💓 Medir con cámara</button>
+        ${!_isPhone
+          ? `<div style="display:flex;align-items:center;justify-content:center;text-align:center;background:rgba(255,255,255,.05);border:1.5px dashed rgba(255,255,255,.15);color:var(--text3);border-radius:12px;padding:8px;font-size:10.5px;line-height:1.3">📱 Actívalos desde tu celular</div>`
+          : _stepActive
+            ? `<button onclick="stopPhoneSteps()" style="background:rgba(16,185,129,.12);border:1.5px solid rgba(16,185,129,.3);color:#10b981;border-radius:12px;padding:12px 8px;font-size:12px;font-weight:700;cursor:pointer">⏹ Pausar pasos</button>`
+            : `<button onclick="startPhoneSteps()" style="background:linear-gradient(135deg,#6366f1,#4f46e5);border:none;color:#fff;border-radius:12px;padding:12px 8px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(99,102,241,.3)">👟 Activar pasos</button>`}
       </div>
       ${_stepActive ? `<div id="step-debug-live" style="margin-top:8px;font-size:9.5px;color:var(--text3);text-align:center;font-family:monospace">iniciando…</div>` : ''}
     </div>`;
@@ -8312,6 +8269,7 @@ function renderWatchCard() {
             : `<button onclick="connectSmartwatch()" style="background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;border-radius:10px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer">Reconectar</button>`}
         </div>
       </div>
+      ${_watchConnected ? `<button onclick="measureWithWatch()" style="width:100%;background:linear-gradient(135deg,#ec4899,#f43f5e);border:none;color:#fff;border-radius:12px;padding:12px 8px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px rgba(236,72,153,.3);margin-bottom:12px">💓 Medir con reloj</button>` : ''}
       ${last12.length > 1 ? `
       <div style="background:rgba(236,72,153,.05);border:1px solid rgba(236,72,153,.15);border-radius:12px;padding:10px 12px">
         <div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:6px">💓 Historial cardíaco</div>
@@ -24106,6 +24064,7 @@ function showDailyCheckin() {
   if (!modal) return;
   if (greetEl) greetEl.textContent = greeting;
   modal.style.display = "flex";
+  sendWatchReminder("¿Cómo estás hoy?");
 }
 
 function closeCheckin() {
