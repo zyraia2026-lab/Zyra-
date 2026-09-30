@@ -18065,7 +18065,7 @@ function _resolveAutoTheme() {
 }
 function initTheme() {
   const mode = localStorage.getItem('zyra_theme_mode') || 'manual';
-  const saved = mode === 'auto' ? _resolveAutoTheme() : (localStorage.getItem('zyra_theme') || 'light');
+  const saved = mode === 'auto' ? _resolveAutoTheme() : (localStorage.getItem('zyra_theme') || 'dark');
   applyTheme(saved, true);
   if (mode === 'auto') {
     clearInterval(window._autoThemeInterval);
