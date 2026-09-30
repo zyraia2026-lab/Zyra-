@@ -7544,7 +7544,10 @@ async function _watchDiscoverServices(server) {
     // Protocolo "FreeFit"/Jieli (com.czw.*): sin checksum, comando crudo [0x60, tipo, on/off].
     // tipo: 0=pulso, 1=presión, 2=oxígeno. La respuesta 0xE1 trae pulso+presión+oxígeno juntos.
     await _watchWrite(_watchRxChar, [0x60, 0x00, 0x01]);
-    if (_watchDebug) console.log('[Watch] Comando FreeFit (medicion tiempo real) enviado');
+    await new Promise(r => setTimeout(r, 120));
+    // Pasos en tiempo real (mismo protocolo FreeFit/Jieli): [0x31, 1] = activar envio.
+    await _watchWrite(_watchRxChar, [0x31, 0x01]);
+    if (_watchDebug) console.log('[Watch] Comando FreeFit (medicion + pasos tiempo real) enviado');
   } else {
     if (_watchDebug) console.log('[Watch] ⚠️ Sin write char — el UUID del reloj no está en nuestra lista');
   }
@@ -7580,6 +7583,14 @@ function _onWatchDataAuto(event, svcUuid, charUuid) {
     return;
   }
   if (bytes[0] === 0xE0) return; // ack de "cambio de tipo de medicion" — ignorar
+
+  // ── FreeFit/Jieli: 0xB2/0xB3 = pasos en tiempo real (steps, calorias, distancia) ──
+  if ((bytes[0] === 0xB2 || bytes[0] === 0xB3) && bytes.length >= 12 && bytes[1] === 1) {
+    const steps = (bytes[2]<<24 | bytes[3]<<16 | bytes[4]<<8 | bytes[5]) >>> 0;
+    _handleSteps(steps);
+    return;
+  }
+  if (bytes[0] === 0xB1) return; // ack de "activar pasos tiempo real" — ignorar
 
   // ── Da Fit / Y13: magic 0xAB ──
   if (bytes[0] === 0xAB && bytes.length >= 4) {
