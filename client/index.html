@@ -20084,89 +20084,10 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
 
-      <!-- Método de pago -->
-      <div style="margin-bottom:20px">
-        <label style="font-size:11px;font-weight:800;color:var(--text3,#7880a0);text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:10px">Método de pago</label>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <button id="pm-method-card" onclick="selectPayMethod('card')" class="pm-method-btn pm-method-active">
-            <span style="font-size:20px">💳</span>
-            <div style="text-align:left;flex:1">
-              <div style="font-weight:700;font-size:13px">Tarjeta de crédito / débito</div>
-              <div style="font-size:11px;opacity:.7">Visa, Mastercard, American Express</div>
-            </div>
-            <span class="pm-method-check">✓</span>
-          </button>
-          <button id="pm-method-nequi" onclick="selectPayMethod('nequi')" class="pm-method-btn">
-            <span style="font-size:20px">📱</span>
-            <div style="text-align:left;flex:1">
-              <div style="font-weight:700;font-size:13px">Nequi</div>
-              <div style="font-size:11px;opacity:.7">Paga directo desde tu app Nequi</div>
-            </div>
-            <span class="pm-method-check">✓</span>
-          </button>
-          <button id="pm-method-pse" onclick="selectPayMethod('pse')" class="pm-method-btn">
-            <span style="font-size:20px">🏦</span>
-            <div style="text-align:left;flex:1">
-              <div style="font-weight:700;font-size:13px">PSE — Débito bancario</div>
-              <div style="font-size:11px;opacity:.7">Bancolombia, Davivienda, BBVA y más</div>
-            </div>
-            <span class="pm-method-check">✓</span>
-          </button>
-        </div>
+      <div style="display:flex;align-items:center;gap:10px;background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.18);border-radius:12px;padding:12px 14px;margin-bottom:20px">
+        <span style="font-size:18px;flex-shrink:0">💳</span>
+        <span style="font-size:12px;color:var(--text2,#a5b4fc);line-height:1.5">En el siguiente paso eliges cómo pagar — tarjeta, Nequi o PSE — directo con Wompi, de forma segura.</span>
       </div>
-
-      <!-- Formulario Nequi -->
-      <div id="pm-form-nequi" style="display:none;margin-bottom:20px">
-        <div style="background:rgba(130,71,229,.08);border:1px solid rgba(130,71,229,.2);border-radius:14px;padding:16px">
-          <div style="font-weight:700;font-size:13px;color:#a78bfa;margin-bottom:8px">📱 Pago por Nequi</div>
-          <div style="font-size:12px;color:var(--text3,#7880a0);line-height:1.6;margin-bottom:12px">Ingresa tu número Nequi y recibirás una notificación de pago en tu app.</div>
-          <label style="font-size:11px;font-weight:700;color:var(--text3);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">Número de celular Nequi</label>
-          <input id="pm-nequi-phone" type="tel" maxlength="10" placeholder="300 000 0000"
-            style="width:100%;padding:12px 14px;background:var(--surface,#1e2235);border:1.5px solid var(--border,#2a2f45);border-radius:12px;color:var(--text,#e8eaf6);font-size:15px;outline:none;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif"/>
-        </div>
-      </div>
-
-      <!-- Formulario PSE -->
-      <div id="pm-form-pse" style="display:none;margin-bottom:20px">
-        <div style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:14px;padding:16px">
-          <div style="font-weight:700;font-size:13px;color:#34d399;margin-bottom:8px">🏦 Pago por PSE</div>
-          <div style="font-size:12px;color:var(--text3,#7880a0);line-height:1.6;margin-bottom:12px">Serás redirigido a tu banco para completar el pago de forma segura.</div>
-          <label style="font-size:11px;font-weight:700;color:var(--text3);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">Banco</label>
-          <select id="pm-pse-bank" style="width:100%;padding:12px 14px;background:var(--surface,#1e2235);border:1.5px solid var(--border,#2a2f45);border-radius:12px;color:var(--text,#e8eaf6);font-size:14px;outline:none;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif">
-            <option value="">Selecciona tu banco</option>
-            <option>Bancolombia</option><option>Davivienda</option><option>BBVA</option>
-            <option>Banco de Bogotá</option><option>AV Villas</option><option>Banco Popular</option>
-            <option>Colpatria</option><option>Occidente</option><option>Agrario</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Formulario tarjeta -->
-      <div id="pm-form-card" style="margin-bottom:20px">
-        <div style="margin-bottom:12px">
-          <label style="font-size:11px;font-weight:700;color:var(--text3,#7880a0);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">Número de tarjeta</label>
-          <input id="pm-card-num" type="text" maxlength="19" placeholder="1234 5678 9012 3456" oninput="fmtCard(this)"
-            style="width:100%;padding:12px 14px;background:var(--surface,#1e2235);border:1.5px solid var(--border,#2a2f45);border-radius:12px;color:var(--text,#e8eaf6);font-size:15px;font-weight:600;outline:none;box-sizing:border-box;letter-spacing:1px;font-family:'Plus Jakarta Sans',sans-serif"/>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-          <div>
-            <label style="font-size:11px;font-weight:700;color:var(--text3,#7880a0);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">Vencimiento</label>
-            <input id="pm-card-exp" type="text" maxlength="5" placeholder="MM/AA" oninput="fmtExp(this)"
-              style="width:100%;padding:12px 14px;background:var(--surface,#1e2235);border:1.5px solid var(--border,#2a2f45);border-radius:12px;color:var(--text,#e8eaf6);font-size:15px;font-weight:600;outline:none;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif"/>
-          </div>
-          <div>
-            <label style="font-size:11px;font-weight:700;color:var(--text3,#7880a0);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">CVV</label>
-            <input id="pm-card-cvv" type="password" maxlength="4" placeholder="•••"
-              style="width:100%;padding:12px 14px;background:var(--surface,#1e2235);border:1.5px solid var(--border,#2a2f45);border-radius:12px;color:var(--text,#e8eaf6);font-size:15px;font-weight:600;outline:none;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif"/>
-          </div>
-        </div>
-        <div style="margin-top:12px">
-          <label style="font-size:11px;font-weight:700;color:var(--text3,#7880a0);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">Nombre en la tarjeta</label>
-          <input id="pm-card-name" type="text" placeholder="Como aparece en la tarjeta"
-            style="width:100%;padding:12px 14px;background:var(--surface,#1e2235);border:1.5px solid var(--border,#2a2f45);border-radius:12px;color:var(--text,#e8eaf6);font-size:14px;outline:none;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif"/>
-        </div>
-      </div>
-
 
       <!-- Resumen + botón pagar -->
       <div style="background:var(--surface,#1e2235);border-radius:14px;padding:16px;margin-bottom:20px">
@@ -20186,7 +20107,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       <p style="text-align:center;color:var(--text3,#7880a0);font-size:11px;margin:12px 0 0;line-height:1.6">
         Garantía de 7 días sin preguntas · Cancela cuando quieras<br>
-        Pago seguro procesado por Stripe · Datos cifrados
+        Pago seguro procesado por Wompi · Datos cifrados
       </p>
     </div>
   </div>
@@ -20204,19 +20125,6 @@ document.addEventListener('DOMContentLoaded', () => {
 .pm-period-btn:hover { border-color: #6366f1; }
 .pm-period-active { border-color: #6366f1 !important; background: rgba(99,102,241,.15) !important; color: #818cf8 !important; }
 
-.pm-method-btn {
-  display: flex; align-items: center; gap: 12px;
-  background: var(--surface,#1e2235);
-  border: 2px solid var(--border,#2a2f45);
-  border-radius: 14px; padding: 14px 16px; cursor: pointer;
-  color: var(--text,#e8eaf6); width: 100%;
-  transition: all .2s; font-family:'Plus Jakarta Sans',sans-serif;
-}
-.pm-method-btn:hover { border-color: #6366f1; }
-.pm-method-active { border-color: #6366f1 !important; background: rgba(99,102,241,.12) !important; }
-.pm-method-check { color: #6366f1; font-size: 16px; font-weight: 800; opacity: 0; transition: opacity .2s; }
-.pm-method-active .pm-method-check { opacity: 1; }
-
 #pm-pay-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 44px rgba(99,102,241,.5); }
 #pm-pay-btn:active { transform: none; }
 
@@ -20232,11 +20140,10 @@ document.addEventListener('DOMContentLoaded', () => {
 /* ══ PAYMENT MODAL JS ══ */
 let _pmPlan = 'basic';
 let _pmPeriod = 'monthly';
-let _pmMethod = 'card';
 
 const PM_DATA = {
-  basic:   { icon:'⚡', name:'Básico',    desc:'Música real, análisis IA avanzado y exportar datos',  monthly:9900,   annual:99000,  color:'#6366f1' },
-  premium: { icon:'👑', name:'Premium ✦', desc:'La experiencia Zyra completa, sin límites',          monthly:24900,  annual:249000, color:'#f59e0b' }
+  basic:   { icon:'⚡', name:'Básico',    desc:'Música real, análisis IA avanzado y exportar datos',  monthly:11900,  annual:119000, color:'#6366f1' },
+  premium: { icon:'👑', name:'Premium ✦', desc:'La experiencia Zyra completa, sin límites',          monthly:19900,  annual:199000, color:'#f59e0b' }
 };
 
 // ─── Precios internacionales ───
@@ -20317,7 +20224,6 @@ function updatePlanPagePrices() {
 function openPaymentModal(plan) {
   _pmPlan = plan;
   _pmPeriod = (typeof _billingAnnual !== 'undefined' && _billingAnnual) ? 'annual' : 'monthly';
-  _pmMethod = 'card';
   const d = PM_DATA[plan];
   if (!d) return;
 
@@ -20328,11 +20234,6 @@ function openPaymentModal(plan) {
 
   updatePMPrices();
   selectPayPeriod(_pmPeriod);
-  selectPayMethod('card');
-
-  ['pm-card-num','pm-card-exp','pm-card-cvv','pm-card-name'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
 
   const modal = document.getElementById('zyra-payment-modal');
   if (modal) { modal.style.display = 'flex'; document.body.style.overflow = 'hidden'; trapFocus(modal); }
@@ -20380,46 +20281,15 @@ function selectPayPeriod(p) {
   updatePMPrices();
 }
 
-function selectPayMethod(m) {
-  _pmMethod = m;
-  ['card','nequi','pse'].forEach(v => {
-    const btn  = document.getElementById('pm-method-' + v);
-    const form = document.getElementById('pm-form-' + v);
-    if (btn)  btn.classList.toggle('pm-method-active', v === m);
-    if (form) form.style.display = v === m ? 'block' : 'none';
-  });
-}
-
-function fmtCard(el) {
-  let v = el.value.replace(/\D/g,'').slice(0,16);
-  el.value = v.replace(/(.{4})/g,'$1 ').trim();
-}
-function fmtExp(el) {
-  let v = el.value.replace(/\D/g,'').slice(0,4);
-  if (v.length >= 2) v = v.slice(0,2) + '/' + v.slice(2);
-  el.value = v;
-}
-
 async function processPayment() {
   const d = PM_DATA[_pmPlan]; if (!d) return;
   const btn = document.getElementById('pm-pay-btn');
-
-  if (_pmMethod === 'card') {
-    const num  = (document.getElementById('pm-card-num')?.value||'').replace(/\s/g,'');
-    const exp  = document.getElementById('pm-card-exp')?.value||'';
-    const cvv  = document.getElementById('pm-card-cvv')?.value||'';
-    const name = document.getElementById('pm-card-name')?.value?.trim()||'';
-    if (num.length < 16) { zyraToast('Ingresa el número completo de la tarjeta', 'error'); return; }
-    if (exp.length < 5)  { zyraToast('Ingresa la fecha de vencimiento', 'error'); return; }
-    if (cvv.length < 3)  { zyraToast('Ingresa el CVV de tu tarjeta', 'error'); return; }
-    if (!name)           { zyraToast('Ingresa el nombre en la tarjeta', 'error'); return; }
-  }
 
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Redirigiendo a pago...'; }
   try {
     const result = await api('/payments/checkout', 'POST', { plan: _pmPlan, period: _pmPeriod });
     if (result.demo) {
-      // Modo demo (sin Stripe configurado) — plan ya actualizado en servidor
+      // Modo demo (sin Wompi ni Stripe configurados) — plan ya actualizado en servidor
       localStorage.setItem('zyra_plan', result.plan);
       _zyraCurrentPlan = result.plan;
       closePaymentModal();
