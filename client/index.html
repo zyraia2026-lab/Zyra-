@@ -7891,14 +7891,14 @@ async function _watchSend(text) {
 }
 
 async function sendWatchAffirmation(text) {
-  await _watchSend(text.slice(0, 100));
+  await _watchSend('✦ Zyra: ' + text.slice(0, 100));
 }
 async function sendWatchReminder(text) {
-  await _watchSend(text || 'Momento de ti 💜');
+  await _watchSend('✦ Zyra: ' + (text || 'Momento de ti 💜'));
 }
 async function sendWatchEmotion(emo) {
   const MAP = { feliz:'😊 Feliz', tranquilo:'😌 Tranquilo', ansioso:'😰 Ansioso', triste:'😢 Triste', enojado:'😠 Enojado', confundido:'😕 Confundido', esperanzado:'✨ Esperanzado', agotado:'😮 Agotado', motivado:'💪 Motivado', nostalgico:'🌙 Nostálgico' };
-  await _watchSend(MAP[emo] || emo);
+  await _watchSend('✦ Zyra registró: ' + (MAP[emo] || emo));
 }
 
 /* ── UI HELPERS ── */
