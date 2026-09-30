@@ -146,7 +146,9 @@ exports.generate = async (req, res) => {
     }
 
     const data  = await buildReportData(req.user._id, req.user.name);
-    const html  = await generateWithGroq(data);
+    // Un fallo de red hacia Groq no debe tumbar el endpoint -- cae al reporte
+    // sin IA de más abajo, igual que cuando Groq simplemente no responde nada.
+    const html  = await generateWithGroq(data).catch(e => { console.error("generateWithGroq:", e.message); return null; });
 
     if (!html) {
       // Fallback sin IA
