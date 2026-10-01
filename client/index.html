@@ -736,6 +736,23 @@ function closeSplash(){
 @keyframes zsw-in { from { opacity:0; transform:scale(.85) translateY(20px) } to { opacity:1; transform:scale(1) translateY(0) } }
 @keyframes crisis-pulse { 0%,100% { transform:translate(-50%,-50%) scale(1); opacity:.6 } 50% { transform:translate(-50%,-50%) scale(1.4); opacity:1 } }
 @keyframes crisis-shake { 0%,100%{transform:rotate(0)} 20%{transform:rotate(-8deg)} 40%{transform:rotate(8deg)} 60%{transform:rotate(-5deg)} 80%{transform:rotate(5deg)} }
+/* Usada por todas las hojas/paneles que suben desde abajo (tour, aviso de
+   crisis, fin de llamada, avisos nocturnos, etc) -- se usaba en >8 lugares
+   pero nunca estuvo definida, asi que ninguno de esos paneles animaba. */
+@keyframes slideUp { from { transform:translateY(100%); opacity:.4 } to { transform:translateY(0); opacity:1 } }
+
+/* Feedback tactil al presionar -- la mayoria de los botones no tenian
+   ninguna respuesta visual inmediata al tocarlos (solo se notaba el cambio
+   una vez terminaba la accion), lo cual se siente poco fluido en pantalla
+   tactil. @media para no aplicarlo a quien prefiere menos movimiento. */
+@media (prefers-reduced-motion: no-preference) {
+  button, .btn-sm, .btn-primary, .nav-btn, .mobile-nav-btn, .wellness-tab, .card-item {
+    transition: transform .15s ease;
+  }
+  button:active, .btn-sm:active, .btn-primary:active, .nav-btn:active, .mobile-nav-btn:active, .wellness-tab:active, .card-item:active {
+    transform: scale(.96);
+  }
+}
 </style>
 
 
@@ -995,9 +1012,9 @@ function closeSplash(){
 </div>
 
 <!-- ══ HOJA "MÁS" MÓVIL — mismos accesos que la barra lateral de escritorio ══ -->
-<div id="mobile-more-backdrop" onclick="closeMobileMoreSheet()" style="display:none;position:fixed;inset:0;z-index:2990;background:rgba(15,15,30,.55);backdrop-filter:blur(2px)"></div>
-<div id="mobile-more-sheet" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:3000;background:var(--bg2,#fff);border-radius:24px 24px 0 0;padding:10px 16px calc(20px + env(safe-area-inset-bottom));max-height:82vh;overflow-y:auto;box-shadow:0 -12px 40px rgba(0,0,0,.25);animation:slideUp .3s cubic-bezier(.16,1,.3,1)">
-  <div style="width:36px;height:4px;background:var(--border,#e2e8f0);border-radius:99px;margin:4px auto 14px"></div>
+<div id="mobile-more-backdrop" onclick="closeMobileMoreSheet()" style="display:none;position:fixed;inset:0;z-index:2990;background:rgba(15,15,30,0);backdrop-filter:blur(0px);transition:background .3s ease,backdrop-filter .3s ease"></div>
+<div id="mobile-more-sheet" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:3000;background:var(--bg2,#fff);border-radius:24px 24px 0 0;padding:10px 16px calc(20px + env(safe-area-inset-bottom));max-height:82vh;overflow-y:auto;box-shadow:0 -12px 40px rgba(0,0,0,.25);transform:translateY(100%);transition:transform .32s cubic-bezier(.16,1,.3,1)">
+  <div id="mms-handle" style="touch-action:none;padding:10px 0 14px;margin:-10px 0 0;cursor:grab"><div style="width:36px;height:4px;background:var(--border,#e2e8f0);border-radius:99px;margin:4px auto 0"></div></div>
 
   <div class="sb-streak-card" id="m-streak-card" onclick="closeMobileMoreSheet();showPage('dashboard')" style="margin-top:0">
     <div class="sb-streak-top"><span>🔥 Racha actual</span><strong id="m-streak-days">0 días</strong></div>
@@ -1032,15 +1049,84 @@ function closeSplash(){
 </div>
 <script>
 function openMobileMoreSheet() {
-  document.getElementById('mobile-more-backdrop').style.display = 'block';
-  document.getElementById('mobile-more-sheet').style.display = 'block';
+  const sheet = document.getElementById('mobile-more-sheet');
+  const backdrop = document.getElementById('mobile-more-backdrop');
+  backdrop.style.display = 'block';
+  sheet.style.display = 'block';
+  sheet.style.transition = 'none';
+  sheet.style.transform = 'translateY(100%)';
+  // Forzar reflow para que el navegador registre el estado inicial antes de animar al final
+  void sheet.offsetHeight;
+  sheet.style.transition = 'transform .32s cubic-bezier(.16,1,.3,1)';
+  requestAnimationFrame(() => {
+    backdrop.style.background = 'rgba(15,15,30,.55)';
+    backdrop.style.backdropFilter = 'blur(2px)';
+    sheet.style.transform = 'translateY(0)';
+  });
   document.body.style.overflow = 'hidden';
 }
 function closeMobileMoreSheet() {
-  document.getElementById('mobile-more-backdrop').style.display = 'none';
-  document.getElementById('mobile-more-sheet').style.display = 'none';
+  const sheet = document.getElementById('mobile-more-sheet');
+  const backdrop = document.getElementById('mobile-more-backdrop');
+  if (sheet.style.display === 'none') return;
+  sheet.style.transition = 'transform .28s cubic-bezier(.4,0,1,1)';
+  sheet.style.transform = 'translateY(100%)';
+  backdrop.style.background = 'rgba(15,15,30,0)';
+  backdrop.style.backdropFilter = 'blur(0px)';
   document.body.style.overflow = '';
+  setTimeout(() => {
+    sheet.style.display = 'none';
+    backdrop.style.display = 'none';
+  }, 280);
 }
+
+// Arrastrar hacia abajo desde el tirador para cerrar la hoja -- antes solo se
+// podia cerrar tocando el fondo oscuro, lo cual no se sentia como un bottom
+// sheet nativo. Sigue el dedo 1:1 mientras arrastra, y al soltar decide si
+// cierra (paso del 30% de la altura, o un swipe rapido) o vuelve a su sitio.
+(function() {
+  let dragging = false, startY = 0, startedAt = 0, sheetH = 0;
+  const handle = document.getElementById('mms-handle');
+  const sheet  = document.getElementById('mobile-more-sheet');
+  const backdrop = document.getElementById('mobile-more-backdrop');
+  if (!handle || !sheet) return;
+
+  function onDown(e) {
+    dragging = true;
+    startY = e.clientY;
+    startedAt = Date.now();
+    sheetH = sheet.getBoundingClientRect().height;
+    sheet.style.transition = 'none';
+    handle.style.cursor = 'grabbing';
+    try { handle.setPointerCapture(e.pointerId); } catch(_) {}
+  }
+  function onMove(e) {
+    if (!dragging) return;
+    const dy = Math.max(0, e.clientY - startY); // solo se deja arrastrar hacia abajo
+    sheet.style.transform = `translateY(${dy}px)`;
+    const progress = Math.min(1, dy / sheetH);
+    backdrop.style.background = `rgba(15,15,30,${.55 * (1 - progress)})`;
+  }
+  function onUp(e) {
+    if (!dragging) return;
+    dragging = false;
+    handle.style.cursor = 'grab';
+    const dy = Math.max(0, e.clientY - startY);
+    const elapsed = Math.max(1, Date.now() - startedAt);
+    const velocity = dy / elapsed; // px/ms
+    sheet.style.transition = 'transform .28s cubic-bezier(.16,1,.3,1)';
+    if (dy > sheetH * 0.3 || velocity > 0.6) {
+      closeMobileMoreSheet();
+    } else {
+      sheet.style.transform = 'translateY(0)';
+      backdrop.style.background = 'rgba(15,15,30,.55)';
+    }
+  }
+  handle.addEventListener('pointerdown', onDown);
+  handle.addEventListener('pointermove', onMove);
+  handle.addEventListener('pointerup',   onUp);
+  handle.addEventListener('pointercancel', onUp);
+})();
 </script>
 
 <!-- ══ NAV COMPARTIDO — un solo nav para todas las páginas del app ══ -->
