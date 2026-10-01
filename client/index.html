@@ -852,7 +852,7 @@ function closeSplash(){
   </div>
   <div class="night-breath" id="night-breath-circle" style="position:relative;z-index:1">Respira</div>
   <div class="night-controls" style="position:relative;z-index:1">
-    <button class="night-btn primary" onclick="startNightBreath()">🌬️ Iniciar respiración</button>
+    <button class="night-btn primary" onclick="startNightBreath()">💨 Iniciar respiración</button>
     <button class="night-btn" onclick="closeNightMode()">✕ Cerrar</button>
   </div>
 </div>
@@ -895,7 +895,7 @@ function closeSplash(){
       <button class="morning-btn" onclick="morningNext(2)">Siguiente →</button>
     </div>
     <div class="morning-step" id="morning-step-2" style="display:none">
-      <div class="morning-emoji">🌬️</div>
+      <div class="morning-emoji">💨</div>
       <h2 class="morning-title">Un minuto de respiración</h2>
       <p class="morning-sub">Cuatro respiraciones — el cuerpo lo nota.</p>
       <div class="morning-breath" id="morning-breath-circle">Inhala</div>
@@ -986,7 +986,7 @@ function closeSplash(){
     <span class="mnb-icon-wrap"><span class="mnb-icon">📔</span></span><span class="mnb-label">Diario</span>
   </button>
   <button class="mobile-nav-btn" onclick="showPage('wellness');setTimeout(()=>openWellness('breath'),100)" data-page="wellness">
-    <span class="mnb-icon-wrap"><span class="mnb-icon">🌬️</span></span><span class="mnb-label">Respirar</span>
+    <span class="mnb-icon-wrap"><span class="mnb-icon">💨</span></span><span class="mnb-label">Respirar</span>
   </button>
   <button class="mobile-nav-btn" onclick="openMobileMoreSheet();clearProfileDot()" id="mnb-more-btn">
     <span class="mnb-icon-wrap"><span class="mnb-icon">⋯</span><span class="mnb-profile-dot" id="tab-profile-dot" style="display:none"></span></span>
@@ -2274,7 +2274,7 @@ async function b2bSubmitContact() {
       <div style="font-size:10px;color:var(--text3)">Registro emocional</div>
     </div>
     <div onclick="showPage('wellness');setTimeout(()=>openWellness('breath'),100)" style="background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:14px 12px;cursor:pointer;text-align:center;transition:border-color .2s" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
-      <div style="font-size:24px;margin-bottom:6px">🌬️</div>
+      <div style="font-size:24px;margin-bottom:6px">💨</div>
       <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:2px">Respiración</div>
       <div style="font-size:10px;color:var(--text3)">4-7-8 · 5 min</div>
     </div>
@@ -2683,7 +2683,7 @@ async function b2bSubmitContact() {
       </div>
       <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:7px;font-size:12px">
         <div style="display:flex;justify-content:space-between;gap:8px"><span>📓 Diario</span><span id="rail-summary-journal" style="color:var(--text3)">—</span></div>
-        <div style="display:flex;justify-content:space-between;gap:8px"><span>🌬️ Respiración</span><span id="rail-summary-breath" style="color:var(--text3)">—</span></div>
+        <div style="display:flex;justify-content:space-between;gap:8px"><span>💨 Respiración</span><span id="rail-summary-breath" style="color:var(--text3)">—</span></div>
         <div style="display:flex;justify-content:space-between;gap:8px"><span>✅ Hábitos</span><span id="rail-summary-habits" style="color:var(--text3)">—</span></div>
       </div>
     </div>
@@ -2698,7 +2698,7 @@ async function b2bSubmitContact() {
       <label class="db-rail-toggle"><input type="checkbox" id="rail-remind-water" checked onchange="localStorage.setItem('zyra_rail_remind_water', this.checked?'1':'0')"/><span></span></label>
     </div>
     <div class="db-rail-reminder">
-      <span style="font-size:18px">🌬️</span>
+      <span style="font-size:18px">💨</span>
       <div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700;color:var(--text)">Respirar</div><div style="font-size:10.5px;color:var(--text3)">Ejercicio 4-7-8</div></div>
       <label class="db-rail-toggle"><input type="checkbox" id="rail-remind-breath" onchange="localStorage.setItem('zyra_rail_remind_breath', this.checked?'1':'0')"/><span></span></label>
     </div>
@@ -2782,7 +2782,7 @@ async function b2bSubmitContact() {
 <div class="container">
   <div class="section-title">🌿 Herramientas de Bienestar</div>
   <div class="wellness-tabs">
-    <button class="wellness-tab active" id="wtab-breath" onclick="openWellness('breath')">🌬️ Respiración</button>
+    <button class="wellness-tab active" id="wtab-breath" onclick="openWellness('breath')">💨 Respiración</button>
     <button class="wellness-tab" id="wtab-meditation" onclick="openWellness('meditation')">🧘 Meditación</button>
     <button class="wellness-tab" id="wtab-music" onclick="openWellness('music')">🎵 Música</button>
     <button class="wellness-tab" id="wtab-affirmations" onclick="openWellness('affirmations')">💫 Afirmaciones</button>
@@ -3073,7 +3073,7 @@ async function b2bSubmitContact() {
       <!-- Accesos rápidos a lo que hace único a Zyra -- ocultos para un chat más limpio -->
       <div style="display:none;gap:6px;overflow-x:auto;padding:6px 4px 8px;scrollbar-width:none;-ms-overflow-style:none" id="zyra-diff-pills">
         <span style="flex-shrink:0;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:var(--accent);white-space:nowrap;cursor:pointer" onclick="showPage('journal')" title="Tu diario emocional conectado">📓 Lee tu diario</span>
-        <span style="flex-shrink:0;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:#10b981;white-space:nowrap;cursor:pointer" onclick="showPage('wellness');setTimeout(()=>openWellness('breath'),100)" title="Respiración guiada integrada">🌬️ /respirar</span>
+        <span style="flex-shrink:0;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:#10b981;white-space:nowrap;cursor:pointer" onclick="showPage('wellness');setTimeout(()=>openWellness('breath'),100)" title="Respiración guiada integrada">💨 /respirar</span>
         <span style="flex-shrink:0;background:rgba(236,72,153,.1);border:1px solid rgba(236,72,153,.2);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:#ec4899;white-space:nowrap;cursor:default" title="Memoria de tus conversaciones">🧠 Memoria</span>
         <span style="flex-shrink:0;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:#f59e0b;white-space:nowrap;cursor:pointer" onclick="showPage('goals')" title="Conectado a tus metas">🎯 Tus metas</span>
         <span style="flex-shrink:0;background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.2);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:#06b6d4;white-space:nowrap;cursor:default" title="Conversaciones privadas y seguras">🔒 Privado</span>
@@ -3533,7 +3533,7 @@ async function b2bSubmitContact() {
       </div>
 
       <div style="display:flex;flex-direction:column;gap:12px">
-        <button onclick="closeCrisisOverlay();showPage('wellness');setTimeout(()=>openWellness('breath'),100)" style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:#6ee7b7;padding:14px;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer">🌬️ Ejercicio de respiración ahora</button>
+        <button onclick="closeCrisisOverlay();showPage('wellness');setTimeout(()=>openWellness('breath'),100)" style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:#6ee7b7;padding:14px;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer">💨 Ejercicio de respiración ahora</button>
         <button onclick="closeCrisisOverlay()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;color:#fff;padding:14px;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer">Estoy bien, continuar con Zyra</button>
         <button onclick="closeCrisisOverlay();showPage('assistant');setTimeout(newChat,100)" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#c7d2fe;padding:14px;border-radius:14px;font-size:14px;cursor:pointer">💬 Hablar con Zyra (nueva sesión)</button>
       </div>
@@ -9105,8 +9105,8 @@ async function loadDashboard() {
       setTimeout(() => {
         if (window._zyraCurrentPage !== 'dashboard') return;
         localStorage.setItem('zyra_break_nudge_at', String(Date.now()));
-        zyraToast('🌬️ Pausa activa — 1 minuto de respiración, estira el cuerpo', 'info', 7000, true);
-        sendWatchReminder('🌬️ Pausa activa: respira y estira 1 min');
+        zyraToast('💨 Pausa activa — 1 minuto de respiración, estira el cuerpo', 'info', 7000, true);
+        sendWatchReminder('💨 Pausa activa: respira y estira 1 min');
         const toastEl = document.querySelector('.zyra-toast:last-child');
         if (toastEl) {
           const btn = document.createElement('button');
@@ -9355,7 +9355,7 @@ function renderDomingoRecap(history, entries) {
     weekHistory.length > 0 ? `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 12px;font-size:12px;color:var(--text2)">😊 ${weekHistory.length}/7 emociones</div>` : "",
     weekJournals > 0 ? `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 12px;font-size:12px;color:var(--text2)">📔 ${weekJournals} en diario</div>` : "",
     habitPct !== null ? `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 12px;font-size:12px;color:var(--text2)">✅ ${habitPct}% hábitos</div>` : "",
-    breathSessions > 0 ? `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 12px;font-size:12px;color:var(--text2)">🌬️ ${breathSessions} resp.</div>` : "",
+    breathSessions > 0 ? `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 12px;font-size:12px;color:var(--text2)">💨 ${breathSessions} resp.</div>` : "",
     gratitudeDays > 0 ? `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 12px;font-size:12px;color:var(--text2)">🙏 ${gratitudeDays} agradecimientos</div>` : "",
     waterDays > 0 ? `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px 12px;font-size:12px;color:var(--text2)">💧 ${waterDays} días hidratado/a</div>` : "",
   ].filter(Boolean).join("");
@@ -9509,7 +9509,7 @@ const WEEKLY_MISSIONS = [
   { id:"emotions", emoji:"😊", title:"Registra tu emoción 5 días", desc:"Check-in diario durante 5 días de esta semana.", target:5, unit:"días", key:"zyra_checkin_emotion_" },
   { id:"habits", emoji:"✅", title:"Completa todos tus hábitos 4 días", desc:"Cierra el día con todos los hábitos marcados, 4 veces.", target:4, unit:"días", key:"_habits_" },
   { id:"journal", emoji:"📔", title:"Escribe en tu diario 3 veces", desc:"Abre el diario y escribe algo, 3 días distintos.", target:3, unit:"entradas", key:"zyra_journal_saved_" },
-  { id:"breathing", emoji:"🌬️", title:"Practica respiración 4 días", desc:"Una sesión de respiración por día, 4 veces.", target:4, unit:"días", key:"zyra_breath_" },
+  { id:"breathing", emoji:"💨", title:"Practica respiración 4 días", desc:"Una sesión de respiración por día, 4 veces.", target:4, unit:"días", key:"zyra_breath_" },
   { id:"water", emoji:"💧", title:"Toma 8 vasos de agua 3 días", desc:"Llega a la meta de agua 3 veces esta semana.", target:3, unit:"días", key:"_water8_" },
   { id:"evening", emoji:"🌙", title:"Completa el ritual de noche 3 días", desc:"Haz el ritual de cierre del día 3 veces.", target:3, unit:"veces", key:"zyra_er_done_" },
 ];
@@ -9719,7 +9719,7 @@ function renderParaTiHoy(emotion, history, streak) {
   const h = new Date().getHours();
   const timeSlot = h < 12 ? "mañana" : h < 17 ? "tarde" : h < 21 ? "noche" : "madrugada";
   const RECS = {
-    ansioso:     { icon:"🌬️", title:"Respira conmigo", desc:"La ansiedad se calma con la respiración 4-7-8. Solo 2 minutos.", btn:"Empezar respiración", action:"showPage('wellness');setTimeout(()=>openWellness('breath'),100)", color:"rgba(99,102,241,.08)", border:"rgba(99,102,241,.2)" },
+    ansioso:     { icon:"💨", title:"Respira conmigo", desc:"La ansiedad se calma con la respiración 4-7-8. Solo 2 minutos.", btn:"Empezar respiración", action:"showPage('wellness');setTimeout(()=>openWellness('breath'),100)", color:"rgba(99,102,241,.08)", border:"rgba(99,102,241,.2)" },
     triste:      { icon:"🧘", title:"Un momento contigo", desc:"La meditación ayuda cuando la tristeza pesa. Aquí tienes una.", btn:"Ir a meditación", action:"showPage('wellness');setTimeout(()=>openWellness('meditation'),100)", color:"rgba(139,92,246,.08)", border:"rgba(139,92,246,.2)" },
     enojado:     { icon:"📔", title:"Escribe lo que sientes", desc:"El diario es el mejor lugar para soltar lo que carga.", btn:"Abrir mi diario", action:"showPage('journal');setTimeout(toggleJournalForm,200)", color:"rgba(239,68,68,.07)", border:"rgba(239,68,68,.18)" },
     agotado:     { icon:"😴", title:"Registra cómo dormiste", desc:"El cansancio y el sueño están conectados. ¿Cómo fue tu descanso?", btn:"Ir a sueño", action:"showPage('wellness');setTimeout(()=>openWellness('sleep'),100)", color:"rgba(245,158,11,.08)", border:"rgba(245,158,11,.2)" },
@@ -12525,7 +12525,7 @@ function showTestResult() {
   const results = {
     feliz:     {emoji:"🌟",title:"Hoy estás bien",desc:"Y eso vale. Los días buenos no son accidente — algo en ti los está construyendo. Úsalo: avanza en algo que importa, conéctate con alguien, o simplemente nótalo.",color:"#10b981"},
     tranquilo: {emoji:"🌊",title:"Estás en calma",desc:"La calma no es aburrimiento — es poder. Úsala para pensar claro, descansar de verdad, o simplemente estar. Zyra aquí si quieres hablar.",color:"#0ea5e9"},
-    ansioso:   {emoji:"🌬️",title:"Hay tensión acumulada",desc:"La ansiedad te está diciendo algo. No tienes que manejarlo solo/a. Empieza por respirar — ahí mismo. Después podemos hablar de qué la está generando.",color:"#f59e0b"},
+    ansioso:   {emoji:"💨",title:"Hay tensión acumulada",desc:"La ansiedad te está diciendo algo. No tienes que manejarlo solo/a. Empieza por respirar — ahí mismo. Después podemos hablar de qué la está generando.",color:"#f59e0b"},
     triste:    {emoji:"💙",title:"Hoy estás bajoneado/a",desc:"No tienes que estar bien. La tristeza es información, no debilidad. Cuéntale a Zyra cómo te sientes — sin filtros, sin explicaciones.",color:"#3b82f6"},
     enojado:   {emoji:"🔥",title:"Algo te está molestando",desc:"El enojo te dice que algo importante para ti está siendo afectado. No tienes que aguantarlo callado/a. Cuéntame qué pasó.",color:"#ef4444"},
   };
@@ -12642,7 +12642,7 @@ async function renderTrends(el) {
       <div style="display:flex;flex-direction:column;gap:6px;padding-right:10px;min-width:72px">
         <div style="font-size:11px;color:var(--text3);height:10px;display:flex;align-items:center">💧 Agua</div>
         <div style="font-size:11px;color:var(--text3);height:10px;display:flex;align-items:center">📔 Diario</div>
-        <div style="font-size:11px;color:var(--text3);height:10px;display:flex;align-items:center">🌬️ Respirar</div>
+        <div style="font-size:11px;color:var(--text3);height:10px;display:flex;align-items:center">💨 Respirar</div>
       </div>
       <div style="flex:1;display:flex;flex-direction:column;gap:6px;overflow:hidden">
         ${["water","jour","breath"].map(field => `
@@ -13083,7 +13083,7 @@ function renderBreath(el) {
     <div class="card breath-card" style="text-align:center;max-width:520px;margin:0 auto">
       <div style="font-size:13px;color:var(--text3);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">Técnica de Respiración</div>
       <div style="display:flex;gap:8px;margin-bottom:18px">
-        <button id="btab-478" class="btn-sm accent" onclick="selectBreathTech('478')" style="flex:1;font-size:11px;padding:8px 4px">🌬️ 4-7-8</button>
+        <button id="btab-478" class="btn-sm accent" onclick="selectBreathTech('478')" style="flex:1;font-size:11px;padding:8px 4px">💨 4-7-8</button>
         <button id="btab-box" class="btn-sm" onclick="selectBreathTech('box')" style="flex:1;font-size:11px;padding:8px 4px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">📦 Box 4-4-4-4</button>
         <button id="btab-calm" class="btn-sm" onclick="selectBreathTech('calm')" style="flex:1;font-size:11px;padding:8px 4px;background:var(--surface);color:var(--text2);border:1.5px solid var(--border)">🌊 Calma 4-6</button>
       </div>
@@ -13160,11 +13160,11 @@ async function startBreath() {
         if(phaseIdx >= phases.length) { phaseIdx = 0; cycleCount++; }
         if(cycleCount >= totalCycles) {
           circle.className = "breath-circle"; label.textContent = "✓";
-          secs.style.display = "none"; inst.textContent = "Listo 🌬️ Bien hecho";
+          secs.style.display = "none"; inst.textContent = "Listo 💨 Bien hecho";
           // Track breath session
           const bKey = "zyra_breath_" + new Date().toDateString();
           localStorage.setItem(bKey, (parseInt(localStorage.getItem(bKey)||"0")+1).toString());
-          zyraToast("🌬️ Sesión de respiración lista — el cuerpo lo notó", "success");
+          zyraToast("💨 Sesión de respiración lista — el cuerpo lo notó", "success");
           if (navigator.vibrate) navigator.vibrate([30,20,60]);
           if (typeof triggerMission === "function") triggerMission('do_exercise');
           renderTodayOverview(); renderWellbeingScore(); updateNotifBadge();
@@ -14098,7 +14098,7 @@ function newChat() {
     night: [["🌙","No puedo dormir"],["😰","Tengo pensamientos intrusivos"],["💙","Me siento solo/a en la noche"],["🧘","Ayúdame a relajarme"],["😔","Estoy triste"],["💬","Solo quiero hablar"]]
   };
   const EMO_CHIPS = {
-    ansioso:     [["💜","Cuéntame qué me tiene ansioso/a"],["🌬️","Quiero hacer una respiración guiada"]],
+    ansioso:     [["💜","Cuéntame qué me tiene ansioso/a"],["💨","Quiero hacer una respiración guiada"]],
     triste:      [["💙","Necesito hablar de cómo me siento"],["🎵","Dame música para este momento"]],
     enojado:     [["🔥","Necesito procesar lo que me enoja"],["✍️","Quiero escribir lo que siento"]],
     agotado:     [["😮‍💨","Estoy muy cansado/a hoy"],["💧","¿Qué me puede ayudar a recuperar energía?"]],
@@ -14785,7 +14785,7 @@ function addBotMsg(text, ts, cards) {
         const ej = c.ejercicio;
         const INFO = {
           respiracion: {
-            emoji: "🌬️",
+            emoji: "💨",
             titulo: "Respiración 4-7-8",
             pasos: ["Inhala por la nariz <strong>4 segundos</strong>","Mantén el aire <strong>7 segundos</strong>","Exhala despacio por la boca <strong>8 segundos</strong>","Repite 4 veces — sin afán"],
             color: "#0ea5e9"
@@ -15117,7 +15117,7 @@ function showResponseChips(text) {
     chips = [["▶️","Ponme otro video"],["💙","Cuéntame más"],["🙏","Gracias"]];
   // Emociones difíciles
   else if (tl.includes("ansiedad") || tl.includes("ansios") || tl.includes("nervios") || tl.includes("pánico"))
-    chips = [["🌬️","Hagamos un ejercicio de respiración"],["💙","Necesito más apoyo"],["🙏","Gracias, me ayuda"],["😌","Ya estoy mejor"]];
+    chips = [["💨","Hagamos un ejercicio de respiración"],["💙","Necesito más apoyo"],["🙏","Gracias, me ayuda"],["😌","Ya estoy mejor"]];
   else if (tl.includes("triste") || tl.includes("llorar") || tl.includes("dolor") || tl.includes("pena"))
     chips = [["💙","Quiero hablar más de esto"],["🤗","Necesito que me escuches"],["🙏","Gracias por estar aquí"],["💪","¿Cómo salgo de esto?"]];
   else if (tl.includes("solo") || tl.includes("soledad") || tl.includes("aislad"))
@@ -15144,7 +15144,7 @@ function showResponseChips(text) {
     chips = [["🤓","Cuéntame más sobre esto"],["💡","Dame otro ejemplo"],["❓","¿Por qué sucede eso?"],["👍","Entendido, gracias"]];
   // Respira / calma
   else if (tl.includes("respir") || tl.includes("calma") || tl.includes("medita") || tl.includes("relajación"))
-    chips = [["🌬️","Respiremos juntos"],["🧘","Dame otro ejercicio"],["💙","Necesito más apoyo"],["😌","Ya estoy mejor"]];
+    chips = [["💨","Respiremos juntos"],["🧘","Dame otro ejercicio"],["💙","Necesito más apoyo"],["😌","Ya estoy mejor"]];
   // Default contextual
   else if (text && text.endsWith("?"))
     chips = [["💙","Cuéntame más"],["🤔","No estoy segur@"],["✅","Sí, exactamente"],["🙏","Gracias"]];
@@ -18609,7 +18609,7 @@ const ZyraRecs = {
 
   RECS: [
     { id:'music',    text:'¿Quieres que te ponga música relajante para este momento? 🎵', action: ()=>{ showPage('wellness'); setTimeout(()=>openWellness('music'),200); } },
-    { id:'breath',   text:'Llevas un rato aquí. ¿Hacemos una respiración rápida? 🌬️', action: ()=>{ showPage('wellness'); setTimeout(()=>openWellness('breath'),200); } },
+    { id:'breath',   text:'Llevas un rato aquí. ¿Hacemos una respiración rápida? 💨', action: ()=>{ showPage('wellness'); setTimeout(()=>openWellness('breath'),200); } },
     { id:'journal',  text:'Oye, ¿qué tal si escribes algo hoy? A veces ayuda mucho sacarlo. 📔', action: ()=>showPage('journal') },
     { id:'chat',     text:'Aquí estoy cuando quieras hablar. Cuéntame cualquier cosa 💙', action: ()=>showPage('assistant') },
     { id:'goals',    text:'¿Quieres ver cómo vas con tus metas? 🎯', action: ()=>showPage('goals') },
@@ -21274,7 +21274,7 @@ function renderBreathGame(el) {
     const pts = TECHS[tech].cycles * 10;
     _updateGameStats(pts);
     _playWin();
-    zyraToast('🌬️ Ejercicio completado — +' + pts + ' puntos', 'success');
+    zyraToast('💨 Ejercicio completado — +' + pts + ' puntos', 'success');
     triggerMission('do_exercise');
   }
 
@@ -22293,7 +22293,7 @@ const EMOCIONARIO_DATA = {
     cuerpo:"Respiración más lenta y profunda, músculos sin tensión, capacidad de atención amplia, menos urgencia en los pensamientos.",
     mensaje:"La calma es una forma sofisticada de bienestar. No siempre llega sola — cultivarla es una habilidad real.",
     ejercicios:[
-      { icon:"🌬️", text:"Respiración 4-4 para profundizar este estado" },
+      { icon:"💨", text:"Respiración 4-4 para profundizar este estado" },
       { icon:"📝", text:"Escribe algo importante ahora que tienes claridad" },
       { icon:"🌿", text:"Registra qué lo generó para poder volver aquí" },
     ]
@@ -23037,7 +23037,7 @@ function renderWeeklySummary(journalEntries) {
     { icon: "⚡", label: "Retos completados", val: challengeDays, max: 7, color: "#f97316" },
     { icon: "🙏", label: "Días de gratitud", val: gratitudeDays, max: 7, color: "#f59e0b" },
     { icon: "😴", label: "Sueño registrado", val: sleepDays, max: 7, color: "#6366f1" },
-    { icon: "🌬️", label: "Sesiones de resp.", val: breathSessions, max: 14, color: "#06b6d4" },
+    { icon: "💨", label: "Sesiones de resp.", val: breathSessions, max: 14, color: "#06b6d4" },
   ].filter(item => item.val > 0);
 
   grid.innerHTML = ITEMS.map(item => {
@@ -23842,8 +23842,8 @@ function renderWellbeingScore() {
   else { checks.push({ label: "😴 Sueño", done: false, nav: "showPage('wellness');setTimeout(()=>openWellness('sleep'),100)" }); }
 
   const breath = parseInt(localStorage.getItem("zyra_breath_" + today) || "0");
-  if (breath) checks.push({ label: "🌬️ Resp.", done: true, nav: "showPage('wellness');setTimeout(()=>openWellness('breath'),100)" });
-  else checks.push({ label: "🌬️ Resp.", done: false, nav: "showPage('wellness');setTimeout(()=>openWellness('breath'),100)" });
+  if (breath) checks.push({ label: "💨 Resp.", done: true, nav: "showPage('wellness');setTimeout(()=>openWellness('breath'),100)" });
+  else checks.push({ label: "💨 Resp.", done: false, nav: "showPage('wellness');setTimeout(()=>openWellness('breath'),100)" });
 
   const gratitude = localStorage.getItem("zyra_gratitude_" + today);
   let gratDone = false;
@@ -23941,7 +23941,7 @@ function renderTodayOverview() {
   }
   if (breathToday > 0) {
     items.push(`<div onclick="showPage('wellness')" style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:60px;text-align:center;cursor:pointer">
-      <div style="font-size:18px;font-weight:800;color:#8b5cf6">${breathToday}x🌬️</div>
+      <div style="font-size:18px;font-weight:800;color:#8b5cf6">${breathToday}x💨</div>
       <div style="font-size:10px;color:var(--text3);font-weight:600">Respiración</div>
     </div>`);
   }
@@ -24651,7 +24651,7 @@ const WELLNESS_PROGRAMS = [
     color: "#8b5cf6",
     gradient: "linear-gradient(135deg,#8b5cf6,#6366f1)",
     days: [
-      { task:"Practica la respiración 4-7-8 por 3 ciclos completos", action:"showPage('wellness');setTimeout(()=>openWellness('breath'),120)", icon:"🌬️" },
+      { task:"Practica la respiración 4-7-8 por 3 ciclos completos", action:"showPage('wellness');setTimeout(()=>openWellness('breath'),120)", icon:"💨" },
       { task:"Anota tu pensamiento ansioso y busca evidencia en contra", action:"showPage('wellness');setTimeout(()=>openWellness('cbt'),120)", icon:"💭" },
       { task:"Haz una meditación de 5 minutos para regresar al presente", action:"showPage('wellness');setTimeout(()=>openWellness('meditation'),120)", icon:"🧘" },
       { task:"Cuéntale a Zyra qué situación te genera más ansiedad", action:"showPage('assistant')", icon:"💬" },
@@ -25143,7 +25143,7 @@ function computeNotifs() {
 
   const breath = parseInt(localStorage.getItem("zyra_breath_" + todayStr) || "0");
   if (!breath && h >= 14 && h < 22) {
-    notifs.push({ icon: "🌬️", text: "No has practicado respiración hoy. 2 minutos ayudan mucho.", action: "showPage('wellness');setTimeout(()=>openWellness('breath'),100);closeNotifPanel()" });
+    notifs.push({ icon: "💨", text: "No has practicado respiración hoy. 2 minutos ayudan mucho.", action: "showPage('wellness');setTimeout(()=>openWellness('breath'),100);closeNotifPanel()" });
   }
 
   const gratStr = localStorage.getItem("zyra_gratitude_" + todayStr);
