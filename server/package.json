@@ -21,7 +21,6 @@
     "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.0.3",
-    "msedge-tts": "^2.0.8",
     "pdfkit": "^0.19.1",
     "stripe": "^22.3.0",
     "web-push": "^3.6.7"
