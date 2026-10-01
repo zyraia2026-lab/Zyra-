@@ -14113,7 +14113,15 @@ function loadTTSVoice() {
   if (!window.speechSynthesis) return;
   const voices = window.speechSynthesis.getVoices();
   if (!voices.length) { setTimeout(loadTTSVoice, 300); return; }
-  const es = voices.filter(v => v.lang.startsWith("es"));
+  // Android/Chrome a veces reporta el locale con guion bajo ("es_ES" en vez
+  // de "es-ES") — normalizar antes de comparar, si no, las comparaciones
+  // exactas de mas abajo nunca matchean y ttsVoice se queda en null siempre
+  // (cae al navegador SIN voz fijada = lo que el SO decida, a veces ni
+  // siquiera en español).
+  const es = voices.filter(v => v.lang.toLowerCase().startsWith("es")).map(v => {
+    if (!v._normLang) v._normLang = v.lang.replace(/_/g, "-");
+    return v;
+  });
   if (!es.length) return;
 
   // Log para diagnóstico
@@ -14129,9 +14137,13 @@ function loadTTSVoice() {
     es.find(v => /google/i.test(v.name) && _isTTSFemale(v)) ||
     // 4. Cualquier voz femenina confirmada
     es.find(v => _isTTSFemale(v)) ||
-    // 5. es-MX o es-ES que no sea masculina (nombres desconocidos)
-    es.find(v => (v.lang === "es-MX" || v.lang === "es-ES") && !_isTTSMale(v)) ||
-    null; // si no hay voz femenina, dejar null → backend Dalia Neural
+    // 5. es-MX/es-ES/es-US que no sea masculina (nombres desconocidos, ej. Android)
+    es.find(v => ["es-MX","es-ES","es-US","es-CO"].includes(v._normLang) && !_isTTSMale(v)) ||
+    // 6. Ultimo recurso: cualquier voz en español que no sea masculina confirmada
+    //    (mejor una voz ES sin verificar que dejar que el SO use un default
+    //    que podria ni siquiera ser en español)
+    es.find(v => !_isTTSMale(v)) ||
+    null; // si no hay NINGUNA voz en español, dejar null → backend neural
 
   if (found) {
     ttsVoice = found;
