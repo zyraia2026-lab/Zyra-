@@ -74,13 +74,42 @@ async function buildReportData(userId, userName) {
     })
     .filter(Boolean);
 
+  // Patron por dia de semana usando el HISTORIAL COMPLETO (no solo la ultima
+  // semana) -- con una sola semana de datos no alcanza senal para decir "los
+  // martes te cuesta mas". Esto es lo que convierte el reporte de "que paso"
+  // a "que hacer": si hay un dia con patron negativo claro y reciente, se lo
+  // decimos a Zyra para que arme el plan de la semana que ENTRA alrededor de
+  // ese dia, no de forma generica.
+  const fullHistory = (profile?.emotionHistory || []).slice(-120); // ultimos ~4 meses de registros
+  const dayBuckets = Array.from({ length: 7 }, () => ({ total: 0, count: 0 }));
+  fullHistory.forEach(h => {
+    const d = new Date(h.date).getDay();
+    dayBuckets[d].total += emotionScore(h.emotion);
+    dayBuckets[d].count += 1;
+  });
+  const DAY_ES = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+  let worstDayPattern = null;
+  dayBuckets.forEach((b, i) => {
+    if (b.count < 3) return; // necesita al menos 3 registros ese dia para ser un patron, no ruido
+    const avg = b.total / b.count;
+    if (avg < -0.15 && (!worstDayPattern || avg < worstDayPattern.score)) {
+      worstDayPattern = { day: DAY_ES[i], score: Number(avg.toFixed(2)), samples: b.count };
+    }
+  });
+
+  // La meta activa mas vieja sin avance -- para darle a "el plan" algo
+  // concreto y propio de la persona, no un consejo generico de bienestar.
+  const stalledGoal = goals
+    .filter(g => !g.completed)
+    .sort((a,b) => new Date(a.updatedAt) - new Date(b.updatedAt))[0] || null;
+
   return {
     userName, weekStart, weekEnd, history, topEmotion, positivity,
     avgScore: Number(avgScore), journals, sessionCount,
     completedGoals: completedThisWeek,
     activeGoals: goals.filter(g => !g.completed).slice(0, 5),
     streakDays: profile?.streakDays || 0,
-    freq, hrEmotionDays,
+    freq, hrEmotionDays, worstDayPattern, stalledGoal,
   };
 }
 
@@ -103,9 +132,17 @@ async function generateWithGroq(data) {
     ? `\n- Pulso promedio por día según el reloj, cruzado con la emoción registrada ese día: ${data.hrEmotionDays.map(d => `${d.emotion} (${d.avgHR} bpm)`).join(", ")}`
     : "";
 
-  const prompt = `Eres Zyra — la mejor amiga de ${data.userName}. Tienes 24 años, eres colombiana, hablas directo y con calor humano real. Revisaste su semana y vas a contarle lo que viste.
+  const worstDayLine = data.worstDayPattern
+    ? `\n- Patrón detectado (últimos meses, no solo esta semana): los ${data.worstDayPattern.day}s tienden a ser más difíciles (${data.worstDayPattern.samples} registros con score promedio ${data.worstDayPattern.score})`
+    : "";
 
-DATOS DE LA SEMANA (${data.weekStart.toLocaleDateString("es-CO")} al ${data.weekEnd.toLocaleDateString("es-CO")}):
+  const stalledGoalLine = data.stalledGoal
+    ? `\n- Meta activa que lleva más tiempo sin marcarse como avance: "${data.stalledGoal.title}"`
+    : "";
+
+  const prompt = `Eres Zyra — la mejor amiga de ${data.userName}. Tienes 24 años, eres colombiana, hablas directo y con calor humano real. Revisaste su semana y vas a contarle lo que viste — y lo más importante, le vas a armar un plan concreto para la semana que ENTRA.
+
+DATOS DE LA SEMANA QUE PASÓ (${data.weekStart.toLocaleDateString("es-CO")} al ${data.weekEnd.toLocaleDateString("es-CO")}):
 - Emociones registradas: ${emotionList}
 - Tasa de positividad: ${data.positivity}%
 - Score emocional promedio: ${data.avgScore} (rango -1 a +1)
@@ -114,14 +151,17 @@ DATOS DE LA SEMANA (${data.weekStart.toLocaleDateString("es-CO")} al ${data.week
 - Metas completadas esta semana: ${data.completedGoals.length}
 - Metas activas: ${data.activeGoals.map(g=>g.title).join(", ") || "ninguna"}
 - Racha de días: ${data.streakDays} días
-- Extractos del diario: ${journalExcerpts}${hrEmotionLine}
+- Extractos del diario: ${journalExcerpts}${hrEmotionLine}${worstDayLine}${stalledGoalLine}
 
 Genera el reporte en HTML con esta estructura:
 - Párrafo de apertura: cómo fue la semana en 2-3 oraciones. Específico, honesto. Sin suavizar si fue difícil.
 - Sección "Esta semana" con análisis real de las emociones registradas.
 - Sección "Lo que sí hiciste" destacando logros concretos (metas, racha, diario).
 - Sección "Lo que noté" con 2-3 patrones específicos basados en los datos${data.hrEmotionDays.length >= 2 ? " (si el pulso del reloj varía claramente según la emoción del día, menciónalo — es un dato real, no lo inventes si no está arriba)" : ""}.
-- Sección "Para la próxima" con 2-3 sugerencias concretas y accionables — nada genérico.
+- Sección "Tu plan para esta semana" — NO es una lista de consejos genéricos de bienestar. Son 2-3 acciones puntuales, atadas a datos reales de arriba:
+  ${data.worstDayPattern ? `· Como los ${data.worstDayPattern.day}s tienden a pesar más, sugiere algo concreto para ESE día específico de la semana que entra (ej: bloquear un espacio corto, anticipar el desgaste, etc.) — no un consejo para "todos los días".` : "· Si no hay un día con patrón claro, no inventes uno — da una sugerencia concreta basada en otro dato de arriba."}
+  ${data.stalledGoal ? `· Menciona la meta estancada ("${data.stalledGoal.title}") y propón UN paso pequeño y específico para esta semana, no "sigue intentando".` : ""}
+  · El resto puede tocar diario, chat o lo que haga falta según los datos — pero siempre con un verbo de acción y, si aplica, un día o momento concreto.
 - Párrafo de cierre: corto, directo, humano.
 
 REGLAS DE VOZ (críticas):
@@ -130,7 +170,7 @@ REGLAS DE VOZ (críticas):
 - Habla EN PRIMERA PERSONA a ${data.userName} — "esta semana", "notaste", "hiciste", "vi que"
 - Si la semana fue difícil, dilo sin rodeos — y propón algo específico
 - Usa <p>, <h3>, <ul>, <li>, <strong>. Sin div, sin span.
-- Máximo 400 palabras en total`;
+- Máximo 480 palabras en total`;
 
   const r = await groq.chat.completions.create({
     model: "openai/gpt-oss-120b",

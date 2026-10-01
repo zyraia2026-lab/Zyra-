@@ -1136,6 +1136,9 @@ function closeMobileMoreSheet() {
   <button class="sb-topbar-pill" id="sb-water-pill" onclick="showPage('wellness')" style="display:none">
     <span>💧</span><span id="sb-water-text">Recordatorios de hoy</span>
   </button>
+  <button class="sb-topbar-pill" id="sb-offline-pill" onclick="flushOfflineQueue()" style="display:none;background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.3);color:#d97706" title="Toca para reintentar ahora">
+    <span>📵</span><span id="sb-offline-text">Pendiente por subir</span>
+  </button>
 
   <!-- Botones de acción rápida -- antes flotaban sueltos por la pantalla
        (position:fixed en distintas esquinas) y terminaban tapando contenido
@@ -4405,6 +4408,22 @@ function _offlineQueuePush(path, method, body) {
   const q = _offlineQueueGet();
   q.push({ path, method, body, ts: Date.now() });
   _offlineQueueSet(q);
+  renderOfflineQueueBadge();
+}
+// Indicador permanente en la barra superior -- antes solo se avisaba con un
+// toast que desaparece a los pocos segundos; si alguien cerraba la app sin
+// verlo, no quedaba ningun rastro de que algo seguia pendiente por subir.
+function renderOfflineQueueBadge() {
+  const pill = document.getElementById('sb-offline-pill');
+  const text = document.getElementById('sb-offline-text');
+  if (!pill || !text) return;
+  const n = _offlineQueueGet().length;
+  if (n > 0) {
+    text.textContent = n === 1 ? '1 pendiente por subir' : `${n} pendientes por subir`;
+    pill.style.display = '';
+  } else {
+    pill.style.display = 'none';
+  }
 }
 let _flushingOfflineQueue = false;
 async function flushOfflineQueue() {
@@ -4429,6 +4448,7 @@ async function flushOfflineQueue() {
   }
   _offlineQueueSet(remaining);
   _flushingOfflineQueue = false;
+  renderOfflineQueueBadge();
   if (synced > 0) {
     zyraToast(`✅ ${synced} registro${synced>1?'s':''} pendiente${synced>1?'s':''} se sincronizó${synced>1?'n':''}`, "success", 4000);
     if (window._zyraCurrentPage === "journal" && typeof loadJournal === "function") loadJournal();
@@ -10592,6 +10612,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setTimeout(updateNotifBadge, 2000);
   window._notifBadgeInterval = setInterval(updateNotifBadge, 5 * 60 * 1000);
   setTimeout(_watchTryAutoConnect, 1200);
+  renderOfflineQueueBadge();
   setTimeout(() => { if (navigator.onLine) flushOfflineQueue(); }, 3000);
 });
 async function saveEmotion() {
