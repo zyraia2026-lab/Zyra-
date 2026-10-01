@@ -4390,6 +4390,54 @@ const EMOTIONS = [
 const CAT = {bienestar:"🧘 Bienestar",habitos:"⚡ Hábitos",relaciones:"💛 Relaciones",trabajo:"💼 Trabajo",mindfulness:"🌊 Mindfulness",personal:"⭐ Personal"};
 
 /* ── API ── */
+// ── Cola offline ──────────────────────────────────────────────────────────
+// Diario, emociones y hábitos son capturas rápidas que alguien quiere poder
+// hacer sin señal (muy común en Colombia fuera de ciudad) -- el chat con IA
+// no puede funcionar sin conexión real (necesita a Groq), pero estas
+// escrituras simples sí se pueden guardar en el dispositivo y subir solas
+// cuando vuelva la señal.
+const _OFFLINE_QUEUEABLE = ["/journal", "/profile/emotion", "/habits", "/habits/log"];
+function _offlineQueueGet() {
+  try { return JSON.parse(localStorage.getItem("zyra_offline_queue") || "[]"); } catch(e) { return []; }
+}
+function _offlineQueueSet(q) { localStorage.setItem("zyra_offline_queue", JSON.stringify(q)); }
+function _offlineQueuePush(path, method, body) {
+  const q = _offlineQueueGet();
+  q.push({ path, method, body, ts: Date.now() });
+  _offlineQueueSet(q);
+}
+let _flushingOfflineQueue = false;
+async function flushOfflineQueue() {
+  if (_flushingOfflineQueue) return;
+  const q = _offlineQueueGet();
+  if (!q.length || !token) return;
+  _flushingOfflineQueue = true;
+  let synced = 0;
+  const remaining = [];
+  for (const item of q) {
+    try {
+      const r = await fetch("/api" + item.path, {
+        method: item.method,
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+        body: JSON.stringify(item.body),
+      });
+      if (r.ok) synced++; else remaining.push(item); // el servidor lo rechazo (no es tema de red) -- no reintentar en bucle
+    } catch(e) {
+      remaining.push(item);
+      break; // seguimos sin señal -- dejar el resto en cola para el proximo intento
+    }
+  }
+  _offlineQueueSet(remaining);
+  _flushingOfflineQueue = false;
+  if (synced > 0) {
+    zyraToast(`✅ ${synced} registro${synced>1?'s':''} pendiente${synced>1?'s':''} se sincronizó${synced>1?'n':''}`, "success", 4000);
+    if (window._zyraCurrentPage === "journal" && typeof loadJournal === "function") loadJournal();
+    if (window._zyraCurrentPage === "dashboard" && typeof loadDashboard === "function") loadDashboard();
+  }
+}
+window.addEventListener("online", () => setTimeout(flushOfflineQueue, 500));
+setInterval(() => { if (navigator.onLine) flushOfflineQueue(); }, 60000);
+
 async function api(path, method="GET", body=null, timeoutMs=15000) {
   const ctrl = new AbortController();
   const tid  = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -4400,7 +4448,15 @@ async function api(path, method="GET", body=null, timeoutMs=15000) {
   try { r = await fetch("/api" + path, opts); }
   catch(netErr) {
     clearTimeout(tid);
-    const msg = netErr.name === "AbortError" ? "El servidor tardó demasiado. Intenta de nuevo." : "Sin conexión. Verifica tu red.";
+    const isTimeout = netErr.name === "AbortError";
+    // Sin conexion real (no un simple timeout) y es una escritura que se
+    // puede guardar local y reintentar despues -- en vez de perderla.
+    if (!isTimeout && method !== "GET" && _OFFLINE_QUEUEABLE.includes(path)) {
+      _offlineQueuePush(path, method, body);
+      zyraToast("📵 Sin conexión — se guardó en tu dispositivo y se sube sola cuando vuelva la señal", "info", 6000);
+      return { success: true, queuedOffline: true };
+    }
+    const msg = isTimeout ? "El servidor tardó demasiado. Intenta de nuevo." : "Sin conexión. Verifica tu red.";
     throw Object.assign(new Error(msg), { status: 0 });
   }
   clearTimeout(tid);
@@ -10536,6 +10592,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setTimeout(updateNotifBadge, 2000);
   window._notifBadgeInterval = setInterval(updateNotifBadge, 5 * 60 * 1000);
   setTimeout(_watchTryAutoConnect, 1200);
+  setTimeout(() => { if (navigator.onLine) flushOfflineQueue(); }, 3000);
 });
 async function saveEmotion() {
   if(!selectedEmotion) return zyraToast("Selecciona una emoción primero", "error");
