@@ -7814,7 +7814,13 @@ function _handleBattery(pct) {
   localStorage.setItem('zyra_watch_battery', String(pct));
   syncHealthToServer({ watchBattery: pct, watchName: localStorage.getItem('zyra_watch_name') || '' });
   _updateWatchUI();
-  if (pct <= 15) zyraToast(`⌚ Batería del reloj al ${pct}% — cárgalo pronto`, 'info');
+  if (pct <= 15) {
+    const lastBatAlert = parseInt(localStorage.getItem('zyra_watch_bat_alert') || '0');
+    if (Date.now() - lastBatAlert > 4 * 60 * 60 * 1000) { // maximo 1 aviso cada 4h
+      localStorage.setItem('zyra_watch_bat_alert', String(Date.now()));
+      zyraToast(`⌚ Batería del reloj al ${pct}% — cárgalo pronto`, 'info');
+    }
+  }
 }
 
 function _handleBP(sys, dia) {
@@ -9084,10 +9090,33 @@ async function loadDashboard() {
   if (dot) dot.style.display = lastEmDate === new Date().toDateString() ? 'none' : 'inline-block';
   // Smart habit nudges (afternoon/evening only) — only if still on dashboard
   const hour = new Date().getHours();
-  if (hour >= 15 && token && user) {
+  if (hour >= 15 && token && user && localStorage.getItem('zyra_rail_remind_water') !== '0') {
     const waterToday = parseInt(localStorage.getItem("zyra_water_" + new Date().toDateString()) || "0");
     if (waterToday < 4) setTimeout(() => { if(window._zyraCurrentPage==='dashboard') { zyraToast("💧 Solo "+waterToday+" vasos hoy — no se te olvide tomar agua", "info"); sendWatchReminder("💧 Toma agua: "+waterToday+" vasos hoy"); } }, 2000);
     else if (waterToday < 8 && hour >= 19) setTimeout(() => { if(window._zyraCurrentPage==='dashboard') { zyraToast("💧 "+waterToday+"/8 vasos — casi llegas", "info"); sendWatchReminder("💧 "+waterToday+"/8 vasos — casi llegas"); } }, 2000);
+  }
+  // Pausa activa: el switch "Respirar" del dashboard existia pero no estaba
+  // conectado a nada. Es opt-in (apagado por defecto) a proposito -- despues
+  // de la queja de notificaciones constantes, mejor pedir permiso explicito
+  // que asumirlo. Maximo 1 aviso cada 2.5h, en horario razonable.
+  if (hour >= 9 && hour <= 20 && token && user && localStorage.getItem('zyra_rail_remind_breath') === '1') {
+    const lastBreakNudge = parseInt(localStorage.getItem('zyra_break_nudge_at') || '0');
+    if (Date.now() - lastBreakNudge > 2.5 * 60 * 60 * 1000) {
+      setTimeout(() => {
+        if (window._zyraCurrentPage !== 'dashboard') return;
+        localStorage.setItem('zyra_break_nudge_at', String(Date.now()));
+        zyraToast('🌬️ Pausa activa — 1 minuto de respiración, estira el cuerpo', 'info', 7000, true);
+        sendWatchReminder('🌬️ Pausa activa: respira y estira 1 min');
+        const toastEl = document.querySelector('.zyra-toast:last-child');
+        if (toastEl) {
+          const btn = document.createElement('button');
+          btn.textContent = 'Respirar ahora';
+          btn.style.cssText = 'margin-top:8px;display:block;background:rgba(99,102,241,.25);border:1px solid rgba(99,102,241,.4);color:#c7d2fe;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;width:100%';
+          btn.onclick = () => { showPage('wellness'); setTimeout(() => openWellness('breath'), 100); };
+          toastEl.appendChild(btn);
+        }
+      }, 2500);
+    }
   }
   // Check for delivered future notes
   if (token && user) checkDeliveredFutureNotes();

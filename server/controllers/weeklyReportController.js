@@ -36,7 +36,7 @@ async function buildReportData(userId, userName) {
   const weekEnd   = getMondayOf();
 
   const [profile, goals, journals, sessionCount] = await Promise.all([
-    Profile.findOne({ user: userId }).select("emotionHistory streakDays").lean(),
+    Profile.findOne({ user: userId }).select("emotionHistory streakDays health.history").lean(),
     Goal.find({ user: userId }).select("title completed updatedAt").lean(),
     Journal.find({ user: userId, createdAt: { $gte: weekStart, $lt: weekEnd } }).select("title content createdAt").lean(),
     Conversation.countDocuments({ user: userId, updatedAt: { $gte: weekStart, $lt: weekEnd } }),
@@ -61,13 +61,26 @@ async function buildReportData(userId, userName) {
     return g.completed && new Date(g.updatedAt).getTime() >= weekStart.getTime();
   });
 
+  // Cruce pulso (reloj) x emocion por dia -- le da a Zyra una observacion real
+  // en vez de solo la lista de emociones sueltas ("tu pulso bajo los dias que
+  // marcaste calma"). Solo se arma si el usuario de verdad tiene reloj conectado.
+  const hrByDate = {};
+  (profile?.health?.history || []).forEach(d => { if (d.avgHR) hrByDate[d.date] = d.avgHR; });
+  const hrEmotionDays = history
+    .map(h => {
+      const dateStr = new Date(h.date).toDateString();
+      const avgHR = hrByDate[dateStr];
+      return avgHR ? { emotion: h.emotion, avgHR } : null;
+    })
+    .filter(Boolean);
+
   return {
     userName, weekStart, weekEnd, history, topEmotion, positivity,
     avgScore: Number(avgScore), journals, sessionCount,
     completedGoals: completedThisWeek,
     activeGoals: goals.filter(g => !g.completed).slice(0, 5),
     streakDays: profile?.streakDays || 0,
-    freq,
+    freq, hrEmotionDays,
   };
 }
 
@@ -83,6 +96,13 @@ async function generateWithGroq(data) {
     .map(j => `"${j.title || 'sin título'}": ${j.content.substring(0,100)}`)
     .join(" | ") || "sin entradas";
 
+  // Solo se agrega si el usuario de verdad tiene reloj conectado con datos
+  // reales esta semana -- si no hay nada, mejor omitir la linea por completo
+  // a que el modelo invente una correlacion de datos que no existen.
+  const hrEmotionLine = data.hrEmotionDays.length >= 2
+    ? `\n- Pulso promedio por día según el reloj, cruzado con la emoción registrada ese día: ${data.hrEmotionDays.map(d => `${d.emotion} (${d.avgHR} bpm)`).join(", ")}`
+    : "";
+
   const prompt = `Eres Zyra — la mejor amiga de ${data.userName}. Tienes 24 años, eres colombiana, hablas directo y con calor humano real. Revisaste su semana y vas a contarle lo que viste.
 
 DATOS DE LA SEMANA (${data.weekStart.toLocaleDateString("es-CO")} al ${data.weekEnd.toLocaleDateString("es-CO")}):
@@ -94,13 +114,13 @@ DATOS DE LA SEMANA (${data.weekStart.toLocaleDateString("es-CO")} al ${data.week
 - Metas completadas esta semana: ${data.completedGoals.length}
 - Metas activas: ${data.activeGoals.map(g=>g.title).join(", ") || "ninguna"}
 - Racha de días: ${data.streakDays} días
-- Extractos del diario: ${journalExcerpts}
+- Extractos del diario: ${journalExcerpts}${hrEmotionLine}
 
 Genera el reporte en HTML con esta estructura:
 - Párrafo de apertura: cómo fue la semana en 2-3 oraciones. Específico, honesto. Sin suavizar si fue difícil.
 - Sección "Esta semana" con análisis real de las emociones registradas.
 - Sección "Lo que sí hiciste" destacando logros concretos (metas, racha, diario).
-- Sección "Lo que noté" con 2-3 patrones específicos basados en los datos.
+- Sección "Lo que noté" con 2-3 patrones específicos basados en los datos${data.hrEmotionDays.length >= 2 ? " (si el pulso del reloj varía claramente según la emoción del día, menciónalo — es un dato real, no lo inventes si no está arriba)" : ""}.
 - Sección "Para la próxima" con 2-3 sugerencias concretas y accionables — nada genérico.
 - Párrafo de cierre: corto, directo, humano.
 
