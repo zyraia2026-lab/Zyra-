@@ -4419,6 +4419,9 @@ function showPage(name) {
   document.body.dataset.page = name;
   if (typeof closeMobileMoreSheet === "function") closeMobileMoreSheet();
   if (typeof stopCameraHR === "function" && document.getElementById('camera-hr-overlay')) stopCameraHR();
+  // Salvavidas: si sales de la llamada de voz sin tocar "colgar" (boton atras
+  // del celular, etc.), igual soltar el microfono — mismo bug que la camara.
+  if (name !== 'voice-call' && typeof vcActive !== 'undefined' && vcActive && typeof endVoiceCall === 'function') endVoiceCall();
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
   const pg = document.getElementById("page-" + name);
   if(pg) pg.classList.add("active");
