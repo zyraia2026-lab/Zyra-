@@ -76,14 +76,15 @@ exports.createCheckout = async (req, res) => {
     }
 
     if (!stripe) {
-      // Modo demo: actualizar plan directamente (para pruebas sin Stripe
-      // configurado). ABIERTO A CUALQUIER CUENTA de nuevo, temporalmente,
-      // para pruebas del equipo -- volver a restringir a ADMIN_EMAIL antes
-      // de que la app quede pública, porque sin pasarela real configurada
-      // (ni la va a haber pronto -- Stripe no opera en Colombia y las
-      // pasarelas locales piden RUT/NIT real), cualquier usuario que se
-      // registre puede llamar este endpoint y quedar en plan pago gratis
-      // para siempre.
+      // Modo demo: activa el plan sin cobrar nada — solo para pruebas del
+      // equipo. Restringido a ADMIN_EMAIL: sin esto, si Wompi/Stripe alguna
+      // vez quedan mal configurados (typo en una env var, llave vencida,
+      // etc.), CUALQUIER usuario que llame este endpoint quedaría con plan
+      // pago gratis para siempre. Ya con Wompi activo este branch ni se
+      // alcanza en el flujo normal, pero debe seguir cerrado por si acaso.
+      if (req.user.email !== process.env.ADMIN_EMAIL) {
+        return res.status(503).json({ message: "Pagos no disponibles en este momento. Intenta más tarde o contacta soporte." });
+      }
       const duration = isAnnual ? PLANS[plan].durationAnnual : PLANS[plan].durationMonthly;
       const expires = new Date();
       expires.setDate(expires.getDate() + duration);
@@ -311,7 +312,13 @@ exports.wompiWebhook = async (req, res) => {
     );
     const base = values.join("") + timestamp + process.env.WOMPI_EVENTS_SECRET;
     const checksum = crypto.createHash("sha256").update(base).digest("hex");
-    if (checksum !== signature.checksum) {
+    // Comparación en tiempo constante -- un === normal en un hash de firma es
+    // vulnerable (en teoría) a timing attacks; ambos lados deben ser el mismo
+    // largo para timingSafeEqual, así que primero se descarta un largo distinto.
+    const checksumBuf  = Buffer.from(checksum, "hex");
+    const receivedBuf  = Buffer.from(String(signature.checksum || ""), "hex");
+    const checksumsMatch = checksumBuf.length === receivedBuf.length && crypto.timingSafeEqual(checksumBuf, receivedBuf);
+    if (!checksumsMatch) {
       console.error("Wompi webhook: checksum inválido");
       return res.status(400).json({ message: "Firma inválida" });
     }
