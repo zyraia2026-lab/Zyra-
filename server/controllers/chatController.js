@@ -110,20 +110,6 @@ const FALLBACK_SYSTEM_PROMPT = "Eres Zyra, una amiga cercana y cálida que acomp
 const REASONING_EFFORT_MODELS = new Set(["openai/gpt-oss-120b", "openai/gpt-oss-20b"]);
 
 /* ════════════════════════════════════════
-   SERVICIOS AUXILIARES
-════════════════════════════════════════ */
-async function callPython(path, body, timeout = 4000) {
-  const url = (process.env.PYTHON_SERVICE || "http://localhost:5000") + path;
-  try {
-    const r = await fetch(url, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body), signal: AbortSignal.timeout(timeout)
-    });
-    return r.ok ? await r.json() : null;
-  } catch { return null; }
-}
-
-/* ════════════════════════════════════════
    CATÁLOGOS
 ════════════════════════════════════════ */
 const ARTIST_SONGS = {
@@ -1418,10 +1404,6 @@ exports.sendMessage = async (req, res) => {
     const quoteReq = wantsQuote(message);
     const movieReq = wantsMovie(message);
 
-    callPython("/analyze", { text: message }, 2000)
-      .then(ea => { if (ea?.emotion) Profile.findOneAndUpdate({ user: req.user._id }, { currentEmotion: ea.emotion }).catch(()=>{}); })
-      .catch(()=>{});
-
     const usedSongs = (history || []).flatMap(m =>
       m.role === "assistant" && m.cards ? m.cards.filter(c=>c.type==="song").map(c=>c.title.toLowerCase()) : []
     );
@@ -1821,10 +1803,6 @@ exports.streamMessage = async (req, res) => {
     const bookReq  = wantsBook(message);
     const quoteReq = wantsQuote(message);
     const movieReq = wantsMovie(message);
-
-    callPython("/analyze", { text: message }, 2000)
-      .then(ea => { if (ea?.emotion) Profile.findOneAndUpdate({ user: req.user._id }, { currentEmotion: ea.emotion }).catch(()=>{}); })
-      .catch(()=>{});
 
     const usedSongs = (history || []).flatMap(m =>
       m.role === "assistant" && m.cards ? m.cards.filter(c=>c.type==="song").map(c=>c.title.toLowerCase()) : []
