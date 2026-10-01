@@ -7409,21 +7409,25 @@ async function _watchConnectAny() { connectSmartwatch(); }
 // disponible en Chrome Android sin gesto nuevo). Antes de esto, cerrar y
 // reabrir la app obligaba a volver a emparejar el reloj cada vez.
 async function _watchTryAutoConnect() {
+  const log = (...a) => { if (_watchDebug) console.log('[Watch AutoConnect]', ...a); };
   try {
-    if (!localStorage.getItem('zyra_watch_paired')) return;
-    if (!navigator.bluetooth || !navigator.bluetooth.getDevices) return;
-    if (_watchConnected) return;
+    if (!localStorage.getItem('zyra_watch_paired')) return log('sin pairing previo guardado -- omitido');
+    if (!navigator.bluetooth) return log('navigator.bluetooth no existe en este navegador');
+    if (!navigator.bluetooth.getDevices) return log('navigator.bluetooth.getDevices() no soportado en este Chrome');
+    if (_watchConnected) return log('ya conectado -- omitido');
     const savedId = localStorage.getItem('zyra_watch_id');
     const devices = await navigator.bluetooth.getDevices();
+    log('getDevices() devolvio', devices.length, 'dispositivo(s) con permiso:', devices.map(d => d.id + '/' + d.name));
     const dev = savedId ? devices.find(d => d.id === savedId) : devices[0];
-    if (!dev) return;
+    if (!dev) return log('ninguno coincide con el id guardado (' + savedId + ') -- el reloj no esta entre los permitidos');
+    log('intentando reconectar a', dev.id, dev.name);
     _watchDevice = dev;
     _watchAutoReconnected = false;
     _watchDevice.addEventListener('gattserverdisconnected', _onWatchDisconnected);
     await _watchGattConnect();
-    if (_watchDebug) console.log('[Watch] Auto-reconexión silenciosa al abrir la app');
+    log('✅ reconexion silenciosa exitosa');
   } catch(e) {
-    if (_watchDebug) console.log('[Watch] Auto-reconexión al abrir no disponible (reloj apagado/lejos):', e.message);
+    log('❌ fallo:', e.message);
   }
 }
 
