@@ -7627,6 +7627,17 @@ function _onWatchDataAuto(event, svcUuid, charUuid) {
   if (bytes.length === 2 && bytes[1] >= 40 && bytes[1] <= 200 && bytes[0] <= 5) { _handleHR(bytes[1]); return; }
 }
 
+// Borra tambien los datos viejos del reloj (pulso, pasos, presion, oxigeno,
+// historial) — si no, al conectar un reloj distinto se verian por un momento
+// lecturas que ya no son de ese reloj.
+function forgetWatch() {
+  ['zyra_watch_paired','zyra_watch_name','zyra_watch_hr','zyra_watch_hr_hist',
+   'zyra_watch_steps','zyra_watch_bp','zyra_watch_spo2','zyra_watch_battery',
+   'zyra_watch_hr_alert'].forEach(k => localStorage.removeItem(k));
+  _watchReset();
+  renderWatchCard();
+}
+
 async function disconnectSmartwatch() {
   localStorage.removeItem('zyra_watch_paired');
   _watchReset();
@@ -8294,7 +8305,7 @@ function renderWatchCard() {
         </div>` : ''}
       </div>` : ''}
       <div style="margin-top:10px;text-align:center;display:flex;gap:8px;justify-content:center">
-        <button onclick="localStorage.removeItem('zyra_watch_paired');localStorage.removeItem('zyra_watch_name');_watchReset();renderWatchCard()" style="background:none;border:none;color:var(--text3);font-size:10px;cursor:pointer;opacity:.5">✕ Olvidar reloj</button>
+        <button onclick="forgetWatch()" style="background:none;border:none;color:var(--text3);font-size:10px;cursor:pointer;opacity:.5">✕ Olvidar reloj</button>
       </div>
     </div>` + historyBlock;
 }
