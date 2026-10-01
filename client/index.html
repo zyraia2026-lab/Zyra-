@@ -7404,12 +7404,39 @@ async function connectSmartwatch() {
 
 async function _watchConnectAny() { connectSmartwatch(); }
 
+// Reconexión silenciosa al reloj ya emparejado, sin mostrar el selector de
+// Bluetooth -- usa el permiso ya concedido (navigator.bluetooth.getDevices,
+// disponible en Chrome Android sin gesto nuevo). Antes de esto, cerrar y
+// reabrir la app obligaba a volver a emparejar el reloj cada vez.
+async function _watchTryAutoConnect() {
+  try {
+    if (!localStorage.getItem('zyra_watch_paired')) return;
+    if (!navigator.bluetooth || !navigator.bluetooth.getDevices) return;
+    if (_watchConnected) return;
+    const savedId = localStorage.getItem('zyra_watch_id');
+    const devices = await navigator.bluetooth.getDevices();
+    const dev = savedId ? devices.find(d => d.id === savedId) : devices[0];
+    if (!dev) return;
+    _watchDevice = dev;
+    _watchAutoReconnected = false;
+    _watchDevice.addEventListener('gattserverdisconnected', _onWatchDisconnected);
+    await _watchGattConnect();
+    if (_watchDebug) console.log('[Watch] Auto-reconexión silenciosa al abrir la app');
+  } catch(e) {
+    if (_watchDebug) console.log('[Watch] Auto-reconexión al abrir no disponible (reloj apagado/lejos):', e.message);
+  }
+}
+
 async function _watchWrite(char, data) {
-  if (!char) return;
+  if (!char) throw new Error('Sin characteristic de escritura');
   const b = data instanceof Uint8Array ? data : new Uint8Array(data);
-  // Intentar ambos métodos — el reloj decide cuál acepta
-  try { await char.writeValueWithoutResponse(b); return; } catch(_) {}
-  try { await char.writeValue(b); } catch(_) {}
+  // Intentar ambos métodos — el reloj decide cuál acepta. Si AMBOS fallan hay
+  // que avisarle a quien llamó (antes se tragaba el error y _watchSend/
+  // measureWithWatch creían que todo había salido bien aunque el reloj nunca
+  // recibiera nada).
+  try { await char.writeValueWithoutResponse(b); return; } catch(e1) {
+    await char.writeValue(b); // si esto también falla, se propaga de verdad
+  }
 }
 
 async function _watchGattConnect() {
@@ -7427,6 +7454,7 @@ async function _watchGattConnect() {
                   (rawName && rawName.toLowerCase() !== 'unknown' ? rawName : 'Mi Reloj');
   localStorage.setItem('zyra_watch_name', name);
   localStorage.setItem('zyra_watch_paired', '1');
+  if (_watchDevice.id) localStorage.setItem('zyra_watch_id', _watchDevice.id);
   zyraToast(`⌚ ${name} conectado`, 'success', 3000);
   renderWatchCard();
   renderWatchWidget();
@@ -7438,7 +7466,7 @@ async function _watchGattConnect() {
   if (_watchKeepAlive) clearInterval(_watchKeepAlive);
   _watchKeepAlive = setInterval(async () => {
     if (!server.connected) { clearInterval(_watchKeepAlive); _watchKeepAlive = null; return; }
-    if (_watchRxChar) await _watchWrite(_watchRxChar, [0xAB,0x00,0x04,0xFF,0x84,0x01,0x00]);
+    if (_watchRxChar) { try { await _watchWrite(_watchRxChar, [0xAB,0x00,0x04,0xFF,0x84,0x01,0x00]); } catch(_) {} }
   }, 5000);
 
   // Discovery: suscribir notificaciones y enviar handshake (en background)
@@ -7912,14 +7940,14 @@ async function _watchSend(text) {
 }
 
 async function sendWatchAffirmation(text) {
-  await _watchSend('Zyra: ' + text.slice(0, 100));
+  return await _watchSend('Zyra: ' + text.slice(0, 100));
 }
 async function sendWatchReminder(text) {
-  await _watchSend('Zyra: ' + (text || 'Momento de ti'));
+  return await _watchSend('Zyra: ' + (text || 'Momento de ti'));
 }
 async function sendWatchEmotion(emo) {
   const MAP = { feliz:'Feliz', tranquilo:'Tranquilo', ansioso:'Ansioso', triste:'Triste', enojado:'Enojado', confundido:'Confundido', esperanzado:'Esperanzado', agotado:'Agotado', motivado:'Motivado', nostalgico:'Nostálgico' };
-  await _watchSend('Zyra registró: ' + (MAP[emo] || emo));
+  return await _watchSend('Zyra registró: ' + (MAP[emo] || emo));
 }
 
 /* ── UI HELPERS ── */
@@ -7942,7 +7970,11 @@ async function measureWithWatch() {
     return;
   }
   zyraToast('💓 Midiendo desde tu reloj… espera unos segundos', 'info', 4000);
-  await _watchWrite(_watchRxChar, [0x60, 0x00, 0x01]);
+  try {
+    await _watchWrite(_watchRxChar, [0x60, 0x00, 0x01]);
+  } catch(e) {
+    zyraToast('⌚ No se pudo pedir la medición — intenta de nuevo', 'error', 4000);
+  }
 }
 
 // ══════════════════════════════════════════
@@ -10367,6 +10399,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initPasswordToggles();
   setTimeout(updateNotifBadge, 2000);
   window._notifBadgeInterval = setInterval(updateNotifBadge, 5 * 60 * 1000);
+  setTimeout(_watchTryAutoConnect, 1200);
 });
 async function saveEmotion() {
   if(!selectedEmotion) return zyraToast("Selecciona una emoción primero", "error");

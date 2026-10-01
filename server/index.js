@@ -166,7 +166,7 @@ app.use("/api/admin",         require("./routes/admin"));
 app.use("/api/voice",         require("./routes/voice"));
 app.use("/api/spotify",       require("./routes/spotify"));
 
-app.get("/api/health", (req, res) => res.json({ status: "OK", ai: "Zyra/Groq", version: "5.0", deployCheck: "revert-ok-2" }));
+app.get("/api/health", (req, res) => res.json({ status: "OK", ai: "Zyra/Groq", version: "5.0" }));
 app.get("/api/config", auth, (req, res) => res.json({
   ytEnabled:      !!process.env.YT_API_KEY,
   spotifyEnabled: !!process.env.SPOTIFY_CLIENT_ID,
