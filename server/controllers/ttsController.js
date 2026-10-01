@@ -23,14 +23,43 @@ function truncateAtSentence(text, maxLen) {
 // Circuit breaker: si un proveedor responde 401/429 (sin credito, sin API key,
 // bloqueado), dejar de intentarlo por un rato en vez de perder tiempo en CADA
 // mensaje esperando una respuesta que ya sabemos que va a fallar igual.
-const _ttsCooldownUntil = { fishaudio: 0, elevenlabs: 0, streamelements: 0 };
-const COOLDOWN_MS = { fishaudio: 60 * 60 * 1000, elevenlabs: 60 * 60 * 1000, streamelements: 24 * 60 * 60 * 1000 };
+const _ttsCooldownUntil = { fishaudio: 0, elevenlabs: 0, streamelements: 0, edgetts: 0 };
+const COOLDOWN_MS = { fishaudio: 60 * 60 * 1000, elevenlabs: 60 * 60 * 1000, streamelements: 24 * 60 * 60 * 1000, edgetts: 30 * 60 * 1000 };
 function _isOnCooldown(provider) { return Date.now() < _ttsCooldownUntil[provider]; }
 function _markCooldown(provider, status) {
   if (status === 401 || status === 429) {
     _ttsCooldownUntil[provider] = Date.now() + COOLDOWN_MS[provider];
     console.warn(`[TTS] ${provider} en cooldown ${COOLDOWN_MS[provider]/60000}min tras status ${status}`);
   }
+}
+
+// Microsoft Edge "Leer en voz alta" (voz Neural real, gratis, sin API key —
+// la misma tecnologia detras de Dalia Neural). No es una API oficial soportada
+// por Microsoft, asi que si alguna vez la bloquean, el circuit breaker de
+// arriba la deja en pausa y el resto de la cascada sigue funcionando igual.
+const { MsEdgeTTS, OUTPUT_FORMAT } = require("msedge-tts");
+async function edgeTTSAudio(text) {
+  if (_isOnCooldown("edgetts")) throw new Error("Edge TTS en cooldown");
+  const clean = truncateAtSentence(normalizeTTSText(text), 600);
+  const tts = new MsEdgeTTS();
+  const timeoutMs = 15000;
+  const result = await Promise.race([
+    (async () => {
+      await tts.setMetadata("es-MX-DaliaNeural", OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
+      const { audioStream } = await tts.toStream(clean);
+      return new Promise((resolve, reject) => {
+        const chunks = [];
+        audioStream.on("data", c => chunks.push(c));
+        audioStream.on("end", () => resolve(Buffer.concat(chunks)));
+        audioStream.on("error", reject);
+      });
+    })(),
+    new Promise((_, reject) => setTimeout(() => reject(new Error("Edge TTS timeout")), timeoutMs)),
+  ]).catch(e => { _markCooldown("edgetts", 429); throw e; });
+  if (!result || !result.length) throw new Error("Edge TTS: audio vacío");
+  // Forma compatible con fetch Response — asi el resto de la cascada (que
+  // llama r.arrayBuffer()) no necesita saber que este provider no usa fetch.
+  return { arrayBuffer: async () => result };
 }
 
 async function fishAudioAudio(text) {
@@ -110,14 +139,20 @@ async function googleTTSAudio(text) {
   return r;
 }
 
-/* ── POST /api/tts/speak ── Fish Audio → ElevenLabs → StreamElements Dalia Neural → Google TTS */
+/* ── POST /api/tts/speak ── Edge TTS Neural → Fish Audio → ElevenLabs → StreamElements → Google TTS */
 exports.speak = async (req, res) => {
   try {
     const { text } = req.body;
     if (!text?.trim()) return res.status(400).json({ message: "Texto requerido" });
 
     let audioBuffer = null;
-    let provider = "fishaudio";
+    let provider = "edgetts";
+    try {
+      const r = await edgeTTSAudio(text);
+      audioBuffer = Buffer.from(await r.arrayBuffer());
+    } catch(eEdge) {
+    console.warn("[TTS/speak] Edge TTS:", eEdge.message, "→ Fish Audio");
+    provider = "fishaudio";
     try {
       const r = await fishAudioAudio(text);
       audioBuffer = Buffer.from(await r.arrayBuffer());
@@ -145,6 +180,7 @@ exports.speak = async (req, res) => {
         }
       }
     }
+    }
 
     res.json({ audioBase64: audioBuffer.toString("base64"), audioMime: "audio/mpeg", provider });
   } catch(e) {
@@ -158,6 +194,14 @@ exports.audio = async (req, res) => {
   try {
     const { text } = req.body;
     if (!text?.trim()) return res.status(400).json({ message: "Texto requerido" });
+
+    try {
+      const r = await edgeTTSAudio(text);
+      res.set("Content-Type", "audio/mpeg");
+      res.set("X-TTS-Provider", "edgetts");
+      res.send(Buffer.from(await r.arrayBuffer()));
+      return;
+    } catch(eEdge) { console.warn("[TTS] Edge TTS:", eEdge.message, "→ Fish Audio"); }
 
     try {
       const r = await fishAudioAudio(text);
