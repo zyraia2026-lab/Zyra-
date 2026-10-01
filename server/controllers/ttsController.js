@@ -195,13 +195,15 @@ exports.audio = async (req, res) => {
     const { text } = req.body;
     if (!text?.trim()) return res.status(400).json({ message: "Texto requerido" });
 
+    let _edgeErr = null;
     try {
       const r = await edgeTTSAudio(text);
       res.set("Content-Type", "audio/mpeg");
       res.set("X-TTS-Provider", "edgetts");
       res.send(Buffer.from(await r.arrayBuffer()));
       return;
-    } catch(eEdge) { console.warn("[TTS] Edge TTS:", eEdge.message, "→ Fish Audio"); }
+    } catch(eEdge) { _edgeErr = eEdge.message; console.warn("[TTS] Edge TTS:", eEdge.message, "→ Fish Audio"); }
+    res.set("X-TTS-Edge-Error", String(_edgeErr || "").slice(0, 200));
 
     try {
       const r = await fishAudioAudio(text);
