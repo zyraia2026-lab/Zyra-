@@ -4121,22 +4121,29 @@ function _homePage() { return "dashboard"; }
   history.replaceState({}, '', location.pathname + (qs ? '?' + qs : ''));
 })();
 
-// Manejar redirect de OAuth (Google, Spotify, Facebook)
+// Manejar redirect de OAuth (Google, Spotify, Facebook) — el servidor solo
+// manda un codigo de un solo uso en la URL, nunca el token real (asi no
+// queda un token de 30 dias en el historial del navegador ni en logs).
 (() => {
   const p = new URLSearchParams(location.search);
-  const oauthToken = p.get('oauth_token');
-  const oauthUser  = p.get('oauth_user');
+  const oauthCode  = p.get('oauth_code');
   const authError  = p.get('auth_error');
-  if (oauthToken && oauthUser) {
-    try {
-      const u = JSON.parse(decodeURIComponent(oauthUser));
-      token = oauthToken;
-      user  = u;
-      localStorage.setItem('zyra_token', token);
-      localStorage.setItem('zyra_user',  JSON.stringify(u));
-    } catch(_) {}
-    // Limpiar URL sin recargar
+  if (oauthCode) {
     history.replaceState({}, '', location.pathname);
+    fetch('/api/auth/oauth/exchange', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: oauthCode }),
+    })
+      .then(r => r.json())
+      .then(d => {
+        if (!d.token) return;
+        token = d.token;
+        user  = d.user;
+        localStorage.setItem('zyra_token', token);
+        localStorage.setItem('zyra_user',  JSON.stringify(user));
+        location.reload();
+      })
+      .catch(() => {});
   } else if (authError) {
     history.replaceState({}, '', location.pathname);
     const _msg = decodeURIComponent(authError).replace(/[<>"']/g, "");

@@ -7,6 +7,17 @@ const User   = require('../models/User');
 const BASE = process.env.APP_URL || 'https://zyra-app-8qva.onrender.com';
 const STATE_COOKIE = 'zyra_oauth_state';
 
+// Códigos de intercambio de un solo uso: el token real nunca viaja en la URL
+// del redirect (quedaría en logs del servidor/CDN, historial del navegador,
+// etc.) — en su lugar el cliente cambia este código de corta duración por el
+// token real en una llamada POST aparte.
+const _oauthExchange = new Map(); // code -> { token, userData, expiresAt }
+function _cleanExpiredExchangeCodes() {
+  const now = Date.now();
+  for (const [code, v] of _oauthExchange) if (v.expiresAt < now) _oauthExchange.delete(code);
+}
+setInterval(_cleanExpiredExchangeCodes, 60 * 1000).unref();
+
 function readCookie(req, name) {
   const parsed = cookie.parse(req.headers.cookie || '');
   return parsed[name];
@@ -149,19 +160,37 @@ router.get('/:provider/callback', async (req, res) => {
 
     // Emitir JWT de Zyra
     const zyraToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
-    const userData  = JSON.stringify({
+    const userData  = {
       _id: user._id, name: user.name, email: user.email,
       plan: user.plan, darkMode: user.darkMode,
       spotifyConnected:  user.spotifyConnected  || false,
       googleConnected:   !!user.googleId,
       facebookConnected: !!user.facebookId,
-    });
+    };
 
-    res.redirect(`${BASE}/?oauth_token=${zyraToken}&oauth_user=${encodeURIComponent(userData)}`);
+    // El token real no va en la URL — solo un código de un solo uso, valido
+    // 60s, que el cliente cambia de inmediato por el token via POST.
+    const exchangeCode = crypto.randomBytes(24).toString('hex');
+    _oauthExchange.set(exchangeCode, { token: zyraToken, userData, expiresAt: Date.now() + 60 * 1000 });
+
+    res.redirect(`${BASE}/?oauth_code=${exchangeCode}`);
   } catch(e) {
     console.error(`[OAuth ${provider}]`, e.message);
     res.redirect(`${BASE}/?auth_error=${encodeURIComponent('Error al conectar. Intenta de nuevo.')}`);
   }
+});
+
+// POST /api/auth/oauth/exchange { code } — cambia el codigo de un solo uso
+// por el token real. El codigo se borra apenas se usa (o si expira).
+router.post('/oauth/exchange', (req, res) => {
+  const { code } = req.body || {};
+  const entry = code && _oauthExchange.get(code);
+  if (!entry || entry.expiresAt < Date.now()) {
+    if (entry) _oauthExchange.delete(code);
+    return res.status(400).json({ message: 'Código de inicio de sesión inválido o expirado' });
+  }
+  _oauthExchange.delete(code);
+  res.json({ success: true, token: entry.token, user: entry.userData });
 });
 
 module.exports = router;
