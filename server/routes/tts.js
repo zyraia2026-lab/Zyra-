@@ -13,6 +13,11 @@ const ttsLimiter = rateLimit({
 });
 
 r.post("/speak", protect, requirePlan("premium"), ttsLimiter, T.speak);
-r.post("/audio", protect, requirePlan("premium"), ttsLimiter, T.audio);
+// /audio (leer un mensaje del chat en voz alta) ya NO es solo premium: sin
+// esto, un usuario Gratis/Basico sin voz femenina en su celular se quedaba
+// con la voz generica del dispositivo (suena robotica) en vez de la voz
+// neural (StreamElements Dalia, sin costo de API) — la calidad de la voz
+// no deberia depender del plan, solo las llamadas de voz en vivo si.
+r.post("/audio", protect, ttsLimiter, T.audio);
 
 module.exports = r;
