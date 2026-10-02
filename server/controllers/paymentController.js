@@ -233,17 +233,29 @@ exports.webhook = async (req, res) => {
     const customerId = invoice.customer;
     if (customerId && invoice.subscription) {
       try {
+        // Idempotencia: Stripe mismo advierte que un evento se puede reenviar
+        // mas de una vez aunque ya se proceso bien -- sin esto, un reenvio
+        // legitimo sumaria dias de plan dos veces por la misma factura.
+        const already = await Payment.findOne({ stripeInvoiceId: invoice.id }).lean();
+        if (already) return res.status(200).json({ received: true, alreadyProcessed: true });
+
         const sub = await stripe.subscriptions.retrieve(invoice.subscription);
         const { plan } = sub.metadata || {};
         if (plan && PLANS[plan]) {
-          const duration = sub.items?.data?.[0]?.price?.recurring?.interval === "year"
-            ? PLANS[plan].durationAnnual
-            : PLANS[plan].durationMonthly;
+          const isAnnual = sub.items?.data?.[0]?.price?.recurring?.interval === "year";
+          const duration = isAnnual ? PLANS[plan].durationAnnual : PLANS[plan].durationMonthly;
           const expires = new Date();
           expires.setDate(expires.getDate() + duration);
-          await User.findOneAndUpdate({ stripeCustomerId: customerId }, {
+          const user = await User.findOneAndUpdate({ stripeCustomerId: customerId }, {
             plan, planExpiresAt: expires, planActivatedAt: new Date(),
           });
+          if (user) {
+            await Payment.create({
+              user: user._id, plan, period: isAnnual ? "annual" : "monthly",
+              amount: invoice.amount_paid, currency: (invoice.currency || "cop"),
+              stripeInvoiceId: invoice.id,
+            }).catch(() => {});
+          }
           console.log(`🔄 Renovación de ${plan} para customer ${customerId}`);
         }
       } catch(e) {
@@ -271,6 +283,12 @@ exports.webhook = async (req, res) => {
       const { userId, plan } = session.metadata || {};
       if (userId && plan && PLANS[plan]) {
         try {
+          // Idempotencia: Stripe puede reenviar el mismo evento mas de una
+          // vez aunque ya se haya procesado -- sin esto, el reenvio sumaria
+          // dias de plan otra vez por el mismo pago.
+          const already = await Payment.findOne({ stripeSessionId: session.id }).lean();
+          if (already) return res.status(200).json({ received: true, alreadyProcessed: true });
+
           const isAnnualWh = session.metadata?.period === "annual";
           const durationWh = isAnnualWh ? PLANS[plan].durationAnnual : PLANS[plan].durationMonthly;
           const expires = new Date();
@@ -323,11 +341,30 @@ exports.wompiWebhook = async (req, res) => {
       return res.status(400).json({ message: "Firma inválida" });
     }
 
+    // Anti-repeticion: un checksum valido captado una vez (log filtrado,
+    // proxy comprometido, etc.) seguiria siendo valido para siempre si no se
+    // revisa que el timestamp sea reciente -- sin esto, reenviar el MISMO
+    // webhook de un pago real de hace meses volveria a extender el plan desde
+    // hoy, otorgando premium gratis indefinidamente con un solo payload
+    // capturado una vez.
+    const tsNum = Number(timestamp);
+    if (!tsNum || Math.abs(Date.now() / 1000 - tsNum) > 300) {
+      console.error("Wompi webhook: timestamp fuera de rango (posible repeticion)");
+      return res.status(400).json({ message: "Timestamp inválido o expirado" });
+    }
+
     if (tx.status === "APPROVED") {
       // reference = zyra_<userId>_<plan>_<period>_<timestamp>
       const parts = String(tx.reference || "").split("_");
       if (parts[0] === "zyra" && parts.length >= 5 && PLANS[parts[2]]) {
         const [, userId, plan, period] = parts;
+        // Idempotencia real: si esta transaccion ya se proceso (Wompi puede
+        // reintentar el mismo webhook por su cuenta si nuestra respuesta se
+        // demoro o se perdio), no volver a sumar dias de plan de nuevo.
+        const already = await Payment.findOne({ wompiTransactionId: tx.id }).lean();
+        if (already) {
+          return res.status(200).json({ received: true, alreadyProcessed: true });
+        }
         const isAnnualWh = period === "annual";
         const duration = isAnnualWh ? PLANS[plan].durationAnnual : PLANS[plan].durationMonthly;
         const expires = new Date();
