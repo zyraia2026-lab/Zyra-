@@ -9,6 +9,13 @@ if (process.env.SENTRY_DSN) {
       dsn: process.env.SENTRY_DSN,
       environment: process.env.NODE_ENV || "development",
       tracesSampleRate: 0.2,
+      // Cada controller atrapa sus propios errores y responde directo (nunca
+      // llegan al manejador de Express de abajo) -- sin esto Sentry estaba
+      // "conectado" pero jamas recibia nada real. console.error ya se usa en
+      // todo el codigo como la señal de "esto es un fallo real" (los
+      // fallbacks esperados usan console.warn), asi que capturarlo reporta
+      // justo lo que importa sin tocar los ~50 catch uno por uno.
+      integrations: [Sentry.captureConsoleIntegration({ levels: ["error"] })],
       beforeSend(event) {
         // No enviar errores de rate-limit o auth (demasiado ruido)
         if (event.exception?.values?.[0]?.type === "UnauthorizedError") return null;
