@@ -96,6 +96,36 @@ async function streamElementsAudio(text) {
   return r;
 }
 
+// Edge TTS (voz neural gratis de Microsoft, sin API key -- usa el mismo
+// servicio que "Leer en voz alta" de Microsoft Edge). require() en diferido
+// y protegido: si el paquete no carga por lo que sea en este entorno, no se
+// vuelve a intentar cargarlo (evita repetir el intento fallido en cada
+// mensaje) y el resto de la cascada sigue funcionando igual que antes.
+let _edgeTtsLoadFailed = false;
+async function edgeTTSAudio(text) {
+  if (_edgeTtsLoadFailed) throw new Error("Edge TTS no disponible en este entorno");
+  let MsEdgeTTS, OUTPUT_FORMAT;
+  try {
+    ({ MsEdgeTTS, OUTPUT_FORMAT } = require("msedge-tts"));
+  } catch(e) {
+    _edgeTtsLoadFailed = true;
+    throw new Error("Edge TTS no se pudo cargar: " + e.message);
+  }
+  const clean = truncateAtSentence(normalizeTTSText(text), 600);
+  const tts = new MsEdgeTTS();
+  await tts.setMetadata("es-CO-SalomeNeural", OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
+  const { audioStream } = tts.toStream(clean);
+  const chunks = [];
+  await new Promise((resolve, reject) => {
+    const to = setTimeout(() => reject(new Error("Edge TTS timeout")), 12000);
+    audioStream.on("data", (c) => chunks.push(c));
+    audioStream.on("end", () => { clearTimeout(to); resolve(); });
+    audioStream.on("error", (e) => { clearTimeout(to); reject(e); });
+  });
+  if (!chunks.length) throw new Error("Edge TTS devolvió audio vacío");
+  return Buffer.concat(chunks);
+}
+
 async function googleTTSAudio(text) {
   const short = truncateAtSentence(normalizeTTSText(text), 200);
   const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(short)}&tl=es&total=1&idx=0&textlen=${short.length}&client=tw-ob`;
@@ -110,37 +140,43 @@ async function googleTTSAudio(text) {
   return r;
 }
 
-/* ── POST /api/tts/speak ── Fish Audio → ElevenLabs → StreamElements Dalia Neural → Google TTS */
+/* ── POST /api/tts/speak ── Edge TTS → Fish Audio → ElevenLabs → StreamElements Dalia Neural → Google TTS */
 exports.speak = async (req, res) => {
   try {
     const { text } = req.body;
     if (!text?.trim()) return res.status(400).json({ message: "Texto requerido" });
 
     let audioBuffer = null;
-    let provider = "fishaudio";
+    let provider = "edge";
     try {
-      const r = await fishAudioAudio(text);
-      audioBuffer = Buffer.from(await r.arrayBuffer());
-    } catch(e0) {
-      console.warn("[TTS/speak] Fish Audio:", e0.message, "→ ElevenLabs");
-      provider = "elevenlabs";
+      audioBuffer = await edgeTTSAudio(text);
+    } catch(eEdge) {
+      console.warn("[TTS/speak] Edge TTS:", eEdge.message, "→ Fish Audio");
+      provider = "fishaudio";
       try {
-        const r = await elevenLabsAudio(text);
+        const r = await fishAudioAudio(text);
         audioBuffer = Buffer.from(await r.arrayBuffer());
-      } catch(e) {
-        console.warn("[TTS/speak] ElevenLabs:", e.message, "→ StreamElements");
-        provider = "streamelements";
+      } catch(e0) {
+        console.warn("[TTS/speak] Fish Audio:", e0.message, "→ ElevenLabs");
+        provider = "elevenlabs";
         try {
-          const r = await streamElementsAudio(text);
+          const r = await elevenLabsAudio(text);
           audioBuffer = Buffer.from(await r.arrayBuffer());
-        } catch(e2) {
-          console.warn("[TTS/speak] StreamElements:", e2.message, "→ Google TTS");
-          provider = "google";
+        } catch(e) {
+          console.warn("[TTS/speak] ElevenLabs:", e.message, "→ StreamElements");
+          provider = "streamelements";
           try {
-            const r = await googleTTSAudio(text);
+            const r = await streamElementsAudio(text);
             audioBuffer = Buffer.from(await r.arrayBuffer());
-          } catch(e3) {
-            throw new Error("TTS no disponible: " + e3.message);
+          } catch(e2) {
+            console.warn("[TTS/speak] StreamElements:", e2.message, "→ Google TTS");
+            provider = "google";
+            try {
+              const r = await googleTTSAudio(text);
+              audioBuffer = Buffer.from(await r.arrayBuffer());
+            } catch(e3) {
+              throw new Error("TTS no disponible: " + e3.message);
+            }
           }
         }
       }
@@ -153,11 +189,19 @@ exports.speak = async (req, res) => {
   }
 };
 
-/* ── POST /api/tts/audio ── Fish Audio → ElevenLabs → StreamElements Dalia Neural → Google TTS */
+/* ── POST /api/tts/audio ── Edge TTS → Fish Audio → ElevenLabs → StreamElements Dalia Neural → Google TTS */
 exports.audio = async (req, res) => {
   try {
     const { text } = req.body;
     if (!text?.trim()) return res.status(400).json({ message: "Texto requerido" });
+
+    try {
+      const buf = await edgeTTSAudio(text);
+      res.set("Content-Type", "audio/mpeg");
+      res.set("X-TTS-Provider", "edge");
+      res.send(buf);
+      return;
+    } catch(eEdge) { console.warn("[TTS] Edge TTS:", eEdge.message, "→ Fish Audio"); }
 
     try {
       const r = await fishAudioAudio(text);
