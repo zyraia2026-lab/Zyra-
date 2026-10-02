@@ -96,34 +96,88 @@ async function streamElementsAudio(text) {
   return r;
 }
 
-// Edge TTS (voz neural gratis de Microsoft, sin API key -- usa el mismo
-// servicio que "Leer en voz alta" de Microsoft Edge). require() en diferido
-// y protegido: si el paquete no carga por lo que sea en este entorno, no se
-// vuelve a intentar cargarlo (evita repetir el intento fallido en cada
-// mensaje) y el resto de la cascada sigue funcionando igual que antes.
-let _edgeTtsLoadFailed = false;
-async function edgeTTSAudio(text) {
-  if (_edgeTtsLoadFailed) throw new Error("Edge TTS no disponible en este entorno");
-  let MsEdgeTTS, OUTPUT_FORMAT;
-  try {
-    ({ MsEdgeTTS, OUTPUT_FORMAT } = require("msedge-tts"));
-  } catch(e) {
-    _edgeTtsLoadFailed = true;
-    throw new Error("Edge TTS no se pudo cargar: " + e.message);
-  }
-  const clean = truncateAtSentence(normalizeTTSText(text), 600);
-  const tts = new MsEdgeTTS();
-  await tts.setMetadata("es-CO-SalomeNeural", OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
-  const { audioStream } = tts.toStream(clean);
-  const chunks = [];
-  await new Promise((resolve, reject) => {
-    const to = setTimeout(() => reject(new Error("Edge TTS timeout")), 12000);
-    audioStream.on("data", (c) => chunks.push(c));
-    audioStream.on("end", () => { clearTimeout(to); resolve(); });
-    audioStream.on("error", (e) => { clearTimeout(to); reject(e); });
+// Edge TTS (voz neural gratis de Microsoft, sin API key -- el mismo servicio
+// que usa "Leer en voz alta" de Microsoft Edge). Implementado a mano, SIN el
+// paquete npm "msedge-tts": ese paquete se probo dos veces en Render y ambas
+// veces fallo con "Cannot find module" en el runtime a pesar de que el log
+// de build mostraba la instalacion exitosa -- tiene ademas un script
+// "preinstall" que exige pnpm (npx only-allow pnpm), posible causa real.
+// Se reimplementa el protocolo (muy simple: un websocket + un token derivado
+// de la hora) usando solo "ws" (sin scripts de instalacion raros, ya probado
+// localmente contra el servidor real de Microsoft).
+const crypto = require("crypto");
+const _TRUSTED_CLIENT_TOKEN = "6A5AA1D4EAFF4E9FB37E23D68491D6F4";
+const _EDGE_WSS_URL = "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1";
+const _EDGE_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0";
+const _EDGE_DELIM = "\r\n\r\n";
+const _EDGE_AUDIO_DELIM = "Path:audio\r\n";
+
+function _edgeSecMsGec() {
+  // Microsoft valida este token: hash de la hora actual (redondeada a bloques
+  // de 5 min, en "ticks" de Windows) combinada con el token publico fijo de
+  // Edge. Sin esto responde 403 -- ya se confirmo con prueba directa.
+  const ticks = Math.floor(Date.now() / 1000) + 11644473600; // epoch Windows
+  const rounded = ticks - (ticks % 300);
+  const windowsTicks = rounded * 10000000;
+  return crypto.createHash("sha256").update(`${windowsTicks}${_TRUSTED_CLIENT_TOKEN}`).digest("hex").toUpperCase();
+}
+function _edgeUuid() {
+  return "xxxxxxxx-xxxx-xxxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === "x" ? r : (r & 0x3 | 0x8)).toString(16);
   });
-  if (!chunks.length) throw new Error("Edge TTS devolvió audio vacío");
-  return Buffer.concat(chunks);
+}
+function _escapeSSML(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+}
+
+let _edgeWsLoadFailed = false;
+async function edgeTTSAudio(text) {
+  if (_edgeWsLoadFailed) throw new Error("Edge TTS no disponible en este entorno");
+  let WebSocket;
+  try { WebSocket = require("ws"); }
+  catch(e) { _edgeWsLoadFailed = true; throw new Error("Edge TTS: falta el paquete ws: " + e.message); }
+
+  const clean = _escapeSSML(truncateAtSentence(normalizeTTSText(text), 600));
+  const synthUrl = `${_EDGE_WSS_URL}?TrustedClientToken=${_TRUSTED_CLIENT_TOKEN}&Sec-MS-GEC=${_edgeSecMsGec()}&Sec-MS-GEC-Version=1-143.0.3650.96&ConnectionId=${_edgeUuid()}`;
+
+  return await new Promise((resolve, reject) => {
+    const ws = new WebSocket(synthUrl, {
+      headers: { "User-Agent": _EDGE_UA, "Origin": "chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold" },
+    });
+    const chunks = [];
+    let settled = false;
+    const finish = (err, buf) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      try { ws.close(); } catch(_) {}
+      if (err) reject(err); else resolve(buf);
+    };
+    const timeout = setTimeout(() => finish(new Error("Edge TTS timeout")), 12000);
+
+    ws.on("open", () => {
+      ws.send(`Content-Type:application/json; charset=utf-8\r\nPath:speech.config${_EDGE_DELIM}{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}`);
+      const requestId = crypto.randomBytes(16).toString("hex");
+      const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="es-CO"><voice name="es-CO-SalomeNeural"><prosody pitch="default" rate="default" volume="default">${clean}</prosody></voice></speak>`;
+      ws.send(`X-RequestId:${requestId}\r\nContent-Type:application/ssml+xml\r\nPath:ssml${_EDGE_DELIM}${ssml}`);
+    });
+    ws.on("message", (data, isBinary) => {
+      if (!isBinary) {
+        const msg = data.toString();
+        if (msg.includes("Path:turn.end")) finish(null, Buffer.concat(chunks));
+        return;
+      }
+      const buf = Buffer.isBuffer(data) ? data : Buffer.from(data);
+      const headerEnd = buf.indexOf(_EDGE_AUDIO_DELIM);
+      if (headerEnd >= 0) chunks.push(buf.subarray(headerEnd + _EDGE_AUDIO_DELIM.length));
+    });
+    ws.on("error", (e) => finish(new Error("Edge TTS WS: " + e.message)));
+    ws.on("close", () => { if (!settled) finish(new Error("Edge TTS: conexión cerrada antes de terminar")); });
+  }).then(buf => {
+    if (!buf || !buf.length) throw new Error("Edge TTS devolvió audio vacío");
+    return buf;
+  });
 }
 
 async function googleTTSAudio(text) {
@@ -201,10 +255,7 @@ exports.audio = async (req, res) => {
       res.set("X-TTS-Provider", "edge");
       res.send(buf);
       return;
-    } catch(eEdge) {
-      console.warn("[TTS] Edge TTS:", eEdge.message, "→ Fish Audio");
-      res.set("X-TTS-Edge-Error", String(eEdge.message || eEdge).slice(0, 200).replace(/[\r\n]/g, " "));
-    }
+    } catch(eEdge) { console.warn("[TTS] Edge TTS:", eEdge.message, "→ Fish Audio"); }
 
     try {
       const r = await fishAudioAudio(text);
