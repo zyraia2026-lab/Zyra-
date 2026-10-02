@@ -155,6 +155,21 @@ test("texto a voz: responde audio real con algun proveedor", async () => {
   assert.ok(buf.length > 1000, `audio demasiado chico (${buf.length} bytes) -- ¿provider ${provider} roto?`);
 });
 
+test("plan de seguridad: guardar y leer de vuelta (siempre gratis, sin plan pago)", async () => {
+  let r = await api("/profile/safety-plan", "PUT", {
+    warningSigns: ["dejo de dormir"],
+    copingStrategies: ["escuchar música", "salir a caminar"],
+    supportPeople: [{ name: "Prueba Amiga", phone: "3000000000" }],
+    safeEnvironmentNotes: "nota de prueba",
+  }, token);
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  assert.equal(r.data.safetyPlan.copingStrategies.length, 2);
+
+  r = await api("/profile/safety-plan", "GET", null, token);
+  assert.equal(r.status, 200);
+  assert.equal(r.data.safetyPlan.supportPeople[0].name, "Prueba Amiga");
+});
+
 test("diario: crear y listar una entrada", async () => {
   let r = await api("/journal", "POST", { title: "Prueba", content: "Entrada de la prueba automática.", emotion: "tranquilo" });
   // la primera llamada aun no tiene token si el test de arriba fallo -- reintentar con token explicito

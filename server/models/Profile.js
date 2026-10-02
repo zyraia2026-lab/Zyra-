@@ -67,7 +67,31 @@ const S = new mongoose.Schema({
   onboardingReason: { type: String, default: "" }, // ansiedad|tristeza|motivacion|hablar|habitos|otro
 
   // ── Eventos de crisis (para historial interno) ──
-  crisisEvents: [{ message: String, timestamp: { type: Date, default: Date.now } }],
+  // Los "caringContactXSentAt" trackean los mensajes de seguimiento tipo
+  // "Caring Contacts" (evidencia real de prevencion de suicidio: mensajes
+  // breves y calidos, sin exigir respuesta, dias despues de una crisis) --
+  // sin esto no hay forma de saber cuales ya se enviaron para no repetirlos
+  // ni para saber cuales faltan.
+  crisisEvents: [{
+    message: String,
+    timestamp: { type: Date, default: Date.now },
+    caringContact1SentAt: { type: Date, default: null },
+    caringContact3SentAt: { type: Date, default: null },
+    caringContact7SentAt: { type: Date, default: null },
+  }],
+
+  // ── Plan de seguridad (Stanley-Brown Safety Planning Intervention) ──
+  // Herramienta clinica validada: la persona define esto en un momento
+  // tranquilo, y se le muestra de vuelta -- personalizado -- si llega a
+  // haber una crisis real. Reduce conducta suicida significativamente mas
+  // que solo mostrar numeros de linea de ayuda genericos.
+  safetyPlan: {
+    warningSigns:         [{ type: String }],
+    copingStrategies:     [{ type: String }],
+    supportPeople:        [{ name: { type: String }, phone: { type: String } }],
+    safeEnvironmentNotes: { type: String, default: "" },
+    updatedAt:            { type: Date, default: null },
+  },
 
   // ── Patrones emocionales ──
   negativeStreakCount: { type: Number, default: 0 }, // días consecutivos con emoción negativa

@@ -173,6 +173,39 @@ exports.getEmergencyContact = async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
 
+// ── Plan de seguridad (Stanley-Brown) -- se llena en un momento tranquilo,
+// se muestra de vuelta si llega a haber una crisis real ──
+exports.getSafetyPlan = async (req, res) => {
+  try {
+    const p = await Profile.findOne({ user: req.user._id }).select("safetyPlan").lean();
+    res.json({ success: true, safetyPlan: p?.safetyPlan || null });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+};
+
+exports.setSafetyPlan = async (req, res) => {
+  try {
+    const cleanList = (arr, maxLen, maxItems) =>
+      Array.isArray(arr) ? arr.filter(s => typeof s === "string" && s.trim()).map(s => s.trim().substring(0, maxLen)).slice(0, maxItems) : [];
+
+    const warningSigns     = cleanList(req.body.warningSigns, 150, 10);
+    const copingStrategies = cleanList(req.body.copingStrategies, 150, 10);
+    const supportPeople = Array.isArray(req.body.supportPeople)
+      ? req.body.supportPeople
+          .filter(p => p && typeof p === "object" && String(p.name || "").trim())
+          .map(p => ({ name: String(p.name).trim().substring(0, 100), phone: String(p.phone || "").trim().substring(0, 30) }))
+          .slice(0, 5)
+      : [];
+    const safeEnvironmentNotes = String(req.body.safeEnvironmentNotes || "").trim().substring(0, 500);
+
+    const p = await Profile.findOneAndUpdate(
+      { user: req.user._id },
+      { safetyPlan: { warningSigns, copingStrategies, supportPeople, safeEnvironmentNotes, updatedAt: new Date() } },
+      { new: true, upsert: true }
+    ).select("safetyPlan").lean();
+    res.json({ success: true, safetyPlan: p.safetyPlan });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+};
+
 // ── Check-in de humor diario ──
 exports.moodCheckin = async (req, res) => {
   try {

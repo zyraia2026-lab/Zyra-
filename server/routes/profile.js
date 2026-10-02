@@ -18,6 +18,8 @@ const {
   getMoodStatus,
   getHealth,
   syncHealth,
+  getSafetyPlan,
+  setSafetyPlan,
 } = require("../controllers/profileController");
 const { protect }      = require("../middleware/auth");
 const { requirePlan }  = require("../middleware/planGate");
@@ -52,6 +54,12 @@ r.put("/health", protect, syncHealth);
 // ── Contacto de emergencia (plan básico+) ──
 r.get("/emergency",  protect, getEmergencyContact);
 r.post("/emergency", protect, requirePlan("basic"), setEmergencyContact);
+
+// ── Plan de seguridad (prevención de crisis) -- SIEMPRE gratis para todos
+// los planes, nunca detrás de un muro de pago. No es una funcion premium,
+// es seguridad. ──
+r.get("/safety-plan",  protect, getSafetyPlan);
+r.put("/safety-plan",  protect, setSafetyPlan);
 
 // ── PIN ──
 r.post("/pin",         protect, setPin);

@@ -735,6 +735,7 @@ function closeSplash(){
 <style>
 @keyframes zsw-in { from { opacity:0; transform:scale(.85) translateY(20px) } to { opacity:1; transform:scale(1) translateY(0) } }
 @keyframes crisis-pulse { 0%,100% { transform:translate(-50%,-50%) scale(1); opacity:.6 } 50% { transform:translate(-50%,-50%) scale(1.4); opacity:1 } }
+@keyframes crisis-pulse-btn { 0%,100% { transform:scale(1) } 50% { transform:scale(1.03) } }
 @keyframes crisis-shake { 0%,100%{transform:rotate(0)} 20%{transform:rotate(-8deg)} 40%{transform:rotate(8deg)} 60%{transform:rotate(-5deg)} 80%{transform:rotate(5deg)} }
 /* Usada por todas las hojas/paneles que suben desde abajo (tour, aviso de
    crisis, fin de llamada, avisos nocturnos, etc) -- se usaba en >8 lugares
@@ -3393,6 +3394,42 @@ async function b2bSubmitContact() {
     </div>
   </div>
 
+  <!-- ══ PLAN DE SEGURIDAD — SIEMPRE gratis, nunca detras de un plan de pago ══ -->
+  <div class="card" style="margin-bottom:20px" id="safety-plan-card">
+    <div class="card-header"><span class="card-title">🛡️ Plan de seguridad</span></div>
+    <p style="font-size:13px;color:var(--text3);margin-bottom:16px;line-height:1.6">Llénalo en un momento tranquilo. Si más adelante Zyra detecta una crisis, te lo va a mostrar de vuelta — tus propias señales y lo que a ti te ayuda, no solo un número genérico.</p>
+
+    <div class="form-group">
+      <label>Tus señales de alerta (¿cómo notas que estás empezando a estar mal?)</label>
+      <div style="display:flex;gap:8px;margin-bottom:8px"><input type="text" id="sp-warning-input" placeholder="Ej: dejo de dormir, no quiero ver a nadie…" maxlength="150"/><button class="btn-sm" onclick="_spAddChip('warningSigns')">+ Agregar</button></div>
+      <div id="sp-warningSigns-list" class="sp-chip-list"></div>
+    </div>
+
+    <div class="form-group">
+      <label>Qué te ayuda a calmarte, aunque sea un poco</label>
+      <div style="display:flex;gap:8px;margin-bottom:8px"><input type="text" id="sp-coping-input" placeholder="Ej: escuchar música, salir a caminar, llamar a alguien…" maxlength="150"/><button class="btn-sm" onclick="_spAddChip('copingStrategies')">+ Agregar</button></div>
+      <div id="sp-copingStrategies-list" class="sp-chip-list"></div>
+    </div>
+
+    <div class="form-group">
+      <label>Personas a las que puedes llamar</label>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input type="text" id="sp-support-name" placeholder="Nombre" maxlength="100" style="flex:1.2"/>
+        <input type="tel" id="sp-support-phone" placeholder="Teléfono" maxlength="30" style="flex:1"/>
+        <button class="btn-sm" onclick="_spAddSupportPerson()">+ Agregar</button>
+      </div>
+      <div id="sp-supportPeople-list" class="sp-chip-list"></div>
+    </div>
+
+    <div class="form-group">
+      <label>Hacer tu entorno más seguro (opcional)</label>
+      <textarea id="sp-safe-env" maxlength="500" placeholder="Ej: dejar los medicamentos en casa de un familiar mientras pasa el momento difícil…" style="min-height:70px"></textarea>
+    </div>
+
+    <button class="btn-primary" style="padding:12px;font-size:13px" onclick="saveSafetyPlan()">Guardar plan de seguridad</button>
+    <div id="sp-status" style="font-size:12px;color:var(--green);margin-top:8px;display:none">✅ Plan guardado</div>
+  </div>
+
   <!-- ══ PIN DE BLOQUEO ══ -->
   <div class="card" style="margin-bottom:20px">
     <div class="card-header"><span class="card-title">🔐 PIN de bloqueo</span></div>
@@ -3604,8 +3641,20 @@ async function b2bSubmitContact() {
     <div style="padding:24px 28px">
       <p style="color:#f1f5f9;font-size:15px;line-height:1.7;margin-bottom:20px">Lo que estás sintiendo es real. No tienes que cargarlo solo/a. Llama ahora — hay personas esperando para escucharte.</p>
 
+      <a id="crisis-call-106" href="tel:106" style="display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,#dc2626,#991b1b);color:#fff;text-decoration:none;padding:18px;border-radius:16px;font-size:17px;font-weight:800;margin-bottom:16px;animation:crisis-pulse-btn 1.6s ease-in-out infinite;box-shadow:0 8px 28px rgba(220,38,38,.45)">
+        📞 Llamar a la Línea 106 ahora
+      </a>
+
+      <!-- Se llena solo si la persona ya tiene su propio plan de seguridad guardado --
+           lo propio es mas accionable que numeros genericos (evidencia: Stanley-Brown). -->
+      <div id="crisis-my-plan" style="display:none;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:16px;padding:16px;margin-bottom:20px">
+        <p style="color:#6ee7b7;font-size:13px;font-weight:700;margin:0 0 10px;text-transform:uppercase;letter-spacing:.5px">🛡️ Tu plan de seguridad</p>
+        <div id="crisis-my-plan-coping" style="margin-bottom:10px"></div>
+        <div id="crisis-my-plan-people"></div>
+      </div>
+
       <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:16px;padding:16px;margin-bottom:20px">
-        <p style="color:#f87171;font-size:13px;font-weight:700;margin:0 0 10px;text-transform:uppercase;letter-spacing:.5px">🆘 Líneas de crisis disponibles ahora</p>
+        <p style="color:#f87171;font-size:13px;font-weight:700;margin:0 0 10px;text-transform:uppercase;letter-spacing:.5px">🆘 Más líneas de crisis disponibles ahora</p>
         <div style="color:#fca5a5;font-size:13px;line-height:2">
           🇨🇴 <strong>Colombia:</strong> <a href="tel:106" style="color:#f87171">Línea 106</a> · <a href="tel:123" style="color:#f87171">123 Emergencias</a><br>
           🇪🇸 <strong>España:</strong> <a href="tel:024" style="color:#f87171">024 Salud Mental</a> · <a href="tel:112" style="color:#f87171">112 Emergencias</a><br>
@@ -4968,6 +5017,9 @@ async function showCrisisOverlay() {
   if(!overlay) return;
   overlay.style.display = "flex";
   document.body.style.overflow = "hidden";
+  // Foco automático en el botón de llamada -- un solo Enter/Espacio/toque
+  // completa la acción más importante, sin tener que leer ni buscar nada.
+  setTimeout(() => { document.getElementById("crisis-call-106")?.focus(); }, 50);
   // Cargar contacto de emergencia
   try {
     const d = await api("/profile", "GET");
@@ -4981,6 +5033,28 @@ async function showCrisisOverlay() {
       if(ecName) ecName.textContent   = `${ec.name}${ec.relation ? ` (${ec.relation})` : ""}`;
       if(ecPhone)ecPhone.textContent  = ec.phone;
       if(ecCall) ecCall.href          = `tel:${ec.phone.replace(/\s/g,"")}`;
+    }
+    // Plan de seguridad propio -- se muestra SOLO si ya lo lleno antes
+    // (en un momento tranquilo); nunca se inventa contenido genérico aquí.
+    const sp = d.profile?.safetyPlan;
+    const hasCoping = sp?.copingStrategies?.length > 0;
+    const hasPeople = sp?.supportPeople?.length > 0;
+    if (hasCoping || hasPeople) {
+      const planDiv = document.getElementById("crisis-my-plan");
+      const copingDiv = document.getElementById("crisis-my-plan-coping");
+      const peopleDiv = document.getElementById("crisis-my-plan-people");
+      if (planDiv) planDiv.style.display = "block";
+      if (copingDiv) {
+        copingDiv.innerHTML = hasCoping
+          ? `<p style="color:#a7f3d0;font-size:12px;margin:0 0 4px;font-weight:600">Esto te ha ayudado antes:</p><p style="color:#d1fae5;font-size:13px;margin:0;line-height:1.7">${sp.copingStrategies.map(safeHtml).join(" · ")}</p>`
+          : "";
+      }
+      if (peopleDiv) {
+        peopleDiv.innerHTML = hasPeople
+          ? `<p style="color:#a7f3d0;font-size:12px;margin:0 0 4px;font-weight:600">Puedes llamar a:</p>` +
+            sp.supportPeople.map(p => `<a href="tel:${String(p.phone||'').replace(/\s/g,'')}" style="display:block;color:#d1fae5;font-size:13px;text-decoration:underline;margin-bottom:2px">${safeHtml(p.name)}${p.phone ? " · "+safeHtml(p.phone) : ""}</a>`).join("")
+          : "";
+      }
     }
   } catch(_) {}
 }
@@ -6666,6 +6740,7 @@ async function loadProfile() {
     }
 
     loadEmergencyContact();
+    loadSafetyPlan();
     initPushUI(p);
     loadSubscriptionInfo();
     loadPaymentHistory();
@@ -15614,6 +15689,76 @@ async function loadEmergencyContact() {
       if (r) r.value = d.emergencyContact.relation;
     }
   } catch(e) {}
+}
+
+/* ── Plan de seguridad (prevencion de crisis) — siempre gratis ── */
+let _safetyPlanData = { warningSigns: [], copingStrategies: [], supportPeople: [], safeEnvironmentNotes: "" };
+
+function _spRenderChipList(key) {
+  const el = document.getElementById(`sp-${key}-list`);
+  if (!el) return;
+  const items = _safetyPlanData[key] || [];
+  if (key === "supportPeople") {
+    el.innerHTML = items.map((p, i) => `
+      <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:20px;padding:6px 8px 6px 14px;font-size:12.5px;color:var(--text2);margin:0 6px 6px 0">
+        ${safeHtml(p.name)}${p.phone ? ` · ${safeHtml(p.phone)}` : ""}
+        <button onclick="_spRemoveItem('supportPeople',${i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 2px;line-height:1">×</button>
+      </span>`).join("") || `<span style="font-size:12px;color:var(--text3)">Nadie agregado todavía</span>`;
+  } else {
+    el.innerHTML = items.map((s, i) => `
+      <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:20px;padding:6px 8px 6px 14px;font-size:12.5px;color:var(--text2);margin:0 6px 6px 0">
+        ${safeHtml(s)}
+        <button onclick="_spRemoveItem('${key}',${i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 2px;line-height:1">×</button>
+      </span>`).join("") || `<span style="font-size:12px;color:var(--text3)">Nada agregado todavía</span>`;
+  }
+}
+function _spAddChip(key) {
+  const inputId = key === "warningSigns" ? "sp-warning-input" : "sp-coping-input";
+  const input = document.getElementById(inputId);
+  const val = input?.value?.trim();
+  if (!val) return;
+  if (_safetyPlanData[key].length >= 10) return zyraToast("Máximo 10 — elige las más importantes", "info");
+  _safetyPlanData[key].push(val.substring(0, 150));
+  input.value = "";
+  _spRenderChipList(key);
+}
+function _spAddSupportPerson() {
+  const nameEl = document.getElementById("sp-support-name");
+  const phoneEl = document.getElementById("sp-support-phone");
+  const name = nameEl?.value?.trim();
+  if (!name) return zyraToast("Escribe al menos el nombre", "error");
+  if (_safetyPlanData.supportPeople.length >= 5) return zyraToast("Máximo 5 personas", "info");
+  _safetyPlanData.supportPeople.push({ name: name.substring(0,100), phone: (phoneEl?.value?.trim()||"").substring(0,30) });
+  nameEl.value = ""; if (phoneEl) phoneEl.value = "";
+  _spRenderChipList("supportPeople");
+}
+function _spRemoveItem(key, idx) {
+  _safetyPlanData[key].splice(idx, 1);
+  _spRenderChipList(key);
+}
+async function loadSafetyPlan() {
+  try {
+    const d = await api("/profile/safety-plan", "GET");
+    const sp = d.safetyPlan;
+    _safetyPlanData = {
+      warningSigns: sp?.warningSigns || [],
+      copingStrategies: sp?.copingStrategies || [],
+      supportPeople: sp?.supportPeople || [],
+      safeEnvironmentNotes: sp?.safeEnvironmentNotes || "",
+    };
+    const envEl = document.getElementById("sp-safe-env");
+    if (envEl) envEl.value = _safetyPlanData.safeEnvironmentNotes;
+    ["warningSigns","copingStrategies","supportPeople"].forEach(_spRenderChipList);
+  } catch(e) {}
+}
+async function saveSafetyPlan() {
+  try {
+    _safetyPlanData.safeEnvironmentNotes = document.getElementById("sp-safe-env")?.value?.trim().substring(0,500) || "";
+    await api("/profile/safety-plan", "PUT", _safetyPlanData);
+    const st = document.getElementById("sp-status");
+    if (st) { st.style.display = "block"; setTimeout(() => st.style.display = "none", 3000); }
+    zyraToast("🛡️ Plan de seguridad guardado", "success");
+  } catch(e) { zyraToast(e.message, "error"); }
 }
 
 async function savePinFromProfile() {

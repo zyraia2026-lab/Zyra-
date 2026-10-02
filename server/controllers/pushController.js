@@ -513,3 +513,62 @@ exports.sendMemoryFollowUps = async () => {
     console.error("[Push] sendMemoryFollowUps error:", e.message);
   }
 };
+
+/* ─── Caring Contacts: seguimiento cálido tras una crisis ───
+   Evidencia real (prevención de suicidio): mensajes breves, cálidos, que NO
+   exigen respuesta, enviados días después de un momento de crisis, reducen
+   el riesgo de nueva conducta suicida. No es terapia ni una alerta -- es
+   solo recordarle a la persona que alguien se acordó de ella. Se envía a
+   1, 3 y 7 días de cada evento de crisis detectado (una sola vez cada uno,
+   marcado en el propio evento para no repetirlo). */
+exports.sendCaringContacts = async () => {
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
+  try {
+    const now    = new Date();
+    const colNow = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+    const hour   = colNow.getUTCHours();
+
+    // Una vez al dia, a las 11am Colombia -- no es urgente, es calidez, no afan.
+    if (hour !== 11 || colNow.getUTCMinutes() > 4) return;
+
+    const STAGES = [
+      { field: "caringContact1SentAt", daysAgo: 1, msg: "Hola. Solo quería saber cómo estás. Pienso en ti 💙" },
+      { field: "caringContact3SentAt", daysAgo: 3, msg: "Hey, aquí sigo. No tienes que responder si no quieres — solo quería que supieras que me importas 💜" },
+      { field: "caringContact7SentAt", daysAgo: 7, msg: "Pasaba a saludar. Espero que estés teniendo un momento más tranquilo 🌿" },
+    ];
+
+    let sent = 0;
+    for (const stage of STAGES) {
+      const targetStart = new Date(now); targetStart.setDate(targetStart.getDate() - stage.daysAgo); targetStart.setHours(0, 0, 0, 0);
+      const targetEnd = new Date(targetStart); targetEnd.setDate(targetEnd.getDate() + 1);
+
+      const profiles = await Profile.find({
+        crisisEvents: { $elemMatch: { timestamp: { $gte: targetStart, $lt: targetEnd }, [stage.field]: null } },
+      }).select("user crisisEvents").lean();
+
+      for (const p of profiles) {
+        const matchIdx = p.crisisEvents.findIndex(ev =>
+          new Date(ev.timestamp) >= targetStart && new Date(ev.timestamp) < targetEnd && !ev[stage.field]
+        );
+        if (matchIdx === -1) continue;
+
+        await sendToUser(p.user, {
+          title: "Zyra 💙",
+          body:  stage.msg,
+          icon:  "/Imagenes/logo-nuevo.png",
+          badge: "/Imagenes/logo-nuevo.png",
+          tag:   "zyra-caring-contact",
+          data:  { url: "/?p=assistant" },
+        });
+        await Profile.updateOne(
+          { _id: p._id, [`crisisEvents.${matchIdx}.${stage.field}`]: null },
+          { $set: { [`crisisEvents.${matchIdx}.${stage.field}`]: now } }
+        );
+        sent++;
+      }
+    }
+    if (sent) console.log(`[Push] Caring contacts enviados: ${sent}`);
+  } catch(e) {
+    console.error("[Push] sendCaringContacts error:", e.message);
+  }
+};
