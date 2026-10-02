@@ -11833,7 +11833,7 @@ function _makeMicSR(onResult, onEnd) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { zyraToast("Tu navegador no soporta dictado por voz", "error"); return null; }
   const r = new SR();
-  r.lang = "es-ES"; r.continuous = false; r.interimResults = true;
+  r.lang = "es-CO"; r.continuous = false; r.interimResults = true;
   r.onresult = e => {
     const t = Array.from(e.results).map(r => r[0].transcript).join("");
     onResult(t, e.results[e.results.length-1].isFinal);
@@ -17453,7 +17453,7 @@ function _initApp() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(SR) {
     sr = new SR();
-    sr.lang = "es-ES";
+    sr.lang = "es-CO";
     sr.continuous = false;
     sr.interimResults = true;
     sr.onresult = (e) => {
@@ -17682,7 +17682,7 @@ function vcCreateSR() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SR) return null;
   const sr = new SR();
-  sr.lang = 'es-ES';
+  sr.lang = 'es-CO';
   sr.continuous = false;
   sr.interimResults = true;
 
