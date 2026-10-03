@@ -830,26 +830,31 @@ function closeSplash(){
   <div class="ambient-item" onclick="playAmbient('rain')" id="amb-rain">
     <span class="ambient-item-icon">🌧️</span>
     <span class="ambient-item-name">Lluvia</span>
+    <span class="ambient-item-state" id="amb-state-rain">▶</span>
     <input type="range" class="ambient-item-vol" min="0" max="0.3" step="0.01" value="0.08" onclick="event.stopPropagation()" oninput="setAmbientVol('rain',this.value)"/>
   </div>
   <div class="ambient-item" onclick="playAmbient('ocean')" id="amb-ocean">
     <span class="ambient-item-icon">🌊</span>
     <span class="ambient-item-name">Mar</span>
+    <span class="ambient-item-state" id="amb-state-ocean">▶</span>
     <input type="range" class="ambient-item-vol" min="0" max="0.3" step="0.01" value="0.06" onclick="event.stopPropagation()" oninput="setAmbientVol('ocean',this.value)"/>
   </div>
   <div class="ambient-item" onclick="playAmbient('forest')" id="amb-forest">
     <span class="ambient-item-icon">🌲</span>
     <span class="ambient-item-name">Bosque</span>
+    <span class="ambient-item-state" id="amb-state-forest">▶</span>
     <input type="range" class="ambient-item-vol" min="0" max="0.3" step="0.01" value="0.07" onclick="event.stopPropagation()" oninput="setAmbientVol('forest',this.value)"/>
   </div>
   <div class="ambient-item" onclick="playAmbient('cafe')" id="amb-cafe">
     <span class="ambient-item-icon">☕</span>
     <span class="ambient-item-name">Café</span>
+    <span class="ambient-item-state" id="amb-state-cafe">▶</span>
     <input type="range" class="ambient-item-vol" min="0" max="0.3" step="0.01" value="0.06" onclick="event.stopPropagation()" oninput="setAmbientVol('cafe',this.value)"/>
   </div>
   <div class="ambient-item" onclick="playAmbient('white')" id="amb-white">
     <span class="ambient-item-icon">🔇</span>
     <span class="ambient-item-name">Ruido blanco</span>
+    <span class="ambient-item-state" id="amb-state-white">▶</span>
     <input type="range" class="ambient-item-vol" min="0" max="0.3" step="0.01" value="0.05" onclick="event.stopPropagation()" oninput="setAmbientVol('white',this.value)"/>
   </div>
   <div style="margin-top:10px;text-align:center">
@@ -18769,6 +18774,7 @@ function playAmbient(type) {
   try {
     ambientNodes[type]=createAmbientSound(type);
     const item=document.getElementById('amb-'+type); if(item) item.classList.add('playing');
+    const st=document.getElementById('amb-state-'+type); if(st) st.textContent='⏸';
     const fab=document.getElementById('ambient-fab'); if(fab) fab.classList.add('playing');
   } catch(e){ console.warn('Ambient error:',e); }
 }
@@ -18777,6 +18783,7 @@ function stopAmbient(type) {
   try { ambientNodes[type].sources.forEach(s=>{try{s.stop();}catch(e){}}); ambientNodes[type].gain.disconnect(); } catch(e){}
   delete ambientNodes[type];
   const item=document.getElementById('amb-'+type); if(item) item.classList.remove('playing');
+  const st=document.getElementById('amb-state-'+type); if(st) st.textContent='▶';
   if(!Object.keys(ambientNodes).length){const fab=document.getElementById('ambient-fab');if(fab)fab.classList.remove('playing');}
 }
 function stopAllAmbient() { Object.keys({...ambientNodes}).forEach(stopAmbient); toggleAmbientPanel(false); }
