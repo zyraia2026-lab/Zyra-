@@ -8,6 +8,7 @@ const S = new mongoose.Schema({
   email:     { type: String, required: true, maxlength: 254 },
   size:      { type: String, default: "", maxlength: 10 },
   message:   { type: String, default: "", maxlength: 2000 },
+  spam:      { type: Boolean, default: false }, // llenó el campo trampa del formulario
   createdAt: { type: Date, default: Date.now, index: true },
 });
 

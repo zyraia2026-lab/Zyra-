@@ -5,6 +5,7 @@ const Profile      = require("../models/Profile");
 const Conversation = require("../models/Conversation");
 const Payment      = require("../models/Payment");
 const ContactLead  = require("../models/ContactLead");
+const { QA_EMAIL_RE } = require("../utils/testAccounts");
 
 // Admin gate — solo el email registrado como admin
 function adminOnly(req, res, next) {
@@ -22,6 +23,12 @@ r.get("/stats", protect, adminOnly, async (req, res) => {
     const week  = new Date(today.getTime() - 7 * 86400000);
     const month = new Date(today.getTime() - 30 * 86400000);
 
+    // Las cuentas QA (@zyratest.com) no cuentan en ninguna métrica, ni sus pagos
+    const qaIds    = await User.distinct("_id", { email: QA_EMAIL_RE });
+    const realUser = { email: { $not: QA_EMAIL_RE } };
+    const realPaid = { status: "paid", period: { $ne: "demo" }, user: { $nin: qaIds } };
+    const realLead = { spam: { $ne: true } };
+
     const [
       totalUsers, newToday, newWeek, newMonth,
       basicUsers, premiumUsers,
@@ -29,30 +36,31 @@ r.get("/stats", protect, adminOnly, async (req, res) => {
       totalPayments, revenueAll,
       totalLeads, leadsMonth,
     ] = await Promise.all([
-      User.countDocuments(),
-      User.countDocuments({ createdAt: { $gte: today } }),
-      User.countDocuments({ createdAt: { $gte: week } }),
-      User.countDocuments({ createdAt: { $gte: month } }),
-      User.countDocuments({ plan: "basic",   planExpiresAt: { $gt: now } }),
-      User.countDocuments({ plan: "premium", planExpiresAt: { $gt: now } }),
-      Conversation.countDocuments(),
-      Conversation.countDocuments({ createdAt: { $gte: today } }),
-      Payment.countDocuments({ status: "paid", period: { $ne: "demo" } }),
-      Payment.aggregate([{ $match: { status: "paid", period: { $ne: "demo" } } }, { $group: { _id: null, total: { $sum: "$amount" } } }]),
-      ContactLead.countDocuments(),
-      ContactLead.countDocuments({ createdAt: { $gte: month } }),
+      User.countDocuments(realUser),
+      User.countDocuments({ ...realUser, createdAt: { $gte: today } }),
+      User.countDocuments({ ...realUser, createdAt: { $gte: week } }),
+      User.countDocuments({ ...realUser, createdAt: { $gte: month } }),
+      User.countDocuments({ ...realUser, plan: "basic",   planExpiresAt: { $gt: now } }),
+      User.countDocuments({ ...realUser, plan: "premium", planExpiresAt: { $gt: now } }),
+      Conversation.countDocuments({ user: { $nin: qaIds } }),
+      Conversation.countDocuments({ user: { $nin: qaIds }, createdAt: { $gte: today } }),
+      Payment.countDocuments(realPaid),
+      Payment.aggregate([{ $match: realPaid }, { $group: { _id: null, total: { $sum: "$amount" } } }]),
+      ContactLead.countDocuments(realLead),
+      ContactLead.countDocuments({ ...realLead, createdAt: { $gte: month } }),
     ]);
 
-    // Últimos 10 usuarios
-    const recentUsers = await User.find().sort({ createdAt: -1 }).limit(10)
+    // Últimos 10 usuarios reales
+    const recentUsers = await User.find(realUser).sort({ createdAt: -1 }).limit(10)
       .select("name email plan createdAt planExpiresAt isDisabled").lean();
 
     // Últimos 5 pagos reales
-    const recentPayments = await Payment.find({ status: "paid", period: { $ne: "demo" } })
+    const recentPayments = await Payment.find(realPaid)
       .sort({ createdAt: -1 }).limit(5)
       .populate("user", "name email").lean();
 
     res.json({
+      excluded: { qaAccounts: qaIds.length },
       users: { total: totalUsers, newToday, newWeek, newMonth, basic: basicUsers, premium: premiumUsers, free: totalUsers - basicUsers - premiumUsers },
       conversations: { total: totalConvs, today: convsToday },
       payments: { count: totalPayments, revenue: revenueAll[0]?.total || 0 },

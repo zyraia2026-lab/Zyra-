@@ -295,7 +295,17 @@ exports.shareReport = async (req, res) => {
 exports.cronGenerateAll = async () => {
   const User      = require("../models/User");
   const { sendToUser } = require("./pushController");
-  const users = await User.find({ plan: { $in: ["basic","premium"] } }).select("_id name email").lean();
+  const { QA_EMAIL_RE } = require("../utils/testAccounts");
+  // Solo planes pagos vigentes (misma regla que planGate: sin fecha = vigente). El plan
+  // vencido solo vuelve a "free" cuando el usuario abre una función paga; sin este
+  // filtro, quien dejó de usar la app seguía recibiendo el reporte cada lunes.
+  // Las cuentas QA se omiten para no gastar llamadas a Groq.
+  const now = new Date();
+  const users = await User.find({
+    plan: { $in: ["basic","premium"] },
+    $or: [{ planExpiresAt: null }, { planExpiresAt: { $gt: now } }],
+    email: { $not: QA_EMAIL_RE },
+  }).select("_id name email").lean();
   console.log(`📊 Generando reportes semanales para ${users.length} usuarios...`);
   let ok = 0;
   const weekOf = getMondayOf();

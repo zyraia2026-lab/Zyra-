@@ -14,7 +14,8 @@ jobs:
       - name: Consultar /api/health
         run: |
           for i in 1 2 3; do
-            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 90 https://zyra-app-8qva.onrender.com/api/health || echo "000")
+            # "|| true": Actions corre bash con -e; un timeout de curl no debe cortar los reintentos
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 90 https://zyra-app-8qva.onrender.com/api/health || true)
             if [ "$code" = "200" ]; then
               echo "Zyra responde (HTTP $code)"
               exit 0

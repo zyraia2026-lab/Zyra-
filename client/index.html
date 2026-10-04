@@ -29,7 +29,7 @@
 <meta property="og:url" content="https://zyra-app-8qva.onrender.com/"/>
 <meta property="og:title" content="Zyra — Bienestar Emocional con IA"/>
 <meta property="og:description" content="Tu acompañante emocional inteligente. Chat terapéutico, diario emocional, metas y más. Pruébalo gratis."/>
-<meta property="og:image" content="https://zyra-app-8qva.onrender.com/Imagenes/og-zyra.png"/>
+<meta property="og:image" content="https://zyra-app-8qva.onrender.com/Imagenes/og-zyra.jpg"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
 <meta property="og:site_name" content="Zyra"/>
@@ -39,7 +39,7 @@
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="Zyra — Bienestar Emocional con IA"/>
 <meta name="twitter:description" content="Tu acompañante emocional inteligente. Habla, siente, crece."/>
-<meta name="twitter:image" content="https://zyra-app-8qva.onrender.com/Imagenes/zyra-avatar.png"/>
+<meta name="twitter:image" content="https://zyra-app-8qva.onrender.com/Imagenes/og-zyra.jpg"/>
 
 <!-- Favicon -->
 <link rel="icon" type="image/png" href="/Imagenes/logo-nuevo.png"/>
@@ -1997,6 +1997,14 @@ function closeMobileMoreSheet() {
 
 <script>
 function b2bOpenContact(plan) {
+  // Si ya se envió una solicitud antes, volver a mostrar el formulario (no el "Gracias")
+  const card = document.getElementById('b2b-form-card'), thanks = document.getElementById('b2b-thanks');
+  if (card && thanks && thanks.style.display !== 'none') {
+    thanks.style.display = 'none';
+    card.style.display = '';
+    const btn = document.getElementById('b2b-submit-btn');
+    if (btn) { btn.disabled = false; btn.textContent = 'Enviar — la respondo yo misma 💜'; }
+  }
   document.getElementById('b2b-contact').scrollIntoView({ behavior: 'smooth' });
   if (plan) {
     const sizeEl = document.getElementById('b2b-size');
@@ -17188,7 +17196,8 @@ async function loadAdminPanel() {
         <div id="admin-search-result" style="margin-top:12px"></div>
       </div>
 
-      <h2 style="color:var(--text);margin-bottom:16px;font-size:18px">👥 Usuarios</h2>
+      <h2 style="color:var(--text);margin-bottom:${d.excluded?.qaAccounts ? 6 : 16}px;font-size:18px">👥 Usuarios</h2>
+      ${d.excluded?.qaAccounts ? `<div style="font-size:12px;color:var(--text3);margin-bottom:12px">Sin contar ${d.excluded.qaAccounts} cuentas de prueba (@zyratest.com) ni sus pagos.</div>` : ""}
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px">
         <div class="admin-stat"><div class="admin-stat-value">${d.users.total}</div><div class="admin-stat-label">Total</div></div>
         <div class="admin-stat"><div class="admin-stat-value" style="color:#22c55e">${d.users.newToday}</div><div class="admin-stat-label">Hoy</div></div>
@@ -17206,6 +17215,7 @@ async function loadAdminPanel() {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px">
         <div class="admin-stat"><div class="admin-stat-value">${d.payments.count}</div><div class="admin-stat-label">Transacciones</div></div>
         <div class="admin-stat"><div class="admin-stat-value" style="font-size:18px">${fmt(d.payments.revenue)}</div><div class="admin-stat-label">Ingresos</div></div>
+        <div class="admin-stat"><div class="admin-stat-value">${d.users.total ? ((d.users.basic + d.users.premium) / d.users.total * 100).toFixed(1) : "0.0"}%</div><div class="admin-stat-label">Conversión a pago</div></div>
         <div class="admin-stat"><div class="admin-stat-value">${d.leads?.total ?? 0}</div><div class="admin-stat-label">Demos B2B · ${d.leads?.month ?? 0} este mes</div></div>
       </div>
       <h2 style="color:var(--text);margin-bottom:12px;font-size:18px">🕐 Últimos usuarios</h2>

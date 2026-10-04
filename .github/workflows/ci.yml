@@ -26,12 +26,13 @@ jobs:
         run: npm ci
         working-directory: server
 
-      - name: Check syntax (node --check)
+      - name: Check syntax del servidor (todos los .js)
         run: |
-          node --check server/index.js
-          node --check server/controllers/chatController.js
-          node --check server/controllers/analyticsController.js
-          node --check server/middleware/auth.js
+          find server -name "*.js" -not -path "*/node_modules/*" -print0 | xargs -0 -n1 node --check
+          echo "✅ $(find server -name '*.js' -not -path '*/node_modules/*' | wc -l) archivos del servidor compilan"
+
+      - name: Check JavaScript del cliente (index.html, sw.js, compatibilidad iPhone)
+        run: node scripts/check-client.js
 
       - name: Verify required env vars documented
         run: |

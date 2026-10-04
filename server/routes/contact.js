@@ -25,8 +25,10 @@ const clip = (v, n) => String(v || "").trim().slice(0, n);
 r.post("/", contactLimiter, async (req, res) => {
   const body = req.body || {};
 
-  // Campo trampa: las personas no lo ven; los bots suelen llenarlo
-  if (body.website) return res.json({ success: true });
+  // Campo trampa: las personas no lo ven; los bots suelen llenarlo. No se descarta:
+  // se guarda marcado como spam (sin aviso por correo) por si el autocompletado del
+  // navegador lo llenó en un contacto real.
+  const spam = !!body.website;
 
   const name    = clip(body.name, 100);
   const company = clip(body.company, 150);
@@ -39,11 +41,12 @@ r.post("/", contactLimiter, async (req, res) => {
   if (size && !SIZES.includes(size)) return res.status(400).json({ message: "Tamaño de equipo no válido." });
 
   try {
-    await ContactLead.create({ name, company, email, size, message });
+    await ContactLead.create({ name, company, email, size, message, spam });
   } catch (e) {
     console.error("[contact] no se pudo guardar:", e.message);
     return res.status(500).json({ message: "No pudimos recibir tu mensaje. Escríbenos a zyra.ia.2026@gmail.com" });
   }
+  if (spam) return res.json({ success: true });
 
   // El aviso al equipo es best-effort: la solicitud ya quedó guardada
   sendBrevoEmail({

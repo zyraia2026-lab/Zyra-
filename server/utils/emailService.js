@@ -1,3 +1,5 @@
+const { NO_SEND_EMAIL_RE } = require("./testAccounts");
+
 function esc(str) {
   return String(str || "")
     .replace(/&/g, "&amp;")
@@ -39,6 +41,10 @@ function wrap(body) {
 }
 
 async function sendBrevoEmail({ to, subject, html }) {
+  if (NO_SEND_EMAIL_RE.test(String(to || ""))) {
+    console.log("[email] omitido: dominio de prueba que no recibe correo");
+    return;
+  }
   const res = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: {
