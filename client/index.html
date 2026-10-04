@@ -18541,35 +18541,35 @@ function vcSetBodyClass(speaking) {
   // Todas tienen suficiente zona oscura para el overlay
   const SLIDES = [
     {
-      url: 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=1400&q=85',
+      url: 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=1080&q=72&auto=format',
       // Bosque con luz dorada
     },
     {
-      url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1400&q=85',
+      url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1080&q=72&auto=format',
       // Montañas brumosas al amanecer
     },
     {
-      url: 'https://images.unsplash.com/photo-1531512073830-ba890ca4eba2?w=1400&q=85',
+      url: 'https://images.unsplash.com/photo-1531512073830-ba890ca4eba2?w=1080&q=72&auto=format',
       // Persona meditando en naturaleza
     },
     {
-      url: 'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=1400&q=85',
+      url: 'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=1080&q=72&auto=format',
       // Persona en silencio con luz
     },
     {
-      url: 'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=1400&q=85',
+      url: 'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=1080&q=72&auto=format',
       // Amanecer en el lago
     },
     {
-      url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1400&q=85',
+      url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1080&q=72&auto=format',
       // Montañas dramáticas
     },
     {
-      url: 'https://images.unsplash.com/photo-1496715976403-7e36dc43f17b?w=1400&q=85',
+      url: 'https://images.unsplash.com/photo-1496715976403-7e36dc43f17b?w=1080&q=72&auto=format',
       // Bosque de bambú
     },
     {
-      url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1400&q=85',
+      url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1080&q=72&auto=format',
       // Persona serena en ventana
     },
   ];
@@ -18586,7 +18586,8 @@ function vcSetBodyClass(speaking) {
     SLIDES.forEach((s, i) => {
       const div = document.createElement('div');
       div.className = 'auth-slide' + (i === startIdx ? ' active' : '');
-      div.style.backgroundImage = 'url(' + s.url + ')';
+      // Solo se descarga la imagen visible y la siguiente (antes bajaban las 8 al abrir la app)
+      if (i === startIdx || i === (startIdx + 1) % SLIDES.length) div.style.backgroundImage = 'url(' + s.url + ')';
       panel.insertBefore(div, panel.firstChild);
       slideEls.push(div);
       const dot = document.createElement('button');
@@ -18602,6 +18603,12 @@ function vcSetBodyClass(speaking) {
     _buildPanel('auth-left-panel',     'auth-slide-dots',     0);
     _buildPanel('auth-left-panel-reg', 'auth-slide-dots-reg', 2);
     startTimer();
+  }
+
+  // Asigna la imagen de un slide la primera vez que se necesita
+  function _loadSlideBg(si) {
+    const el = slideEls[si];
+    if (el && !el.style.backgroundImage) el.style.backgroundImage = 'url(' + SLIDES[si % SLIDES.length].url + ')';
   }
 
   function goToSlide(idx) {
@@ -18620,6 +18627,9 @@ function vcSetBodyClass(speaking) {
     });
     currentSlide = idx;
     [currentSlide, currentSlide + n].forEach(si => {
+      _loadSlideBg(si);
+      // siguiente slide dentro de su mismo panel (login 0..n-1, registro n..2n-1)
+      _loadSlideBg(si < n ? (si + 1) % n : n + ((si - n + 1) % n));
       if (slideEls[si]) slideEls[si].classList.add('active');
       if (dotEls[si])   dotEls[si].classList.add('active');
     });
