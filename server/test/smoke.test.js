@@ -142,7 +142,7 @@ test("perfil del usuario recien creado es correcto", async () => {
 });
 
 test("chat: la IA responde un mensaje", async () => {
-  const r = await api("/chat", "POST", { message: "Hola Zyra, prueba automática. Responde corto." });
+  const r = await api("/chat", "POST", { message: "Hola Zyra, prueba automática. Responde corto." }, token);
   assert.equal(r.status, 200, JSON.stringify(r.data));
   assert.ok(typeof r.data.response === "string" && r.data.response.trim().length > 0, "la IA no devolvió texto");
   assert.ok(r.data.conversationId, "no se creó la conversación");
