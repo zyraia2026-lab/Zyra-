@@ -26,6 +26,18 @@ if (process.env.SENTRY_DSN) {
   } catch(e) { console.log("Sentry no disponible:", e.message); }
 }
 
+// ── Las dependencias deben venir de server/node_modules (server/package.json). Si el
+// deploy instala el package.json de la RAÍZ, faltan paquetes (ws, @sentry/node) y otros
+// quedan en versiones viejas, y la app arranca igual sin avisar: voz neural y Sentry
+// apagados. En Render el Build Command debe ser: cd server && npm install
+{
+  const depsDir = require("path").join(__dirname, "node_modules");
+  if (!require.resolve("express").startsWith(depsDir)) {
+    console.error("⚠️  Dependencias cargadas desde la raíz del repo, no desde server/node_modules. "
+      + "En Render, el Build Command debe ser: cd server && npm install");
+  }
+}
+
 const express    = require("express");
 const cors       = require("cors");
 const helmet     = require("helmet");
