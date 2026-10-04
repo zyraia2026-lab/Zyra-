@@ -293,4 +293,4 @@ const sendNudgeEmail = async (toEmail, userName = "") => {
   }
 };
 
-module.exports = { sendVerificationCode, sendWelcomeEmail, sendPasswordResetCode, sendWeeklyReport, sendSharedWeeklyReport, sendCrisisAlert, sendNudgeEmail };
+module.exports = { sendVerificationCode, sendWelcomeEmail, sendPasswordResetCode, sendWeeklyReport, sendSharedWeeklyReport, sendCrisisAlert, sendNudgeEmail, sendBrevoEmail };

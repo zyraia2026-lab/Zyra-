@@ -29,9 +29,9 @@
 <meta property="og:url" content="https://zyra-app-8qva.onrender.com/"/>
 <meta property="og:title" content="Zyra — Bienestar Emocional con IA"/>
 <meta property="og:description" content="Tu acompañante emocional inteligente. Chat terapéutico, diario emocional, metas y más. Pruébalo gratis."/>
-<meta property="og:image" content="https://zyra-app-8qva.onrender.com/Imagenes/zyra-avatar.png"/>
-<meta property="og:image:width" content="512"/>
-<meta property="og:image:height" content="512"/>
+<meta property="og:image" content="https://zyra-app-8qva.onrender.com/Imagenes/og-zyra.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
 <meta property="og:site_name" content="Zyra"/>
 <meta property="og:locale" content="es_CO"/>
 
@@ -1756,6 +1756,9 @@ function closeMobileMoreSheet() {
     <span style="margin:0 10px;opacity:.4">·</span>
     <a href="mailto:zyra.ia.2026@gmail.com">Soporte</a>
   </div>
+  <div style="margin-bottom:8px;font-size:13px">
+    Guías: <a href="/ansiedad">Ansiedad</a> · <a href="/estres-estudio">Estrés por estudio</a> · <a href="/diario-emocional">Diario emocional</a> · <a href="/respiracion">Respiración</a>
+  </div>
   <div>© 2026 Zyra — Bienestar Emocional con IA · Hecho con ❤️ en Colombia</div>
 </footer>
 
@@ -1937,7 +1940,7 @@ function closeMobileMoreSheet() {
     <div class="lp-section-label">Contacto</div>
     <h2 class="lp-section-title" style="font-family:'Playfair Display',serif;font-size:clamp(24px,4vw,38px);font-weight:800;color:#e8eaf6;margin-bottom:12px">Hablemos</h2>
     <p style="color:#8f98b8;font-size:15px;margin-bottom:40px">Te respondemos en menos de 24 horas hábiles.</p>
-    <div class="b2b-contact-form">
+    <div class="b2b-contact-form" id="b2b-form-card">
       <div class="b2b-form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
         <div>
           <label class="b2b-label" for="b2b-nombre">Nombre</label>
@@ -1966,8 +1969,17 @@ function closeMobileMoreSheet() {
         <label class="b2b-label" for="b2b-msg">¿Qué necesita tu empresa?</label>
         <textarea class="b2b-input" id="b2b-msg" rows="3" placeholder="Cuéntanos el reto o lo que buscas..." style="resize:vertical;min-height:80px"></textarea>
       </div>
+      <!-- Campo trampa para bots: las personas no lo ven ni lo llenan -->
+      <input type="text" id="b2b-website" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0"/>
       <button id="b2b-submit-btn" onclick="b2bSubmitContact()" style="width:100%;padding:15px;background:linear-gradient(135deg,#fbbf24,#f59e0b);border:none;border-radius:12px;color:#08080f;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;transition:all .2s">Enviar — la respondo yo misma 💜</button>
       <p id="b2b-form-msg" style="display:none;text-align:center;margin-top:14px;font-size:13px;color:#a5b4fc"></p>
+    </div>
+    <!-- Pantalla de gracias: reemplaza el formulario cuando la solicitud se guardó -->
+    <div id="b2b-thanks" role="status" style="display:none;text-align:center;padding:36px 24px;border:1px solid rgba(255,255,255,.08);border-radius:24px;background:rgba(255,255,255,.03)">
+      <div style="font-size:40px;margin-bottom:8px" aria-hidden="true">💜</div>
+      <h3 style="font-family:'Playfair Display',serif;color:#e8eaf6;font-size:24px;margin:0 0 10px">¡Gracias, <span id="b2b-thanks-name"></span>!</h3>
+      <p style="color:#d6d9ef;font-size:15px;line-height:1.6;margin:0 0 22px">Recibimos tu solicitud. Te respondemos en menos de 24 horas hábiles.</p>
+      <button onclick="showPage('landing')" style="background:transparent;border:1px solid rgba(165,180,252,.4);color:#c7d2fe;border-radius:12px;padding:11px 20px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Volver a Zyra</button>
     </div>
   </section>
 
@@ -1994,26 +2006,36 @@ function b2bOpenContact(plan) {
   }
 }
 async function b2bSubmitContact() {
-  const btn  = document.getElementById('b2b-submit-btn');
-  const msg  = document.getElementById('b2b-form-msg');
-  const nombre  = document.getElementById('b2b-nombre')?.value?.trim();
-  const empresa = document.getElementById('b2b-empresa')?.value?.trim();
-  const email   = document.getElementById('b2b-email')?.value?.trim();
-  const size    = document.getElementById('b2b-size')?.value;
-  const texto   = document.getElementById('b2b-msg')?.value?.trim();
-  if (!nombre || !email) { if (msg) { msg.textContent = 'Por favor completa nombre y email.'; msg.style.display='block'; msg.style.color='#f87171'; } return; }
+  const btn     = document.getElementById('b2b-submit-btn');
+  const msg     = document.getElementById('b2b-form-msg');
+  const name    = document.getElementById('b2b-nombre')?.value?.trim() || '';
+  const company = document.getElementById('b2b-empresa')?.value?.trim() || '';
+  const email   = document.getElementById('b2b-email')?.value?.trim() || '';
+  const size    = document.getElementById('b2b-size')?.value || '';
+  const message = document.getElementById('b2b-msg')?.value?.trim() || '';
+  const website = document.getElementById('b2b-website')?.value || '';
+  const showErr = t => { if (msg) { msg.textContent = t; msg.style.display = 'block'; msg.style.color = '#f87171'; } };
+  if (!name || !email) return showErr('Por favor completa nombre y email.');
   btn.disabled = true; btn.textContent = 'Enviando...';
-  // Enviar por email usando la API de soporte
+  if (msg) msg.style.display = 'none';
   try {
-    const body = `Contacto B2B de Zyra\n\nNombre: ${nombre}\nEmpresa: ${empresa || 'No especificada'}\nEmail: ${email}\nTamaño: ${size || 'No especificado'}\n\nMensaje:\n${texto || 'Sin mensaje'}`;
-    // Usar mailto como fallback - en producción conectar con un endpoint real
-    const mailtoUrl = `mailto:zyra.ia.2026@gmail.com?subject=${encodeURIComponent('Consulta B2B — ' + (empresa||nombre))}&body=${encodeURIComponent(body)}`;
-    if (_isNativeApp()) window.open(mailtoUrl, '_system'); else window.open(mailtoUrl);
-    if (msg) { msg.textContent = '¡Listo! Se abrió tu cliente de correo. Si no se abrió, escríbenos a zyra.ia.2026@gmail.com'; msg.style.display='block'; msg.style.color='#a5b4fc'; }
-  } catch(e) {
-    if (msg) { msg.textContent = 'Escríbenos directamente a zyra.ia.2026@gmail.com'; msg.style.display='block'; msg.style.color='#a5b4fc'; }
+    const res = await fetch('/api/contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, company, email, size, message, website }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || 'No se pudo enviar.');
+    document.getElementById('b2b-form-card').style.display = 'none';
+    document.getElementById('b2b-thanks-name').textContent = name.split(' ')[0];
+    const thanks = document.getElementById('b2b-thanks');
+    thanks.style.display = 'block';
+    thanks.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } catch (e) {
+    const sinConexion = e instanceof TypeError;
+    showErr((sinConexion ? 'Sin conexión. Intenta de nuevo.' : e.message) + ' También puedes escribirnos a zyra.ia.2026@gmail.com');
+    btn.disabled = false; btn.textContent = 'Enviar — la respondo yo misma 💜';
   }
-  btn.disabled = false; btn.textContent = 'Enviar — la respondo yo misma 💜';
 }
 </script>
 
@@ -17182,6 +17204,7 @@ async function loadAdminPanel() {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px">
         <div class="admin-stat"><div class="admin-stat-value">${d.payments.count}</div><div class="admin-stat-label">Transacciones</div></div>
         <div class="admin-stat"><div class="admin-stat-value" style="font-size:18px">${fmt(d.payments.revenue)}</div><div class="admin-stat-label">Ingresos</div></div>
+        <div class="admin-stat"><div class="admin-stat-value">${d.leads?.total ?? 0}</div><div class="admin-stat-label">Demos B2B · ${d.leads?.month ?? 0} este mes</div></div>
       </div>
       <h2 style="color:var(--text);margin-bottom:12px;font-size:18px">🕐 Últimos usuarios</h2>
       <div class="card" style="overflow:auto;margin-bottom:24px">

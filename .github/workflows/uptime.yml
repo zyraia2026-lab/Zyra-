@@ -1,0 +1,26 @@
+name: Uptime Zyra
+
+# Revisa cada 30 minutos que la app responda. Si falla, GitHub te avisa por correo.
+# Render (plan gratis) duerme el servicio tras un rato sin tráfico, por eso hay reintentos.
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consultar /api/health
+        run: |
+          for i in 1 2 3; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 90 https://zyra-app-8qva.onrender.com/api/health || echo "000")
+            if [ "$code" = "200" ]; then
+              echo "Zyra responde (HTTP $code)"
+              exit 0
+            fi
+            echo "Intento $i: HTTP $code"
+            sleep 30
+          done
+          echo "::error::Zyra no responde en /api/health"
+          exit 1

@@ -201,3 +201,16 @@ test("rutas que deberian exigir login las exigen (sin token -> 401)", async () =
   const r = await api("/journal", "GET");
   assert.equal(r.status, 401);
 });
+
+test("formulario B2B: rechaza un correo invalido sin guardar nada", async () => {
+  // Una sola llamada por corrida: el formulario tiene limite de 5 envios por hora por IP
+  const r = await api("/contact", "POST", { name: "Prueba", email: "no-es-correo" });
+  assert.equal(r.status, 400);
+});
+
+test("guias publicas responden como pagina real (no la app)", async () => {
+  const r = await fetch(BASE_URL + "/ansiedad");
+  assert.equal(r.status, 200);
+  const html = await r.text();
+  assert.ok(html.includes("<h1>") && html.includes("Línea 106"), "la guia debe tener titulo y aviso de crisis");
+});

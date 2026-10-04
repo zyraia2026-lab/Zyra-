@@ -4,6 +4,7 @@ const User         = require("../models/User");
 const Profile      = require("../models/Profile");
 const Conversation = require("../models/Conversation");
 const Payment      = require("../models/Payment");
+const ContactLead  = require("../models/ContactLead");
 
 // Admin gate — solo el email registrado como admin
 function adminOnly(req, res, next) {
@@ -26,6 +27,7 @@ r.get("/stats", protect, adminOnly, async (req, res) => {
       basicUsers, premiumUsers,
       totalConvs, convsToday,
       totalPayments, revenueAll,
+      totalLeads, leadsMonth,
     ] = await Promise.all([
       User.countDocuments(),
       User.countDocuments({ createdAt: { $gte: today } }),
@@ -37,6 +39,8 @@ r.get("/stats", protect, adminOnly, async (req, res) => {
       Conversation.countDocuments({ createdAt: { $gte: today } }),
       Payment.countDocuments({ status: "paid", period: { $ne: "demo" } }),
       Payment.aggregate([{ $match: { status: "paid", period: { $ne: "demo" } } }, { $group: { _id: null, total: { $sum: "$amount" } } }]),
+      ContactLead.countDocuments(),
+      ContactLead.countDocuments({ createdAt: { $gte: month } }),
     ]);
 
     // Últimos 10 usuarios
@@ -52,6 +56,8 @@ r.get("/stats", protect, adminOnly, async (req, res) => {
       users: { total: totalUsers, newToday, newWeek, newMonth, basic: basicUsers, premium: premiumUsers, free: totalUsers - basicUsers - premiumUsers },
       conversations: { total: totalConvs, today: convsToday },
       payments: { count: totalPayments, revenue: revenueAll[0]?.total || 0 },
+      // Embudo B2B: solicitudes de demo del formulario (sin rastreo, solo datos propios)
+      leads: { total: totalLeads, month: leadsMonth },
       recentUsers,
       recentPayments,
     });

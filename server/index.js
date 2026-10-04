@@ -172,6 +172,7 @@ app.use("/api/future-notes",  require("./routes/futureNotes"));
 app.use("/api/admin",         require("./routes/admin"));
 app.use("/api/voice",         require("./routes/voice"));
 app.use("/api/spotify",       require("./routes/spotify"));
+app.use("/api/contact",       require("./routes/contact"));
 
 app.get("/api/health", (req, res) => res.json({ status: "OK", ai: "Zyra/Groq", version: "5.0" }));
 app.get("/api/config", auth, (req, res) => res.json({
@@ -282,6 +283,16 @@ app.get("/privacy", (req, res) => {
 <p style="margin-top:40px;padding-top:20px;border-top:1px solid #eee;color:#888;font-size:13px">© 2026 Zyra — App de bienestar emocional con IA</p>
 </body></html>`);
 });
+
+// ── Guías públicas (SEO): una página HTML estática por intención de búsqueda.
+// Son páginas reales (no la SPA), así que Google puede indexarlas una por una.
+const GUIAS = ["ansiedad", "estres-estudio", "diario-emocional", "respiracion"];
+for (const slug of GUIAS) {
+  app.get("/" + slug, (req, res) => {
+    res.setHeader("Cache-Control", "public, max-age=3600");
+    res.sendFile(path.join(__dirname, "../client/guias", slug + ".html"));
+  });
+}
 
 // ── SPA fallback — solo para rutas reales de la app; lo demas es 404 de verdad
 // (antes cualquier URL inventada respondia 200 con la app, lo que Google
