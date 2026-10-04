@@ -2344,6 +2344,20 @@ async function b2bSubmitContact() {
     </div>
   </div>
 
+  <!-- ══ NUDGE: COMPLETAR PLAN DE SEGURIDAD (se muestra solo si aplica, ver _renderSafetyPlanNudge) ══ -->
+  <div id="sp-nudge" style="display:none;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.2);border-radius:16px;padding:14px 16px;margin-bottom:16px;animation:pageFade .4s ease" role="region" aria-label="Plan de seguridad">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Tu plan de seguridad</div>
+        <div style="font-size:13px;color:var(--text);line-height:1.5;font-weight:500">Si algún día te sientes muy mal, tener a la mano tus señales de alerta, lo que te ayuda y a quién llamar marca la diferencia. Te toma unos 3 minutos.</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="sp-nudge-go" type="button" style="background:var(--accent);border:none;color:#fff;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Crear mi plan</button>
+        <button id="sp-nudge-dismiss" type="button" style="background:transparent;border:1px solid var(--border);color:var(--text3);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Ahora no</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ CTA PRINCIPAL — HABLAR CON ZYRA ══ -->
   <div onclick="showPage('assistant')" style="background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 60%,#a855f7 100%);border-radius:24px;padding:24px 28px;margin-bottom:20px;cursor:pointer;position:relative;overflow:hidden;box-shadow:0 8px 32px rgba(99,102,241,.35);transition:transform .18s,box-shadow .18s" onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 12px 40px rgba(99,102,241,.45)'" onmouseleave="this.style.transform='';this.style.boxShadow='0 8px 32px rgba(99,102,241,.35)'">
     <div style="position:absolute;inset:0;background:radial-gradient(circle at 85% 20%,rgba(255,255,255,.1) 0%,transparent 60%);pointer-events:none"></div>
@@ -9166,6 +9180,7 @@ async function loadDashboard() {
       api("/profile"), api("/conversations"), api("/profile/history"), api("/goals"), api("/journal")
     ]);
     const p = pd.profile;
+    _renderSafetyPlanNudge(p);
     const em = EMOTIONS.find(e => e.key === p.currentEmotion) || EMOTIONS[1];
     document.getElementById("hero-emoji").textContent = em.emoji;
     document.getElementById("st-emotion").textContent = em.label;
@@ -17441,6 +17456,36 @@ function _zyraEmoReactChat() {
     if (inp) { inp.value = label; inp.focus(); }
   }, 400);
 }
+// Nudge suave para completar el plan de seguridad. Reglas: solo si no hay plan
+// guardado, no hay crisis reciente (3 dias) ni overlay abierto, maximo 3 veces
+// y separadas 7 dias. "Ahora no" o abrir el plan lo apagan para siempre.
+function _renderSafetyPlanNudge(p) {
+  const el = document.getElementById("sp-nudge");
+  if (!el || !p) return;
+  const hide = () => { el.style.display = "none"; };
+  if (localStorage.getItem("zyra_sp_nudge_off") === "1") return hide();
+  const sp = p.safetyPlan || {};
+  const hasPlan = (sp.warningSigns?.length || 0) + (sp.copingStrategies?.length || 0) + (sp.supportPeople?.length || 0) > 0 || !!sp.safeEnvironmentNotes?.trim();
+  if (hasPlan) return hide();
+  const recentCrisis = (p.crisisEvents || []).some(e => e.timestamp && Date.now() - new Date(e.timestamp).getTime() < 3 * 86400000);
+  if (recentCrisis) return hide();
+  const overlay = document.getElementById("zyra-crisis-overlay");
+  if (overlay && overlay.style.display && overlay.style.display !== "none") return hide();
+  const shows = parseInt(localStorage.getItem("zyra_sp_nudge_count") || "0");
+  const last = parseInt(localStorage.getItem("zyra_sp_nudge_at") || "0");
+  if (shows >= 3 || (last && Date.now() - last < 7 * 86400000)) return hide();
+  el.style.display = "block";
+  localStorage.setItem("zyra_sp_nudge_count", String(shows + 1));
+  localStorage.setItem("zyra_sp_nudge_at", String(Date.now()));
+  document.getElementById("sp-nudge-dismiss").onclick = () => { localStorage.setItem("zyra_sp_nudge_off", "1"); hide(); };
+  document.getElementById("sp-nudge-go").onclick = () => {
+    localStorage.setItem("zyra_sp_nudge_off", "1");
+    hide();
+    showPage("profile");
+    setTimeout(() => document.getElementById("safety-plan-card")?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
+  };
+}
+
 async function _renderMorningNote() {
   const el = document.getElementById("zyra-morning-note");
   const txt = document.getElementById("zyra-morning-note-text");
