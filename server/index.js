@@ -284,6 +284,10 @@ app.get("/privacy", (req, res) => {
 </body></html>`);
 });
 
+// ── /favicon.ico: los navegadores y Google lo piden en páginas sin <link rel="icon">
+// (privacidad, 404); antes respondía 404.
+app.get("/favicon.ico", (req, res) => res.redirect(301, "/Imagenes/logo-nuevo.png"));
+
 // ── Guías públicas (SEO): una página HTML estática por intención de búsqueda.
 // Son páginas reales (no la SPA), así que Google puede indexarlas una por una.
 const GUIAS = ["ansiedad", "estres-estudio", "diario-emocional", "respiracion"];
