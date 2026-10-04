@@ -53,9 +53,16 @@ for (const f of fs.readdirSync(CLIENT)) {
   checkJs(fs.readFileSync(path.join(CLIENT, f), "utf8"), f);
 }
 
+// Archivos públicos que no se pueden borrar: si desaparece el de Google, se pierde la
+// verificación de Search Console; robots, sitemap y manifest los leen buscadores y la PWA.
+const REQUIRED = ["google0266346444c21b22.html", "robots.txt", "sitemap.xml", "manifest.json"];
+for (const f of REQUIRED) {
+  if (!fs.existsSync(path.join(CLIENT, f))) errors.push(`falta client/${f} (no se debe borrar)`);
+}
+
 if (errors.length) {
-  console.error("❌ Problemas en el JavaScript del cliente:");
+  console.error("❌ Problemas en el cliente:");
   for (const e of errors) console.error("  - " + e);
   process.exit(1);
 }
-console.log(`✅ Cliente OK: ${blocks} bloques <script> en index.html y ${files} archivo(s) .js compilan; sin lookbehind.`);
+console.log(`✅ Cliente OK: ${blocks} bloques <script> en index.html y ${files} archivo(s) .js compilan; sin lookbehind; ${REQUIRED.length} archivos públicos presentes.`);
