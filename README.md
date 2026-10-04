@@ -49,6 +49,16 @@ Variables opcionales en `.env.example`.
 
 El archivo `render.yaml` tiene toda la configuración lista. Solo conecta el repo en [render.com](https://render.com) y configura las variables de entorno.
 
+## Respaldo de la base de datos
+
+```bash
+cd server
+node scripts/backup-db.js                                  # copia completa en Documentos/zyra-backups/<fecha>/
+node scripts/restore-db.js <carpeta-del-respaldo> --target <base-vacía>
+```
+
+El respaldo contiene diarios y conversaciones privadas de los usuarios: el script no permite guardarlo dentro del repositorio, y no se debe subir ni compartir. La restauración solo escribe en una base vacía y verifica la integridad de cada archivo y los conteos.
+
 ## App Android
 
 ```bash

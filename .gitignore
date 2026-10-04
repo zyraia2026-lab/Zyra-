@@ -12,3 +12,5 @@ apk-build/
 scripts/zyra-test.js
 scripts/test-edge.js
 DEMO_LOGIN.md
+# Respaldos de la base: contienen datos privados de los usuarios
+zyra-backups/
