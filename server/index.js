@@ -283,10 +283,19 @@ app.get("/privacy", (req, res) => {
 </body></html>`);
 });
 
-// ── SPA fallback — sin caché en index.html
+// ── SPA fallback — solo para rutas reales de la app; lo demas es 404 de verdad
+// (antes cualquier URL inventada respondia 200 con la app, lo que Google
+// indexa como paginas basura).
+const SPA_ROUTES = new Set(["/", "/index.html", "/pago-exitoso"]);
+const NOT_FOUND_HTML = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Página no encontrada — Zyra</title><style>body{font-family:system-ui,sans-serif;background:#0f0a1a;color:#e8eaf6;min-height:100vh;margin:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}h1{color:#a5b4fc;font-size:28px;margin:0 0 8px}p{color:#94a3b8;margin:0 0 24px;line-height:1.6}a{display:inline-block;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;text-decoration:none;padding:12px 24px;border-radius:14px;font-weight:700}</style></head><body><div><div style="font-size:48px;margin-bottom:12px">✦</div><h1>Esta página no existe</h1><p>Quizá el enlace está mal escrito o la página se movió.</p><a href="/">Volver a Zyra</a></div></body></html>`;
+
 app.get("*", (req, res) => {
-  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-  res.sendFile(path.join(__dirname, "../client/index.html"));
+  if (req.path.startsWith("/api/")) return res.status(404).json({ message: "Ruta no encontrada" });
+  if (SPA_ROUTES.has(req.path)) {
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    return res.sendFile(path.join(__dirname, "../client/index.html"));
+  }
+  res.status(404).type("html").send(NOT_FOUND_HTML);
 });
 
 // ── Sentry error handler (debe ir ANTES del error handler propio)
