@@ -51,6 +51,7 @@ r.post("/", contactLimiter, async (req, res) => {
   // El aviso al equipo es best-effort: la solicitud ya quedó guardada
   sendBrevoEmail({
     to: TEAM_EMAIL,
+    replyTo: { email, name }, // "Responder" le escribe directo a quien llenó el formulario
     subject: `Contacto B2B — ${company || name}`,
     html: `<div style="font-family:Arial,sans-serif;font-size:14px;color:#111">
       <p><b>Nombre:</b> ${esc(name)}</p>

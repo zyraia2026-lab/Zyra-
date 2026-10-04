@@ -40,7 +40,8 @@ function wrap(body) {
   </body></html>`;
 }
 
-async function sendBrevoEmail({ to, subject, html }) {
+// replyTo (opcional): a quién le llega la respuesta cuando el destinatario da "Responder"
+async function sendBrevoEmail({ to, subject, html, replyTo }) {
   if (NO_SEND_EMAIL_RE.test(String(to || ""))) {
     console.log("[email] omitido: dominio de prueba que no recibe correo");
     return;
@@ -55,6 +56,7 @@ async function sendBrevoEmail({ to, subject, html }) {
     body: JSON.stringify({
       sender: { name: "Zyra 🌊", email: process.env.EMAIL_USER },
       to: [{ email: to }],
+      ...(replyTo ? { replyTo } : {}),
       subject,
       htmlContent: html,
     }),
