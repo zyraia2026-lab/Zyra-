@@ -15016,7 +15016,9 @@ function getUserAvatar() {
 function renderMarkdown(raw) {
   let t = safeHtml(raw);
   t = t.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-  t = t.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, "<em>$1</em>");
+  // Sin lookbehind: en Safari < 16.4 (iPhone con iOS 15/16.3) un lookbehind en
+  // una regex literal es error de sintaxis y tumba TODO este bloque de script.
+  t = t.replace(/(^|[^*])\*(?!\*)(.*?[^*\n\r\u2028\u2029])\*(?!\*)/g, "$1<em>$2</em>");
   const lines = t.split("\n");
   const out = [];
   let inUl = false;
