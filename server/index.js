@@ -302,7 +302,7 @@ app.get("/favicon.ico", (req, res) => res.redirect(301, "/Imagenes/logo-nuevo.pn
 
 // ── Guías públicas (SEO): una página HTML estática por intención de búsqueda.
 // Son páginas reales (no la SPA), así que Google puede indexarlas una por una.
-const GUIAS = ["ansiedad", "estres-estudio", "diario-emocional", "respiracion"];
+const GUIAS = ["ansiedad", "estres-estudio", "diario-emocional", "respiracion", "dormir-mejor", "soledad"];
 for (const slug of GUIAS) {
   app.get("/" + slug, (req, res) => {
     res.setHeader("Cache-Control", "public, max-age=3600");

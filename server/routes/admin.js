@@ -51,6 +51,16 @@ r.get("/stats", protect, adminOnly, async (req, res) => {
     ]);
 
     // Últimos 10 usuarios reales
+    // Retención (solo datos propios): activo = abrió la app (lastActiveDate) o chateó en los últimos 7 días
+    const realIds   = (await User.distinct("_id", realUser)).map(String);
+    const realSet   = new Set(realIds);
+    const visited   = (await Profile.distinct("user", { lastActiveDate: { $gte: week } })).map(String);
+    const chatted7  = (await Conversation.distinct("user", { updatedAt: { $gte: week } })).map(String);
+    const chatEver  = (await Conversation.distinct("user")).map(String).filter(id => realSet.has(id));
+    const activeSet = new Set([...visited, ...chatted7].filter(id => realSet.has(id)));
+    const olderIds  = (await User.distinct("_id", { ...realUser, createdAt: { $lt: week } })).map(String);
+    const retained  = olderIds.filter(id => activeSet.has(id)).length;
+
     const recentUsers = await User.find(realUser).sort({ createdAt: -1 }).limit(10)
       .select("name email plan createdAt planExpiresAt isDisabled").lean();
 
@@ -66,6 +76,9 @@ r.get("/stats", protect, adminOnly, async (req, res) => {
       payments: { count: totalPayments, revenue: revenueAll[0]?.total || 0 },
       // Embudo B2B: solicitudes de demo del formulario (sin rastreo, solo datos propios)
       leads: { total: totalLeads, month: leadsMonth },
+      // active7 = activos en 7 días · chatted = alguna vez chatearon · retained/olderUsers =
+      // de los registrados hace más de 7 días, cuántos siguen activos esta semana
+      engagement: { active7: activeSet.size, chatted: chatEver.length, retained, olderUsers: olderIds.length },
       recentUsers,
       recentPayments,
     });

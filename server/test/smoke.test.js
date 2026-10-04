@@ -92,9 +92,9 @@ after(async () => {
     const user = await db.collection("users").findOne({ email: testEmail });
     if (user) {
       await db.collection("users").deleteOne({ _id: user._id });
-      await db.collection("profiles").deleteOne({ user: user._id }).catch(() => {});
-      await db.collection("journals").deleteMany({ user: user._id }).catch(() => {});
-      await db.collection("goals").deleteMany({ user: user._id }).catch(() => {});
+      for (const c of ["profiles", "journals", "goals", "conversations", "memories", "weeklyreports"]) {
+        await db.collection(c).deleteMany({ user: user._id }).catch(() => {});
+      }
     }
     await db.collection("otpcodes").deleteOne({ key: testEmail }).catch(() => {});
   }
@@ -139,6 +139,26 @@ test("perfil del usuario recien creado es correcto", async () => {
   const r = await api("/auth/me", "GET", null, token);
   assert.equal(r.status, 200);
   assert.equal(r.data.user.email, testEmail);
+});
+
+test("chat: la IA responde un mensaje", async () => {
+  const r = await api("/chat", "POST", { message: "Hola Zyra, prueba automática. Responde corto." });
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  assert.ok(typeof r.data.response === "string" && r.data.response.trim().length > 0, "la IA no devolvió texto");
+  assert.ok(r.data.conversationId, "no se creó la conversación");
+});
+
+test("chat en tiempo real (stream): llegan fragmentos de texto", async () => {
+  const r = await fetch(BASE_URL + "/api/chat/stream", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+    body: JSON.stringify({ message: "Dame un consejo de una línea." }),
+    signal: AbortSignal.timeout(45000),
+  });
+  assert.equal(r.status, 200);
+  const body = await r.text();
+  const pieces = (body.match(/^data: \{"t":/gm) || []).length;
+  assert.ok(pieces > 0, "el stream no mandó texto: " + body.slice(0, 200));
 });
 
 test("texto a voz: responde audio real con algun proveedor", async () => {
@@ -209,7 +229,7 @@ test("formulario B2B: rechaza un correo invalido sin guardar nada", async () => 
 });
 
 test("guias publicas responden como pagina real (no la app)", async () => {
-  const r = await fetch(BASE_URL + "/ansiedad");
+  const r = await fetch(BASE_URL + "/soledad");
   assert.equal(r.status, 200);
   const html = await r.text();
   assert.ok(html.includes("<h1>") && html.includes("Línea 106"), "la guia debe tener titulo y aviso de crisis");

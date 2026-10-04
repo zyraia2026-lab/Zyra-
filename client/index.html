@@ -1757,7 +1757,7 @@ function closeMobileMoreSheet() {
     <a href="mailto:zyra.ia.2026@gmail.com">Soporte</a>
   </div>
   <div style="margin-bottom:8px;font-size:13px">
-    Guías: <a href="/ansiedad">Ansiedad</a> · <a href="/estres-estudio">Estrés por estudio</a> · <a href="/diario-emocional">Diario emocional</a> · <a href="/respiracion">Respiración</a>
+    Guías: <a href="/ansiedad">Ansiedad</a> · <a href="/estres-estudio">Estrés por estudio</a> · <a href="/diario-emocional">Diario emocional</a> · <a href="/respiracion">Respiración</a> · <a href="/dormir-mejor">Dormir mejor</a> · <a href="/soledad">Soledad</a>
   </div>
   <div>© 2026 Zyra — Bienestar Emocional con IA · Hecho con ❤️ en Colombia</div>
 </footer>
@@ -17206,6 +17206,12 @@ async function loadAdminPanel() {
         <div class="admin-stat"><div class="admin-stat-value" style="color:#0ea5e9">${d.users.basic}</div><div class="admin-stat-label">Básico</div></div>
         <div class="admin-stat"><div class="admin-stat-value" style="color:var(--text3)">${d.users.free}</div><div class="admin-stat-label">Gratis</div></div>
       </div>
+      ${d.engagement ? `<h2 style="color:var(--text);margin-bottom:16px;font-size:18px">🔁 Retención</h2>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px">
+        <div class="admin-stat"><div class="admin-stat-value" style="color:#22c55e">${d.engagement.active7}</div><div class="admin-stat-label">Activos 7 días</div></div>
+        <div class="admin-stat"><div class="admin-stat-value">${d.users.total ? Math.round(d.engagement.chatted / d.users.total * 100) : 0}%</div><div class="admin-stat-label">Han chateado</div></div>
+        <div class="admin-stat"><div class="admin-stat-value" style="color:#8b5cf6">${d.engagement.olderUsers ? Math.round(d.engagement.retained / d.engagement.olderUsers * 100) : 0}%</div><div class="admin-stat-label">Siguen activos (${d.engagement.retained}/${d.engagement.olderUsers})</div></div>
+      </div>` : ""}
       <h2 style="color:var(--text);margin-bottom:16px;font-size:18px">💬 Conversaciones</h2>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px">
         <div class="admin-stat"><div class="admin-stat-value">${d.conversations.total}</div><div class="admin-stat-label">Total sesiones</div></div>
