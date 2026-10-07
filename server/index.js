@@ -277,7 +277,7 @@ app.get("/privacy", (req, res) => {
 <p><em>Última actualización: julio de 2026</em></p>
 <p>Zyra ("nosotros", "la app") es una aplicación de bienestar emocional con inteligencia artificial. Esta política explica cómo tratamos tu información personal.</p>
 <h2>1. Datos que recopilamos</h2>
-<ul><li>Nombre y correo electrónico (para crear tu cuenta)</li><li>Mensajes del chat con Zyra (para personalizar las respuestas)</li><li>Entradas del diario y metas (solo visibles para ti)</li><li>Preferencias de uso como tema visual y recordatorios</li></ul>
+<ul><li>Nombre y correo electrónico (para crear tu cuenta)</li><li>Mensajes del chat con Zyra (para personalizar las respuestas)</li><li>Entradas del diario y metas (solo visibles para ti)</li><li>Preferencias de uso como tema visual y recordatorios</li><li>Datos de salud opcionales: pulso, pasos y sueño si conectas un reloj o mides con la cámara, y tu año de nacimiento y cuánto ejercicio haces si decides agregarlos. Solo se usan para mostrártelos y darte consejos generales de bienestar (no son un diagnóstico médico); son datos sensibles, darlos es opcional y puedes borrarlos cuando quieras</li></ul>
 <h2>2. Cómo usamos tus datos</h2>
 <p>Usamos tu información exclusivamente para brindarte el servicio: respuestas personalizadas de la IA, historial de conversaciones y funciones de bienestar. Nunca vendemos tus datos a terceros.</p>
 <h2>3. Inicio de sesión con redes sociales</h2>

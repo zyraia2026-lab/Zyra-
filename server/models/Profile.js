@@ -11,6 +11,10 @@ const S = new mongoose.Schema({
   currentEmotion: { type: String, enum: ["feliz","tranquilo","ansioso","triste","enojado","confundido","esperanzado","agotado","motivado","nostalgico"], default: "tranquilo" },
   emotionHistory: [{ emotion: String, note: String, intensity: { type: Number, default: 5 }, date: { type: Date, default: Date.now } }],
 
+  // ── Para personalizar los consejos de pulso (opcionales; solo el año, no la fecha) ──
+  birthYear:     { type: Number, default: null },
+  activityLevel: { type: String, enum: ["bajo", "medio", "alto", null], default: null },
+
   // ── Sesiones y racha ──
   sessionsCount:  { type: Number, default: 0 },
   streakDays:     { type: Number, default: 0 },

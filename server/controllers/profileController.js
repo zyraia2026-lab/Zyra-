@@ -1,5 +1,6 @@
 const Profile = require("../models/Profile");
 const bcrypt  = require("bcryptjs");
+const HRGuide = require("../../client/hr-guide"); // misma guía de pulso que usa la app
 
 // ── GET perfil ──
 exports.getProfile = async (req, res) => {
@@ -13,7 +14,7 @@ exports.getProfile = async (req, res) => {
 // ── UPDATE perfil básico ──
 exports.updateProfile = async (req, res) => {
   try {
-    const allowed = ["bio","photoUrl","avatarEmoji","avatarColor","currentEmotion","theme","onboardingDone","onboardingReason","reminderEnabled","reminderHour","reminderMinute"];
+    const allowed = ["bio","photoUrl","avatarEmoji","avatarColor","currentEmotion","theme","onboardingDone","onboardingReason","reminderEnabled","reminderHour","reminderMinute","birthYear","activityLevel"];
     const update = {};
     allowed.forEach(k => { if (req.body[k] !== undefined) update[k] = req.body[k]; });
 
@@ -34,6 +35,14 @@ exports.updateProfile = async (req, res) => {
       return res.status(400).json({ message: "Hora de recordatorio inválida" });
     if (update.reminderMinute !== undefined && (update.reminderMinute < 0 || update.reminderMinute > 59))
       return res.status(400).json({ message: "Minuto de recordatorio inválido" });
+    // Año de nacimiento: opcional (null lo borra); la edad debe cumplir el mínimo de los Términos (13)
+    if (update.birthYear !== undefined && update.birthYear !== null) {
+      if (!HRGuide.ageFromBirthYear(update.birthYear))
+        return res.status(400).json({ message: `Zyra es para personas de ${HRGuide.MIN_AGE} años o más. Revisa el año de nacimiento.` });
+      update.birthYear = Number(update.birthYear);
+    }
+    if (update.activityLevel !== undefined && update.activityLevel !== null && !HRGuide.ACTIVITY_LEVELS.includes(update.activityLevel))
+      return res.status(400).json({ message: "Nivel de actividad inválido" });
 
     // El tema "default" es gratis; los demas (ocean/forest/sunset/midnight)
     // se venden en la Tienda -- sin esto cualquiera podia ponerselos gratis
@@ -396,7 +405,10 @@ exports.deleteAllData = async (req, res) => {
         missionsCompletedToday: [], lastActiveDate: null,
         emergencyContact: { name: "", phone: "", relation: "", email: "" },
         pin: "", pinEnabled: false, onboardingDone: false,
-        reminderEnabled: false, updatedAt: Date.now()
+        reminderEnabled: false, updatedAt: Date.now(),
+        // datos de salud (sensibles): pulso/pasos/sueño, edad y plan de seguridad también se borran
+        birthYear: null, activityLevel: null,
+        $unset: { health: 1, safetyPlan: 1 },
       }),
       Goal.deleteMany({ user: req.user._id }),
       Journal.deleteMany({ user: req.user._id }),

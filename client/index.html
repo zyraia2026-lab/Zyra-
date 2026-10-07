@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;0,800;1,700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="styles.css?v=20260929"/>
+<script src="/hr-guide.js"></script>
 
 <!-- ══ PWA META TAGS ══ -->
 <link rel="manifest" href="/manifest.json"/>
@@ -647,8 +648,24 @@ function closeSplash(){
       <button onclick="obNext(3)" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:14px;padding:14px 40px;font-size:16px;font-weight:700;cursor:pointer;width:100%">Siguiente →</button>
     </div>
 
-    <!-- Paso 3 -->
+    <!-- Paso 3 — Edad y ejercicio (opcional, para los consejos de pulso) -->
     <div id="ob-step-3" style="display:none">
+      <div style="font-size:64px;margin-bottom:16px">🎂</div>
+      <h2 style="color:#fff;font-size:20px;font-weight:700;margin:0 0 8px">¿Cuántos años tienes?</h2>
+      <p style="color:#9ca3af;font-size:13px;line-height:1.6;margin:0 0 18px">Opcional. Si mides tu pulso, Zyra te dice si está bien para ti y te da consejos a tu medida.</p>
+      <select id="ob-birth-year" aria-label="Año de nacimiento" style="width:100%;background:#1a1a24;border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:13px 14px;color:#fff;font-size:15px;margin-bottom:10px;font-family:inherit"></select>
+      <select id="ob-activity" aria-label="Cuánto ejercicio haces" style="width:100%;background:#1a1a24;border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:13px 14px;color:#fff;font-size:15px;margin-bottom:10px;font-family:inherit">
+        <option value="">¿Haces ejercicio? (opcional)</option>
+        <option value="bajo">Poco o nada</option>
+        <option value="medio">Algunas veces por semana</option>
+        <option value="alto">Entreno casi a diario</option>
+      </select>
+      <p style="color:#8f98b8;font-size:11px;line-height:1.5;margin:0 0 16px">Solo para consejos generales de bienestar; no es un diagnóstico médico. Si lo eliges, autorizas que Zyra use estos datos con ese fin. Puedes cambiarlo luego en Sensores.</p>
+      <button onclick="obNext(4)" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:14px;padding:14px 40px;font-size:16px;font-weight:700;cursor:pointer;width:100%">Siguiente →</button>
+    </div>
+
+    <!-- Paso 4 -->
+    <div id="ob-step-4" style="display:none">
       <div style="font-size:64px;margin-bottom:16px">🎨</div>
       <h2 style="color:#fff;font-size:20px;font-weight:700;margin:0 0 8px">Elige tu tema</h2>
       <p style="color:#9ca3af;font-size:13px;margin:0 0 20px">Puedes cambiarlo después en tu perfil</p>
@@ -659,11 +676,11 @@ function closeSplash(){
         <button class="ob-theme" onclick="obSelectTheme(this,'sunset')"   style="background:linear-gradient(135deg,#f97316,#ec4899)">Sunset</button>
         <button class="ob-theme" onclick="obSelectTheme(this,'midnight')" style="background:linear-gradient(135deg,#1e1b4b,#4338ca)">Midnight</button>
       </div>
-      <button onclick="obNext(4)" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:14px;padding:14px 40px;font-size:16px;font-weight:700;cursor:pointer;width:100%">Siguiente →</button>
+      <button onclick="obNext(5)" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:14px;padding:14px 40px;font-size:16px;font-weight:700;cursor:pointer;width:100%">Siguiente →</button>
     </div>
 
-    <!-- Paso 4 — Notificaciones -->
-    <div id="ob-step-4" style="display:none">
+    <!-- Paso 5 — Notificaciones -->
+    <div id="ob-step-5" style="display:none">
       <div style="font-size:64px;margin-bottom:16px">🔔</div>
       <h2 style="color:#fff;font-size:20px;font-weight:700;margin:0 0 8px">¿Te recuerdo cada noche?</h2>
       <p style="color:#9ca3af;font-size:13px;line-height:1.6;margin:0 0 20px">Un empujoncito a la hora que elijas para hacer tu check-in, reflexionar o simplemente hablar</p>
@@ -697,6 +714,7 @@ function closeSplash(){
       <div class="ob-dot" id="ob-dot-2"></div>
       <div class="ob-dot" id="ob-dot-3"></div>
       <div class="ob-dot" id="ob-dot-4"></div>
+      <div class="ob-dot" id="ob-dot-5"></div>
     </div>
   </div>
 </div>
@@ -3592,6 +3610,7 @@ async function b2bSubmitContact() {
 <div class="container" style="max-width:720px">
   <div class="section-title">📱 Sensores</div>
   <p style="font-size:13px;color:var(--text3);margin:-10px 0 18px">Pulso y pasos desde tu celular, o conecta tu reloj inteligente.</p>
+  <div id="hr-profile-card" style="margin-bottom:16px"></div>
   <div id="prof-watch-card" style="margin-bottom:20px"></div>
 </div>
 </div>
@@ -4040,6 +4059,10 @@ async function b2bSubmitContact() {
         • Logros, monedas y recompensas del sistema de gamificación<br/>
         • Memorias guardadas por la IA (fragmentos de contexto personal)<br/>
         • Configuraciones: tema, avatar, PIN, recordatorios, contacto de emergencia<br/><br/>
+        <strong>Datos de salud (opcionales):</strong><br/>
+        • Pulso, pasos, sueño, presión arterial y oxígeno, si conectas un reloj inteligente o mides con la cámara del celular<br/>
+        • Año de nacimiento y cuánto ejercicio haces, si decides agregarlos para personalizar los consejos de pulso<br/>
+        • Los usamos solo para mostrártelos y darte consejos generales de bienestar; no son un diagnóstico médico. Son datos sensibles (Ley 1581 de 2012): darlos es opcional y puedes borrarlos cuando quieras<br/><br/>
         <strong>Datos técnicos (seguridad):</strong><br/>
         • Dirección IP (solo para rate limiting y prevención de abusos — no se almacena permanentemente)<br/>
         • Tipo de navegador y sistema operativo (user-agent, para diagnóstico técnico)<br/>
@@ -4725,7 +4748,7 @@ function showPage(name) {
   if(name === "wellness")     loadWellness();
   else if (_pomoAmbType && typeof _pomoStopAmbient === "function") { _pomoStopAmbient(); }
   if(name === "profile")      loadProfile();
-  if(name === "sensors")      { renderWatchCard(); startHealthPolling(); } else { stopHealthPolling(); }
+  if(name === "sensors")      { renderWatchCard(); renderHRProfileCard(); _maybeAskHRProfile(); startHealthPolling(); } else { stopHealthPolling(); }
   if(name === "analytics")    loadAnalytics();
   if(name === "admin")        loadAdminPanel();
   if(name === "games")        { setTimeout(() => openGame(window._currentGame || 'breath'), 50); }
@@ -4922,6 +4945,8 @@ function doLogout() {
   localStorage.removeItem("zyra_avatar_emoji");
   localStorage.removeItem("zyra_avatar_color");
   localStorage.removeItem("zyra_terms_accepted");
+  localStorage.removeItem("zyra_hr_profile");
+  localStorage.removeItem("zyra_hr_profile_asked");
   clearForms(); showPage("login");
 }
 
@@ -8053,28 +8078,190 @@ function _handleHR(bpm) {
   localStorage.setItem('zyra_watch_hr', JSON.stringify({ bpm, ts }));
   syncHealthToServer({ hr: { bpm, ts } });
   _updateWatchUI();
-  // Reacción automática: HR alto → sugerir respiración
-  const lastAlert = parseInt(localStorage.getItem('zyra_watch_hr_alert') || '0');
-  if (bpm > 100 && (ts - lastAlert) > 10 * 60 * 1000) { // cada 10min máximo
-    localStorage.setItem('zyra_watch_hr_alert', String(ts));
-    setTimeout(() => {
-      zyraToast(`💓 Frecuencia cardíaca alta (${bpm} bpm) — ¿Hacemos una respiración 4-7-8?`, 'info', 8000, true);
-      sendWatchReminder(`💓 Pulso alto (${bpm} bpm) — respira 4-7-8`);
-      const toastEl = document.querySelector('.zyra-toast:last-child');
-      if (toastEl) {
-        const btn = document.createElement('button');
-        btn.textContent = 'Respirar ahora';
-        btn.style.cssText = 'margin-top:8px;display:block;background:rgba(99,102,241,.25);border:1px solid rgba(99,102,241,.4);color:#c7d2fe;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;width:100%';
-        btn.onclick = () => { showPage('wellness'); setTimeout(() => openWellness('breath'), 100); };
-        toastEl.appendChild(btn);
-      }
-    }, 500);
+  // Reacción: interpretar el pulso según edad, ejercicio y si está quieto o moviéndose
+  _reactToHR(bpm, ts);
+}
+
+/* ── Interpretación del pulso (client/hr-guide.js) ──
+   Usa la edad y cuánto ejercicio hace la persona (Sensores u onboarding), y si está
+   quieta o moviéndose (pasos de los últimos 3 minutos), para felicitar o dar consejos. */
+let _hrMeasureRequestedAt = 0;               // medición pedida a propósito (botón Medir o cámara)
+let _lastStepsSeen = null, _lastStepIncreaseTs = 0;
+let _lastHREval = null;
+
+function _hrProfile() {
+  try { return JSON.parse(localStorage.getItem('zyra_hr_profile') || '{}') || {}; } catch (e) { return {}; }
+}
+function _saveHRProfileLocal(p) {
+  if (!p) return;
+  try { localStorage.setItem('zyra_hr_profile', JSON.stringify({ birthYear: p.birthYear ?? null, activityLevel: p.activityLevel ?? null })); } catch (e) {}
+}
+function _hrContext() {
+  if (_lastStepIncreaseTs && Date.now() - _lastStepIncreaseTs < 3 * 60 * 1000) return 'active';
+  if (_hrMeasureRequestedAt && Date.now() - _hrMeasureRequestedAt < 90 * 1000) return 'rest';
+  return 'unknown';
+}
+function _hrOpts(context) {
+  const p = _hrProfile();
+  return {
+    age: window.ZyraHR ? ZyraHR.ageFromBirthYear(p.birthYear) : null,
+    activityLevel: p.activityLevel || null,
+    context: context || _hrContext(),
+    emotion: localStorage.getItem('zyra_checkin_emotion_' + new Date().toDateString()) || null,
+  };
+}
+// Máximo un aviso de pulso cada 10 minutos
+function _hrAlertAllowed(ts) {
+  const last = parseInt(localStorage.getItem('zyra_watch_hr_alert') || '0');
+  if (ts - last < 10 * 60 * 1000) return false;
+  localStorage.setItem('zyra_watch_hr_alert', String(ts));
+  return true;
+}
+function _reactToHR(bpm, ts) {
+  const explicit = _hrMeasureRequestedAt && ts - _hrMeasureRequestedAt < 90 * 1000;
+  const ev = window.ZyraHR ? ZyraHR.evaluate(bpm, _hrOpts()) : null;
+  _lastHREval = ev ? Object.assign({ bpm, ts }, ev) : null;
+  if (explicit) _hrMeasureRequestedAt = 0;
+  if (!ev) {
+    // Sin la guía (por ejemplo, sin conexión la primera vez): el aviso básico de siempre
+    if (explicit) zyraToast(`💓 Pulso medido: ${bpm} lpm`, 'success', 4000);
+    else if (bpm > 100 && _hrAlertAllowed(ts)) zyraToast(`💓 Pulso alto (${bpm} lpm) — ¿hacemos una respiración?`, 'info', 8000);
+    return;
   }
+  if (explicit) return _showHRFeedback(ev);             // el resultado de una medición siempre se muestra
+  if (ev.notify) { if (_hrAlertAllowed(ts)) _showHRFeedback(ev); return; }
+  if (ev.tone === 'good') {                              // felicitar sin llenar de avisos: una vez al día
+    const key = 'zyra_hr_good_' + new Date().toDateString();
+    if (!localStorage.getItem(key)) { localStorage.setItem(key, '1'); _showHRFeedback(ev, { short: true }); }
+  }
+}
+function _showHRFeedback(ev, opts = {}) {
+  const type = { good: 'success', info: 'info', warn: 'warning', alert: 'error' }[ev.tone] || 'info';
+  const tips = opts.short ? [] : (ev.tips || []);
+  const body = `<strong>${safeHtml(ev.message)}</strong>`
+    + (tips.length ? `<ul style="margin:6px 0 0;padding-left:18px;font-size:12px;line-height:1.5">${tips.map(t => `<li>${safeHtml(t)}</li>`).join('')}</ul>` : '')
+    + '<div style="font-size:10.5px;opacity:.75;margin-top:6px">Orientativo, no es un diagnóstico médico.</div>';
+  zyraToast(body, type, ev.tone === 'alert' ? 15000 : 9000, true);
+  const msgEl = document.querySelector('.zyra-toast:last-child .zyra-toast-msg');
+  if (msgEl) {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;margin-top:8px';
+    if (ev.tone === 'warn' || ev.tone === 'alert') row.appendChild(_toastBtn('Respirar ahora', () => { showPage('wellness'); setTimeout(() => openWellness('breath'), 100); }));
+    if (!_hrProfile().birthYear) row.appendChild(_toastBtn('Personalizar con mi edad', () => openHRProfileModal()));
+    if (row.children.length) msgEl.appendChild(row);
+  }
+  if (ev.watchText) sendWatchReminder(ev.watchText);
+}
+function _toastBtn(label, onClick) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.textContent = label;
+  b.style.cssText = 'background:rgba(99,102,241,.25);border:1px solid rgba(99,102,241,.4);color:inherit;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit';
+  b.onclick = onClick;
+  return b;
+}
+// Etiqueta corta bajo el pulso en la tarjeta de Sensores ("Saludable", "Alto"...)
+function _hrEvalBadge(hrData) {
+  if (!hrData || !window.ZyraHR) return '';
+  const ev = (_lastHREval && _lastHREval.ts === hrData.ts) ? _lastHREval : ZyraHR.evaluate(hrData.bpm, _hrOpts('unknown'));
+  if (!ev) return '';
+  const color = { good: '#10b981', info: 'var(--text3)', warn: '#f59e0b', alert: '#ef4444' }[ev.tone] || 'var(--text3)';
+  return `<div style="font-size:10.5px;font-weight:700;color:${color};margin-top:3px">${safeHtml(ev.title)}</div>`;
+}
+function _fillBirthYearSelect(sel, current, placeholder) {
+  if (!sel) return;
+  const now = new Date().getFullYear();
+  sel.innerHTML = '';
+  const first = document.createElement('option');
+  first.value = ''; first.textContent = placeholder || 'Prefiero no decirlo';
+  sel.appendChild(first);
+  for (let y = now - (window.ZyraHR ? ZyraHR.MIN_AGE : 13); y >= now - 100; y--) {
+    const o = document.createElement('option');
+    o.value = String(y); o.textContent = String(y);
+    if (current && Number(current) === y) o.selected = true;
+    sel.appendChild(o);
+  }
+}
+function openHRProfileModal() {
+  document.getElementById('hr-profile-modal')?.remove();
+  const p = _hrProfile();
+  const wrap = document.createElement('div');
+  wrap.id = 'hr-profile-modal';
+  wrap.setAttribute('role', 'dialog'); wrap.setAttribute('aria-modal', 'true'); wrap.setAttribute('aria-label', 'Personaliza tus consejos de pulso');
+  wrap.style.cssText = 'position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px';
+  const sel = 'width:100%;box-sizing:border-box;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:11px 12px;font-size:14px;font-family:inherit;margin:6px 0 14px';
+  wrap.innerHTML = `<div style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:18px;padding:22px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35)">
+    <div style="font-size:17px;font-weight:800;margin-bottom:6px">💓 Personaliza tus consejos de pulso</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.55;margin-bottom:14px">Con tu edad y cuánto ejercicio haces, Zyra te dice si tu pulso está bien para ti y cuál es tu zona de ejercicio.</div>
+    <label for="hrp-year" style="font-size:12px;font-weight:700;color:var(--text2)">Año de nacimiento</label>
+    <select id="hrp-year" style="${sel}"></select>
+    <label for="hrp-activity" style="font-size:12px;font-weight:700;color:var(--text2)">¿Cuánto ejercicio haces?</label>
+    <select id="hrp-activity" style="${sel}">
+      <option value="">Prefiero no decirlo</option>
+      <option value="bajo">Poco o nada</option>
+      <option value="medio">Algunas veces por semana</option>
+      <option value="alto">Entreno casi a diario</option>
+    </select>
+    <div style="font-size:11.5px;color:var(--text3);line-height:1.5;margin-bottom:16px">Es opcional y lo puedes cambiar cuando quieras en Sensores. Solo lo usamos para darte consejos generales de bienestar; no es un diagnóstico médico. Al guardarlo autorizas que Zyra trate estos datos de salud con ese fin.</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button type="button" id="hrp-cancel" style="background:transparent;border:1px solid var(--border);color:var(--text2);border-radius:10px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Ahora no</button>
+      <button type="button" id="hrp-save" style="background:var(--accent);border:none;color:#fff;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Guardar</button>
+    </div>
+  </div>`;
+  document.body.appendChild(wrap);
+  _fillBirthYearSelect(document.getElementById('hrp-year'), p.birthYear);
+  const act = document.getElementById('hrp-activity');
+  if (p.activityLevel) act.value = p.activityLevel;
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  const close = () => { localStorage.setItem('zyra_hr_profile_asked', '1'); document.removeEventListener('keydown', onKey); wrap.remove(); };
+  document.addEventListener('keydown', onKey);
+  document.getElementById('hrp-cancel').onclick = close;
+  wrap.addEventListener('click', e => { if (e.target === wrap) close(); });
+  document.getElementById('hrp-save').onclick = async () => {
+    const yearVal = document.getElementById('hrp-year').value;
+    const body = { birthYear: yearVal ? Number(yearVal) : null, activityLevel: act.value || null };
+    const btn = document.getElementById('hrp-save');
+    btn.disabled = true; btn.textContent = 'Guardando…';
+    try {
+      await api('/profile', 'PUT', body);
+      _saveHRProfileLocal(body);
+      close();
+      zyraToast(body.birthYear ? 'Listo: tus consejos de pulso ya usan tu edad 💚' : 'Guardado', 'success', 4000);
+      renderHRProfileCard(); renderWatchCard();
+    } catch (e) {
+      btn.disabled = false; btn.textContent = 'Guardar';
+      zyraToast(e.message || 'No se pudo guardar. Intenta de nuevo.', 'error', 5000);
+    }
+  };
+}
+// Tarjeta en Sensores: edad, ejercicio y zona de ejercicio, con botón para editar
+function renderHRProfileCard() {
+  const el = document.getElementById('hr-profile-card');
+  if (!el) return;
+  const p = _hrProfile();
+  const age = window.ZyraHR ? ZyraHR.ageFromBirthYear(p.birthYear) : null;
+  const zone = age ? ZyraHR.exerciseZone(age) : null;
+  const ACT = { bajo: 'Poco ejercicio', medio: 'Ejercicio algunas veces por semana', alto: 'Entrena casi a diario' };
+  const info = age
+    ? `${age} años${p.activityLevel ? ' · ' + ACT[p.activityLevel] : ''}<br><span style="color:var(--text3)">En reposo, lo saludable es 60–100 lpm. Tu zona de ejercicio: ${zone.low}–${zone.high} lpm.</span>`
+    : '<span style="color:var(--text3)">Agrega tu edad para que Zyra te diga si tu pulso está bien para ti y cuál es tu zona de ejercicio.</span>';
+  el.innerHTML = `<div class="card" style="padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div style="flex:1;min-width:200px;font-size:13px;line-height:1.55"><div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:3px">💓 Tus consejos de pulso</div>${info}</div>
+    <button type="button" onclick="openHRProfileModal()" style="background:transparent;border:1px solid var(--border);color:var(--text);border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">${age ? 'Editar' : 'Agregar edad'}</button>
+  </div>`;
+}
+// Usuarios que ya existían: se les pregunta una sola vez, al entrar a Sensores
+function _maybeAskHRProfile() {
+  if (_hrProfile().birthYear || localStorage.getItem('zyra_hr_profile_asked')) return;
+  setTimeout(() => { if (window._zyraCurrentPage === 'sensors' && !_hrProfile().birthYear) openHRProfileModal(); }, 700);
 }
 
 let _lastStepsSyncTs = 0;
 function _handleSteps(steps) {
   if (steps == null || steps < 0) return;
+  // Si los pasos subieron, se está moviendo: el pulso se compara con su zona de ejercicio
+  if (_lastStepsSeen != null && steps > _lastStepsSeen) _lastStepIncreaseTs = Date.now();
+  _lastStepsSeen = steps;
   _watchSteps = steps;
   const today = new Date().toDateString();
   localStorage.setItem('zyra_watch_steps', JSON.stringify({ steps, ts: Date.now(), date: today }));
@@ -8266,7 +8453,8 @@ async function measureWithWatch() {
     zyraToast('⌚ Tu reloj no está conectado', 'info', 4000);
     return;
   }
-  zyraToast('💓 Midiendo desde tu reloj… espera unos segundos', 'info', 4000);
+  _hrMeasureRequestedAt = Date.now(); // el resultado se interpreta y se muestra con consejos
+  zyraToast('💓 Midiendo desde tu reloj… quédate quieto y sentado unos segundos', 'info', 5000);
   try {
     await _watchWrite(_watchRxChar, [0x60, 0x00, 0x01]);
   } catch(e) {
@@ -8411,8 +8599,8 @@ async function startCameraHR() {
       const finalBPM = _rppgCalculateBPM(samples);
       stopCameraHR();
       if (finalBPM) {
+        _hrMeasureRequestedAt = Date.now(); // el resultado se interpreta y se muestra con consejos
         _handleHR(finalBPM);
-        zyraToast(`💓 Pulso medido: ${finalBPM} bpm`, 'success', 4000);
         renderWatchCard();
         renderWatchWidget();
       } else {
@@ -8551,6 +8739,7 @@ function renderWatchCard() {
           <div id="watch-hr-live" style="font-size:22px;font-weight:800;color:var(--text);line-height:1">${hrData ? hrData.bpm : '—'}</div>
           <div style="font-size:10px;margin-top:3px">${hrData ? '<span style="color:var(--text3)">bpm · ' + (hrAge > 0 ? 'hace '+hrAge+'min' : 'ahora') + '</span>' : '<span style="color:var(--text3)">Presiona Medir ↓</span>'}</div>
           ${avgHR ? `<div style="font-size:10px;color:var(--text3)">Media del día: ${avgHR} bpm</div>` : ''}
+          ${_hrEvalBadge(hrData)}
         </div>
         <div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:14px;padding:12px;text-align:center">
           <div style="font-size:10px;color:#6366f1;font-weight:700;margin-bottom:4px">👟 PASOS HOY</div>
@@ -9211,6 +9400,7 @@ async function loadDashboard() {
     ]);
     const p = pd.profile;
     _renderSafetyPlanNudge(p);
+    _saveHRProfileLocal(p);
     const em = EMOTIONS.find(e => e.key === p.currentEmotion) || EMOTIONS[1];
     document.getElementById("hero-emoji").textContent = em.emoji;
     document.getElementById("st-emotion").textContent = em.label;
@@ -16158,9 +16348,10 @@ function obNext(step) {
   // Mostrar paso actual
   const curr = document.getElementById("ob-step-" + step);
   if (curr) curr.style.display = "block";
+  if (step === 3) { const ys = document.getElementById("ob-birth-year"); if (ys && ys.options.length < 2) _fillBirthYearSelect(ys, null, "Año de nacimiento (opcional)"); }
 
   // Actualizar dots
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 6; i++) {
     const dot = document.getElementById("ob-dot-" + i);
     if (dot) dot.className = "ob-dot" + (i === step ? " active" : "");
   }
@@ -16200,6 +16391,15 @@ async function obFinish() {
       onboardingDone: true,
       onboardingReason: obReason
     }).catch(() => {});
+
+    // Edad y ejercicio (opcionales) en un guardado aparte: si fallara, no bloquea el onboarding
+    const obYear = document.getElementById("ob-birth-year")?.value;
+    const obAct  = document.getElementById("ob-activity")?.value;
+    if (obYear || obAct) {
+      const hrBody = { birthYear: obYear ? Number(obYear) : null, activityLevel: obAct || null };
+      await api("/profile", "PUT", hrBody).then(() => _saveHRProfileLocal(hrBody)).catch(() => {});
+      localStorage.setItem("zyra_hr_profile_asked", "1");
+    }
 
   } catch (e) {
     console.error("obFinish error:", e);
@@ -16977,6 +17177,7 @@ async function sendMsg() {
       const _hrAge = Math.round((Date.now() - _hr.ts) / 60000);
       if (_hrAge < 120) {
         _healthParts.push(`frecuencia cardíaca: ${_hr.bpm} bpm (hace ${_hrAge > 0 ? _hrAge + ' min' : 'ahora'})`);
+        if (window.ZyraHR) { const _hs = ZyraHR.summaryForAI(_hr.bpm, _hrOpts(_hrAge <= 2 ? undefined : 'unknown')); if (_hs) _healthParts.push(_hs); }
         const _hrHist = JSON.parse(localStorage.getItem('zyra_watch_hr_hist') || '[]');
         if (_hrHist.length >= 3) {
           const _avg = Math.round(_hrHist.reduce((a,b)=>a+b.bpm,0)/_hrHist.length);
@@ -18126,7 +18327,7 @@ async function vcSendMessage(text) {
     const _vcHealthParts = [];
     try {
       const _vcHr = localStorage.getItem('zyra_watch_hr');
-      if (_vcHr) { const h = JSON.parse(_vcHr); const age = Math.round((Date.now()-h.ts)/60000); if (age<120) _vcHealthParts.push(`frecuencia cardíaca: ${h.bpm} bpm`); }
+      if (_vcHr) { const h = JSON.parse(_vcHr); const age = Math.round((Date.now()-h.ts)/60000); if (age<120) { _vcHealthParts.push(`frecuencia cardíaca: ${h.bpm} bpm`); if (window.ZyraHR) { const _hs = ZyraHR.summaryForAI(h.bpm, _hrOpts(age <= 2 ? undefined : 'unknown')); if (_hs) _vcHealthParts.push(_hs); } } }
       const _vcStpW = localStorage.getItem('zyra_watch_steps');
       const _vcStpP = localStorage.getItem('zyra_phone_steps');
       let _vcSteps = null;

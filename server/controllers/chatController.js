@@ -3,6 +3,7 @@ const YTCache     = require("../models/YTCache");
 const Profile      = require("../models/Profile");
 const Goal         = require("../models/Goal");
 const Journal      = require("../models/Journal");
+const HRGuide      = require("../../client/hr-guide"); // interpreta el pulso según edad y contexto
 const { extractAndSaveMemories, getMemoriesForPrompt, getContextualMemories } = require("./memoryController");
 
 /* ════════════════════════════════════════
@@ -946,7 +947,8 @@ async function getReasoningContext(message) {
 ════════════════════════════════════════ */
 async function buildSystemPrompt(userId, userName, message = "", userPlan = "free") {
   const [profile, goals, journals] = await Promise.all([
-    Profile.findOne({ user: userId }).select("currentEmotion emotionHistory negativeStreakCount sessionsCount streakDays achievements onboardingReason bio lastActiveDate").lean().catch(() => null),
+    // health/birthYear/activityLevel: sin "health" acá, el bloque de salud de abajo nunca se ejecutaba
+    Profile.findOne({ user: userId }).select("currentEmotion emotionHistory negativeStreakCount sessionsCount streakDays achievements onboardingReason bio lastActiveDate health birthYear activityLevel").lean().catch(() => null),
     Goal.find({ user: userId }).sort({ createdAt:-1 }).limit(10).select("title completed priority progress dueDate category").lean().catch(() => []),
     Journal.find({ user: userId }).sort({ createdAt:-1 }).limit(3).select("title content _id").lean().catch(() => []),
   ]);
@@ -1110,6 +1112,7 @@ async function buildSystemPrompt(userId, userName, message = "", userPlan = "fre
   }
 
   // ── Salud (pulso/pasos) conectada desde celular o reloj — tendencia, no solo el momento ──
+  const userAge = HRGuide.ageFromBirthYear(profile?.birthYear);
   if (profile?.health) {
     const h = profile.health;
     const hist = (h.history || []).slice(-7);
@@ -1125,11 +1128,14 @@ async function buildSystemPrompt(userId, userName, message = "", userPlan = "fre
       healthParts.push(`promedio diario de pasos: ${avgSteps.toLocaleString("es-CO")}`);
     }
     if (h.hr?.bpm && h.hr?.ts && (Date.now() - new Date(h.hr.ts).getTime()) < 6 * 3600000) {
-      healthParts.push(`última medición de pulso: ${h.hr.bpm} bpm`);
+      healthParts.push(`última medición: ${HRGuide.summaryForAI(h.hr.bpm, { age: userAge, activityLevel: profile.activityLevel })}`);
     }
     if (healthParts.length > 0) {
       memoryBlock += `\n- Datos de salud que ha compartido conectando su celular/reloj: ${healthParts.join("; ")}. Solo menciónalos si vienen al caso o si el usuario pregunta — no los saques a la fuerza.`;
     }
+  }
+  if (userAge) {
+    memoryBlock += `\n- Edad aproximada: ${userAge} años. Adapta ejemplos y lenguaje a su edad${userAge < 18 ? "; es menor de edad: sé especialmente cuidadosa y sugiere hablar con un adulto de confianza cuando algo sea serio" : ""}.`;
   }
 
   // ── Memorias persistentes — priorizadas por relevancia al mensaje actual ──
@@ -1394,7 +1400,7 @@ exports.sendMessage = async (req, res) => {
     if (!message?.trim()) return res.status(400).json({ message: "Mensaje vacío" });
     message = message.trim().substring(0, 2000);
     if (dailyContext) dailyContext = String(dailyContext).substring(0, 600);
-    if (healthContext) healthContext = String(healthContext).substring(0, 300);
+    if (healthContext) healthContext = String(healthContext).substring(0, 600); // incluye el pulso interpretado
     if (systemOverride) systemOverride = String(systemOverride).substring(0, 2000);
     const musicReq           = wantsMusic(message);
     const musicFollowUp      = !musicReq && isMusicFollowUp(message, history);
@@ -1427,7 +1433,7 @@ exports.sendMessage = async (req, res) => {
       systemPrompt += `\n\n📅 CONTEXTO DE HOY: ${dailyContext}`;
     }
     if (healthContext) {
-      systemPrompt += `\n\n💓 DATOS DE SALUD EN TIEMPO REAL: ${healthContext}. Úsalos activamente: si el pulso es alto sugiere respiración, si los pasos son pocos sugiere moverse, si van bien reconócelo. Intégralos de forma natural en tu respuesta cuando sea relevante.`;
+      systemPrompt += `\n\n💓 DATOS DE SALUD EN TIEMPO REAL: ${healthContext}. El pulso ya viene interpretado (saludable, alto, zona de ejercicio…) con la edad y los rangos de la persona. Úsalos con este criterio: si está saludable o en su zona de ejercicio, felicítalo con naturalidad; si está alto en reposo, sugiere respirar lento, tomar agua, evitar café y volver a medir sentado; si se estaba moviendo, recuerda que es normal que suba; si es muy alto o muy bajo y hay síntomas (dolor en el pecho, falta de aire, mareo, desmayo), recomienda atención médica (en Colombia, 123). Si los pasos son pocos, sugiere moverse; si van bien, reconócelo. Nunca diagnostiques ni nombres enfermedades: son consejos generales de bienestar. Intégralos de forma natural cuando sea relevante.`;
     }
 
     // Modo voz: respuestas MUY cortas, naturales, como en llamada real
@@ -1794,7 +1800,7 @@ exports.streamMessage = async (req, res) => {
     if (!message?.trim()) { send({ error: "empty" }); return res.end(); }
     message = message.trim().substring(0, 2000);
     if (dailyContext) dailyContext = String(dailyContext).substring(0, 600);
-    if (healthContext) healthContext = String(healthContext).substring(0, 300);
+    if (healthContext) healthContext = String(healthContext).substring(0, 600); // incluye el pulso interpretado
 
     const musicReq           = wantsMusic(message);
     const musicFollowUp      = !musicReq && isMusicFollowUp(message, history);
@@ -1818,7 +1824,7 @@ exports.streamMessage = async (req, res) => {
       systemPrompt += `\n\n📅 CONTEXTO DE HOY: ${dailyContext}`;
     }
     if (healthContext) {
-      systemPrompt += `\n\n💓 DATOS DE SALUD EN TIEMPO REAL: ${healthContext}. Úsalos activamente: si el pulso es alto sugiere respiración, si los pasos son pocos sugiere moverse, si van bien reconócelo. Intégralos de forma natural en tu respuesta cuando sea relevante.`;
+      systemPrompt += `\n\n💓 DATOS DE SALUD EN TIEMPO REAL: ${healthContext}. El pulso ya viene interpretado (saludable, alto, zona de ejercicio…) con la edad y los rangos de la persona. Úsalos con este criterio: si está saludable o en su zona de ejercicio, felicítalo con naturalidad; si está alto en reposo, sugiere respirar lento, tomar agua, evitar café y volver a medir sentado; si se estaba moviendo, recuerda que es normal que suba; si es muy alto o muy bajo y hay síntomas (dolor en el pecho, falta de aire, mareo, desmayo), recomienda atención médica (en Colombia, 123). Si los pasos son pocos, sugiere moverse; si van bien, reconócelo. Nunca diagnostiques ni nombres enfermedades: son consejos generales de bienestar. Intégralos de forma natural cuando sea relevante.`;
     }
 
     if (req.safetyWarning) {

@@ -141,6 +141,19 @@ test("perfil del usuario recien creado es correcto", async () => {
   assert.equal(r.data.user.email, testEmail);
 });
 
+test("consejos de pulso: guarda edad y ejercicio, y rechaza menores de 13", async () => {
+  const year = new Date().getFullYear() - 30;
+  let r = await api("/profile", "PUT", { birthYear: year, activityLevel: "medio" }, token);
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  r = await api("/profile", "GET", null, token);
+  assert.equal(r.data.profile.birthYear, year);
+  assert.equal(r.data.profile.activityLevel, "medio");
+  r = await api("/profile", "PUT", { birthYear: new Date().getFullYear() - 10 }, token);
+  assert.equal(r.status, 400, "debía rechazar una edad menor que la mínima de los Términos");
+  r = await api("/profile", "PUT", { activityLevel: "muchisimo" }, token);
+  assert.equal(r.status, 400);
+});
+
 test("chat: la IA responde un mensaje", async () => {
   const r = await api("/chat", "POST", { message: "Hola Zyra, prueba automática. Responde corto." }, token);
   assert.equal(r.status, 200, JSON.stringify(r.data));
