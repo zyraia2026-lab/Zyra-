@@ -18105,7 +18105,8 @@ async function sendMsg() {
   const _today = new Date().toDateString();
   const _dcParts = [];
   const _checkinEmo = localStorage.getItem("zyra_checkin_emotion_" + _today);
-  if (_checkinEmo) _dcParts.push(`Check-in de hoy: se siente "${_checkinEmo}"`);
+  // Como sustantivo ("agotamiento", no "agotado") para no empujar a la IA a un género
+  if (_checkinEmo) _dcParts.push(`Check-in de hoy, emoción: ${(window.ZyraHR && ZyraHR.EMOTION_NOUN[_checkinEmo]) || _checkinEmo}`);
   const _habits = getHabits();
   if (_habits.length) {
     const _doneH = _habits.filter(h => isHabitDone(h.id)).length;

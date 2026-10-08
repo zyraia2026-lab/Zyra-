@@ -966,7 +966,9 @@ async function buildSystemPrompt(userId, userName, message = "", userPlan = "fre
     hombre: "Es hombre: háblale en masculino (\"tranquilo\", \"bienvenido\", \"cansado\").",
     no_binario: "Es una persona no binaria: usa lenguaje neutro y evita adjetivos con género (por ejemplo, \"te noto con calma\" en vez de \"tranquilo\" o \"tranquila\").",
   };
-  identityBlock += "\n- " + (GENDER_TALK[profile?.gender] || "No sabes su género: no lo adivines por el nombre; usa frases sin género (\"¿cómo te sientes?\", \"te noto con cansancio\") en vez de \"cansado\" o \"cansada\".");
+  identityBlock += "\n- " + (GENDER_TALK[profile?.gender] || "IMPORTANTE: no sabes su género y no lo adivines por el nombre. Nunca uses adjetivos terminados en -o o -a para describirle (ni \"agotado\" ni \"agotada\", ni \"cansado\", \"tranquila\", \"bienvenido\"): usa sustantivos o frases neutras (\"te noto con agotamiento\", \"te siento en calma\", \"qué bueno tenerte aquí\").");
+  // La emoción se le pasa como sustantivo ("agotamiento", no "agotado") para no empujar un género
+  const emotionNoun = (e) => HRGuide.EMOTION_NOUN[e] || e;
 
   // Bio personal del usuario (si la escribió)
   if (profile?.bio?.trim()) {
@@ -974,7 +976,7 @@ async function buildSystemPrompt(userId, userName, message = "", userPlan = "fre
   }
 
   const currentEmotion = profile?.currentEmotion || null;
-  if (currentEmotion) memoryBlock += `\n- Estado emocional actual: ${currentEmotion}`;
+  if (currentEmotion) memoryBlock += `\n- Estado emocional actual: ${emotionNoun(currentEmotion)}`;
 
   // Check if user explicitly logged an emotion today (Colombia time)
   const todayColStr = new Date(new Date().getTime() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -984,7 +986,7 @@ async function buildSystemPrompt(userId, userName, message = "", userPlan = "fre
   );
   if (todayLog) {
     const intStr = todayLog.intensity && todayLog.intensity !== 5 ? ` (intensidad ${todayLog.intensity}/10)` : "";
-    memoryBlock += `\n- Emoción que registró HOY: ${todayLog.emotion}${intStr}${todayLog.note ? ` — "${todayLog.note}"` : ""}. Úsalo si la conversación va ahí — no lo saques de golpe.`;
+    memoryBlock += `\n- Emoción que registró HOY: ${emotionNoun(todayLog.emotion)}${intStr}${todayLog.note ? ` — "${todayLog.note}"` : ""}. Úsalo si la conversación va ahí — no lo saques de golpe.`;
   }
   if (emotionHistory.length > 0) {
     const pastLogs = emotionHistory.filter(h =>
@@ -992,7 +994,7 @@ async function buildSystemPrompt(userId, userName, message = "", userPlan = "fre
     );
     if (pastLogs.length > 0) {
       const fmtEntry = e => {
-        const parts = [e.emotion];
+        const parts = [emotionNoun(e.emotion)];
         if (e.intensity && e.intensity >= 7) parts.push(`intensidad ${e.intensity}/10`);
         if (e.note) parts.push(`"${e.note}"`);
         return parts.join(" ");
@@ -1148,7 +1150,12 @@ async function buildSystemPrompt(userId, userName, message = "", userPlan = "fre
       const today = HRGuide.colombiaDay();
       const streak = HRGuide.checkinStreak(checkins.map(c => c.day), today);
       const todayCk = checkins.find(c => c.day === today);
-      if (todayCk) healthParts.push(`check-in cuerpo y mente de hoy: ${todayCk.bpm ? `pulso en reposo ${todayCk.bpm} lpm, ` : ""}se sentía ${todayCk.emotion}`);
+      if (todayCk) {
+        // El pulso ya interpretado (saludable, alto…) para que la IA no lo juzgue por su cuenta
+        const ckEval = todayCk.bpm ? HRGuide.evaluate(todayCk.bpm, { age: userAge, activityLevel: profile.activityLevel, context: "rest" }) : null;
+        const ckBody = ckEval ? `pulso en reposo ${todayCk.bpm} lpm (${ckEval.title.toLowerCase()} para su edad), ` : todayCk.body ? `sentía el cuerpo: ${todayCk.body}, ` : "";
+        healthParts.push(`check-in cuerpo y mente de hoy: ${ckBody}emoción: ${emotionNoun(todayCk.emotion)}`);
+      }
       if (streak.current >= 2) healthParts.push(`lleva ${streak.current} días seguidos haciendo su check-in cuerpo y mente`);
     }
     const recentBreaths = (h.breaths || []).filter(b => Date.now() - new Date(b.ts).getTime() < 14 * 86400000);
