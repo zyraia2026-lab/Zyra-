@@ -154,6 +154,51 @@ test("consejos de pulso: guarda edad y ejercicio, y rechaza menores de 13", asyn
   assert.equal(r.status, 400);
 });
 
+test("sobre ti: guarda apodo y género, limpia signos raros y rechaza un género inválido", async () => {
+  let r = await api("/profile", "PUT", { nickname: "  <b>Juancho</b>  ", gender: "hombre" }, token);
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  r = await api("/profile", "GET", null, token);
+  assert.equal(r.data.profile.nickname, "bJuancho/b");
+  assert.equal(r.data.profile.gender, "hombre");
+  r = await api("/profile", "PUT", { gender: "otro-valor" }, token);
+  assert.equal(r.status, 400);
+  r = await api("/profile", "PUT", { gender: "" }, token); // "prefiero no decirlo"
+  assert.equal(r.status, 200);
+  assert.equal(r.data.profile.gender, null);
+});
+
+test("check-in cuerpo y mente: guarda uno por día, cuenta la racha y valida datos", async () => {
+  // Mismo cálculo de día (hora de Colombia) que usa la app
+  const HR = require("../../client/hr-guide");
+  const today = HR.colombiaDay();
+  let r = await api("/profile/health/checkin", "POST", { day: today, bpm: 74, emotion: "tranquilo", source: "watch" }, token);
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  assert.equal(r.data.firstToday, true);
+  assert.equal(r.data.streak.current, 1);
+  // Repetirlo el mismo día lo actualiza (no suma otro día)
+  r = await api("/profile/health/checkin", "POST", { day: today, body: "cansado", emotion: "agotado" }, token);
+  assert.equal(r.data.firstToday, false);
+  assert.equal(r.data.checkins.filter(c => c.day === today).length, 1);
+  assert.equal(r.data.checkins.find(c => c.day === today).body, "cansado");
+  // Ayer también: la racha sube a 2
+  r = await api("/profile/health/checkin", "POST", { day: HR.addDays(today, -1), bpm: 78, emotion: "ansioso" }, token);
+  assert.equal(r.data.streak.current, 2);
+  for (const bad of [{ day: today, emotion: "inventada" }, { day: "2020-01-01", emotion: "feliz" }, { day: today, emotion: "feliz", body: "raro" }]) {
+    r = await api("/profile/health/checkin", "POST", bad, token);
+    assert.equal(r.status, 400, "debía rechazar " + JSON.stringify(bad));
+  }
+});
+
+test("respiración con pulso: guarda el comienzo y el final, y rechaza valores imposibles", async () => {
+  let r = await api("/profile/health/breath", "POST", { startBpm: 95, endBpm: 84, seconds: 90, tech: "calm" }, token);
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  r = await api("/profile/health/breath", "POST", { startBpm: 500, endBpm: 84, seconds: 90 }, token);
+  assert.equal(r.status, 400);
+  r = await api("/profile/health", "GET", null, token);
+  assert.equal(r.data.health.breaths.at(-1).endBpm, 84);
+  assert.equal(r.data.health.checkins.length, 2);
+});
+
 test("chat: la IA responde un mensaje", async () => {
   const r = await api("/chat", "POST", { message: "Hola Zyra, prueba automática. Responde corto." }, token);
   assert.equal(r.status, 200, JSON.stringify(r.data));

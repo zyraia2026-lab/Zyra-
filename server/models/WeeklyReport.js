@@ -8,6 +8,8 @@ const S = new mongoose.Schema({
   mainEmotion: { type: String, default: "" },
   insights:    [String],
   emotionData: { type: mongoose.Schema.Types.Mixed, default: {} },
+  // "Tu corazón esta semana" (client/hr-guide.js weeklyHeart): null si no hay datos de pulso
+  heart:       { type: mongoose.Schema.Types.Mixed, default: null },
   shares: [{
     email:  { type: String, required: true },
     name:   { type: String, default: "" },

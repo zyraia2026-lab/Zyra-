@@ -14,7 +14,7 @@ exports.getProfile = async (req, res) => {
 // ── UPDATE perfil básico ──
 exports.updateProfile = async (req, res) => {
   try {
-    const allowed = ["bio","photoUrl","avatarEmoji","avatarColor","currentEmotion","theme","onboardingDone","onboardingReason","reminderEnabled","reminderHour","reminderMinute","birthYear","activityLevel"];
+    const allowed = ["bio","photoUrl","avatarEmoji","avatarColor","currentEmotion","theme","onboardingDone","onboardingReason","reminderEnabled","reminderHour","reminderMinute","birthYear","activityLevel","nickname","gender"];
     const update = {};
     allowed.forEach(k => { if (req.body[k] !== undefined) update[k] = req.body[k]; });
 
@@ -43,6 +43,12 @@ exports.updateProfile = async (req, res) => {
     }
     if (update.activityLevel !== undefined && update.activityLevel !== null && !HRGuide.ACTIVITY_LEVELS.includes(update.activityLevel))
       return res.status(400).json({ message: "Nivel de actividad inválido" });
+    // Apodo: texto corto y sin signos que puedan colarse como HTML o instrucciones
+    if (update.nickname !== undefined)
+      update.nickname = cleanNickname(update.nickname);
+    if (update.gender === "") update.gender = null;
+    if (update.gender !== undefined && update.gender !== null && !GENDERS.includes(update.gender))
+      return res.status(400).json({ message: "Género inválido" });
 
     // El tema "default" es gratis; los demas (ocean/forest/sunset/midnight)
     // se venden en la Tienda -- sin esto cualquiera podia ponerselos gratis
@@ -109,13 +115,72 @@ exports.syncHealth = async (req, res) => {
   } catch (e) { res.status(500).json({ message: e.message }); }
 };
 
+const VALID_EMOTIONS = ["feliz","tranquilo","ansioso","triste","enojado","confundido","esperanzado","agotado","motivado","nostalgico"];
+const GENDERS = ["mujer", "hombre", "no_binario"];
+// Apodo: texto corto, sin signos que puedan colarse como HTML o como instrucciones a la IA
+function cleanNickname(v) {
+  return String(v ?? "").replace(/[<>{}[\]`"\\]/g, "").replace(/\s+/g, " ").trim().substring(0, 40);
+}
+const validBpm = (x) => typeof x === "number" && x >= 30 && x <= 220;
+
+// ── Check-in diario "cuerpo y mente": pulso en reposo (o cómo siente el cuerpo) + emoción ──
+// El día lo manda la app (hora de Colombia) para que un check-in hecho sin señal y subido
+// después quede en su día; se aceptan hoy y los 2 días anteriores. Uno por día: repetirlo
+// el mismo día lo actualiza.
+exports.healthCheckin = async (req, res) => {
+  try {
+    const { emotion, body, source } = req.body;
+    const bpm = validBpm(req.body.bpm) ? Math.round(req.body.bpm) : null;
+    if (!VALID_EMOTIONS.includes(emotion)) return res.status(400).json({ message: "Emoción inválida" });
+    if (body != null && !HRGuide.BODY_FEELINGS.includes(body)) return res.status(400).json({ message: "Respuesta del cuerpo inválida" });
+    const today = HRGuide.colombiaDay();
+    const day = req.body.day || today;
+    if (![today, HRGuide.addDays(today, -1), HRGuide.addDays(today, -2)].includes(day))
+      return res.status(400).json({ message: "Día inválido" });
+
+    const current = await Profile.findOne({ user: req.user._id }).select("health.checkins").lean();
+    const checkins = (current?.health?.checkins || []).filter(c => c.day !== day);
+    const firstToday = checkins.length === (current?.health?.checkins || []).length;
+    checkins.push({ day, bpm, emotion, body: bpm ? null : (body || null), source: bpm && ["watch","camera"].includes(source) ? source : null, ts: new Date() });
+    checkins.sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : 0));
+    const kept = checkins.slice(-120);
+
+    await Profile.findOneAndUpdate(
+      { user: req.user._id },
+      { "health.checkins": kept, "health.updatedAt": Date.now() },
+      { upsert: true }
+    );
+    const streak = HRGuide.checkinStreak(kept.map(c => c.day), today);
+    res.json({ success: true, firstToday, streak, checkins: kept.slice(-60) });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+};
+
+// ── Respiración con el pulso en vivo: pulso al empezar y al terminar ──
+exports.healthBreath = async (req, res) => {
+  try {
+    const { startBpm, endBpm } = req.body;
+    if (!validBpm(startBpm) || !validBpm(endBpm)) return res.status(400).json({ message: "Pulso inválido" });
+    const seconds = Math.round(Number(req.body.seconds) || 0);
+    if (seconds < 10 || seconds > 1800) return res.status(400).json({ message: "Duración inválida" });
+    const tech = String(req.body.tech || "").substring(0, 12);
+    const ts = req.body.ts ? new Date(req.body.ts) : new Date();
+    if (isNaN(ts) || ts.getTime() > Date.now() + 60000 || ts.getTime() < Date.now() - 3 * 86400000)
+      return res.status(400).json({ message: "Fecha inválida" });
+    await Profile.findOneAndUpdate(
+      { user: req.user._id },
+      { $push: { "health.breaths": { $each: [{ ts, tech, startBpm: Math.round(startBpm), endBpm: Math.round(endBpm), seconds }], $slice: -60 } } },
+      { upsert: true }
+    );
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ message: e.message }); }
+};
+
 // ── Historial emocional ──
 exports.addEmotionRecord = async (req, res) => {
   try {
     const { emotion, intensity } = req.body;
     const note = String(req.body.note || "").substring(0, 500);
 
-    const VALID_EMOTIONS = ["feliz","tranquilo","ansioso","triste","enojado","confundido","esperanzado","agotado","motivado","nostalgico"];
     if (!VALID_EMOTIONS.includes(emotion))
       return res.status(400).json({ message: "Emoción inválida" });
 
@@ -407,7 +472,7 @@ exports.deleteAllData = async (req, res) => {
         pin: "", pinEnabled: false, onboardingDone: false,
         reminderEnabled: false, updatedAt: Date.now(),
         // datos de salud (sensibles): pulso/pasos/sueño, edad y plan de seguridad también se borran
-        birthYear: null, activityLevel: null,
+        birthYear: null, activityLevel: null, nickname: "", gender: null,
         $unset: { health: 1, safetyPlan: 1 },
       }),
       Goal.deleteMany({ user: req.user._id }),

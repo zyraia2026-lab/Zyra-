@@ -948,13 +948,25 @@ async function getReasoningContext(message) {
 async function buildSystemPrompt(userId, userName, message = "", userPlan = "free") {
   const [profile, goals, journals] = await Promise.all([
     // health/birthYear/activityLevel: sin "health" acá, el bloque de salud de abajo nunca se ejecutaba
-    Profile.findOne({ user: userId }).select("currentEmotion emotionHistory negativeStreakCount sessionsCount streakDays achievements onboardingReason bio lastActiveDate health birthYear activityLevel").lean().catch(() => null),
+    Profile.findOne({ user: userId }).select("currentEmotion emotionHistory negativeStreakCount sessionsCount streakDays achievements onboardingReason bio lastActiveDate health birthYear activityLevel nickname gender").lean().catch(() => null),
     Goal.find({ user: userId }).sort({ createdAt:-1 }).limit(10).select("title completed priority progress dueDate category").lean().catch(() => []),
     Journal.find({ user: userId }).sort({ createdAt:-1 }).limit(3).select("title content _id").lean().catch(() => []),
   ]);
 
   let memoryBlock = "";
-  const firstName = userName ? userName.split(" ")[0] : "amigo/a";
+  // Cómo llamarle: el apodo que eligió en "Sobre ti" o, si no hay, su primer nombre
+  const nickname = (profile?.nickname || "").trim();
+  const firstName = nickname || (userName ? userName.split(" ")[0] : "amigo/a");
+  // Va aparte de memoryBlock: si no, la IA ya no sabría cuándo es la primera conversación
+  let identityBlock = "";
+  if (nickname) identityBlock += `\n- Prefiere que le digas "${nickname}": llámale siempre así.`;
+  // Género (opcional, lo elige en "Sobre ti"): solo para hablarle con las palabras correctas
+  const GENDER_TALK = {
+    mujer: "Es mujer: háblale en femenino (\"tranquila\", \"bienvenida\", \"cansada\").",
+    hombre: "Es hombre: háblale en masculino (\"tranquilo\", \"bienvenido\", \"cansado\").",
+    no_binario: "Es una persona no binaria: usa lenguaje neutro y evita adjetivos con género (por ejemplo, \"te noto con calma\" en vez de \"tranquilo\" o \"tranquila\").",
+  };
+  identityBlock += "\n- " + (GENDER_TALK[profile?.gender] || "No sabes su género: no lo adivines por el nombre; usa frases sin género (\"¿cómo te sientes?\", \"te noto con cansancio\") en vez de \"cansado\" o \"cansada\".");
 
   // Bio personal del usuario (si la escribió)
   if (profile?.bio?.trim()) {
@@ -1129,6 +1141,20 @@ async function buildSystemPrompt(userId, userName, message = "", userPlan = "fre
     }
     if (h.hr?.bpm && h.hr?.ts && (Date.now() - new Date(h.hr.ts).getTime()) < 6 * 3600000) {
       healthParts.push(`última medición: ${HRGuide.summaryForAI(h.hr.bpm, { age: userAge, activityLevel: profile.activityLevel })}`);
+    }
+    // Check-in diario cuerpo y mente y respiraciones con el pulso en vivo
+    const checkins = h.checkins || [];
+    if (checkins.length) {
+      const today = HRGuide.colombiaDay();
+      const streak = HRGuide.checkinStreak(checkins.map(c => c.day), today);
+      const todayCk = checkins.find(c => c.day === today);
+      if (todayCk) healthParts.push(`check-in cuerpo y mente de hoy: ${todayCk.bpm ? `pulso en reposo ${todayCk.bpm} lpm, ` : ""}se sentía ${todayCk.emotion}`);
+      if (streak.current >= 2) healthParts.push(`lleva ${streak.current} días seguidos haciendo su check-in cuerpo y mente`);
+    }
+    const recentBreaths = (h.breaths || []).filter(b => Date.now() - new Date(b.ts).getTime() < 14 * 86400000);
+    if (recentBreaths.length) {
+      const avgDrop = Math.round(recentBreaths.reduce((a, b) => a + (b.startBpm - b.endBpm), 0) / recentBreaths.length);
+      healthParts.push(`en sus últimas ${recentBreaths.length} respiraciones guiadas con el reloj, el pulso ${avgDrop > 0 ? `le bajó en promedio ${avgDrop} lpm` : "se mantuvo estable"}`);
     }
     if (healthParts.length > 0) {
       memoryBlock += `\n- Datos de salud que ha compartido conectando su celular/reloj: ${healthParts.join("; ")}. Solo menciónalos si vienen al caso o si el usuario pregunta — no los saques a la fuerza.`;
@@ -1364,6 +1390,7 @@ LO QUE NUNCA HARÍA ZYRA:
 ❌ Una lista de 5 puntos genéricos cuando la pregunta tenía respuesta específica y directa
 
 ━━━ LO QUE SABES DE ${firstName.toUpperCase()} ━━━
+Cómo hablarle:${identityBlock}
 ${memoryBlock || `Primera vez que hablas con ${firstName}. Saluda natural, pregunta cómo está. Sin asumir nada.`}
 
 Usa este contexto con naturalidad — no lo menciones todo de golpe. El historial emocional es referencia, no certeza. Las memorias son datos reales que te contó antes — úsalos cuando encajen.

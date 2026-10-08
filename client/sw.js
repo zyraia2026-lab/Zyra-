@@ -1,5 +1,5 @@
 // ══ ZYRA SERVICE WORKER v5.6 ══
-const CACHE_NAME = 'zyra-v5.6';
+const CACHE_NAME = 'zyra-v5.7';
 const STATIC_ASSETS = [
   '/', '/index.html', '/styles.css', '/hr-guide.js', '/manifest.json',
   '/Imagenes/logo-nuevo.png',

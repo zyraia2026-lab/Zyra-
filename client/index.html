@@ -626,9 +626,17 @@ function closeSplash(){
       <div style="font-size:64px;margin-bottom:16px">👋</div>
       <h2 style="color:#fff;font-size:20px;font-weight:700;margin:0 0 8px">¿Cómo te llamo?</h2>
       <p style="color:#9ca3af;font-size:13px;margin:0 0 20px">Tu nombre, apodo, como prefieras</p>
-      <input id="ob-name-input" type="text" placeholder="Tu nombre o apodo…" maxlength="30"
+      <input id="ob-name-input" type="text" placeholder="Tu nombre o apodo…" maxlength="40" autocomplete="nickname"
         style="width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:14px 16px;color:#fff;font-size:16px;outline:none;box-sizing:border-box;margin-bottom:16px"
       />
+      <div style="color:#d1d5db;font-size:13px;font-weight:700;margin:2px 0 10px;text-align:left" id="ob-g-lbl">¿Cómo te identificas? <span style="color:#8f98b8;font-weight:500">(opcional)</span></div>
+      <div class="ob-genders" role="radiogroup" aria-labelledby="ob-g-lbl">
+        <button type="button" class="ob-g" role="radio" aria-checked="false" onclick="obSelectGender(this,'mujer')">👩 Mujer</button>
+        <button type="button" class="ob-g" role="radio" aria-checked="false" onclick="obSelectGender(this,'hombre')">👨 Hombre</button>
+        <button type="button" class="ob-g" role="radio" aria-checked="false" onclick="obSelectGender(this,'no_binario')">🧑 No binario</button>
+        <button type="button" class="ob-g" role="radio" aria-checked="false" onclick="obSelectGender(this,'')">🤐 Prefiero no decirlo</button>
+      </div>
+      <p style="color:#8f98b8;font-size:11.5px;line-height:1.5;margin:8px 0 16px;text-align:left">Así te hablo con las palabras correctas: “tranquila”, “tranquilo”… Lo puedes cambiar en tu Perfil.</p>
       <button onclick="obNext(2)" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:14px;padding:14px 40px;font-size:16px;font-weight:700;cursor:pointer;width:100%">Siguiente →</button>
     </div>
 
@@ -729,6 +737,9 @@ function closeSplash(){
 /* Onboarding */
 .ob-option { background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:#d1d5db;font-size:13px;padding:12px 8px;cursor:pointer;transition:all .2s }
 .ob-option.selected { background:rgba(99,102,241,.25);border-color:#6366f1;color:#fff }
+.ob-genders { display:grid;grid-template-columns:1fr 1fr;gap:8px }
+.ob-g { background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:#d1d5db;font-size:13px;padding:11px 8px;cursor:pointer;font-family:inherit;transition:all .2s }
+.ob-g.selected { background:rgba(99,102,241,.25);border-color:#6366f1;color:#fff;transform:scale(1.03) }
 .ob-theme { border:2px solid transparent;border-radius:12px;color:#fff;font-size:13px;font-weight:700;padding:12px 8px;cursor:pointer;transition:all .2s }
 .ob-theme.selected { border-color:#fff;transform:scale(1.05) }
 .ob-dot { width:8px;height:8px;border-radius:50%;background:#374151;transition:all .3s }
@@ -2514,6 +2525,9 @@ async function b2bSubmitContact() {
     </div>
   </div>
 
+  <!-- ══ CHECK-IN CUERPO Y MENTE ══ -->
+  <div id="bm-dash-card" style="display:none;margin-bottom:16px"></div>
+
   <!-- ══ WIDGET RELOJ ══ -->
   <div id="dash-watch-widget" style="display:none;margin-bottom:16px"></div>
 
@@ -3322,6 +3336,9 @@ async function b2bSubmitContact() {
     </div>
   </div>
 
+  <!-- ══ SOBRE TI ══ -->
+  <div id="about-card" style="margin-bottom:20px"></div>
+
   <!-- ══ HUELLA DE BIENESTAR ══ -->
   <div id="prof-fingerprint-card" style="display:none;margin-bottom:20px"></div>
 
@@ -3610,6 +3627,7 @@ async function b2bSubmitContact() {
 <div class="container" style="max-width:720px">
   <div class="section-title">📱 Sensores</div>
   <p style="font-size:13px;color:var(--text3);margin:-10px 0 18px">Pulso y pasos desde tu celular, o conecta tu reloj inteligente.</p>
+  <div id="heart-week-card" style="margin-bottom:16px"></div>
   <div id="hr-profile-card" style="margin-bottom:16px"></div>
   <div id="prof-watch-card" style="margin-bottom:20px"></div>
 </div>
@@ -4061,7 +4079,9 @@ async function b2bSubmitContact() {
         • Configuraciones: tema, avatar, PIN, recordatorios, contacto de emergencia<br/><br/>
         <strong>Datos de salud (opcionales):</strong><br/>
         • Pulso, pasos, sueño, presión arterial y oxígeno, si conectas un reloj inteligente o mides con la cámara del celular<br/>
+        • Tu check-in diario cuerpo y mente (pulso en reposo o cómo sientes el cuerpo, y tu emoción) y el pulso al empezar y al terminar las respiraciones guiadas<br/>
         • Año de nacimiento y cuánto ejercicio haces, si decides agregarlos para personalizar los consejos de pulso<br/>
+        • Cómo quieres que Zyra te llame y tu género, si decides darlos: solo para hablarte como prefieras<br/>
         • Los usamos solo para mostrártelos y darte consejos generales de bienestar; no son un diagnóstico médico. Son datos sensibles (Ley 1581 de 2012): darlos es opcional y puedes borrarlos cuando quieras<br/><br/>
         <strong>Datos técnicos (seguridad):</strong><br/>
         • Dirección IP (solo para rate limiting y prevención de abusos — no se almacena permanentemente)<br/>
@@ -4416,6 +4436,7 @@ function sanitizeReportHtml(html) {
 
 /* ══ TOASTS & CONFIRM (reemplazo de alert/confirm) ══ */
 function zyraToast(msg, type = "info", duration = 3200, rawHtml = false) {
+  if (!rawHtml) msg = _g(msg); // "tranquilo/a" → según el género de "Sobre ti" (solo texto, no HTML)
   const stack = document.getElementById("zyra-toast-stack");
   if (!stack) { console.log(msg); return; }
   const icons = { success: "✅", error: "⚠️", info: "💬", warning: "🟡" };
@@ -4521,7 +4542,7 @@ const CAT = {bienestar:"🧘 Bienestar",habitos:"⚡ Hábitos",relaciones:"💛 
 // no puede funcionar sin conexión real (necesita a Groq), pero estas
 // escrituras simples sí se pueden guardar en el dispositivo y subir solas
 // cuando vuelva la señal.
-const _OFFLINE_QUEUEABLE = ["/journal", "/profile/emotion", "/habits", "/habits/log"];
+const _OFFLINE_QUEUEABLE = ["/journal", "/profile/emotion", "/habits", "/habits/log", "/profile/health/checkin", "/profile/health/breath"];
 function _offlineQueueGet() {
   try { return JSON.parse(localStorage.getItem("zyra_offline_queue") || "[]"); } catch(e) { return []; }
 }
@@ -4748,7 +4769,7 @@ function showPage(name) {
   if(name === "wellness")     loadWellness();
   else if (_pomoAmbType && typeof _pomoStopAmbient === "function") { _pomoStopAmbient(); }
   if(name === "profile")      loadProfile();
-  if(name === "sensors")      { renderWatchCard(); renderHRProfileCard(); _maybeAskHRProfile(); startHealthPolling(); } else { stopHealthPolling(); }
+  if(name === "sensors")      { renderHeartWeekCard(); renderWatchCard(); renderHRProfileCard(); _maybeAskHRProfile(); startHealthPolling(); } else { stopHealthPolling(); }
   if(name === "analytics")    loadAnalytics();
   if(name === "admin")        loadAdminPanel();
   if(name === "games")        { setTimeout(() => openGame(window._currentGame || 'breath'), 50); }
@@ -4947,6 +4968,11 @@ function doLogout() {
   localStorage.removeItem("zyra_terms_accepted");
   localStorage.removeItem("zyra_hr_profile");
   localStorage.removeItem("zyra_hr_profile_asked");
+  localStorage.removeItem("zyra_about");
+  localStorage.removeItem("zyra_about_asked");
+  window._zyraHealth = null;
+  _closeHREmotionSheet();
+  if (typeof _bmClose === "function" && document.getElementById("bm-overlay")) _bmClose();
   clearForms(); showPage("login");
 }
 
@@ -5301,7 +5327,7 @@ async function zyraDescribeMe() {
       return;
     }
     const memSummary = mems.sort((a,b)=>(b.importance||0)-(a.importance||0)).slice(0, 20).map(m => `• [${m.type}] ${m.content}`).join("\n");
-    const nameStr = user?.name?.split(" ")[0] || "esta persona";
+    const nameStr = _displayName() || "esta persona";
     const d = await api("/chat", "POST", {
       message: `Basándote SOLO en estas memorias reales que tengo de ${nameStr}:\n${memSummary}\n\nEscribe un párrafo de 4-5 oraciones describiendo quién es esta persona — su carácter, lo que le importa, sus patrones, sus desafíos, lo que la hace especial. Habla directamente a la persona ("Eres..."). Sin frases genéricas, solo lo que realmente se ve en estas memorias. Empieza con "Lo que sé de ti..."`,
       history: [], noSave: true, mode: "self_portrait",
@@ -6341,6 +6367,7 @@ async function generateWeeklyReport(force = false) {
           <span style="font-size:13px;color:var(--text3)">Emoción principal: <strong style="color:var(--accent)">${safeHtml(r.mainEmotion||"—")}</strong></span>
           ${r.cached ? '<span style="font-size:11px;color:var(--text3);background:rgba(255,255,255,.05);padding:2px 8px;border-radius:20px">Guardado</span>' : ""}
         </div>
+        ${_reportHeartHtml(r)}
         <div style="font-size:14px;line-height:1.8;color:var(--text)">${sanitizeReportHtml(r.html)}</div>`;
     }
   } catch(e) {
@@ -6354,6 +6381,12 @@ async function generateWeeklyReport(force = false) {
   if(btn) { btn.disabled = false; btn.textContent = "↺ Regenerar"; }
 }
 
+// "Tu corazón esa semana" dentro del reporte semanal (si la persona tiene datos de pulso)
+function _reportHeartHtml(r) {
+  if (!r || !r.heart || !window.ZyraHR) return "";
+  const endDay = ZyraHR.colombiaDay(new Date(r.weekOf).getTime() + 7 * 86400000 - 1);
+  return `<div style="margin-bottom:20px">${_heartWeekHtml(r.heart, { title: "Tu corazón esa semana", endDay, axis: ["4 semanas antes", "fin de la semana"] })}</div>`;
+}
 let _currentWeeklyReportId = null;
 let _currentWeeklyReportShares = [];
 function toggleShareReportPanel() {
@@ -6445,6 +6478,7 @@ async function loadWeeklyReport(id) {
           <span style="font-size:13px;color:var(--text3)">Emoción principal: <strong style="color:var(--accent)">${safeHtml(r.mainEmotion||"—")}</strong></span>
           <span style="font-size:11px;color:var(--text3);background:rgba(255,255,255,.05);padding:2px 8px;border-radius:20px">Guardado</span>
         </div>
+        ${_reportHeartHtml(r)}
         <div style="font-size:14px;line-height:1.8;color:var(--text)">${sanitizeReportHtml(r.html)}</div>`;
     }
   } catch(e) {
@@ -6682,6 +6716,8 @@ async function loadProfile() {
 
     applyAvatarEverywhere(p.photoUrl, p.avatarEmoji, p.avatarColor);
     applyServerHealth(p.health);
+    _saveHRProfileLocal(p);
+    renderAboutCard();
 
     const pn = document.getElementById("profile-name-big");
     const pe = document.getElementById("profile-email-big");
@@ -6794,6 +6830,7 @@ async function loadProfile() {
 
     // Profile completeness bar
     const checks = [
+      { done: !!(p.nickname || p.gender || p.birthYear), label: "Cuéntale a Zyra cómo quieres que te llame (Sobre ti)" },
       { done: !!(p.photoUrl || p.avatarEmoji), label: "Personaliza tu avatar o foto" },
       { done: !!(p.bio && p.bio.length > 10), label: "Cuéntale algo de ti a Zyra (perfil → Editar información)" },
       { done: !!(p.reminderEnabled), label: "Activa los recordatorios diarios" },
@@ -7277,7 +7314,7 @@ async function _manifiestoNext(id) {
     <div style="font-size:13px;color:var(--text3)">Zyra está creando tu manifiesto personal…</div>
   </div>`;
 
-  const name = user?.name?.split(" ")[0] || "tú";
+  const name = _displayName() || "tú";
   const sysPrompt = `Eres un escritor de manifestos personales inspirado en la filosofía estoica y el bienestar emocional. A partir de las respuestas de ${name}, escribe un manifiesto personal en primera persona (usando "Yo") que sea poderoso, real y específico. Estructura: 5-6 oraciones que fluyen naturalmente. Empieza con "Yo, ${name}..." Sé profundo pero accesible. No pongas título. Solo el texto del manifiesto.`;
   const userMsg = `Mis respuestas:
 - Lo que más valoro: ${_manifiestoAnswers.valor}
@@ -7362,7 +7399,7 @@ async function _generarCartaCompasion(weekKey) {
   </div>`;
 
   // Gather context
-  const name = user?.name?.split(" ")[0] || "querida persona";
+  const name = _displayName() || "querida persona";
   const recentEmos = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date(); d.setDate(d.getDate() - i);
@@ -7774,6 +7811,7 @@ async function _watchGattConnect() {
   zyraToast(`⌚ ${name} conectado`, 'success', 3000);
   renderWatchCard();
   renderWatchWidget();
+  _renderBreathHRIdle();
 
   // Keep-alive: escribe HR command cada 5s para que el reloj sepa que seguimos aquí
   // (solo mantiene el enlace vivo — NO vuelve a pedir una medicion nueva, eso
@@ -7940,7 +7978,10 @@ function _onWatchDataAuto(event, svcUuid, charUuid) {
     if (bytes[4] > 0 && bytes[4] <= 100) _handleSpO2(bytes[4]);
     return;
   }
-  if (bytes[0] === 0xE0) return; // ack de "cambio de tipo de medicion" — ignorar
+  if (bytes[0] === 0xE0) { // ack de "cambio de tipo de medicion"; 0xE0 00 00 = terminó de medir
+    if (_hrLive && bytes.length >= 3 && bytes[1] === 0x00 && bytes[2] === 0x00) setTimeout(_hrLiveRequest, 800);
+    return;
+  }
 
   // ── FreeFit/Jieli: 0xB2/0xB3 = pasos en tiempo real (steps, calorias, distancia) ──
   if ((bytes[0] === 0xB2 || bytes[0] === 0xB3) && bytes.length >= 12 && bytes[1] === 1) {
@@ -8005,6 +8046,7 @@ function _onWatchDisconnected() {
   if (_watchKeepAlive) { clearInterval(_watchKeepAlive); _watchKeepAlive = null; }
   renderWatchCard();
   renderWatchWidget();
+  _renderBreathHRIdle();
 
   if (!localStorage.getItem('zyra_watch_paired') || !_watchDevice) return;
 
@@ -8070,7 +8112,21 @@ function _handleHR(bpm) {
   if (!bpm || bpm < 30 || bpm > 220) return;
   _watchHR = bpm;
   const ts = Date.now();
-  // Guardar historial (últimas 24h)
+  // Respiración con pulso en vivo o check-in midiendo: la lectura va a esa pantalla,
+  // sin avisos sueltos ni guardar cada una (al terminar se guarda una sola)
+  if (_hrLive) {
+    _hrLive.lastTs = ts;
+    try { localStorage.setItem('zyra_watch_hr', JSON.stringify({ bpm, ts })); } catch (e) {}
+    _updateWatchUI();
+    try { _hrLive.onReading(bpm, ts); } catch (e) { console.error('[pulso en vivo]', e); }
+    return;
+  }
+  _recordHR(bpm, ts);
+  // Reacción: interpretar el pulso según edad, ejercicio y si está quieto o moviéndose
+  _reactToHR(bpm, ts);
+}
+// Guarda una lectura: historial de 24 h, última lectura y servidor
+function _recordHR(bpm, ts) {
   const hrHist = (() => { try { return JSON.parse(localStorage.getItem('zyra_watch_hr_hist') || '[]'); } catch(e) { return []; } })();
   hrHist.push({ bpm, ts });
   if (hrHist.length > 288) hrHist.shift(); // 288 = cada 5min × 24h
@@ -8078,8 +8134,6 @@ function _handleHR(bpm) {
   localStorage.setItem('zyra_watch_hr', JSON.stringify({ bpm, ts }));
   syncHealthToServer({ hr: { bpm, ts } });
   _updateWatchUI();
-  // Reacción: interpretar el pulso según edad, ejercicio y si está quieto o moviéndose
-  _reactToHR(bpm, ts);
 }
 
 /* ── Interpretación del pulso (client/hr-guide.js) ──
@@ -8094,7 +8148,56 @@ function _hrProfile() {
 }
 function _saveHRProfileLocal(p) {
   if (!p) return;
-  try { localStorage.setItem('zyra_hr_profile', JSON.stringify({ birthYear: p.birthYear ?? null, activityLevel: p.activityLevel ?? null })); } catch (e) {}
+  // Se mezcla con lo guardado: un guardado parcial (solo el apodo, por ejemplo) no borra la edad
+  const cur = _hrProfile();
+  const hr = {
+    birthYear: p.birthYear !== undefined ? p.birthYear : (cur.birthYear ?? null),
+    activityLevel: p.activityLevel !== undefined ? p.activityLevel : (cur.activityLevel ?? null),
+  };
+  try { localStorage.setItem('zyra_hr_profile', JSON.stringify(hr)); } catch (e) {}
+  if (p.nickname !== undefined || p.gender !== undefined) {
+    const a = _aboutYou();
+    const about = {
+      nickname: p.nickname !== undefined ? (p.nickname || '') : (a.nickname || ''),
+      gender: p.gender !== undefined ? (p.gender || null) : (a.gender || null),
+    };
+    try { localStorage.setItem('zyra_about', JSON.stringify(about)); } catch (e) {}
+  }
+}
+
+/* ── "Sobre ti": cómo quiere que Zyra le diga y su género (opcionales) ── */
+function _aboutYou() {
+  try { return JSON.parse(localStorage.getItem('zyra_about') || '{}') || {}; } catch (e) { return {}; }
+}
+// Cómo llamar a la persona: su apodo o, si no puso uno, su primer nombre
+function _displayName() {
+  const nick = String(_aboutYou().nickname || '').trim();
+  if (nick) return nick;
+  return String((user && user.name) || '').trim().split(/ +/)[0] || '';
+}
+// "tranquilo/a" → "tranquila" o "tranquilo" según el género que eligió (si no lo dijo, queda igual)
+function _g(text) {
+  const g = _aboutYou().gender;
+  if (text == null || (g !== 'mujer' && g !== 'hombre')) return text;
+  return String(text).replace(/([A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+)o\/a(?![A-Za-zÁÉÍÓÚÜáéíóúüÑñ])/g, (m, w) => w + (g === 'mujer' ? 'a' : 'o'));
+}
+const _GENDERS = [
+  { key: 'mujer', label: 'Mujer', emoji: '👩' },
+  { key: 'hombre', label: 'Hombre', emoji: '👨' },
+  { key: 'no_binario', label: 'No binario', emoji: '🧑' },
+  { key: '', label: 'Prefiero no decirlo', emoji: '🤐' },
+];
+function _genderLabel(g) {
+  const x = _GENDERS.find(o => o.key === (g || ''));
+  return x && x.key ? x.label : '';
+}
+// Nombre del saludo del inicio: el apodo o, si no hay, el nombre de la cuenta
+function _heroName() {
+  return String(_aboutYou().nickname || '').trim() || (user && user.name) || '';
+}
+function _refreshNames() {
+  const hn = document.getElementById('hero-name');
+  if (hn && user) hn.textContent = _heroName();
 }
 function _hrContext() {
   if (_lastStepIncreaseTs && Date.now() - _lastStepIncreaseTs < 3 * 60 * 1000) return 'active';
@@ -8119,7 +8222,8 @@ function _hrAlertAllowed(ts) {
 }
 function _reactToHR(bpm, ts) {
   const explicit = _hrMeasureRequestedAt && ts - _hrMeasureRequestedAt < 90 * 1000;
-  const ev = window.ZyraHR ? ZyraHR.evaluate(bpm, _hrOpts()) : null;
+  const opts = _hrOpts();
+  const ev = window.ZyraHR ? ZyraHR.evaluate(bpm, opts) : null;
   _lastHREval = ev ? Object.assign({ bpm, ts }, ev) : null;
   if (explicit) _hrMeasureRequestedAt = 0;
   if (!ev) {
@@ -8128,8 +8232,14 @@ function _reactToHR(bpm, ts) {
     else if (bpm > 100 && _hrAlertAllowed(ts)) zyraToast(`💓 Pulso alto (${bpm} lpm) — ¿hacemos una respiración?`, 'info', 8000);
     return;
   }
-  if (explicit) return _showHRFeedback(ev);             // el resultado de una medición siempre se muestra
-  if (ev.notify) { if (_hrAlertAllowed(ts)) _showHRFeedback(ev); return; }
+  if (explicit) {                                        // el resultado de una medición siempre se muestra
+    if (_maybeAskEmotionForHR(ev, bpm, opts.context)) return;
+    return _showHRFeedback(ev);
+  }
+  if (ev.notify) {
+    if (_hrAlertAllowed(ts) && !_maybeAskEmotionForHR(ev, bpm, opts.context)) _showHRFeedback(ev);
+    return;
+  }
   if (ev.tone === 'good') {                              // felicitar sin llenar de avisos: una vez al día
     const key = 'zyra_hr_good_' + new Date().toDateString();
     if (!localStorage.getItem(key)) { localStorage.setItem(key, '1'); _showHRFeedback(ev, { short: true }); }
@@ -8141,16 +8251,24 @@ function _showHRFeedback(ev, opts = {}) {
   const body = `<strong>${safeHtml(ev.message)}</strong>`
     + (tips.length ? `<ul style="margin:6px 0 0;padding-left:18px;font-size:12px;line-height:1.5">${tips.map(t => `<li>${safeHtml(t)}</li>`).join('')}</ul>` : '')
     + '<div style="font-size:10.5px;opacity:.75;margin-top:6px">Orientativo, no es un diagnóstico médico.</div>';
-  zyraToast(body, type, ev.tone === 'alert' ? 15000 : 9000, true);
+  zyraToast(body, type, ev.emergency ? 30000 : ev.tone === 'alert' ? 15000 : 9000, true);
   const msgEl = document.querySelector('.zyra-toast:last-child .zyra-toast-msg');
   if (msgEl) {
     const row = document.createElement('div');
     row.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;margin-top:8px';
-    if (ev.tone === 'warn' || ev.tone === 'alert') row.appendChild(_toastBtn('Respirar ahora', () => { showPage('wellness'); setTimeout(() => openWellness('breath'), 100); }));
+    if (ev.emergency) row.appendChild(_toastLink('📞 Llamar al 123', 'tel:123'));
+    if (ev.tone === 'warn' || ev.tone === 'alert') row.appendChild(_toastBtn('Respirar ahora', () => startBreathNow('calm')));
     if (!_hrProfile().birthYear) row.appendChild(_toastBtn('Personalizar con mi edad', () => openHRProfileModal()));
     if (row.children.length) msgEl.appendChild(row);
   }
   if (ev.watchText) sendWatchReminder(ev.watchText);
+}
+function _toastLink(label, href) {
+  const a = document.createElement('a');
+  a.href = href;
+  a.textContent = label;
+  a.style.cssText = 'background:#dc2626;border:1px solid #b91c1c;color:#fff;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:800;text-decoration:none;font-family:inherit';
+  return a;
 }
 function _toastBtn(label, onClick) {
   const b = document.createElement('button');
@@ -8182,57 +8300,109 @@ function _fillBirthYearSelect(sel, current, placeholder) {
     sel.appendChild(o);
   }
 }
-function openHRProfileModal() {
+function openHRProfileModal() { openAboutModal({ from: 'pulse' }); }
+// "Sobre ti": cómo quiere que Zyra le diga, género, año de nacimiento y ejercicio (todo opcional)
+function openAboutModal(opts = {}) {
   document.getElementById('hr-profile-modal')?.remove();
-  const p = _hrProfile();
+  const p = _hrProfile(), a = _aboutYou();
+  let gender = a.gender || '';
   const wrap = document.createElement('div');
   wrap.id = 'hr-profile-modal';
-  wrap.setAttribute('role', 'dialog'); wrap.setAttribute('aria-modal', 'true'); wrap.setAttribute('aria-label', 'Personaliza tus consejos de pulso');
-  wrap.style.cssText = 'position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px';
+  wrap.setAttribute('role', 'dialog'); wrap.setAttribute('aria-modal', 'true'); wrap.setAttribute('aria-label', 'Sobre ti');
+  wrap.className = 'about-modal';
   const sel = 'width:100%;box-sizing:border-box;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:11px 12px;font-size:14px;font-family:inherit;margin:6px 0 14px';
-  wrap.innerHTML = `<div style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:18px;padding:22px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35)">
-    <div style="font-size:17px;font-weight:800;margin-bottom:6px">💓 Personaliza tus consejos de pulso</div>
-    <div style="font-size:13px;color:var(--text2);line-height:1.55;margin-bottom:14px">Con tu edad y cuánto ejercicio haces, Zyra te dice si tu pulso está bien para ti y cuál es tu zona de ejercicio.</div>
-    <label for="hrp-year" style="font-size:12px;font-weight:700;color:var(--text2)">Año de nacimiento</label>
+  const first = String((user && user.name) || '').trim().split(/ +/)[0] || 'Tu nombre o apodo';
+  wrap.innerHTML = `<div class="about-box">
+    <div class="about-box-title">✨ Sobre ti</div>
+    <div class="about-box-sub">${opts.from === 'pulse'
+      ? 'Con tu edad y cuánto ejercicio haces, Zyra te dice si tu pulso está bien para ti y cuál es tu zona de ejercicio.'
+      : opts.from === 'welcome' ? '¡Nuevo en Zyra! Cuéntame cómo quieres que te llame y un poco de ti, para hablarte como prefieres. Todo es opcional.'
+      : 'Así Zyra te habla como prefieres y te da consejos a tu medida. Todo es opcional.'}</div>
+    <label for="hrp-nick" class="about-lbl-f">¿Cómo quieres que Zyra te llame?</label>
+    <input id="hrp-nick" type="text" maxlength="40" autocomplete="nickname" placeholder="${safeHtml(first)}" style="${sel}">
+    <div class="about-lbl-f" id="hrp-g-lbl">¿Cómo te identificas?</div>
+    <div class="about-genders" role="radiogroup" aria-labelledby="hrp-g-lbl">${_GENDERS.map(g => `<button type="button" role="radio" class="about-g${g.key === gender ? ' on' : ''}" aria-checked="${g.key === gender}" data-g="${g.key}">${g.emoji} ${g.label}</button>`).join('')}</div>
+    <div class="about-hint">Para hablarte con las palabras correctas: “tranquila”, “tranquilo”…</div>
+    <label for="hrp-year" class="about-lbl-f">Año de nacimiento</label>
     <select id="hrp-year" style="${sel}"></select>
-    <label for="hrp-activity" style="font-size:12px;font-weight:700;color:var(--text2)">¿Cuánto ejercicio haces?</label>
+    <label for="hrp-activity" class="about-lbl-f">¿Cuánto ejercicio haces?</label>
     <select id="hrp-activity" style="${sel}">
       <option value="">Prefiero no decirlo</option>
       <option value="bajo">Poco o nada</option>
       <option value="medio">Algunas veces por semana</option>
       <option value="alto">Entreno casi a diario</option>
     </select>
-    <div style="font-size:11.5px;color:var(--text3);line-height:1.5;margin-bottom:16px">Es opcional y lo puedes cambiar cuando quieras en Sensores. Solo lo usamos para darte consejos generales de bienestar; no es un diagnóstico médico. Al guardarlo autorizas que Zyra trate estos datos de salud con ese fin.</div>
+    <div class="about-hint" style="margin-bottom:16px">Lo puedes cambiar cuando quieras en tu Perfil. La edad y el ejercicio solo se usan para darte consejos generales de bienestar; no son un diagnóstico médico. Al guardarlos autorizas que Zyra trate estos datos de salud con ese fin.</div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button type="button" id="hrp-cancel" style="background:transparent;border:1px solid var(--border);color:var(--text2);border-radius:10px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Ahora no</button>
-      <button type="button" id="hrp-save" style="background:var(--accent);border:none;color:#fff;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Guardar</button>
+      <button type="button" id="hrp-cancel" class="about-btn ghost">Ahora no</button>
+      <button type="button" id="hrp-save" class="about-btn">Guardar</button>
     </div>
   </div>`;
   document.body.appendChild(wrap);
+  document.getElementById('hrp-nick').value = a.nickname || '';
   _fillBirthYearSelect(document.getElementById('hrp-year'), p.birthYear);
   const act = document.getElementById('hrp-activity');
   if (p.activityLevel) act.value = p.activityLevel;
+  wrap.querySelectorAll('.about-g').forEach(b => b.addEventListener('click', () => {
+    gender = b.dataset.g;
+    wrap.querySelectorAll('.about-g').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-checked', String(on)); });
+  }));
   const onKey = e => { if (e.key === 'Escape') close(); };
-  const close = () => { localStorage.setItem('zyra_hr_profile_asked', '1'); document.removeEventListener('keydown', onKey); wrap.remove(); };
+  const close = () => { localStorage.setItem('zyra_hr_profile_asked', '1'); localStorage.setItem('zyra_about_asked', '1'); document.removeEventListener('keydown', onKey); wrap.classList.add('out'); setTimeout(() => wrap.remove(), 200); };
   document.addEventListener('keydown', onKey);
   document.getElementById('hrp-cancel').onclick = close;
   wrap.addEventListener('click', e => { if (e.target === wrap) close(); });
+  setTimeout(() => document.getElementById(opts.from === 'pulse' ? 'hrp-year' : 'hrp-nick')?.focus(), 80);
   document.getElementById('hrp-save').onclick = async () => {
     const yearVal = document.getElementById('hrp-year').value;
-    const body = { birthYear: yearVal ? Number(yearVal) : null, activityLevel: act.value || null };
+    const body = {
+      nickname: document.getElementById('hrp-nick').value.trim().slice(0, 40),
+      gender: gender || null,
+      birthYear: yearVal ? Number(yearVal) : null,
+      activityLevel: act.value || null,
+    };
     const btn = document.getElementById('hrp-save');
     btn.disabled = true; btn.textContent = 'Guardando…';
     try {
-      await api('/profile', 'PUT', body);
-      _saveHRProfileLocal(body);
+      const d = await api('/profile', 'PUT', body);
+      _saveHRProfileLocal(Object.assign({}, body, d && d.profile ? { nickname: d.profile.nickname, gender: d.profile.gender } : {}));
       close();
-      zyraToast(body.birthYear ? 'Listo: tus consejos de pulso ya usan tu edad 💚' : 'Guardado', 'success', 4000);
-      renderHRProfileCard(); renderWatchCard();
+      const name = _displayName();
+      zyraToast(name ? `Listo, ${name} 💜 Zyra ya sabe cómo hablarte` : 'Guardado 💜', 'success', 4000);
+      renderAboutCard(); renderHRProfileCard(); renderWatchCard(); _refreshNames();
     } catch (e) {
       btn.disabled = false; btn.textContent = 'Guardar';
       zyraToast(e.message || 'No se pudo guardar. Intenta de nuevo.', 'error', 5000);
     }
   };
+}
+// Quienes ya tenían cuenta no pasan por la bienvenida nueva: se les pregunta una vez en el inicio
+function _maybeAskAbout(p) {
+  if (!p || !p.onboardingDone || p.nickname || p.gender || p.birthYear || localStorage.getItem('zyra_about_asked')) return;
+  setTimeout(() => {
+    if (!token || window._zyraCurrentPage !== 'dashboard' || _anyModalOpen() || localStorage.getItem('zyra_about_asked')) return;
+    openAboutModal({ from: 'welcome' });
+  }, 6000);
+}
+// Tarjeta "Sobre ti" en el Perfil
+function renderAboutCard() {
+  const el = document.getElementById('about-card');
+  if (!el) return;
+  const p = _hrProfile(), a = _aboutYou();
+  const age = window.ZyraHR ? ZyraHR.ageFromBirthYear(p.birthYear) : null;
+  const ACT = { bajo: 'Poco o nada', medio: 'Algunas veces por semana', alto: 'Casi a diario' };
+  const row = (ico, label, val, empty, i) => `<div class="about-row" style="animation-delay:${i * 60}ms"><span class="about-ico" aria-hidden="true">${ico}</span><span class="about-lbl">${label}</span><span class="about-val${val ? '' : ' empty'}">${val ? safeHtml(val) : empty}</span></div>`;
+  const missing = !a.nickname && !a.gender && !age;
+  el.innerHTML = `<div class="about-card${missing ? ' missing' : ''}">
+    <div class="about-head">
+      <div><div class="about-title">✨ Sobre ti</div><div class="about-sub">Así te habla Zyra y personaliza sus consejos</div></div>
+      <button type="button" class="about-btn${missing ? '' : ' ghost'}" onclick="openAboutModal()">${missing ? 'Completar' : 'Editar'}</button>
+    </div>
+    ${row('💬', 'Zyra te dice', a.nickname || '', safeHtml(_displayName() || 'Agrega un apodo'), 0)}
+    ${row('🧑', 'Género', _genderLabel(a.gender), 'Prefiero no decirlo', 1)}
+    ${row('🎂', 'Edad', age ? age + ' años' : '', 'Sin agregar', 2)}
+    ${row('🏃', 'Ejercicio', ACT[p.activityLevel] || '', 'Sin agregar', 3)}
+  </div>`;
 }
 // Tarjeta en Sensores: edad, ejercicio y zona de ejercicio, con botón para editar
 function renderHRProfileCard() {
@@ -8254,6 +8424,773 @@ function renderHRProfileCard() {
 function _maybeAskHRProfile() {
   if (_hrProfile().birthYear || localStorage.getItem('zyra_hr_profile_asked')) return;
   setTimeout(() => { if (window._zyraCurrentPage === 'sensors' && !_hrProfile().birthYear) openHRProfileModal(); }, 700);
+}
+
+/* ══════════════════════════════════════════
+   PULSO EN VIVO · CHECK-IN CUERPO Y MENTE · TU CORAZÓN
+   ══════════════════════════════════════════
+   - Respiración con el pulso en vivo: con el reloj conectado, el pulso se ve mientras
+     respiras y al final Zyra compara cómo empezaste y cómo terminaste.
+   - Check-in diario cuerpo y mente (30 s): pulso en reposo (o cómo sientes el cuerpo)
+     más la emoción, con racha de días y monedas.
+   - "Tu corazón esta semana" en Sensores y en los reportes semanales.
+   - Si el pulso sube sin moverse y no ha registrado emoción hoy, Zyra pregunta.
+   Los cálculos viven en client/hr-guide.js (los usa también el servidor). */
+const _HEART_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-10-9.3C.4 8.4 2.3 4.5 6.1 4.1 8.4 3.9 10.3 5 12 7c1.7-2 3.6-3.1 5.9-2.9 3.8.4 5.7 4.3 4.1 7.6C19.5 16.4 12 21 12 21z" fill="currentColor"/></svg>';
+
+function _reducedMotion() {
+  try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; }
+}
+function _hrMedian(arr) {
+  const v = arr.filter(Number.isFinite).sort((a, b) => a - b);
+  if (!v.length) return null;
+  const m = Math.floor(v.length / 2);
+  return v.length % 2 ? v[m] : Math.round((v[m - 1] + v[m]) / 2);
+}
+// Cuenta de un número a otro (pulso que baja, racha que sube)
+function _tweenNumber(el, from, to, ms = 700) {
+  if (!el) return;
+  if (el._tween) cancelAnimationFrame(el._tween);
+  if (from == null || !isFinite(from) || from === to || _reducedMotion()) { el.textContent = to; return; }
+  const t0 = performance.now();
+  const step = now => {
+    const p = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(from + (to - from) * e);
+    if (p < 1) el._tween = requestAnimationFrame(step);
+  };
+  el._tween = requestAnimationFrame(step);
+}
+// El corazón late al ritmo del pulso medido
+function _setHeartRate(el, bpm) {
+  if (el && bpm) el.style.animationDuration = (60 / Math.max(40, Math.min(180, bpm))).toFixed(2) + 's';
+}
+// Gráfica de línea: points = [{ x: 0..1, y: valor }]
+function _sparkSvg(points, opts = {}) {
+  if (!points || points.length < 2) return '';
+  const W = opts.w || 300, H = opts.h || 64, pad = 7, color = opts.color || '#ec4899';
+  const ys = points.map(p => p.y);
+  let lo = Math.min(...ys), hi = Math.max(...ys);
+  if (hi - lo < 10) { const mid = (hi + lo) / 2; lo = mid - 5; hi = mid + 5; }
+  const X = x => (pad + Math.max(0, Math.min(1, x)) * (W - 2 * pad)).toFixed(1);
+  const Y = y => (H - pad - (y - lo) / (hi - lo) * (H - 2 * pad)).toFixed(1);
+  const line = 'M' + points.map(p => X(p.x) + ',' + Y(p.y)).join(' L');
+  const first = points[0], last = points[points.length - 1];
+  const area = `${line} L${X(last.x)},${H} L${X(first.x)},${H} Z`;
+  const gid = 'zsg' + Math.random().toString(36).slice(2, 8);
+  const dots = opts.dots ? points.slice(0, -1).map((p, i) => `<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="2.6" fill="${color}" class="spark-dot" style="animation-delay:${(0.3 + i * 0.04).toFixed(2)}s"/>`).join('') : '';
+  return `<svg class="spark${opts.anim ? ' anim' : ''}" viewBox="0 0 ${W} ${H}" aria-hidden="true">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".32"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+    <path d="${area}" fill="url(#${gid})" class="spark-area"/>
+    <path d="${line}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="spark-line"${opts.anim ? ' pathLength="1"' : ''}/>
+    ${dots}<circle cx="${X(last.x)}" cy="${Y(last.y)}" r="4" fill="${color}" class="spark-last"/>
+  </svg>`;
+}
+// Corazones que suben desde un elemento (al bajar el pulso respirando)
+function _heartsBurst(anchor) {
+  if (!anchor || _reducedMotion()) return;
+  const r = anchor.getBoundingClientRect();
+  for (let i = 0; i < 10; i++) {
+    setTimeout(() => {
+      const h = document.createElement('span');
+      h.className = 'zh-float-heart';
+      h.innerHTML = _HEART_SVG;
+      h.style.left = (r.left + r.width / 2 - 9 + (Math.random() - .5) * r.width * .6) + 'px';
+      h.style.top = (r.top + r.height / 2) + 'px';
+      h.style.setProperty('--dx', ((Math.random() - .5) * 90).toFixed(0) + 'px');
+      h.style.setProperty('--rot', ((Math.random() - .5) * 50).toFixed(0) + 'deg');
+      h.style.width = h.style.height = (14 + Math.random() * 10).toFixed(0) + 'px';
+      document.body.appendChild(h);
+      setTimeout(() => h.remove(), 2000);
+    }, i * 110);
+  }
+}
+
+/* ── Motor de pulso en vivo ──
+   Mientras la respiración o el check-in están midiendo, las lecturas del reloj van a esa
+   pantalla (sin avisos sueltos ni guardar cada una). El reloj mide por tandas: cuando
+   avisa que terminó (0xE0 00 00) o pasan 20 s sin lecturas, se le vuelve a pedir. */
+let _hrLive = null;
+function _hrLiveStart(onReading, opts = {}) {
+  _hrLiveStop();
+  const live = { onReading, startedAt: Date.now(), lastTs: 0, lastReq: 0, watch: !!opts.watch, alive: opts.alive };
+  _hrLive = live;
+  if (live.watch) _hrLiveRequest();
+  live.timer = setInterval(() => {
+    if (_hrLive !== live) return clearInterval(live.timer);
+    if (Date.now() - live.startedAt > 5 * 60000) return _hrLiveStop(); // salvavidas
+    if (live.alive && !live.alive()) return _hrLiveStop();             // cerraron esa pantalla
+    if (live.watch && Date.now() - Math.max(live.lastTs, live.lastReq) > 20000) _hrLiveRequest();
+  }, 5000);
+  return live;
+}
+function _hrLiveRequest() {
+  if (!_hrLive || !_hrLive.watch || !_watchConnected || !_watchRxChar) return;
+  _hrLive.lastReq = Date.now();
+  _watchWrite(_watchRxChar, [0x60, 0x00, 0x01]).catch(() => {});
+}
+function _hrLiveStop() {
+  if (!_hrLive) return;
+  clearInterval(_hrLive.timer);
+  _hrLive = null;
+}
+
+/* ── 1. Respiración con el pulso en vivo ── */
+let _breathLive = null; // { readings, startBpm, startedAt, totalSecs, tech, shown }
+
+function _renderBreathHRIdle() {
+  const box = document.getElementById('breath-hr');
+  if (!box || _breathLive) return;
+  if (_watchConnected) {
+    box.innerHTML = `<div class="bhr-teaser"><span class="bhr-heart bhr-heart-sm beating">${_HEART_SVG}</span><span>Reloj conectado: verás tu pulso en vivo mientras respiras.</span></div>`;
+  } else if (navigator.bluetooth) {
+    const paired = !!localStorage.getItem('zyra_watch_paired');
+    box.innerHTML = `<div class="bhr-teaser"><span aria-hidden="true">⌚</span><span>${paired ? 'Conecta tu reloj' : 'Con un reloj conectado'} y mira tu pulso bajar mientras respiras.</span><button type="button" class="bhr-link" onclick="connectSmartwatch()">Conectar reloj</button></div>`;
+  } else {
+    box.innerHTML = '';
+  }
+}
+function _breathHRBegin(totalSecs) {
+  _breathLive = null;
+  if (!_watchConnected) { _renderBreathHRIdle(); return; }
+  const last = (() => { try { return JSON.parse(localStorage.getItem('zyra_watch_hr') || 'null'); } catch (e) { return null; } })();
+  const startBpm = last && Date.now() - last.ts < 30000 ? last.bpm : null; // solo si es de hace muy poco
+  _breathLive = { readings: [], startBpm, startedAt: Date.now(), totalSecs, tech: currentBreathTech, shown: startBpm };
+  const box = document.getElementById('breath-hr');
+  if (box) box.innerHTML = `
+    <div class="bhr-live">
+      <div class="bhr-row">
+        <span class="bhr-heart beating" id="bhr-heart">${_HEART_SVG}</span>
+        <span class="bhr-bpm" id="bhr-bpm">${startBpm || '--'}</span><span class="bhr-unit">lpm</span>
+        <span class="bhr-delta" id="bhr-delta"></span>
+      </div>
+      <div class="bhr-chart" id="bhr-chart"><div class="bhr-chart-empty"></div></div>
+      <div class="bhr-cap" id="bhr-cap">${startBpm ? 'Tu pulso en vivo desde el reloj' : 'Esperando tu pulso del reloj…'}</div>
+    </div>`;
+  _setHeartRate(document.getElementById('bhr-heart'), startBpm);
+  _hrLiveStart(_breathOnHR, { watch: true, alive: () => { const b = document.getElementById('bhr-bpm'); return !!(b && b.offsetParent); } });
+}
+function _breathOnHR(bpm, ts) {
+  const s = _breathLive;
+  if (!s || !document.getElementById('bhr-bpm')) { _hrLiveStop(); _breathLive = null; return; }
+  s.readings.push({ bpm, ts });
+  _tweenNumber(document.getElementById('bhr-bpm'), s.shown, bpm, 600);
+  s.shown = bpm;
+  _setHeartRate(document.getElementById('bhr-heart'), bpm);
+  const cap = document.getElementById('bhr-cap');
+  if (cap) cap.textContent = 'Tu pulso en vivo desde el reloj';
+  const ref = _breathRef(s);
+  const deltaEl = document.getElementById('bhr-delta');
+  if (deltaEl && ref && ts - s.startedAt > 15000) {
+    const d = bpm - ref;
+    deltaEl.className = 'bhr-delta ' + (d <= -2 ? 'down' : d >= 3 ? 'up' : 'flat');
+    deltaEl.textContent = d <= -1 ? '↓ ' + (-d) : d >= 1 ? '↑ ' + d : '=';
+    deltaEl.title = 'Comparado con el comienzo';
+  }
+  _breathDrawChart('bhr-chart', s, false);
+}
+// Pulso del comienzo, con la misma regla que el resultado final (ZyraHR.breathSummary):
+// la lectura de antes de empezar solo cuenta si se parece a las primeras en vivo
+function _breathRef(s) {
+  const first = _hrMedian(s.readings.slice(0, 3).map(r => r.bpm));
+  if (!s.startBpm) return first;
+  if (s.readings.length < 2) return s.startBpm;
+  return Math.abs(first - s.startBpm) <= 10 ? s.startBpm : first;
+}
+function _breathDrawChart(id, s, final) {
+  const el = document.getElementById(id);
+  if (!el || !s) return;
+  const lastTs = s.readings.length ? s.readings[s.readings.length - 1].ts : s.startedAt;
+  const span = Math.max(1, final ? lastTs - s.startedAt : Math.max(s.totalSecs * 1000, lastTs - s.startedAt));
+  const pts = [];
+  if (s.startBpm && _breathRef(s) === s.startBpm) pts.push({ x: 0, y: s.startBpm });
+  s.readings.forEach(r => pts.push({ x: (r.ts - s.startedAt) / span, y: r.bpm }));
+  const svg = _sparkSvg(pts, { color: '#ec4899', anim: final });
+  if (svg) el.innerHTML = svg;
+}
+// completed: terminó todos los ciclos (si se detuvo antes, igual muestra el resultado si alcanzó a medir)
+function _breathHRFinish(completed) {
+  const s = _breathLive;
+  _hrLiveStop();
+  _breathLive = null;
+  if (!s) return;
+  const sum = window.ZyraHR ? ZyraHR.breathSummary(s.readings, { startBpm: s.startBpm, startedAt: s.startedAt }) : null;
+  const last = s.readings[s.readings.length - 1];
+  if (last) _recordHR(last.bpm, last.ts); // una sola lectura al historial y al servidor
+  const box = document.getElementById('breath-hr');
+  if (!box) return;
+  if (!sum) {
+    if (!completed) { _renderBreathHRIdle(); return; }
+    box.innerHTML = `<div class="bhr-result"><div class="bhr-msg">No alcancé a leer bien tu pulso esta vez. Ajusta el reloj en la muñeca, un dedo arriba del hueso, y vuelve a intentarlo.</div></div>`;
+    return;
+  }
+  const drop = -sum.delta;
+  const tone = sum.level === 'bajo' ? 'good' : sum.level === 'estable' ? 'calm' : 'info';
+  box.innerHTML = `
+    <div class="bhr-result ${tone}">
+      <div class="bhr-nums">
+        <div><div class="bhr-numlbl">Al empezar</div><div class="bhr-num">${sum.start}</div></div>
+        <div class="bhr-arrow" aria-hidden="true">→</div>
+        <div><div class="bhr-numlbl">Al terminar</div><div class="bhr-num end" id="bhr-end">${sum.start}</div></div>
+      </div>
+      ${drop >= 3 ? `<div class="bhr-badge">↓ ${drop} lpm</div>` : ''}
+      <div class="bhr-title">${safeHtml(sum.title)}</div>
+      <div class="bhr-msg">${safeHtml(sum.message)}</div>
+      <div class="bhr-chart" id="bhr-chart-final"></div>
+      <div class="bhr-foot">Orientativo, no es un diagnóstico médico.</div>
+    </div>`;
+  _breathDrawChart('bhr-chart-final', s, true);
+  // En el celular el resultado queda debajo del círculo: se lleva a la vista
+  setTimeout(() => box.scrollIntoView({ behavior: _reducedMotion() ? 'auto' : 'smooth', block: 'center' }), 250);
+  _tweenNumber(document.getElementById('bhr-end'), sum.start, sum.end, 1400);
+  if (drop >= 3) setTimeout(() => _heartsBurst(document.getElementById('breath-circle')), 500);
+  // Se guarda para "Tu corazón esta semana" y el reporte semanal; y se avisa en el reloj
+  const lastTs = last ? last.ts : Date.now();
+  const rec = { startBpm: sum.start, endBpm: sum.end, tech: s.tech, seconds: Math.round((Math.max(Date.now(), lastTs) - s.startedAt) / 1000), ts: new Date().toISOString() };
+  if (rec.seconds >= 10) {
+    api('/profile/health/breath', 'POST', rec).catch(() => {});
+    window._zyraHealth = window._zyraHealth || {};
+    (window._zyraHealth.breaths = window._zyraHealth.breaths || []).push(rec);
+  }
+  if (sum.watchText) sendWatchReminder(sum.watchText);
+}
+// Desde los avisos de pulso alto y el check-in: abre la respiración y arranca
+function startBreathNow(tech) {
+  showPage('wellness');
+  const t0 = Date.now();
+  // La primera vez Bienestar se vuelve a pintar al terminar de bajar los hábitos: si el
+  // ejercicio arrancara antes, ese repintado lo reiniciaría a la mitad
+  const go = () => {
+    if (_habitsSyncing && Date.now() - t0 < 6000) return setTimeout(go, 150);
+    openWellness('breath');
+    setTimeout(() => {
+      if (tech && BREATH_TECHS[tech]) selectBreathTech(tech, true);
+      startBreath();
+    }, 250);
+  };
+  setTimeout(go, 120);
+}
+
+/* ── 2. Check-in diario cuerpo y mente ── */
+const _BM_BODY = [
+  { key: 'relajado', emoji: '😌', label: 'En calma' },
+  { key: 'normal',   emoji: '🙂', label: 'Normal' },
+  { key: 'energia',  emoji: '⚡', label: 'Con energía' },
+  { key: 'cansado',  emoji: '🥱', label: 'Con cansancio' },
+  { key: 'tenso',    emoji: '😣', label: 'Con tensión' },
+];
+let _bm = null;
+
+function openBodyMindCheckin() {
+  if (!token || document.getElementById('bm-overlay')) return;
+  if (!window.ZyraHR) { zyraToast('Un momento, Zyra está cargando…', 'info', 3000); return; }
+  // Las ventanas de "¿Cómo estás?" de antes no quedan encima ni preguntan dos veces
+  ['daily-checkin-modal', 'quick-emotion-modal'].forEach(id => { const m = document.getElementById(id); if (m) m.style.display = 'none'; });
+  sessionStorage.setItem('zyra_checkin_session_shown', '1');
+  _bm = { step: 1, bpm: null, source: null, body: null, emotion: null, readings: [], measuring: null, timers: [], shown: null };
+  const ov = document.createElement('div');
+  ov.id = 'bm-overlay';
+  ov.className = 'bm-overlay';
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
+  ov.setAttribute('aria-label', 'Check-in cuerpo y mente');
+  ov.innerHTML = `<div class="bm-card">
+      <div class="bm-top">
+        <div class="bm-dots" aria-hidden="true"><span class="on"></span><span></span><span></span></div>
+        <button type="button" class="bm-x" aria-label="Cerrar" onclick="_bmClose()">✕</button>
+      </div>
+      <div class="bm-kicker">💓 Check-in cuerpo y mente · 30 s</div>
+      <div id="bm-body" class="bm-stage"></div>
+    </div>`;
+  document.body.appendChild(ov);
+  ov.addEventListener('click', e => { if (e.target === ov) _bmClose(); });
+  _bm.onKey = e => { if (e.key === 'Escape') _bmClose(); };
+  document.addEventListener('keydown', _bm.onKey);
+  requestAnimationFrame(() => ov.classList.add('show'));
+  _bmStepBody();
+}
+function _bmClose() {
+  const ov = document.getElementById('bm-overlay');
+  if (_bm) {
+    _bm.timers.forEach(t => clearTimeout(t));
+    if (_bm.camWatch) clearInterval(_bm.camWatch);
+    if (_bm.onKey) document.removeEventListener('keydown', _bm.onKey);
+  }
+  if (_hrLive && _hrLive.onReading === _bmOnHR) _hrLiveStop();
+  _bm = null;
+  if (ov) { ov.classList.remove('show'); ov.classList.add('hide'); setTimeout(() => ov.remove(), 260); }
+}
+function _bmLater(fn, ms) {
+  const t = setTimeout(fn, ms);
+  if (_bm) _bm.timers.push(t);
+  return t;
+}
+function _bmDots(n) {
+  document.querySelectorAll('#bm-overlay .bm-dots span').forEach((d, i) => d.classList.toggle('on', i < n));
+}
+function _bmMsg(text) {
+  const el = document.getElementById('bm-msg');
+  if (el) el.textContent = text;
+}
+function _bmRing(frac, secs) {
+  const ring = document.getElementById('bm-ring');
+  if (!ring) return;
+  ring.style.setProperty('--ring-t', (secs || 0.6) + 's');
+  ring.style.strokeDashoffset = (339.3 * (1 - frac)).toFixed(1);
+}
+function _bmStepBody() {
+  const el = document.getElementById('bm-body');
+  if (!el || !_bm) return;
+  _bm.step = 1;
+  _bmDots(1);
+  const canCamera = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+  const reconnect = !_watchConnected && navigator.bluetooth && localStorage.getItem('zyra_watch_paired');
+  const canMeasure = _watchConnected || reconnect || canCamera;
+  el.innerHTML = `<div class="bm-step">
+      <div class="bm-heart-stage" id="bm-stage">
+        <svg class="bm-ring" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="54" class="bm-ring-bg"/><circle cx="60" cy="60" r="54" class="bm-ring-fg" id="bm-ring"/></svg>
+        <span class="bm-ripple"></span><span class="bm-ripple r2"></span>
+        <span class="bm-heart beating" id="bm-heart">${_HEART_SVG}</span>
+      </div>
+      <div class="bm-bpm" id="bm-bpm" aria-live="polite"></div>
+      <h3 class="bm-h">Primero, tu cuerpo</h3>
+      <p class="bm-p" id="bm-msg">${canMeasure ? 'Siéntate, apoya la espalda y respira normal. No te muevas unos segundos.' : '¿Cómo sientes tu cuerpo en este momento?'}</p>
+      <div class="bm-actions" id="bm-actions">${
+        reconnect ? '<button type="button" class="bm-btn ghost" onclick="_bmConnectWatch()">⌚ Conectar mi reloj</button>' : ''}${
+        canCamera && !_watchConnected ? '<button type="button" class="bm-btn ghost" onclick="_bmMeasureCamera()">📷 Medir con la cámara</button>' : ''}</div>
+      <div id="bm-body-pick">
+        ${canMeasure ? `<div class="bm-sep"><span>${_watchConnected ? '¿Prefieres no medir? Dime cómo sientes tu cuerpo' : 'o dime cómo sientes tu cuerpo'}</span></div>` : ''}
+        <div class="bm-chips">${_BM_BODY.map((b, i) => `<button type="button" class="bm-chip" style="animation-delay:${i * 50}ms" onclick="_bmPickBody('${b.key}', this)"><span class="e">${b.emoji}</span>${b.label}</button>`).join('')}</div>
+      </div>
+    </div>`;
+  if (_watchConnected) _bmLater(_bmMeasureWatch, 350);
+}
+async function _bmConnectWatch() {
+  await connectSmartwatch();
+  if (_bm && _bm.step === 1 && _watchConnected) _bmStepBody();
+}
+function _bmMeasureWatch() {
+  if (!_bm || _bm.step !== 1 || _bm.bpm) return;
+  _bm.measuring = 'watch';
+  _bm.readings = [];
+  _bm.firstAt = 0;
+  _bmMsg('Midiendo con tu reloj… no te muevas un momento.');
+  const actions = document.getElementById('bm-actions');
+  if (actions) actions.innerHTML = '';
+  document.getElementById('bm-stage')?.classList.add('measuring');
+  _bmRing(0, 0.01);
+  requestAnimationFrame(() => requestAnimationFrame(() => _bmRing(0.85, 40)));
+  _hrLiveStart(_bmOnHR, { watch: true, alive: () => !!document.getElementById('bm-overlay') });
+  const myBm = _bm;
+  _bmLater(() => {
+    if (_bm !== myBm || _bm.bpm || _bm.measuring !== 'watch') return;
+    if (_bm.readings.length) return _bmGotPulse(_hrMedian(_bm.readings.map(r => r.bpm)), 'watch');
+    _hrLiveStop();
+    _bm.measuring = null;
+    document.getElementById('bm-stage')?.classList.remove('measuring');
+    _bmRing(0, 0.4);
+    _bmMsg('No llegó la lectura del reloj. Revisa que esté bien puesto en la muñeca.');
+    const a = document.getElementById('bm-actions');
+    if (a) a.innerHTML = '<button type="button" class="bm-btn" onclick="_bmMeasureWatch()">Intentar de nuevo</button>';
+  }, 40000);
+}
+function _bmMeasureCamera() {
+  if (!_bm || _bm.step !== 1) return;
+  _bm.measuring = 'camera';
+  _bm.readings = [];
+  _hrLiveStart(_bmOnHR, { watch: false });
+  startCameraHR();
+  // Si cierran la cámara sin lectura, la pantalla vuelve a como estaba
+  const myBm = _bm;
+  _bm.camWatch = setInterval(() => {
+    if (_bm !== myBm) return clearInterval(myBm.camWatch);
+    if (document.getElementById('camera-hr-overlay')) return;
+    clearInterval(_bm.camWatch);
+    _bm.camWatch = null;
+    setTimeout(() => {
+      if (_bm === myBm && !_bm.bpm && _bm.measuring === 'camera') {
+        _bm.measuring = null;
+        if (_hrLive && _hrLive.onReading === _bmOnHR) _hrLiveStop();
+      }
+    }, 1200);
+  }, 500);
+}
+function _bmOnHR(bpm, ts) {
+  if (!_bm || _bm.step !== 1 || _bm.bpm) return;
+  _bm.readings.push({ bpm, ts });
+  const el = document.getElementById('bm-bpm');
+  if (el) {
+    if (!el.querySelector('.n')) el.innerHTML = `<span class="n">${bpm}</span> <span class="u">lpm</span>`;
+    else _tweenNumber(el.querySelector('.n'), _bm.shown, bpm, 500);
+  }
+  _bm.shown = bpm;
+  _setHeartRate(document.getElementById('bm-heart'), bpm);
+  if (_bm.measuring === 'camera') return _bmGotPulse(bpm, 'camera');
+  // Del reloj llegan varias lecturas: se espera unos segundos y se toma la mediana
+  if (!_bm.firstAt) {
+    _bm.firstAt = ts;
+    _bmMsg('Ya casi… sigue así unos segundos.');
+    const myBm = _bm;
+    _bmLater(() => { if (_bm === myBm && !_bm.bpm && _bm.readings.length) _bmGotPulse(_hrMedian(_bm.readings.map(r => r.bpm)), 'watch'); }, 8000);
+  }
+  if (_bm.readings.length >= 6) _bmGotPulse(_hrMedian(_bm.readings.map(r => r.bpm)), 'watch');
+}
+function _bmGotPulse(bpm, source) {
+  if (!_bm || _bm.bpm || !bpm) return;
+  if (_hrLive && _hrLive.onReading === _bmOnHR) _hrLiveStop();
+  _hrMeasureRequestedAt = 0;
+  const ts = Date.now();
+  _bm.bpm = bpm;
+  _bm.source = source;
+  _bm.measuring = null;
+  _recordHR(bpm, ts);
+  const ev = window.ZyraHR ? ZyraHR.evaluate(bpm, _hrOpts('rest')) : null;
+  _lastHREval = ev ? Object.assign({ bpm, ts }, ev) : null;
+  const stage = document.getElementById('bm-stage');
+  if (stage) { stage.classList.remove('measuring'); stage.classList.add('tone-' + (ev ? ev.tone : 'info')); }
+  _bmRing(1, 0.6);
+  _setHeartRate(document.getElementById('bm-heart'), bpm);
+  const el = document.getElementById('bm-bpm');
+  if (el) el.innerHTML = `<span class="n">${bpm}</span> <span class="u">lpm</span>${ev ? `<span class="t ${ev.tone}">${safeHtml(ev.title)}</span>` : ''}`;
+  document.getElementById('bm-body-pick')?.classList.add('bm-fadeout');
+  const a = document.getElementById('bm-actions');
+  if (ev && ev.emergency) {
+    // Valores extremos: primero la seguridad, y sin pasar solo a la siguiente pantalla
+    _bmMsg(ev.message);
+    if (a) a.innerHTML = `<a class="bm-sos" href="tel:123">📞 Llamar al 123</a><button type="button" class="bm-btn ghost" onclick="_bmStepMind()">Seguir</button>`;
+    return;
+  }
+  _bmMsg(source === 'camera' ? 'Listo, ya tengo tu pulso.' : 'Listo, ya tengo tu pulso del reloj.');
+  if (a) a.innerHTML = `<button type="button" class="bm-btn" onclick="_bmStepMind()">Siguiente →</button>`;
+  _bmLater(() => { if (_bm && _bm.step === 1) _bmStepMind(); }, 1800);
+}
+function _bmPickBody(key, btn) {
+  if (!_bm || _bm.step !== 1) return;
+  if (_hrLive && _hrLive.onReading === _bmOnHR) _hrLiveStop();
+  _bm.measuring = null;
+  _bm.bpm = null;
+  _bm.body = key;
+  if (btn) btn.classList.add('picked');
+  _bmLater(_bmStepMind, 300);
+}
+function _bmStepMind() {
+  const el = document.getElementById('bm-body');
+  if (!_bm || !el || _bm.step === 2) return;
+  _bm.step = 2;
+  _bmDots(2);
+  const body = _BM_BODY.find(b => b.key === _bm.body);
+  const mini = _bm.bpm ? `❤ Tu pulso: ${_bm.bpm} lpm` : body ? `${body.emoji} Tu cuerpo: ${body.label.toLowerCase()}` : '';
+  // Si ya marcó su emoción hoy, se la mostramos marcada: puede seguir igual o cambiarla
+  const earlier = EMOTIONS.find(e => e.key === localStorage.getItem('zyra_checkin_emotion_' + new Date().toDateString()));
+  el.innerHTML = `<div class="bm-step">
+      <div class="bm-mind-ico" aria-hidden="true">💭</div>
+      <h3 class="bm-h">Ahora, tu mente</h3>
+      <p class="bm-p">${earlier ? `Hoy marcaste ${earlier.emoji} ${earlier.label}. ¿Sigues así o cambió algo?` : '¿Cómo te sientes en este momento?'}</p>
+      <div class="bm-emos">${EMOTIONS.map((e, i) => `<button type="button" class="bm-emo${earlier && earlier.key === e.key ? ' was' : ''}" style="--c:${e.color};animation-delay:${i * 35}ms" onclick="_bmPickEmotion('${e.key}', this)"><span class="e">${e.emoji}</span>${e.label}</button>`).join('')}</div>
+      ${mini ? `<div class="bm-mini">${mini}</div>` : ''}
+    </div>`;
+}
+function _bmPickEmotion(key, btn) {
+  if (!_bm || _bm.step !== 2 || _bm.emotion) return;
+  _bm.emotion = key;
+  if (btn) btn.classList.add('picked');
+  document.querySelectorAll('#bm-body .bm-emo').forEach(b => { if (b !== btn) b.classList.add('dim'); });
+  _bmLater(_bmStepResult, 420);
+}
+function _bmStepResult() {
+  const el = document.getElementById('bm-body');
+  if (!_bm || !el) return;
+  _bm.step = 3;
+  _bmDots(3);
+  const p = _hrProfile();
+  const res = ZyraHR.bodyMind(_bm.bpm, _bm.emotion, { age: ZyraHR.ageFromBirthYear(p.birthYear), activityLevel: p.activityLevel, body: _bm.body });
+  const em = EMOTIONS.find(e => e.key === _bm.emotion) || EMOTIONS[1];
+  const body = _BM_BODY.find(b => b.key === _bm.body);
+  const ev = res.ev;
+  const action = res.action === 'breathe' ? `<button type="button" class="bm-btn" onclick="_bmClose();startBreathNow('calm')">🌬️ Respirar 1 minuto</button>`
+    : res.action === 'chat' ? `<button type="button" class="bm-btn" onclick="_bmGoChat()">💬 Hablar con Zyra</button>` : '';
+  el.innerHTML = `<div class="bm-step bm-result ${res.tone}">
+      <div class="bm-pair">
+        <div class="bm-orb body">
+          <span class="bm-orb-ico${_bm.bpm ? ' beating' : ''}" id="bm-res-heart">${_bm.bpm ? _HEART_SVG : (body ? body.emoji : '🫀')}</span>
+          <span class="bm-orb-val">${_bm.bpm ? _bm.bpm + ' lpm' : (body ? body.label : 'Tu cuerpo')}</span>
+          <span class="bm-orb-lbl">${ev ? safeHtml(ev.title) : 'Tu cuerpo'}</span>
+        </div>
+        <span class="bm-plus" aria-hidden="true">+</span>
+        <div class="bm-orb mind">
+          <span class="bm-orb-ico">${em.emoji}</span>
+          <span class="bm-orb-val">${em.label}</span>
+          <span class="bm-orb-lbl">Tu mente</span>
+        </div>
+      </div>
+      <h3 class="bm-title">${safeHtml(res.title)}</h3>
+      <p class="bm-msg">${safeHtml(res.message)}</p>
+      ${res.emergency ? `<ul class="bm-tips">${((ev && ev.tips) || []).map(t => `<li>${safeHtml(t)}</li>`).join('')}</ul><a class="bm-sos" href="tel:123">📞 Llamar al 123</a>` : ''}
+      <div><div class="bm-streak" id="bm-streak"><span class="bm-flame" aria-hidden="true">🔥</span><span id="bm-streak-txt">Guardando tu check-in…</span></div></div>
+      <div class="bm-week" id="bm-week"></div>
+      <div class="bm-coins" id="bm-coins" aria-live="polite"></div>
+      <div class="bm-cta">${action}<button type="button" class="bm-btn${action ? ' ghost' : ''}" onclick="_bmClose()">Listo</button></div>
+      <div class="bm-foot">Orientativo, no es un diagnóstico médico.</div>
+    </div>`;
+  if (_bm.bpm) _setHeartRate(document.getElementById('bm-res-heart'), _bm.bpm);
+  if (res.tone === 'good') setTimeout(() => _emoParticleBurst(_bm ? _bm.emotion : 'feliz'), 350);
+  _bmSave();
+}
+async function _bmSave() {
+  const s = _bm;
+  if (!s) return;
+  const today = ZyraHR.colombiaDay();
+  const prevCks = (window._zyraHealth && window._zyraHealth.checkins) || [];
+  const prevStreak = ZyraHR.checkinStreak(prevCks.map(c => c.day), today);
+  // La emoción va al historial emocional, como cualquier registro
+  _logEmotionQuiet(s.emotion, s.bpm ? `Check-in cuerpo y mente · pulso ${s.bpm} lpm` : 'Check-in cuerpo y mente');
+  let checkins = null, firstToday = !prevStreak.doneToday, offline = false;
+  try {
+    const d = await api('/profile/health/checkin', 'POST', { day: today, bpm: s.bpm, emotion: s.emotion, body: s.body, source: s.source });
+    if (d && d.queuedOffline) offline = true;
+    else if (d) { checkins = d.checkins; firstToday = d.firstToday; }
+  } catch (e) { offline = true; }
+  if (!checkins) checkins = prevCks.filter(c => c.day !== today).concat([{ day: today, bpm: s.bpm, emotion: s.emotion, body: s.body, ts: new Date().toISOString() }]);
+  window._zyraHealth = Object.assign(window._zyraHealth || {}, { checkins });
+  const st = ZyraHR.checkinStreak(checkins.map(c => c.day), today);
+  renderBodyMindCard();
+  renderHeartWeekCard(true);
+  if (_bm === s) {
+    _bmShowStreak(st, firstToday ? prevStreak.current : st.current, offline);
+    _bmShowWeek(checkins, today);
+  }
+  if (firstToday && !offline) {
+    let coins = 0;
+    for (const m of ['body_checkin', 'log_emotion']) {
+      const d = await triggerMission(m, { silent: true });
+      if (d && !d.alreadyDone) coins += d.coinsEarned || 0;
+    }
+    if (coins && _bm === s) {
+      const c = document.getElementById('bm-coins');
+      if (c) c.innerHTML = `<span class="bm-coin-pop">+${coins} 🪙 ganaste por tu check-in</span>`;
+    }
+    if (_bm === s && [3, 7, 14, 21, 30, 60, 100].includes(st.current)) {
+      const box = document.getElementById('bm-streak');
+      if (box) box.insertAdjacentHTML('afterend', `<div class="bm-celebrate">¡${st.current} días seguidos escuchando tu cuerpo y tu mente! 🎉</div>`);
+      if (!_reducedMotion()) for (let i = 0; i < 24; i++) setTimeout(launchConfetti, i * 70);
+    }
+  }
+}
+function _bmShowStreak(st, from, offline) {
+  const box = document.getElementById('bm-streak'), txt = document.getElementById('bm-streak-txt');
+  if (!box || !txt) return;
+  const n = st.current;
+  txt.innerHTML = n <= 1 ? 'Día 1 de tu racha cuerpo y mente' : `<b id="bm-streak-n">${from}</b> días seguidos`;
+  if (n > 1) _tweenNumber(document.getElementById('bm-streak-n'), from, n, 900);
+  if (offline) txt.insertAdjacentHTML('beforeend', '<span class="bm-off"> · se guarda cuando vuelva la señal</span>');
+  box.classList.add('show');
+}
+function _bmShowWeek(checkins, today) {
+  const el = document.getElementById('bm-week');
+  if (!el) return;
+  const days = new Set(checkins.map(c => c.day));
+  const LETTERS = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+  let html = '';
+  for (let i = 6; i >= 0; i--) {
+    const k = ZyraHR.addDays(today, -i);
+    const dow = new Date(k + 'T12:00:00Z').getUTCDay();
+    html += `<div class="bm-wd${days.has(k) ? ' on' : ''}${i === 0 ? ' today' : ''}" style="animation-delay:${(6 - i) * 70}ms" title="${k}"><span class="d"></span><span class="l">${LETTERS[dow]}</span></div>`;
+  }
+  el.innerHTML = html;
+}
+function _bmGoChat() {
+  const emo = _bm && _bm.emotion;
+  _bmClose();
+  showPage('assistant');
+  setTimeout(() => {
+    const inp = document.getElementById('chat-input');
+    const noun = emo && window.ZyraHR && ZyraHR.EMOTION_NOUN[emo];
+    if (inp && !inp.value && noun) {
+      inp.value = emo === 'feliz' ? 'Hice mi check-in y me siento feliz. ' : `Hice mi check-in y siento ${noun}. `;
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+      inp.focus();
+    }
+  }, 350);
+}
+// Registra la emoción del día sin la animación de "emoción registrada" (la pantalla ya responde)
+async function _logEmotionQuiet(emotion, note) {
+  try { await api('/profile/emotion', 'POST', { emotion, note: note || '', intensity: 5 }); } catch (e) {}
+  const today = new Date().toDateString();
+  localStorage.setItem('zyra_last_emotion_date', today);
+  localStorage.setItem('zyra_checkin_emotion_' + today, emotion);
+  localStorage.setItem('zyra_daily_checkin_' + today, 'bodymind');
+  localStorage.setItem('zyra_qe_last', Date.now().toString());
+  const em = EMOTIONS.find(e => e.key === emotion);
+  if (em) {
+    [['hero-emoji', em.emoji], ['st-emotion', em.label], ['st-em-icon', em.emoji], ['rail-st-emotion', em.label], ['rail-st-em-icon', em.emoji]]
+      .forEach(([id, v]) => { const x = document.getElementById(id); if (x) x.textContent = v; });
+  }
+  const dot = document.getElementById('emotion-checkin-dot');
+  if (dot) dot.style.display = 'none';
+  try { renderQuickEmoPicker(emotion); refreshMoodWidgets(); _updateTabTitle(); _applyEmotionAccent(emotion); } catch (e) {}
+}
+
+// Tarjeta del inicio: invita al check-in o muestra el de hoy
+function renderBodyMindCard() {
+  const el = document.getElementById('bm-dash-card');
+  if (!el) return;
+  if (!token || !window.ZyraHR) { el.style.display = 'none'; return; }
+  const cks = (window._zyraHealth && window._zyraHealth.checkins) || [];
+  const today = ZyraHR.colombiaDay();
+  const st = ZyraHR.checkinStreak(cks.map(c => c.day), today);
+  const todayCk = cks.find(c => c.day === today);
+  el.style.display = 'block';
+  if (todayCk) {
+    const em = EMOTIONS.find(e => e.key === todayCk.emotion);
+    el.innerHTML = `<button type="button" class="bmd done" onclick="showPage('sensors')" aria-label="Check-in de hoy listo. Ver tu corazón esta semana">
+      <span class="bmd-check" aria-hidden="true">✓</span>
+      <span class="bmd-txt"><b>Check-in de hoy listo</b><span>${todayCk.bpm ? '❤ ' + todayCk.bpm + ' lpm · ' : ''}${em ? em.emoji + ' ' + em.label : ''} · ver tu corazón</span></span>
+      ${st.current ? `<span class="bmd-streak">🔥 ${st.current}</span>` : ''}
+    </button>`;
+  } else {
+    el.innerHTML = `<button type="button" class="bmd" onclick="openBodyMindCheckin()">
+      <span class="bmd-heart beating" aria-hidden="true">${_HEART_SVG}</span>
+      <span class="bmd-txt"><b>Check-in cuerpo y mente</b><span>${st.current ? `🔥 Llevas ${st.current} día${st.current === 1 ? '' : 's'}: no pierdas tu racha` : '30 segundos: tu pulso y cómo te sientes'}</span></span>
+      <span class="bmd-go">Empezar →</span>
+    </button>`;
+  }
+}
+
+/* ── 3. Tu corazón esta semana ── */
+let _heartWeekSig = '';
+function renderHeartWeekCard(force) {
+  const el = document.getElementById('heart-week-card');
+  if (!el || !window.ZyraHR) return;
+  const h = window._zyraHealth || {};
+  const heart = ZyraHR.weeklyHeart({ checkins: h.checkins, history: h.history, breaths: h.breaths });
+  const todayDone = (h.checkins || []).some(c => c.day === ZyraHR.colombiaDay());
+  const sig = JSON.stringify([heart, todayDone]);
+  if (!force && sig === _heartWeekSig && el.innerHTML) return; // sin cambios: no repetir la animación
+  _heartWeekSig = sig;
+  el.innerHTML = _heartWeekHtml(heart, { cta: !todayDone });
+}
+// heart: resultado de ZyraHR.weeklyHeart · opts: { title, cta, endDay, axis }
+function _heartWeekHtml(heart, opts = {}) {
+  const title = opts.title || 'Tu corazón esta semana';
+  const cta = opts.cta ? '<button type="button" class="bm-btn" onclick="openBodyMindCheckin()">💓 Hacer mi check-in de hoy (30 s)</button>' : '';
+  if (!heart) {
+    return `<div class="hw-card">
+      <div class="hw-head"><span class="hw-ico beating">${_HEART_SVG}</span><div><div class="hw-title">${title}</div><div class="hw-sub">Cómo va tu pulso en reposo, semana a semana</div></div></div>
+      <p class="hw-empty">Haz tu check-in cuerpo y mente cada día: mide tu pulso sentado y sin moverte (con el reloj o la cámara) y cuéntame cómo te sientes. Aquí verás cómo va cambiando.</p>${cta}</div>`;
+  }
+  const d = heart.delta;
+  const deltaHtml = d == null ? (heart.restAvg != null ? '<span class="hw-delta flat">Primera semana con datos</span>' : '')
+    : d < 0 ? `<span class="hw-delta down">↓ ${-d} lpm vs. la semana anterior</span>`
+    : d > 0 ? `<span class="hw-delta up">↑ ${d} lpm vs. la semana anterior</span>`
+    : '<span class="hw-delta flat">Igual que la semana anterior</span>';
+  const dayNum = k => Math.round(Date.parse(k + 'T00:00:00Z') / 86400000);
+  const end = dayNum(opts.endDay || ZyraHR.colombiaDay());
+  const pts = (heart.points || []).map(p => ({ x: (dayNum(p.day) - (end - 27)) / 27, y: p.bpm })).filter(p => p.x >= 0 && p.x <= 1);
+  const chart = pts.length >= 2 ? _sparkSvg(pts, { color: '#ec4899', dots: true, anim: true, h: 70 }) : '';
+  const axis = opts.axis || ['hace 4 semanas', 'hoy'];
+  const emo = k => (EMOTIONS.find(e => e.key === k) || {}).emoji || '';
+  const noun = k => ZyraHR.EMOTION_NOUN[k] || k;
+  const link = heart.emotionLink;
+  const sub = heart.source === 'checkin' ? 'Pulso en reposo, de tus check-ins' : heart.source === 'diario' ? 'Pulso más bajo de cada día, del reloj' : 'Check-in cuerpo y mente';
+  return `<div class="hw-card">
+    <div class="hw-head"><span class="hw-ico beating">${_HEART_SVG}</span><div><div class="hw-title">${title}</div><div class="hw-sub">${sub}</div></div></div>
+    ${heart.restAvg != null ? `<div class="hw-main"><div class="hw-big"><span class="hw-num">${heart.restAvg}</span><span class="hw-unit">lpm promedio</span></div>${deltaHtml}</div>` : ''}
+    ${chart ? `<div class="hw-chart">${chart}<div class="hw-axis"><span>${axis[0]}</span><span>${axis[1]}</span></div></div>` : ''}
+    <div class="hw-stats">
+      <div class="hw-stat"><b>${heart.checkinDays}/7</b><span>días con check-in</span></div>
+      ${heart.breath ? `<div class="hw-stat"><b>${heart.breath.avgDrop > 0 ? '↓ ' + heart.breath.avgDrop + ' lpm' : 'Estable'}</b><span>al respirar con el reloj (${heart.breath.count} ${heart.breath.count === 1 ? 'vez' : 'veces'})</span></div>` : ''}
+    </div>
+    ${link ? `<div class="hw-emo">${emo(link.high.emotion)} Con ${noun(link.high.emotion)} tu pulso promedió <b>${link.high.avg} lpm</b>; ${emo(link.low.emotion)} con ${noun(link.low.emotion)}, <b>${link.low.avg} lpm</b>. Tu cuerpo también siente lo que sientes.</div>` : ''}
+    <div class="hw-goal"><span aria-hidden="true">🎯</span><div><b>Meta de la semana</b><br>${safeHtml(heart.goal.text)}</div></div>
+    ${cta}
+    <div class="hw-foot">Orientativo, no es un diagnóstico médico.</div>
+  </div>`;
+}
+
+/* ── 4. "Noto tu pulso alto, ¿cómo te sientes?" ──
+   Con el pulso alto sin moverse y sin emoción registrada hoy, Zyra pregunta (una vez al día). */
+// ¿Hay alguna ventana abierta de verdad? Mira si se ve en pantalla. Antes se buscaba "flex"
+// en el estilo, y las ventanas ocultas con "flex-direction" contaban como abiertas: por eso
+// el saludo de la mañana y el resumen del domingo nunca salían.
+function _anyModalOpen() {
+  return [...document.querySelectorAll('.modal, [id$="-modal"], [id$="-overlay"], #zyra-onboarding, #hr-emo-sheet, #zyra-weekly-report')].some(el => {
+    if (!el.getClientRects().length) return false;
+    const cs = getComputedStyle(el);
+    return cs.visibility !== 'hidden' && cs.pointerEvents !== 'none' && parseFloat(cs.opacity) > 0.05;
+  });
+}
+function _maybeAskEmotionForHR(ev, bpm, context) {
+  if (!ev || ev.level !== 'alto' || context === 'active' || !token || _hrLive) return false;
+  const today = new Date().toDateString();
+  if (localStorage.getItem('zyra_checkin_emotion_' + today) || localStorage.getItem('zyra_hr_emo_ask_' + today)) return false;
+  if (_anyModalOpen()) return false;
+  localStorage.setItem('zyra_hr_emo_ask_' + today, '1');
+  _openHREmotionSheet(bpm, context);
+  return true;
+}
+function _openHREmotionSheet(bpm, context) {
+  document.getElementById('hr-emo-sheet')?.remove();
+  const quick = ['ansioso', 'enojado', 'triste', 'agotado', 'tranquilo', 'feliz'];
+  const chip = (e, i) => `<button type="button" class="bm-emo" style="--c:${e.color};animation-delay:${i * 40}ms" onclick="_hesPick('${e.key}', this)"><span class="e">${e.emoji}</span>${e.label}</button>`;
+  const wrap = document.createElement('div');
+  wrap.id = 'hr-emo-sheet';
+  wrap.className = 'hes';
+  wrap.setAttribute('role', 'dialog');
+  wrap.setAttribute('aria-modal', 'true');
+  wrap.setAttribute('aria-labelledby', 'hes-title');
+  const lead = context === 'rest'
+    ? `Tu pulso está un poco alto (${bpm} lpm) aunque estás en reposo. ¿Cómo te sientes ahora?`
+    : `Noto tu pulso un poco alto (${bpm} lpm). Si no te estás moviendo, ¿cómo te sientes ahora?`;
+  wrap.innerHTML = `<div class="hes-sheet">
+      <div class="hes-grab" aria-hidden="true"></div>
+      <div class="hes-head"><span class="hes-heart beating">${_HEART_SVG}</span><div><div class="hes-title" id="hes-title">Tu cuerpo te está hablando</div><div class="hes-sub">A veces el cuerpo nota las emociones antes que la mente</div></div></div>
+      <p class="hes-msg">${lead}</p>
+      <div class="bm-emos" id="hes-emos">${quick.map(k => EMOTIONS.find(e => e.key === k)).filter(Boolean).map(chip).join('')}<button type="button" class="bm-emo" style="animation-delay:240ms" onclick="_hesMore(this)">Otra…</button></div>
+      <div class="hes-reply" id="hes-reply" aria-live="polite"></div>
+      <button type="button" class="hes-later" onclick="_closeHREmotionSheet()">Ahora no</button>
+    </div>`;
+  document.body.appendChild(wrap);
+  _setHeartRate(wrap.querySelector('.hes-heart'), bpm);
+  wrap.addEventListener('click', e => { if (e.target === wrap) _closeHREmotionSheet(); });
+  wrap._onKey = e => { if (e.key === 'Escape') _closeHREmotionSheet(); };
+  document.addEventListener('keydown', wrap._onKey);
+}
+function _hesMore(btn) {
+  const box = document.getElementById('hes-emos');
+  if (!box) return;
+  const shown = new Set([...box.querySelectorAll('.bm-emo[onclick^="_hesPick"]')].map(b => b.getAttribute('onclick').split("'")[1]));
+  btn.remove();
+  EMOTIONS.filter(e => !shown.has(e.key)).forEach((e, i) => box.insertAdjacentHTML('beforeend',
+    `<button type="button" class="bm-emo" style="--c:${e.color};animation-delay:${i * 40}ms" onclick="_hesPick('${e.key}', this)"><span class="e">${e.emoji}</span>${e.label}</button>`));
+}
+function _hesPick(key, btn) {
+  const sheet = document.getElementById('hr-emo-sheet');
+  if (!sheet || sheet._picked) return;
+  sheet._picked = true;
+  if (btn) btn.classList.add('picked');
+  sheet.querySelectorAll('.bm-emo').forEach(b => { if (b !== btn) b.classList.add('dim'); });
+  _logEmotionQuiet(key, 'Registrada cuando el pulso estaba alto');
+  triggerMission('log_emotion');
+  const arousal = key === 'ansioso' || key === 'enojado';
+  const positive = ['feliz', 'tranquilo', 'esperanzado', 'motivado'].includes(key);
+  const breathe = `<button type="button" class="bm-btn" onclick="_closeHREmotionSheet();startBreathNow('calm')">🌬️ Respirar 1 minuto</button>`;
+  const chat = `<button type="button" class="bm-btn ghost" onclick="_closeHREmotionSheet();showPage('assistant')">💬 Hablar con Zyra</button>`;
+  const reply = document.getElementById('hes-reply');
+  if (!reply) return;
+  reply.innerHTML = arousal
+    ? `<p>Tiene sentido: ${key === 'ansioso' ? 'la ansiedad' : 'el enojo'} sube el pulso, y tu cuerpo lo notó. ¿Respiramos un minuto juntos y miramos cómo baja?</p><div class="hes-cta">${breathe}${chat}</div>`
+    : positive
+      ? `<p>¡Qué bueno! Entonces puede ser café, calor o que te moviste hace poco. Toma un vaso de agua y vuelve a medir en 5 minutos, en reposo.</p><div class="hes-cta"><button type="button" class="bm-btn" onclick="_closeHREmotionSheet()">Listo</button></div>`
+      : `<p>Gracias por contarme. Lo que cargamos a veces se nota en el cuerpo. ¿Respiramos un minuto o prefieres contarme?</p><div class="hes-cta">${breathe}${chat}</div>`;
+  reply.classList.add('show');
+  const later = sheet.querySelector('.hes-later');
+  if (later) later.style.display = 'none';
+}
+function _closeHREmotionSheet() {
+  const s = document.getElementById('hr-emo-sheet');
+  if (!s) return;
+  if (s._onKey) document.removeEventListener('keydown', s._onKey);
+  s.classList.add('hide');
+  setTimeout(() => s.remove(), 260);
 }
 
 let _lastStepsSyncTs = 0;
@@ -8334,6 +9271,9 @@ function syncHealthToServer(partial) {
 function applyServerHealth(health) {
   if (!health) return;
   window._zyraHealthHistory = health.history || [];
+  window._zyraHealth = health;
+  renderHeartWeekCard();
+  renderBodyMindCard();
   let changed = true;
   if (health.hr && health.hr.bpm) {
     const local = (() => { try { return JSON.parse(localStorage.getItem('zyra_watch_hr') || 'null'); } catch(e) { return null; } })();
@@ -9367,8 +10307,8 @@ async function loadDashboard() {
   if(!user) return;
   document.getElementById("hero-greeting").textContent = greeting();
   const _hn = document.getElementById("hero-name");
-  if (_hn && _hn.textContent !== user.name) {
-    _hn.textContent = ""; const _nc = [...user.name];
+  if (_hn && _hn.textContent !== _heroName()) {
+    _hn.textContent = ""; const _nc = [..._heroName()];
     _nc.forEach((c,i) => setTimeout(() => { _hn.textContent += c; }, i*52+200));
   }
   const qEl = document.getElementById("daily-quote");
@@ -9387,7 +10327,7 @@ async function loadDashboard() {
       nostalgico:  ["Lo que fue bueno, fue real. Nadie te lo puede quitar.","La nostalgia dice que hubo algo que valió la pena. Eso es mucho.","Los recuerdos son tuyos para siempre."],
     };
     const quotesForEmo = _qEmo && EMO_QUOTES[_qEmo] ? EMO_QUOTES[_qEmo] : DAILY_QUOTES;
-    qEl.textContent = "💬 " + quotesForEmo[new Date().getDate() % quotesForEmo.length];
+    qEl.textContent = _g("💬 " + quotesForEmo[new Date().getDate() % quotesForEmo.length]);
   }
   // Skeleton while loading
   ["st-sessions","st-emotion","st-goals","st-journal"].forEach(id => {
@@ -9401,6 +10341,9 @@ async function loadDashboard() {
     const p = pd.profile;
     _renderSafetyPlanNudge(p);
     _saveHRProfileLocal(p);
+    if (p.health) window._zyraHealth = p.health;
+    renderBodyMindCard();
+    _maybeAskAbout(p);
     const em = EMOTIONS.find(e => e.key === p.currentEmotion) || EMOTIONS[1];
     document.getElementById("hero-emoji").textContent = em.emoji;
     document.getElementById("st-emotion").textContent = em.label;
@@ -10256,7 +11199,7 @@ function renderMoodPrediction(history) {
   const col = isNeg ? "#8b5cf6" : "#10b981";
   card.innerHTML = `<div style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.18);border-radius:16px;padding:12px 16px;display:flex;align-items:center;gap:12px">
     <span style="font-size:22px;flex-shrink:0">🔮</span>
-    <div style="flex:1;font-size:12px;color:var(--text2);line-height:1.55">${txt}</div>
+    <div style="flex:1;font-size:12px;color:var(--text2);line-height:1.55">${_g(txt)}</div>
     <button onclick="openQuickEmotionModal()" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:var(--accent);border-radius:10px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">¿Y hoy?</button>
   </div>`;
   section.style.display = "block";
@@ -10511,7 +11454,7 @@ function launchMorningRitual() {
   if (localStorage.getItem(key)) return;
   const existing = document.getElementById("zyra-morning-ritual-modal");
   if (existing) return;
-  const name = user ? user.name.split(" ")[0] : "";
+  const name = _displayName();
   const EMO_OPTIONS = [
     { key:"tranquilo", emoji:"😌", label:"Tranquilo/a" },
     { key:"motivado",  emoji:"⚡", label:"Motivado/a" },
@@ -11002,7 +11945,7 @@ function showZyraEmotionReaction(emotion) {
     nostalgico:  ["Los recuerdos también tienen su lugar. ¿Qué te vino hoy? 🌅", "A veces el pasado visita de buenas. ¿Qué estás recordando? 💜", "La nostalgia es una forma de cariño hacia lo que fue. Cuéntame si quieres 💙"],
   };
   const pool = REACTIONS[emotion] || ["Gracias por registrar cómo te sientes 💙 Eso ya es algo."];
-  let msg = pool[Math.floor(Math.random() * pool.length)];
+  let msg = _g(pool[Math.floor(Math.random() * pool.length)]);
   if (streak >= 7) msg += ` (¡${streak} días seguidos! 🔥)`;
 
   const isNeg = _NEGATIVE_EMOS.has(emotion);
@@ -11674,7 +12617,7 @@ async function _getReflexionQuestion(emo, today) {
   const todayKey = `zyra_reflexion_q_${today}`;
 
   try {
-    const name = user?.name?.split(" ")[0] || "ti";
+    const name = _displayName() || "ti";
     const recentEmos = [];
     for (let i = 1; i <= 5; i++) {
       const d = new Date(); d.setDate(d.getDate() - i);
@@ -13044,9 +13987,12 @@ function showTestResult() {
    WELLNESS
 ════════════════════════════════════════ */
 let breathTimer = null, currentWTab = "breath";
-let _habitsSynced = false;
+let _habitsSynced = false, _habitsSyncing = false;
 function loadWellness() {
-  if (!_habitsSynced) { _habitsSynced = true; syncHabitsFromServer().then(() => openWellness(currentWTab)); }
+  if (!_habitsSynced) {
+    _habitsSynced = true; _habitsSyncing = true;
+    syncHabitsFromServer().finally(() => { _habitsSyncing = false; }).then(() => openWellness(currentWTab));
+  }
   else openWellness(currentWTab);
 }
 async function renderTrends(el) {
@@ -13242,6 +14188,7 @@ async function renderTrends(el) {
 }
 
 function openWellness(tab) {
+  if (tab !== "breath" && _breathLive) { _hrLiveStop(); _breathLive = null; } // se fue de la respiración: el reloj deja de medir
   if (window.speechSynthesis && (_medTTSPlaying || _sleepTTSPlaying)) { speechSynthesis.cancel(); _medTTSPlaying = false; _sleepTTSPlaying = false; }
   if (tab !== "constelacion" && _constellRAF) { cancelAnimationFrame(_constellRAF); _constellRAF = null; }
   currentWTab = tab;
@@ -13559,6 +14506,7 @@ function _constellShowDetail(star) {
 
 function renderBreath(el) {
   if(breathTimer) { clearTimeout(breathTimer); breathTimer = null; }
+  if (_breathLive) { _hrLiveStop(); _breathLive = null; }
   el.innerHTML = `
     <div class="card breath-card" style="text-align:center;max-width:520px;margin:0 auto">
       <div style="font-size:13px;color:var(--text3);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">Técnica de Respiración</div>
@@ -13575,12 +14523,14 @@ function renderBreath(el) {
         </div>
       </div>
       <p id="breath-inst" style="color:var(--text3);font-size:13px;margin-bottom:28px;height:20px">Encuentra un lugar cómodo y presiona iniciar</p>
+      <div id="breath-hr" class="bhr" aria-live="polite"></div>
       <div style="display:flex;gap:14px;justify-content:center;margin-bottom:28px">
         <button class="btn-primary" style="width:auto;padding:13px 36px" onclick="startBreath()">Iniciar ejercicio</button>
         <button class="btn-sm" style="padding:13px 20px" onclick="stopBreath()">Detener</button>
       </div>
     </div>`;
   selectBreathTech(currentBreathTech, true);
+  _renderBreathHRIdle();
 }
 
 function selectBreathTech(tech, silent) {
@@ -13624,7 +14574,11 @@ async function startBreath() {
   secs.textContent = "";
   if(inst) inst.textContent = "Respira con el círculo";
   const phases = (BREATH_TECHS[currentBreathTech] || BREATH_TECHS['478']).phases;
-  let phaseIdx = 0, cycleCount = 0, totalCycles = 4;
+  // Con el reloj conectado la sesión dura ~1,5 min: el reloj tarda unos segundos en dar
+  // la primera lectura y el pulso necesita tiempo para bajar
+  const cycleSecs = phases.reduce((a, p) => a + p.d, 0);
+  let phaseIdx = 0, cycleCount = 0, totalCycles = _watchConnected ? Math.max(4, Math.ceil(90 / cycleSecs)) : 4;
+  _breathHRBegin(totalCycles * cycleSecs);
   function runPhase() {
     if(!document.getElementById("breath-circle")) return;
     const ph = phases[phaseIdx];
@@ -13645,6 +14599,7 @@ async function startBreath() {
           const bKey = "zyra_breath_" + new Date().toDateString();
           localStorage.setItem(bKey, (parseInt(localStorage.getItem(bKey)||"0")+1).toString());
           zyraToast("💨 Sesión de respiración lista — el cuerpo lo notó", "success");
+          _breathHRFinish(true);
           if (navigator.vibrate) navigator.vibrate([30,20,60]);
           if (typeof triggerMission === "function") triggerMission('do_exercise');
           renderTodayOverview(); renderWellbeingScore(); updateNotifBadge();
@@ -13659,6 +14614,7 @@ async function startBreath() {
 }
 function stopBreath() {
   if(breathTimer) { clearTimeout(breathTimer); breathTimer = null; }
+  _breathHRFinish(false);
   const circle = document.getElementById("breath-circle");
   const label  = document.getElementById("breath-label");
   const secs   = document.getElementById("breath-secs");
@@ -14492,7 +15448,7 @@ function newChat() {
       <span id="typing-hint" style="font-size:10px;color:var(--text3);padding-left:2px;opacity:0;transition:opacity .3s"></span>
     </div>
   </div>`;
-  const name = user ? safeHtml(user.name.split(" ")[0]) : "";
+  const name = safeHtml(_displayName());
   const hour = new Date().getHours();
   // Saludos variados para que no siempre diga lo mismo
   const _mornGreets = [
@@ -14565,7 +15521,7 @@ function newChat() {
     welcome = welcome.replace(/¿[^?]+\?$/, "").trimEnd() + _emoWelcome[_todayEmo];
   }
 
-  addBotMsg(welcome);
+  addBotMsg(_g(welcome));
   // Show anxiety breathing nudge
   if (_todayEmo === "ansioso" || _todayEmo === "enojado" || _todayEmo === "agotado") {
     setTimeout(() => zyraToast("💙 /respirar si necesitas calmar algo ahora mismo", "info", 4000), 3000);
@@ -16309,15 +17265,17 @@ function deferredDelete(endpoint, id, label, refreshFn) {
 
 let obReason = "";
 let obTheme  = "default";
+let obGender = null; // null = no eligió; "" = prefiere no decirlo
 
 async function checkOnboarding() {
   if (!token || !user) return; // No mostrar si no está logueado
   try {
     const d = await api("/profile", "GET");
     if (!d.profile?.onboardingDone) {
-      // Pre-llenar el nombre si ya existe
+      // Pre-llenar con el apodo o el primer nombre (lo puede cambiar)
+      _saveHRProfileLocal(d.profile);
       const nameInput = document.getElementById("ob-name-input");
-      if (nameInput && user?.name) nameInput.value = user.name;
+      if (nameInput && user?.name) nameInput.value = _displayName();
 
       const el = document.getElementById("zyra-onboarding");
       if (el) el.style.display = "flex";
@@ -16357,6 +17315,13 @@ function obNext(step) {
   }
 }
 
+function obSelectGender(btn, g) {
+  document.querySelectorAll(".ob-g").forEach(b => { b.classList.remove("selected"); b.setAttribute("aria-checked", "false"); });
+  btn.classList.add("selected");
+  btn.setAttribute("aria-checked", "true");
+  obGender = g;
+}
+
 function obSelectReason(btn, reason) {
   document.querySelectorAll(".ob-option").forEach(b => b.classList.remove("selected"));
   btn.classList.add("selected");
@@ -16372,18 +17337,14 @@ function obSelectTheme(btn, theme) {
 
 async function obFinish() {
   const nameInput = document.getElementById("ob-name-input");
-  const name = nameInput?.value?.trim();
-  const firstName = (name || user?.name || "").split(" ")[0] || "";
+  const name = (nameInput?.value || "").trim().slice(0, 40);
+  const firstName = name || _displayName();
 
   try {
-    // 1. Actualizar nombre si se escribió uno
-    if (name) {
-      await api("/auth/update-profile", "PUT", { name }).catch(() => {});
-      if (user) {
-        user.name = name;
-        localStorage.setItem("zyra_user", JSON.stringify(user));
-      }
-    }
+    // 1. "Sobre ti": cómo quiere que Zyra le diga y su género. El nombre de la cuenta no se toca.
+    const about = { nickname: name };
+    if (obGender !== null) about.gender = obGender || null;
+    await api("/profile", "PUT", about).then(() => _saveHRProfileLocal(about)).catch(() => {});
 
     // 2. Guardar tema, razón y marcar onboarding como completado
     await api("/profile", "PUT", {
@@ -17085,7 +18046,7 @@ async function sendMsg() {
       try {
         const _sd = await api("/analytics");
         const { stats, emotionFrequency, weeklyTrend, bestDay, worstDay } = _sd;
-        const _sname = user ? user.name.split(" ")[0] : "";
+        const _sname = _displayName();
         const _topEmo = emotionFrequency?.[0]?.emotion;
         const _EMO_L = { feliz:"feliz", tranquilo:"tranquilo/a", ansioso:"ansioso/a", triste:"triste", enojado:"enojado/a", agotado:"agotado/a", confundido:"confundido/a", esperanzado:"esperanzado/a", motivado:"motivado/a", nostalgico:"nostálgico/a" };
         const _topLabel = _topEmo ? (_EMO_L[_topEmo] || _topEmo) : null;
@@ -17738,7 +18699,7 @@ async function _renderMorningNote() {
   const h = new Date().getHours();
   const dayNames = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
   const dayName = dayNames[new Date().getDay()];
-  const name = (user.name || "").split(" ")[0] || "hola";
+  const name = _displayName() || "hola";
   const streak = _gamifStatus?.streak || 0;
   const yesterday = new Date(Date.now() - 86400000);
   const yEmo = localStorage.getItem("zyra_checkin_emotion_" + yesterday.toDateString());
@@ -18088,7 +19049,7 @@ async function openVoiceCall() {
   setTimeout(()=>initZyra3DAvatar(), 300);
 
   setTimeout(()=>{
-    const name = user ? user.name.split(' ')[0] : '';
+    const name = _displayName();
     vcSetStatus('En llamada');
     const emotion = localStorage.getItem('zyra_last_emotion') || '';
     const hour = new Date().getHours();
@@ -18979,6 +19940,7 @@ function showQuickEmotion() {
     if (!token) return; // la sesión pudo cerrarse (token inválido/expirado) mientras esperábamos
     const ob = document.getElementById('zyra-onboarding');
     if (ob && ob.style.display === 'flex') return; // no apilar sobre onboarding
+    if (document.getElementById('bm-overlay')) return; // ni sobre el check-in cuerpo y mente
     const m = document.getElementById('quick-emotion-modal');
     if (m) m.style.display = 'flex';
   }, 1400);
@@ -19306,7 +20268,7 @@ function checkMorning() {
 
 function openMorning() {
   const o=document.getElementById('morning-overlay'); if(!o) return;
-  const name=user?user.name.split(' ')[0]:'';
+  const name=_displayName();
   const hour=new Date().getHours();
   const greet=hour<12?'¡Buenos días':hour<18?'¡Buenas tardes':'¡Buenas noches';
   const gt=document.getElementById('morning-greeting-text');
@@ -19317,7 +20279,7 @@ function openMorning() {
   const _yNote = document.getElementById('morning-yesterday-note');
   if (_yNote && _yEmo) {
     const _YF = { feliz:"Ayer estuviste bien 😊 — ¿cómo amaneciste hoy?", tranquilo:"Ayer estuviste tranquilo/a. ¿Cómo empieza este día?", ansioso:"Ayer fue un poco difícil. ¿Cómo te sientes esta mañana?", triste:"Ayer fue pesado. Hoy es un día nuevo.", enojado:"Ayer algo te molestó. ¿Ya pasó?", agotado:"Ayer estabas agotado/a. ¿Pudiste descansar?", motivado:"Ayer tenías esa energía 💪 ¿Cómo empieza hoy?", esperanzado:"Ayer estabas esperanzado/a 🌟 ¿Y hoy?", confundido:"Ayer tenías la mente revuelta. ¿Algo aclaró?", nostalgico:"Ayer andabas nostálgico/a. ¿Cómo arranca hoy?" };
-    if (_YF[_yEmo]) { _yNote.textContent = _YF[_yEmo]; _yNote.style.display = "block"; }
+    if (_YF[_yEmo]) { _yNote.textContent = _g(_YF[_yEmo]); _yNote.style.display = "block"; }
   } else if (_yNote) { _yNote.style.display = "none"; }
   o.style.display='flex';
   // Cargar afirmación en background
@@ -19522,12 +20484,14 @@ async function checkWeeklyReport() {
     const trend     = negCount > hist.length / 2 ? "difícil" : "positiva";
     const trendEmoji = trend === "difícil" ? "💙" : "🌟";
 
-    showWeeklyReport({ topEmoji, topLabel, trend, trendEmoji, sessions, done, pending, entries, negCount, total: hist.length });
+    const hh = pd.profile?.health;
+    const heart = window.ZyraHR && hh ? ZyraHR.weeklyHeart({ checkins: hh.checkins, history: hh.history, breaths: hh.breaths }) : null;
+    showWeeklyReport({ topEmoji, topLabel, trend, trendEmoji, sessions, done, pending, entries, negCount, total: hist.length, heart });
     localStorage.setItem("zyra_weekly_report_last", now.toString());
   } catch(e) { console.error("weekly report error:", e); }
 }
 
-function showWeeklyReport({ topEmoji, topLabel, trend, trendEmoji, sessions, done, pending, entries, negCount, total }) {
+function showWeeklyReport({ topEmoji, topLabel, trend, trendEmoji, sessions, done, pending, entries, negCount, total, heart }) {
   // Crear overlay del reporte
   const existing = document.getElementById("zyra-weekly-report");
   if (existing) existing.remove();
@@ -19538,7 +20502,7 @@ function showWeeklyReport({ topEmoji, topLabel, trend, trendEmoji, sessions, don
 
   const div = document.createElement("div");
   div.id = "zyra-weekly-report";
-  div.style.cssText = "position:fixed;inset:0;z-index:8500;background:rgba(0,0,0,.8);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:20px;animation:zsw-in .4s ease both";
+  div.style.cssText = "position:fixed;inset:0;z-index:8500;background:rgba(0,0,0,.8);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:20px;animation:zsw-in .4s ease both;overflow-y:auto";
   div.innerHTML = `
     <div style="background:var(--surface,#1e1e2e);border-radius:24px;max-width:420px;width:100%;padding:32px 28px;border:1px solid rgba(255,255,255,.08);box-shadow:0 24px 60px rgba(0,0,0,.6)">
       <div style="text-align:center;margin-bottom:24px">
@@ -19567,6 +20531,7 @@ function showWeeklyReport({ topEmoji, topLabel, trend, trendEmoji, sessions, don
         </div>
       </div>
 
+      ${heart ? `<div style="margin-bottom:20px">${_heartWeekHtml(heart)}</div>` : ""}
       <div style="display:flex;gap:10px">
         <button onclick="document.getElementById('zyra-weekly-report').remove();showPage('assistant')"
           style="flex:1;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer">
@@ -20335,7 +21300,7 @@ loadDashboard = async function() {
   setTimeout(()=>loadReferral(), 800); // Poblar widget referral en dashboard
   // checkOnboarding ya se llama desde el callback de auth — no duplicar aquí
   // morning y weeklyReport con delay largo para no apilar modales al entrar
-  const _noModalOpen = () => !document.querySelector('.modal[style*="flex"], [id$="-modal"][style*="flex"], [id$="-overlay"][style*="flex"], #zyra-onboarding[style*="flex"]');
+  const _noModalOpen = () => !_anyModalOpen();
   setTimeout(()=>{ if(_noModalOpen()) checkMorning(); }, 8000);
   setTimeout(()=>{ if(_noModalOpen()) checkWeeklyReport(); }, 12000);
 };
@@ -21481,7 +22446,7 @@ function renderGamification(s) {
       ml.innerHTML = '<div style="text-align:center;padding:16px 0;color:var(--text3);font-size:13px">No hay misiones disponibles hoy — vuelve mañana 🌙</div>';
     } else {
       ml.innerHTML = s.missions.map(m => `
-        <div class="mission-item ${m.completed ? 'done' : ''}" id="mission-${m.id}">
+        <div class="mission-item ${m.completed ? 'done' : ''}${m.id === 'body_checkin' && !m.completed ? ' clickable" role="button" tabindex="0" onclick="openBodyMindCheckin()" onkeydown="if(event.key===\'Enter\')openBodyMindCheckin()' : ''}" id="mission-${m.id}">
           <div class="mission-check">${m.completed ? '✓' : ''}</div>
           <span class="mission-label">${m.emoji} ${safeHtml(m.label)}</span>
           <span class="mission-coins">+${m.coins}🪙</span>
@@ -21516,11 +22481,11 @@ function renderNextAchievement(s) {
   </div>`;
 }
 
-async function triggerMission(missionId) {
+async function triggerMission(missionId, opts = {}) {
   if (!token) return;
   try {
     const d = await api('/gamification/mission/' + missionId, 'POST');
-    if (d.alreadyDone) return;
+    if (d.alreadyDone) return d;
     // Update nav coins
     const cc = document.getElementById('nav-coins-count');
     if (cc) cc.textContent = d.totalCoins;
@@ -21537,7 +22502,7 @@ async function triggerMission(missionId) {
     }
     // Coin toast
     const total = d.missionsCompleted || 0;
-    zyraToast('+' + (d.coinsEarned ?? 0) + ' 🪙' + (d.allCompleted ? ' — Día perfecto 🌟' : ''), 'success', 2500);
+    if (!opts.silent) zyraToast('+' + (d.coinsEarned ?? 0) + ' 🪙' + (d.allCompleted ? ' — Día perfecto 🌟' : ''), 'success', 2500);
 
     // Update progress badge
     const mb = document.getElementById('missions-progress-badge');
@@ -21554,6 +22519,7 @@ async function triggerMission(missionId) {
     if (d.allCompleted) {
       for (let i = 0; i < 15; i++) setTimeout(() => launchConfetti(), i * 100);
     }
+    return d;
   } catch(e) {}
 }
 
@@ -23301,7 +24267,7 @@ async function _cpNext() {
     <div style="font-size:13px;color:var(--text3)">Zyra está generando tu frase de compasión…</div>
   </div>`;
 
-  const name = user?.name?.split(" ")[0] || "ti";
+  const name = _displayName() || "ti";
   const sysP = `Eres Zyra. Basándote en lo que ${name} compartió, escribe UNA frase de compasión profunda y específica (2-3 oraciones). Que valide su experiencia, reconozca su humanidad compartida, y ofrezca amabilidad propia. Empieza con su nombre. Sé cálida, directa y real. Sin clichés.`;
   const uMsg = `Lo que siente: "${_cpAnswers[0]}". Humanidad compartida: "${_cpAnswers[1]}". Cómo quiere ser amable consigo: "${_cpAnswers[2]}"`;
 
@@ -24737,7 +25703,7 @@ function _erFinish() {
   if (intentionText) localStorage.setItem("zyra_intention_" + todayKey, intentionText);
 
   // Generate Zyra's closing message
-  const name = (user?.name || "").split(" ")[0] || "";
+  const name = _displayName();
   const EMO_NIGHT = {
     feliz:       `Qué bueno que el día terminó bien, ${name}. Descansá con eso. 😊`,
     tranquilo:   `La calma al final del día es un regalo. Descansá bien, ${name}. 😌`,
@@ -24784,6 +25750,7 @@ function maybeShowEveningRitual() {
 function showDailyCheckin() {
   const key = "zyra_daily_checkin_" + new Date().toDateString();
   if (localStorage.getItem(key)) return;
+  if (document.getElementById("bm-overlay")) return; // ya está haciendo el check-in cuerpo y mente
   // Solo mostrar una vez por sesión de navegación (evita aparecer cada vez que el usuario cambia de sección)
   if (sessionStorage.getItem("zyra_checkin_session_shown")) return;
   sessionStorage.setItem("zyra_checkin_session_shown", "1");
@@ -25869,7 +26836,7 @@ async function shareDayCard() {
   const EMO_COL = { feliz:"#22c55e",tranquilo:"#0ea5e9",motivado:"#6366f1",esperanzado:"#8b5cf6",ansioso:"#f59e0b",triste:"#a78bfa",enojado:"#ef4444",agotado:"#64748b",confundido:"#6b7280",nostalgico:"#ec4899" };
   const emo = localStorage.getItem("zyra_checkin_emotion_" + today);
   const streak = _gamifStatus?.streak || 0;
-  const userName = user?.name?.split(" ")[0] || "";
+  const userName = _displayName();
   const dateStr = new Date().toLocaleDateString("es-CO", { weekday:"long", day:"numeric", month:"long" });
   const W = 1080, H = 1920;
   const canvas = document.createElement("canvas");
@@ -26200,6 +27167,7 @@ document.addEventListener("keydown", e => {
       <button onclick="submitCheckin('confundido')" class="checkin-btn" data-emo="confundido">🤔<br><span>Confundido</span></button>
       <button onclick="submitCheckin('nostalgico')" class="checkin-btn" data-emo="nostalgico">🌅<br><span>Nostálgico</span></button>
     </div>
+    <button onclick="openBodyMindCheckin()" class="bm-btn" style="width:100%;margin-bottom:10px">💓 Mejor, el check-in con mi pulso (30 s)</button>
     <button onclick="closeCheckin()" style="width:100%;background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:8px">Saltar por ahora</button>
   </div>
 </div>

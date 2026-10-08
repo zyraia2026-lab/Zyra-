@@ -5,6 +5,7 @@ const Profile = require("../models/Profile");
 ════════════════════════════════════════ */
 const DAILY_MISSIONS = [
   { id: "log_emotion",     label: "¿Cómo te sientes hoy?",           emoji: "😊", coins: 10 },
+  { id: "body_checkin",    label: "Check-in cuerpo y mente (30 s)",  emoji: "💓", coins: 15 },
   { id: "write_journal",   label: "Escribe algo en tu diario",       emoji: "📔", coins: 15 },
   { id: "chat_zyra",       label: "Habla con Zyra (5+ mensajes)",    emoji: "💬", coins: 20 },
   { id: "do_exercise",     label: "Haz un ejercicio de bienestar",   emoji: "🧘", coins: 15 },

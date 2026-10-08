@@ -18,6 +18,8 @@ const {
   getMoodStatus,
   getHealth,
   syncHealth,
+  healthCheckin,
+  healthBreath,
   getSafetyPlan,
   setSafetyPlan,
 } = require("../controllers/profileController");
@@ -50,6 +52,8 @@ r.get("/mood-status",   protect, getMoodStatus);
 // ── Sensores de salud (pulso/pasos/reloj) — sincroniza entre dispositivos ──
 r.get("/health", protect, getHealth);
 r.put("/health", protect, syncHealth);
+r.post("/health/checkin", protect, healthCheckin); // check-in diario cuerpo y mente
+r.post("/health/breath",  protect, healthBreath);  // respiración con el pulso en vivo
 
 // ── Contacto de emergencia (plan básico+) ──
 r.get("/emergency",  protect, getEmergencyContact);

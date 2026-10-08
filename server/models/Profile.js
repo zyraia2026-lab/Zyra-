@@ -14,6 +14,10 @@ const S = new mongoose.Schema({
   // ── Para personalizar los consejos de pulso (opcionales; solo el año, no la fecha) ──
   birthYear:     { type: Number, default: null },
   activityLevel: { type: String, enum: ["bajo", "medio", "alto", null], default: null },
+  // "Sobre ti" (opcionales): cómo quiere que Zyra le diga y su género, para hablarle bien
+  // ("tranquila", "tranquilo" o, si no lo dice, sin adjetivos con género)
+  nickname:      { type: String, default: "", maxlength: 40 },
+  gender:        { type: String, enum: ["mujer", "hombre", "no_binario", null], default: null },
 
   // ── Sesiones y racha ──
   sessionsCount:  { type: Number, default: 0 },
@@ -113,6 +117,10 @@ const S = new mongoose.Schema({
     updatedAt:    { type: Date, default: null },
     // Resumen diario (últimos ~90 días) — lo que le da a Zyra una tendencia real, no solo el momento
     history: [new mongoose.Schema({ date: String, avgHR: Number, minHR: Number, maxHR: Number, hrCount: Number, steps: Number }, { _id: false })],
+    // Check-in diario "cuerpo y mente": uno por día (día en hora de Colombia, AAAA-MM-DD), últimos ~120
+    checkins: [new mongoose.Schema({ day: String, bpm: Number, emotion: String, body: String, source: String, ts: Date }, { _id: false })],
+    // Respiraciones con el pulso en vivo del reloj (pulso al empezar y al terminar), últimas 60
+    breaths: [new mongoose.Schema({ ts: Date, tech: String, startBpm: Number, endBpm: Number, seconds: Number }, { _id: false })],
   }
 });
 

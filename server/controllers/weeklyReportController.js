@@ -4,6 +4,7 @@ const Goal         = require("../models/Goal");
 const Journal      = require("../models/Journal");
 const Conversation = require("../models/Conversation");
 const { sendWeeklyReport, sendSharedWeeklyReport } = require("../utils/emailService");
+const HRGuide      = require("../../client/hr-guide"); // "Tu corazón esta semana" (misma cuenta que la app)
 
 const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,253}\.[^\s@]{2,}$/;
 
@@ -36,7 +37,7 @@ async function buildReportData(userId, userName) {
   const weekEnd   = getMondayOf();
 
   const [profile, goals, journals, sessionCount] = await Promise.all([
-    Profile.findOne({ user: userId }).select("emotionHistory streakDays health.history").lean(),
+    Profile.findOne({ user: userId }).select("emotionHistory streakDays health.history health.checkins health.breaths nickname gender").lean(),
     Goal.find({ user: userId }).select("title completed updatedAt").lean(),
     Journal.find({ user: userId, createdAt: { $gte: weekStart, $lt: weekEnd } }).select("title content createdAt").lean(),
     Conversation.countDocuments({ user: userId, updatedAt: { $gte: weekStart, $lt: weekEnd } }),
@@ -103,8 +104,18 @@ async function buildReportData(userId, userName) {
     .filter(g => !g.completed)
     .sort((a,b) => new Date(a.updatedAt) - new Date(b.updatedAt))[0] || null;
 
+  // "Tu corazón esta semana": pulso en reposo y su tendencia, check-ins, respiraciones con
+  // reloj y pulso según la emoción. null si la persona no tiene datos de pulso.
+  const heart = HRGuide.weeklyHeart({
+    checkins: profile?.health?.checkins, history: profile?.health?.history,
+    breaths: profile?.health?.breaths, now: weekEnd,
+  });
+
   return {
-    userName, weekStart, weekEnd, history, topEmotion, positivity,
+    // Cómo llamarle: el apodo de "Sobre ti" o, si no hay, su primer nombre
+    userName: (profile?.nickname || "").trim() || String(userName || "").split(" ")[0] || "tú",
+    gender: profile?.gender || null,
+    weekStart, weekEnd, history, topEmotion, positivity, heart,
     avgScore: Number(avgScore), journals, sessionCount,
     completedGoals: completedThisWeek,
     activeGoals: goals.filter(g => !g.completed).slice(0, 5),
@@ -136,6 +147,11 @@ async function generateWithGroq(data) {
     ? `\n- Patrón detectado (últimos meses, no solo esta semana): los ${data.worstDayPattern.day}s tienden a ser más difíciles (${data.worstDayPattern.samples} registros con score promedio ${data.worstDayPattern.score})`
     : "";
 
+  const heartLine = data.heart
+    ? `
+- Corazón (reloj y check-in cuerpo y mente): ${data.heart.summary}. Meta sugerida para la semana: ${data.heart.goal.text}`
+    : "";
+
   const stalledGoalLine = data.stalledGoal
     ? `\n- Meta activa que lleva más tiempo sin marcarse como avance: "${data.stalledGoal.title}"`
     : "";
@@ -151,13 +167,13 @@ DATOS DE LA SEMANA QUE PASÓ (${data.weekStart.toLocaleDateString("es-CO")} al $
 - Metas completadas esta semana: ${data.completedGoals.length}
 - Metas activas: ${data.activeGoals.map(g=>g.title).join(", ") || "ninguna"}
 - Racha de días: ${data.streakDays} días
-- Extractos del diario: ${journalExcerpts}${hrEmotionLine}${worstDayLine}${stalledGoalLine}
+- Extractos del diario: ${journalExcerpts}${hrEmotionLine}${heartLine}${worstDayLine}${stalledGoalLine}
 
 Genera el reporte en HTML con esta estructura:
 - Párrafo de apertura: cómo fue la semana en 2-3 oraciones. Específico, honesto. Sin suavizar si fue difícil.
 - Sección "Esta semana" con análisis real de las emociones registradas.
 - Sección "Lo que sí hiciste" destacando logros concretos (metas, racha, diario).
-- Sección "Lo que noté" con 2-3 patrones específicos basados en los datos${data.hrEmotionDays.length >= 2 ? " (si el pulso del reloj varía claramente según la emoción del día, menciónalo — es un dato real, no lo inventes si no está arriba)" : ""}.
+- Sección "Lo que noté" con 2-3 patrones específicos basados en los datos${data.hrEmotionDays.length >= 2 ? " (si el pulso del reloj varía claramente según la emoción del día, menciónalo — es un dato real, no lo inventes si no está arriba)" : ""}${data.heart ? " Si hay datos del corazón, menciona en una frase cómo va su pulso en reposo (si bajó, reconócelo; si subió, sin alarmar), sin diagnosticar nada" : ""}.
 - Sección "Tu plan para esta semana" — NO es una lista de consejos genéricos de bienestar. Son 2-3 acciones puntuales, atadas a datos reales de arriba:
   ${data.worstDayPattern ? `· Como los ${data.worstDayPattern.day}s tienden a pesar más, sugiere algo concreto para ESE día específico de la semana que entra (ej: bloquear un espacio corto, anticipar el desgaste, etc.) — no un consejo para "todos los días".` : "· Si no hay un día con patrón claro, no inventes uno — da una sugerencia concreta basada en otro dato de arriba."}
   ${data.stalledGoal ? `· Menciona la meta estancada ("${data.stalledGoal.title}") y propón UN paso pequeño y específico para esta semana, no "sigue intentando".` : ""}
@@ -168,6 +184,7 @@ REGLAS DE VOZ (críticas):
 - CERO frases de terapeuta: nada de "lo que sientes es válido", "eso tiene mucho sentido", "estoy aquí para acompañarte", "completamente normal"
 - CERO exclamaciones vacías: nada de "¡Excelente!", "¡Genial!", "¡Increíble!", "¡Vas muy bien!"
 - Habla EN PRIMERA PERSONA a ${data.userName} — "esta semana", "notaste", "hiciste", "vi que"
+- ${data.gender === "mujer" ? "Es mujer: usa femenino (\"cansada\", \"tranquila\")." : data.gender === "hombre" ? "Es hombre: usa masculino (\"cansado\", \"tranquilo\")." : "No adivines su género: usa frases sin adjetivos con género (\"te noté con cansancio\" en vez de \"cansado\" o \"cansada\")."}
 - Si la semana fue difícil, dilo sin rodeos — y propón algo específico
 - Usa <p>, <h3>, <ul>, <li>, <strong>. Sin div, sin span.
 - Máximo 480 palabras en total`;
@@ -218,7 +235,7 @@ exports.generate = async (req, res) => {
       const fallback = `<p>Esta semana tuviste <strong>${data.history.length}</strong> registros emocionales con una positividad del <strong>${data.positivity}%</strong>. La emoción más frecuente fue <strong>${data.topEmotion}</strong>. ${_goalsStr}Sigue así.</p>`;
       const report = await WeeklyReport.findOneAndUpdate(
         { user: req.user._id, weekOf },
-        { html: fallback, summary: `Semana ${data.positivity}% positiva`, mainEmotion: data.topEmotion, emotionData: data.freq, insights: [] },
+        { html: fallback, summary: `Semana ${data.positivity}% positiva`, mainEmotion: data.topEmotion, emotionData: data.freq, insights: [], heart: data.heart },
         { upsert: true, new: true }
       );
       return res.json({ success: true, report, cached: false });
@@ -230,13 +247,13 @@ exports.generate = async (req, res) => {
 
     const report = await WeeklyReport.findOneAndUpdate(
       { user: req.user._id, weekOf },
-      { html, summary: `Semana ${data.positivity}% positiva · ${data.topEmotion} predominante`, mainEmotion: data.topEmotion, emotionData: data.freq, insights, weekOf },
+      { html, summary: `Semana ${data.positivity}% positiva · ${data.topEmotion} predominante`, mainEmotion: data.topEmotion, emotionData: data.freq, insights, weekOf, heart: data.heart },
       { upsert: true, new: true }
     );
 
     // Enviar por email (fire-and-forget)
     if (process.env.EMAIL_USER) {
-      sendWeeklyReport(req.user.email, req.user.name, html, data).catch(() => {});
+      sendWeeklyReport(req.user.email, data.userName, html, data).catch(() => {});
     }
 
     res.json({ success: true, report, cached: false });
@@ -318,11 +335,11 @@ exports.cronGenerateAll = async () => {
         const insights = (html.match(/<li>(.*?)<\/li>/gi) || []).slice(0, 5).map(m => m.replace(/<[^>]+>/g, "").trim());
         await WeeklyReport.findOneAndUpdate(
           { user: u._id, weekOf },
-          { html, mainEmotion: data.topEmotion, emotionData: data.freq, insights, weekOf },
+          { html, mainEmotion: data.topEmotion, emotionData: data.freq, insights, weekOf, heart: data.heart },
           { upsert: true }
         );
         if (process.env.EMAIL_USER) {
-          await sendWeeklyReport(u.email, u.name, html, data).catch(() => {});
+          await sendWeeklyReport(u.email, data.userName, html, data).catch(() => {});
         }
         // Push notification: report is ready
         const firstName = (u.name || "").split(" ")[0] || "hola";
