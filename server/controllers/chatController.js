@@ -722,7 +722,8 @@ function parseSongFromYT(ytTitle, requestedArtist) {
     .replace(/\s{2,}/g, " ")
     .trim();
 
-  clean = clean.replace(/\(\s*\)/g,"").replace(/\[\s*\]/g,"").replace(/\s{2,}/g," ").trim();
+  // Paréntesis vacíos o con solo un signo, como "(/)" en "Escrito En Piedra (/)"
+  clean = clean.replace(/\(\s*[\/|\\\-–.,]*\s*\)/g,"").replace(/\[\s*[\/|\\\-–.,]*\s*\]/g,"").replace(/\s{2,}/g," ").trim();
 
   const _mArt = (s) => {
     const sP = phoneticNorm(s); const aP = phoneticNorm(requestedArtist);
@@ -1784,6 +1785,7 @@ exports.sendMessage = async (req, res) => {
         if (!zyraFavReq) {
           const artistLabel = detected?.name || songCards[0]?.artist || null;
           cleanText = artistLabel ? `Va, te pongo algo de ${artistLabel} 🎵` : `Va, te pongo algo 🎵`;
+          if (_again) cleanText = `Va, te la pongo otra vez 🎵`;
         }
       } else if (AI_MUSIC_PROMISE.test(cleanText) || /🎵\s*$/.test(cleanText)) {
         cleanText = noSongFoundText(detected?.name || artistFromAIPromise(cleanText) || extractArtistName(message));
@@ -2174,6 +2176,7 @@ exports.streamMessage = async (req, res) => {
           const artistLabel = detected?.name || songCards[0]?.artist || null;
           if (artistLabel) cleanText = `Va, te pongo algo de ${artistLabel} 🎵`;
           else cleanText = `Va, te pongo algo 🎵`;
+          if (_again2) cleanText = `Va, te la pongo otra vez 🎵`;
         }
       } else if (AI_MUSIC_PROMISE.test(cleanText) || /🎵\s*$/.test(cleanText)) {
         cleanText = noSongFoundText(detected?.name || artistFromAIPromise(cleanText) || extractArtistName(message));
