@@ -248,7 +248,35 @@ const QUOTES = [
 /* ════════════════════════════════════════
    DETECTORES
 ════════════════════════════════════════ */
-const wantsMusic  = m => /canc[ií]on|\bm[uú]sica\b|ponme|quiero escuchar|quiero o[ií]r|algo.*\bm[uú]sica\b|playlist|recom[ií]enda.*m[uú]sica|ponme algo|una cancion|canciones? de|cancion de|pon algo de|pon (?:de|a )|me pones|escuchemos|su[eé]name|\bponla\b|\bpon esa\b|dale esa|dale ponla/.test(m.toLowerCase());
+const _MUSIC_RE  = /canc[ií]on|\bm[uú]sica\b|ponme|quiero escuchar|quiero o[ií]r|algo.*\bm[uú]sica\b|playlist|recom[ií]enda.*m[uú]sica|ponme algo|una cancion|canciones? de|cancion de|pon algo de|pon (?:de|a )|me pones|escuchemos|su[eé]name|\bponla\b|\bpon esa\b|dale esa|dale ponla/;
+// Otras formas de pedir música: "qué tema del cantante X me recomiendas", "una rola de…",
+// "algo del artista X para escuchar". "Tema" solo cuenta junto a cantante/artista o a
+// escuchar/poner, o con un artista conocido, para no confundir "cambiemos de tema".
+function wantsMusic(m) {
+  // Sin tildes: antes "canción" (con tilde) no coincidía con canc[ií]on y no ponía música
+  const t = String(m || "").toLowerCase().normalize("NFD").replace(/\p{M}/gu, "");
+  if (_MUSIC_RE.test(t)) return true;
+  if (/\btemazos?\b|\brolas?\b/.test(t)) return true;
+  const piece = /\b(?:temas?|sencillos?|album(?:es)?|discos?|hits?)\b/.test(t);
+  const pieceOf = /\b(?:temas?|sencillos?|album(?:es)?|discos?|hits?)\s+(?:de|del)\s+\S/.test(t); // "tema de Feid"
+  const who = /\b(?:cantante|artista|grupo|banda|rapero|rapera|reguetonero|reguetonera|reggaetonero|cantautor|cantautora|dj|orquesta)\b/.test(t);
+  // "escuchar/escucho", no "escuché que…" (eso es contar algo que oyó)
+  const listen = /\b(?:escuchar\w*|escucho|escuchemos|escuchamos|oirl[ao]s?|sonar|suena|reproduc\w*)\b|\bpon(?:me|nos)?\s+(?:un|una|el|la|algo|otro|otra)\b/.test(t);
+  const recommend = /\b(?:recomiend\w*|recomendar\w*|sugier\w*|suger\w*)\b/.test(t);
+  if (piece && (who || listen)) return true;
+  if (who && (listen || recommend)) return true;
+  if (pieceOf && (recommend || detectArtist(t))) return true;
+  return false;
+}
+// La IA dice esto cuando entendió que le pidieron música (así se lo indica el prompt)
+const AI_MUSIC_PROMISE = /\bte pongo algo\b|\bte pongo (?:una|esta|la) canci[oó]n|\bte dejo (?:una|esta) canci[oó]n|\bdejando sonar\b/i;
+// Si prometió una canción y no se encontró ninguna, se dice en vez de "te pongo algo" sin nada
+function noSongFoundText(name) {
+  const n = name ? String(name).trim().split(/\s+/).map(w => w[0].toUpperCase() + w.slice(1)).join(" ") : "";
+  return n
+    ? `Uy, no encontré canciones de ${n} 😕 ¿Me lo escribes de otra forma o me dices el nombre de una canción suya?`
+    : `Uy, no encontré esa canción 😕 ¿Me dices el artista o el nombre de la canción?`;
+}
 const wantsZyraFavorites = m => /(?:(?:tu|tus)\s*(?:canc[ií]ones?|m[uú]sica|favorit|gust|prefier)|que\s+(?:a\s+ti\s+)?te\s+(?:gust|encant|pirad|recomend)|ponme\s+(?:algo|una)\s+que\s+(?:a\s+ti\s+)?te|pon(?:me)?\s+(?:lo\s+que\s+t[uú]\s+)?(?:quieras|te\s+guste)|lo\s+que\s+(?:a\s+ti\s+)?te\s+gust|que\s+(?:escuchar[ií]as|pondr[ií]as)|tus\s+recomendaciones)/i.test(m);
 const wantsBook   = m => /libro|leer|lectura|qu[eé] leo|recom[ií]enda.*libro/.test(m.toLowerCase());
 const wantsQuote  = m => /frase|cita|motivaci[oó]n|algo.*motivador|palabras.*famosas/.test(m.toLowerCase());
@@ -326,10 +354,13 @@ function detectArtist(message) {
   const norm = t => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
   const m  = norm(message);
   const mP = phoneticNorm(message); // versi\u00f3n fon\u00e9tica para comparaci\u00f3n
+  // Palabra completa: antes bastaba un pedazo, y "Morat" ponía a Mora o "fantasía" a Sia
+  const has = (hay, needle) => hay.includes(needle) &&
+    new RegExp("(^|[^a-z0-9])" + needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "($|[^a-z0-9])").test(hay);
   for (const key of Object.keys(ARTIST_SONGS).filter(k => !k.startsWith("generic_"))) {
     const kn = norm(key);
     const kP = phoneticNorm(key);
-    if (m.includes(kn) || mP.includes(kP) || m.includes(kP) || mP.includes(kn)) {
+    if (has(m, kn) || has(mP, kP) || has(m, kP) || has(mP, kn)) {
       return { key, name: key.split(" ").map(w => w[0].toUpperCase()+w.slice(1)).join(" ") };
     }
   }
@@ -375,7 +406,11 @@ function extractArtistName(message) {
     if (match) {
       const name = match[1].trim()
         .replace(/^(?:m[uú]sica|canciones?)\s+de\s+/i, "")
-        .replace(/(?:por favor|pls|please|ok|dale|ya|ahora|mismo).*$/i,"")
+        .replace(/\b(?:por favor|pls|please|ok|dale|ya|ahora|mismo)\b.*$/i,"")
+        .replace(/\b(?:que\s+)?(?:me\s+|nos\s+)?(?:recomiendas|recomiendes|recomendarias|recomienda|sugieres|pones|pondrias|gusta|gustaria|sabes|conoces|escucho|escuchar|escuchamos|oigo|pongo)\b.*$/i, "")
+        .replace(/\s+(?:para|pa)\s+(?:escuchar|oir|poner|bailar).*$/i, "")
+        .replace(/^(?:el|la|los|las|al|a)\s+/i, "")
+        .replace(/^(?:cantante|artista|grupo|banda|rapero|rapera|reguetonero|reguetonera|reggaetonero|cantautor|cantautora|dj|orquesta)\s+/i, "")
         .replace(/[.,!?].*$/,"")
         .replace(/[^\x00-\xFF]/g, "")  // strip emoji / non-latin
         .trim();
@@ -1613,8 +1648,10 @@ exports.sendMessage = async (req, res) => {
       cards = [];
     }
 
-    // Canciones
-    if (effectiveMusicReq && !incompleteMusicReq) {
+    // Canciones. Red de seguridad: si la IA dijo "te pongo algo de X" aunque el mensaje no
+    // pareció pedir música, se busca la canción igual (antes decía "Va" y no ponía nada).
+    const aiMusicIntent = !effectiveMusicReq && AI_MUSIC_PROMISE.test(rawResponse);
+    if ((effectiveMusicReq && !incompleteMusicReq) || aiMusicIntent) {
       const zyraFavReq = wantsZyraFavorites(message);
       // Para follow-ups ("si esa ponla"), buscar artista del historial primero
       let detected = musicFollowUp
@@ -1655,7 +1692,7 @@ exports.sendMessage = async (req, res) => {
           songCards = ytResultsToCards(ytSongs, detected.name);
         }
       } else {
-        const artistName = extractArtistName(message);
+        const artistName = aiMusicIntent ? (extractArtistName(cleanText) || extractArtistName(message)) : extractArtistName(message);
         if (artistName) {
           const ytSongs = earlyYTPromise
             ? await earlyYTPromise
@@ -1705,6 +1742,8 @@ exports.sendMessage = async (req, res) => {
           const artistLabel = detected?.name || songCards[0]?.artist || null;
           cleanText = artistLabel ? `Va, te pongo algo de ${artistLabel} 🎵` : `Va, te pongo algo 🎵`;
         }
+      } else if (AI_MUSIC_PROMISE.test(cleanText) || /🎵\s*$/.test(cleanText)) {
+        cleanText = noSongFoundText(detected?.name || extractArtistName(cleanText) || extractArtistName(message));
       }
     }
 
@@ -1993,7 +2032,11 @@ exports.streamMessage = async (req, res) => {
       cards = Array.isArray(parsed?.cards) ? parsed.cards : [];
     } catch(e) {}
 
-    if (effectiveMusicReq && !incompleteMusicReq) {
+    // Red de seguridad: si la IA dijo "te pongo algo de X" aunque el mensaje no pareció pedir
+    // música, se busca la canción igual (antes decía "Va" y no ponía nada).
+    const aiMusicIntent2 = !effectiveMusicReq && AI_MUSIC_PROMISE.test(rawResponse);
+    let musicTextOverride = null; // texto final si cambió (la app ya mostró lo que llegó en vivo)
+    if ((effectiveMusicReq && !incompleteMusicReq) || aiMusicIntent2) {
       const zyraFavReq2 = wantsZyraFavorites(message);
       // Para follow-ups, usar artista del historial primero
       let detected = _earlyArtist || (musicFollowUp ? _followUpArtist : null) || detectArtist(message);
@@ -2031,7 +2074,7 @@ exports.streamMessage = async (req, res) => {
           songCards = ytResultsToCards2(ytSongs, detected.name);
         }
       } else {
-        const artistName = extractArtistName(message);
+        const artistName = aiMusicIntent2 ? (extractArtistName(cleanText) || extractArtistName(message)) : extractArtistName(message);
         if (artistName) {
           // Reusar la búsqueda YT que arrancó en paralelo con Groq (si aplica) — ya está lista
           const ytSongs = (artistName === _earlyUnknownArtist && _earlyUnknownYT)
@@ -2084,7 +2127,10 @@ exports.streamMessage = async (req, res) => {
           if (artistLabel) cleanText = `Va, te pongo algo de ${artistLabel} 🎵`;
           else cleanText = `Va, te pongo algo 🎵`;
         }
+      } else if (AI_MUSIC_PROMISE.test(cleanText) || /🎵\s*$/.test(cleanText)) {
+        cleanText = noSongFoundText(detected?.name || extractArtistName(cleanText) || extractArtistName(message));
       }
+      if (cleanText !== rawResponse) musicTextOverride = cleanText;
     }
 
     if (movieReq && !cards.find(c=>c.type==="movie")) {
@@ -2148,6 +2194,7 @@ exports.streamMessage = async (req, res) => {
     // ── Done event with metadata ──
     send({
       done: true,
+      text: musicTextOverride || undefined,
       cards,
       conversationId: conv?._id,
       plan: userPlan,
@@ -2212,3 +2259,6 @@ Escríbele a ${name} una nota de buenos días de 2-3 oraciones. Directa, sin rod
     res.json({ prompt: null, insight: null });
   }
 };
+
+// Solo para las pruebas (server/test/music.test.js): detección de pedidos de música
+exports._music = { wantsMusic, extractArtistName, detectArtist, isIncompleteMusicRequest, AI_MUSIC_PROMISE, noSongFoundText };

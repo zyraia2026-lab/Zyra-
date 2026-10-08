@@ -17516,6 +17516,22 @@ function updateBotMsgStream(div, text) {
   if (msgs) msgs.scrollTop = msgs.scrollHeight;
 }
 
+// Pidió una canción: el reproductor se abre y suena solo, sin tener que tocar "Escuchar"
+async function _autoPlayLatestSong() {
+  const bots = document.querySelectorAll('#messages .msg.bot');
+  const card = bots.length ? bots[bots.length - 1].querySelector('.card-item.song') : null;
+  if (!card) return;
+  const holder = card.nextElementSibling;
+  if (!holder || !holder.id || holder.innerHTML.trim()) return;
+  card.click(); // toggleYTPlayer: Spotify o YouTube según el plan
+  // Si YouTube quedó esperando un toque (canción sin video asignado), se lo damos
+  for (let i = 0; i < 40; i++) {
+    await new Promise(r => setTimeout(r, 150));
+    const lazy = document.querySelector(`#yt-iframe-${holder.id} > div[onclick]`);
+    if (lazy) { lazy.click(); return; }
+    if (holder.querySelector('iframe')) return;
+  }
+}
 function finalizeBotMsgStream(div, text, cards, convId, msgsLeft) {
   const time = new Date().toLocaleTimeString("es", {hour:"2-digit", minute:"2-digit"});
   div.classList.remove("streaming");
@@ -18213,7 +18229,12 @@ async function sendMsg() {
 
         if (data.done) {
           streamDone = true;
+          // El servidor puede corregir el texto al final (por ejemplo, "no encontré esa canción"
+          // en vez del "te pongo algo" que ya se había mostrado en vivo)
+          if (data.text) fullText = data.text;
+          const _hasSong = (data.cards || []).some(c => c.type === "song");
           finalizeBotMsgStream(streamDiv, fullText, data.cards||[], data.conversationId, data.cargasRemaining);
+          if (_hasSong) _autoPlayLatestSong();
           _zyraCargas = data.cargasRemaining; updateCargasMeter();
           if (data.cargasLight && !sessionStorage.getItem('zyra_cargas_light_warned')) {
             sessionStorage.setItem('zyra_cargas_light_warned', '1');
@@ -18221,7 +18242,7 @@ async function sendMsg() {
           }
           chatHistory.push({role:"assistant", content:fullText});
           if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
-          if (autoSpeak) zyraChatSpeak(fullText);
+          if (autoSpeak && !_hasSong) zyraChatSpeak(fullText); // con canción, la voz no se monta encima
           const userMsgs = chatHistory.filter(m => m.role === "user").length;
           if (userMsgs === 5) triggerMission("chat_zyra");
           showResponseChips(fullText);

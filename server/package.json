@@ -6,7 +6,7 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "test": "node --test test/smoke.test.js",
-    "test:unit": "node --test test/hr-guide.test.js"
+    "test:unit": "node --test test/hr-guide.test.js test/music.test.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
