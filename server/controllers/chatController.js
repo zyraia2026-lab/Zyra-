@@ -294,13 +294,25 @@ function isIncompleteMusicRequest(message) {
 }
 
 // Detecta follow-up de música: "si esa ponla", "dale", "ponla", etc. basado en historial
+// "Dale", "sí", "ponla" justo después de que Zyra OFRECIÓ una canción = ponerla. Si la canción
+// ya sonó, "dale gracias", "ok" o "qué te parece ese tema" es conversación (antes la volvía a
+// poner). Pedir otra ("otra", "la siguiente") sí cuenta.
 function isMusicFollowUp(message, history) {
-  const m = message.trim().toLowerCase();
+  const m = message.trim().toLowerCase().normalize("NFD").replace(/\p{M}/gu, "");
   if (m.length > 40) return false;
-  if (!/^(s[ií]|dale|ponla|pon esa|si esa|ok|bueno|claro|esa|va(le)?|la otra|ponme esa|si ponla)/.test(m)) return false;
   if (!history?.length) return false;
   const lastAI = [...history].reverse().find(h => h.role === "assistant");
-  return !!(lastAI && /🎵|canc[ií]on|m[uú]sica|pongo algo|te pongo|dejando sonar|ponme/.test(lastAI.content || ""));
+  const ai = lastAI?.content || "";
+  if (!/🎵|canc[ií]on|m[uú]sica|pongo algo|te pongo|dejando sonar|ponme/.test(ai)) return false;
+  if (asksAnotherSong(m)) return true;
+  if (/\?|gracias|que te parece|que opinas|que piensas|te gusta|te gusto|me gusta|me gusto|me encanta|me encanto|buenisim|que tal|chever|bacan|chimba|brutal|bonit|lind[ao]|hermos|esta buen/.test(m)) return false;
+  if (!/^(si|dale|ponla|pon esa|si esa|ok|bueno|claro|esa|va(le)?|ponme esa|si ponla)\b/.test(m)) return false;
+  return /\?/.test(ai); // solo si Zyra preguntó ("¿te pongo algo de Morat?"), no si ya la puso
+}
+// "otra", "ponme otra", "la siguiente": otra canción del mismo artista (no "otra cosa", "otro día")
+function asksAnotherSong(m) {
+  const t = String(m || "").toLowerCase().normalize("NFD").replace(/\p{M}/gu, "");
+  return /\b(?:otra|otro)\b(?!\s+(?:cosa|vez|dia|persona|pregunta|duda|momento|lado|tema de))|\bla siguiente\b|\bcambiala\b/.test(t);
 }
 
 // Extrae artista del historial reciente
@@ -1446,6 +1458,7 @@ Usa este contexto con naturalidad — no lo menciones todo de golpe. El historia
 ━━━ RECURSOS (SOLO CUANDO ENCAJAN DE VERDAD) ━━━
 — Ansiedad/agobio real → puedes ofrecer: [EJERCICIO:respiracion] o [EJERCICIO:grounding] o [EJERCICIO:afirmacion]
 — Música con artista conocido → UNA sola línea: "Va, te pongo algo de [artista] 🎵" y NADA MÁS. Ni comentarios, ni descripción, ni frases adicionales después del emoji.
+— Si ya pusiste una canción y te preguntan qué te parece, te dan las gracias o comentan algo de ella, CONVERSA como amiga y da tu opinión: NO digas "te pongo algo" ni la vuelvas a poner. No inventes datos de la canción que no sepas.
 — Te piden una canción específica (ej: "ponme bad guy", "quiero escuchar siempre bien") → UNA línea: "Va, te pongo [título de la canción] 🎵" — NADA más. No busques artista ni expliques nada.
 — Te piden TUS favoritas / lo que a ti te guste / que tú recomiendas → UNA línea: "Va, te pongo algo que me encanta 🎵" — SOLO eso. No hagas lista de artistas.
 — Música sin artista ni canción específica → "¿De quién quieres escuchar, o qué estilo te va?" — solo esto, nada más.
@@ -1656,7 +1669,7 @@ exports.sendMessage = async (req, res) => {
       // Para follow-ups ("si esa ponla"), buscar artista del historial primero
       let detected = musicFollowUp
         ? (getArtistFromHistory(history) || detectArtist(message))
-        : detectArtist(message);
+        : (detectArtist(message) || (asksAnotherSong(message) ? getArtistFromHistory(history) : null)); // "ponme otra"
       const mood = detectMood(message);
       let songCards = [];
 
@@ -1959,7 +1972,9 @@ exports.streamMessage = async (req, res) => {
 
     // ── Detección temprana: música con artista conocido, follow-up, o favoritas de Zyra → bypass Groq ──
     const _followUpArtist  = musicFollowUp ? getArtistFromHistory(history) : null;
-    const _earlyArtist     = (musicReq && !incompleteMusicReq) ? detectArtist(message) : (_followUpArtist || null);
+    const _earlyArtist     = (musicReq && !incompleteMusicReq)
+      ? (detectArtist(message) || (asksAnotherSong(message) ? getArtistFromHistory(history) : null)) // "ponme otra": mismo artista
+      : (_followUpArtist || null);
     const _zyraFavEarly    = (musicReq && !incompleteMusicReq && !_earlyArtist) ? wantsZyraFavorites(message) : false;
     const _earlyMusicOverride = _earlyArtist
       ? `Va, te pongo algo de ${_earlyArtist.name} 🎵`
@@ -2261,4 +2276,4 @@ Escríbele a ${name} una nota de buenos días de 2-3 oraciones. Directa, sin rod
 };
 
 // Solo para las pruebas (server/test/music.test.js): detección de pedidos de música
-exports._music = { wantsMusic, extractArtistName, detectArtist, isIncompleteMusicRequest, AI_MUSIC_PROMISE, noSongFoundText };
+exports._music = { wantsMusic, extractArtistName, detectArtist, isIncompleteMusicRequest, isMusicFollowUp, asksAnotherSong, getArtistFromHistory, AI_MUSIC_PROMISE, noSongFoundText };

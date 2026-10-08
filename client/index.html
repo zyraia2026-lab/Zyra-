@@ -18112,7 +18112,8 @@ async function sendMsg() {
   if (navigator.vibrate) navigator.vibrate(20);
   inp.value = ""; localStorage.removeItem("zyra_chat_draft"); onInput(); addUserMsg(msg);
   const pc = document.getElementById("prompt-chips"); if (pc) pc.remove();
-  const historyPayload = chatHistory.map(m => ({role:m.role, content:m.content}));
+  // Las canciones que sonaron van en el historial: así Zyra sabe de cuál le hablas y no repite
+  const historyPayload = chatHistory.map(m => ({role:m.role, content:m.content, ...(m.cards ? {cards:m.cards} : {})}));
   chatHistory.push({role:"user", content:msg});
   showTyping(false);
   const streamDiv = addBotMsgStream();
@@ -18240,7 +18241,12 @@ async function sendMsg() {
             sessionStorage.setItem('zyra_cargas_light_warned', '1');
             zyraToast('🪫 Se acabaron tus cargas de este periodo — Zyra sigue respondiendo, más liviano por ahora.', 'info', 6000);
           }
-          chatHistory.push({role:"assistant", content:fullText});
+          if (_hasSong) {
+            const _songs = data.cards.filter(c => c.type === "song").map(c => ({ type: "song", title: String(c.title || ""), artist: String(c.artist || "") }));
+            chatHistory.push({ role: "assistant", content: fullText + "\n(Sonó: " + _songs.map(s => `«${s.title}» de ${s.artist}`).join(", ") + ")", cards: _songs });
+          } else {
+            chatHistory.push({role:"assistant", content:fullText});
+          }
           if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
           if (autoSpeak && !_hasSong) zyraChatSpeak(fullText); // con canción, la voz no se monta encima
           const userMsgs = chatHistory.filter(m => m.role === "user").length;

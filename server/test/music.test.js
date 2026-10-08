@@ -59,3 +59,20 @@ test("si Zyra promete una canción y no la encuentra, lo dice", () => {
   assert.match(M.noSongFoundText("clarent"), /no encontré canciones de Clarent/);
   assert.match(M.noSongFoundText(null), /no encontré esa canción/);
 });
+
+test("después de una canción: opinar o agradecer no la vuelve a poner; pedir otra sí", () => {
+  const played = [
+    { role: "user", content: "que tema de el cantante clarent me recomiendas" },
+    { role: "assistant", content: "Va, te pongo algo de Clarent 🎵\n(Sonó: «LOVE» de Clarent)", cards: [{ type: "song", title: "LOVE", artist: "Clarent" }] },
+  ];
+  // El caso que falló: volvía a mandar la misma canción
+  for (const q of ["dale gracias que te parece ese tema", "dale", "ok gracias", "me encantó", "otra cosa, hoy me fue mal"])
+    assert.ok(!M.isMusicFollowUp(q, played), "no debía poner música: " + q);
+  for (const q of ["otra de él", "la siguiente"]) assert.ok(M.isMusicFollowUp(q, played), "debía poner otra: " + q);
+  assert.ok(M.asksAnotherSong("ponme otra"));
+  assert.deepEqual(M.getArtistFromHistory(played), { key: "clarent", name: "Clarent" });
+  // Si Zyra OFRECIÓ una canción, "dale" o "sí" la pone
+  const offered = [{ role: "assistant", content: "¿Te pongo algo de Morat para animarte? 🎵" }];
+  for (const q of ["dale", "sí", "sí ponla"]) assert.ok(M.isMusicFollowUp(q, offered), "debía ponerla: " + q);
+  assert.ok(!M.isMusicFollowUp("no gracias", offered));
+});
