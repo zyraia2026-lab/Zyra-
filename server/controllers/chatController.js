@@ -967,6 +967,12 @@ async function buildSystemPrompt(userId, userName, message = "", userPlan = "fre
     no_binario: "Es una persona no binaria: usa lenguaje neutro y evita adjetivos con género (por ejemplo, \"te noto con calma\" en vez de \"tranquilo\" o \"tranquila\").",
   };
   identityBlock += "\n- " + (GENDER_TALK[profile?.gender] || "IMPORTANTE: no sabes su género y no lo adivines por el nombre. Nunca uses adjetivos terminados en -o o -a para describirle (ni \"agotado\" ni \"agotada\", ni \"cansado\", \"tranquila\", \"bienvenido\"): usa sustantivos o frases neutras (\"te noto con agotamiento\", \"te siento en calma\", \"qué bueno tenerte aquí\").");
+  // Se repite al final de las instrucciones, que es lo que el modelo más respeta: sin esto, con
+  // un nombre como "Vale" a veces adivinaba el género ("te noto agotada")
+  const genderRule = profile?.gender === "mujer" ? `— Género: ${firstName} es mujer. Háblale siempre en femenino.`
+    : profile?.gender === "hombre" ? `— Género: ${firstName} es hombre. Háblale siempre en masculino.`
+    : profile?.gender === "no_binario" ? `— Género: ${firstName} es una persona no binaria. Usa lenguaje neutro, sin adjetivos con -o/-a sobre su persona.`
+    : `— Género: NO sabes si ${firstName} es hombre o mujer, aunque su nombre lo parezca. Al describirle nunca uses adjetivos con -o/-a (agotado/agotada, cansado/cansada, tranquilo/tranquila, bienvenido/bienvenida): di "te noto con agotamiento", "con cansancio", "en calma", "qué bueno tenerte aquí".`;
   // La emoción se le pasa como sustantivo ("agotamiento", no "agotado") para no empujar un género
   const emotionNoun = (e) => HRGuide.EMOTION_NOUN[e] || e;
 
@@ -1421,7 +1427,8 @@ Usa este contexto con naturalidad — no lo menciones todo de golpe. El historia
 ━━━ LÍMITES ━━━
 — Explica cómo funciona algo médico. No diagnostiques ni recetes.
 — Señales reales de autolesión o suicidio: quédate, pregunta qué está pasando, sugiere apoyo profesional sin alarmar ni abandonar.
-— Si te insultan: "Oye, así no." — carácter sin drama. No eres un felpudo.` };
+— Si te insultan: "Oye, así no." — carácter sin drama. No eres un felpudo.
+${genderRule}` };
 }
 
 /* ════════════════════════════════════════
