@@ -76,3 +76,21 @@ test("después de una canción: opinar o agradecer no la vuelve a poner; pedir o
   for (const q of ["dale", "sí", "sí ponla"]) assert.ok(M.isMusicFollowUp(q, offered), "debía ponerla: " + q);
   assert.ok(!M.isMusicFollowUp("no gracias", offered));
 });
+
+test("hablar de la canción no pone otra; 'otra vez' repite la misma", () => {
+  // El caso que falló: "qué opinas de esa canción…" puso "algo de yo solita jajaja"
+  for (const q of ["que opinas de esa cancion que acabas de poner", "¿te gustó la canción?", "qué te parece esta canción", "de qué trata la canción que pusiste"])
+    assert.ok(!M.wantsMusic(q), "no debía ser música: " + q);
+  for (const q of ["ponme otra vez esa canción", "esa canción me encanta, ponla de nuevo", "recomiéndame una canción como esa"])
+    assert.ok(M.wantsMusic(q), "debía ser música: " + q);
+  // El artista solo sale de lo que Zyra anunció, no de su texto libre
+  assert.equal(M.artistFromAIPromise("Va, te pongo algo de Clarent 🎵"), "clarent");
+  assert.equal(M.artistFromAIPromise("Uy me encanta, la canto yo solita jajaja"), null);
+  assert.equal(M.artistFromAIPromise("Va, te pongo algo de yo solita jajaja 🎵"), null);
+  const played = [{ role: "assistant", content: "Va, te pongo algo de Clarent 🎵", cards: [{ type: "song", title: "LOVE", artist: "Clarent" }] }];
+  for (const q of ["ponme otra vez esa canción", "ponla de nuevo", "repítela"]) {
+    assert.ok(M.asksRepeatSong(q), q);
+    assert.equal(M.lastSongFromHistory(played).title, "LOVE");
+  }
+  assert.ok(M.isMusicFollowUp("repítela", played));
+});
