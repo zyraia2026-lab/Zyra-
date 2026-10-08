@@ -4135,6 +4135,15 @@ body {
 }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 .msg.bot.streaming .msg-bubble { min-width: 40px; }
+/* Mientras Zyra piensa: "Pensando" + tres puntos que saltan; el cursor espera a que llegue texto */
+.stream-hint { font-size: 12.5px; color: var(--text3); font-style: italic; display: inline-flex; align-items: center; }
+.stream-dots { display: inline-flex; align-items: center; gap: 3px; margin-left: 5px; }
+.stream-dots i { width: 4px; height: 4px; border-radius: 50%; background: var(--accent, #6366f1); opacity: .3; animation: streamDot 1.2s ease-in-out infinite; }
+.stream-dots i:nth-child(2) { animation-delay: .15s; }
+.stream-dots i:nth-child(3) { animation-delay: .3s; }
+@keyframes streamDot { 0%, 80%, 100% { opacity: .3; transform: translateY(0) } 40% { opacity: 1; transform: translateY(-3px) } }
+#_stream-hint ~ .stream-cursor { display: none; }
+@media (prefers-reduced-motion: reduce) { .stream-dots i, .stream-cursor { animation: none; } .stream-dots i { opacity: .7; } }
 
 /* ── Admin stat cards ── */
 .admin-stat {

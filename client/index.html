@@ -17501,9 +17501,11 @@ function addBotMsgStream() {
   const msgs   = document.getElementById("messages");
   const typing = document.getElementById("typing-indicator");
   const div    = document.createElement("div"); div.className = "msg bot streaming";
-  const hint = _STREAM_HINTS[Math.floor(Math.random()*_STREAM_HINTS.length)];
+  const hint = _STREAM_HINTS[Math.floor(Math.random()*_STREAM_HINTS.length)].replace(/…$/, "");
+  // Mientras piensa: texto + puntos animados. El cursor (rayita fina) aparece cuando empieza a escribir.
+  // Antes el cursor llevaba el carácter "▋" y se veía un bloque negro al lado de la rayita.
   div.innerHTML = `<div class="msg-av bot"><img src="${LOGO}" alt="Zyra"/></div>
-    <div class="msg-bubble"><span id="_stream-hint" style="font-size:12px;color:var(--text3);font-style:italic">${hint}</span><span class="stream-text"></span><span class="stream-cursor">▋</span></div>`;
+    <div class="msg-bubble"><span id="_stream-hint" class="stream-hint">${hint}<span class="stream-dots" aria-hidden="true"><i></i><i></i><i></i></span></span><span class="stream-text"></span><span class="stream-cursor" aria-hidden="true"></span></div>`;
   msgs.insertBefore(div, typing); msgs.scrollTop = msgs.scrollHeight;
   return div;
 }
