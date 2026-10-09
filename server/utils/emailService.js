@@ -269,31 +269,35 @@ const sendCrisisAlert = async (toEmail, contactName, userName, message) => {
   }
 };
 
-const sendNudgeEmail = async (toEmail, userName = "") => {
+// "Te extrañamos": a quien lleva varios días sin entrar (lo manda el cron de server/index.js).
+// opts.days: días sin entrar · opts.userId: para el enlace de "no recibir más estos correos"
+const sendNudgeEmail = async (toEmail, userName = "", opts = {}) => {
   try {
+    const name = esc(userName || "");
+    const days = Number(opts.days) || 0;
+    const { unsubscribeUrl } = require("./unsubscribe");
+    const unsub = opts.userId ? unsubscribeUrl(opts.userId) : null;
     await sendBrevoEmail({
       to: toEmail,
-      subject: `${esc(userName)}, ¿cómo estás? 🌊`,
+      subject: name ? `${name}, te extrañamos 💙` : "Te extrañamos 💙",
       html: wrap(`
         <div style="text-align:center;margin-bottom:24px;">
           <div style="font-size:48px;margin-bottom:8px;">💙</div>
-          <h2 style="color:#f0f0ff;margin:0;font-size:20px;">Ei, ${esc(userName)}</h2>
-          <p style="color:#a8a8c8;font-size:15px;margin:12px 0 0;">Han pasado unos días desde que llegaste a Zyra.<br/>¿Cómo estás hoy?</p>
+          <h2 style="color:#f0f0ff;margin:0;font-size:20px;">${name ? `Hola, ${name}` : "Hola"}</h2>
+          <p style="color:#a8a8c8;font-size:15px;line-height:1.6;margin:12px 0 0;">${days >= 2 ? `Hace ${days} días que no hablamos.` : "Hace unos días que no hablamos."}<br/>No tienes que estar mal para volver: ¿cómo vas hoy?</p>
         </div>
         <div style="background:rgba(99,102,241,0.08);border-radius:14px;padding:20px;margin-bottom:20px;">
-          <p style="color:#c8c8e8;font-size:13px;margin:0 0 12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Cosas que puedes hacer ahora:</p>
+          <p style="color:#c8c8e8;font-size:13px;margin:0 0 12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Algo cortico para hoy:</p>
           <div style="color:#a8a8c8;font-size:13px;line-height:2.2;">
-            💬 <strong style="color:#c8c8e8;">Hablar con Zyra</strong> — está aquí, siempre lista<br/>
-            📔 <strong style="color:#c8c8e8;">Escribir en tu diario</strong> — liberar lo que cargás<br/>
-            🎯 <strong style="color:#c8c8e8;">Crear una meta</strong> — un paso pequeño importa<br/>
-            🧘 <strong style="color:#c8c8e8;">Hacer un ejercicio de respiración</strong>
+            💓 <strong style="color:#c8c8e8;">Tu check-in cuerpo y mente</strong>: 30 segundos<br/>
+            💬 <strong style="color:#c8c8e8;">Contarle a Zyra cómo te fue</strong>: te escucha sin juzgar<br/>
+            🌬️ <strong style="color:#c8c8e8;">Una respiración guiada</strong>: un minuto para bajar las revoluciones
           </div>
         </div>
-        <p style="color:#7a7a9a;font-size:13px;line-height:1.7;margin-bottom:24px;">No tienes que estar mal para hablar. A veces solo necesitás un espacio donde alguien te escuche.</p>
         <div style="text-align:center;">
-          <a href="https://zyra-app-8qva.onrender.com" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;">Abrir Zyra ahora →</a>
+          <a href="https://zyra-app-8qva.onrender.com" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;">Volver a Zyra →</a>
         </div>
-        <p style="color:#3a3a5a;font-size:11px;text-align:center;margin-top:24px;">Si no quieres recibir estos mensajes, puedes eliminar tu cuenta desde la app en Configuración → Privacidad.</p>
+        <p style="color:#5a5a7a;font-size:11px;text-align:center;margin-top:24px;line-height:1.6;">Te escribimos porque tienes una cuenta en Zyra.${unsub ? `<br/><a href="${unsub}" style="color:#7a7aaa;">No quiero recibir más estos correos</a>` : ""}</p>
       `),
     });
   } catch(e) {

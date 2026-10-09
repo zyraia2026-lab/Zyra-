@@ -656,39 +656,9 @@ function closeSplash(){
       <button onclick="obNext(3)" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:14px;padding:14px 40px;font-size:16px;font-weight:700;cursor:pointer;width:100%">Siguiente →</button>
     </div>
 
-    <!-- Paso 3 — Edad y ejercicio (opcional, para los consejos de pulso) -->
+    <!-- Paso 3 — Recordatorios. La edad se pregunta al entrar a Sensores (cuando sirve) y el
+         tema queda en el Perfil: antes eran 5 pasos y la mitad de las personas no terminaba. -->
     <div id="ob-step-3" style="display:none">
-      <div style="font-size:64px;margin-bottom:16px">🎂</div>
-      <h2 style="color:#fff;font-size:20px;font-weight:700;margin:0 0 8px">¿Cuántos años tienes?</h2>
-      <p style="color:#9ca3af;font-size:13px;line-height:1.6;margin:0 0 18px">Opcional. Si mides tu pulso, Zyra te dice si está bien para ti y te da consejos a tu medida.</p>
-      <select id="ob-birth-year" aria-label="Año de nacimiento" style="width:100%;background:#1a1a24;border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:13px 14px;color:#fff;font-size:15px;margin-bottom:10px;font-family:inherit"></select>
-      <select id="ob-activity" aria-label="Cuánto ejercicio haces" style="width:100%;background:#1a1a24;border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:13px 14px;color:#fff;font-size:15px;margin-bottom:10px;font-family:inherit">
-        <option value="">¿Haces ejercicio? (opcional)</option>
-        <option value="bajo">Poco o nada</option>
-        <option value="medio">Algunas veces por semana</option>
-        <option value="alto">Entreno casi a diario</option>
-      </select>
-      <p style="color:#8f98b8;font-size:11px;line-height:1.5;margin:0 0 16px">Solo para consejos generales de bienestar; no es un diagnóstico médico. Si lo eliges, autorizas que Zyra use estos datos con ese fin. Puedes cambiarlo luego en Sensores.</p>
-      <button onclick="obNext(4)" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:14px;padding:14px 40px;font-size:16px;font-weight:700;cursor:pointer;width:100%">Siguiente →</button>
-    </div>
-
-    <!-- Paso 4 -->
-    <div id="ob-step-4" style="display:none">
-      <div style="font-size:64px;margin-bottom:16px">🎨</div>
-      <h2 style="color:#fff;font-size:20px;font-weight:700;margin:0 0 8px">Elige tu tema</h2>
-      <p style="color:#9ca3af;font-size:13px;margin:0 0 20px">Puedes cambiarlo después en tu perfil</p>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">
-        <button class="ob-theme" onclick="obSelectTheme(this,'default')"  style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">Default</button>
-        <button class="ob-theme" onclick="obSelectTheme(this,'ocean')"    style="background:linear-gradient(135deg,#0ea5e9,#06b6d4)">Ocean</button>
-        <button class="ob-theme" onclick="obSelectTheme(this,'forest')"   style="background:linear-gradient(135deg,#16a34a,#4ade80)">Forest</button>
-        <button class="ob-theme" onclick="obSelectTheme(this,'sunset')"   style="background:linear-gradient(135deg,#f97316,#ec4899)">Sunset</button>
-        <button class="ob-theme" onclick="obSelectTheme(this,'midnight')" style="background:linear-gradient(135deg,#1e1b4b,#4338ca)">Midnight</button>
-      </div>
-      <button onclick="obNext(5)" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:14px;padding:14px 40px;font-size:16px;font-weight:700;cursor:pointer;width:100%">Siguiente →</button>
-    </div>
-
-    <!-- Paso 5 — Notificaciones -->
-    <div id="ob-step-5" style="display:none">
       <div style="font-size:64px;margin-bottom:16px">🔔</div>
       <h2 style="color:#fff;font-size:20px;font-weight:700;margin:0 0 8px">¿Te recuerdo cada noche?</h2>
       <p style="color:#9ca3af;font-size:13px;line-height:1.6;margin:0 0 20px">Un empujoncito a la hora que elijas para hacer tu check-in, reflexionar o simplemente hablar</p>
@@ -721,8 +691,6 @@ function closeSplash(){
       <div class="ob-dot" id="ob-dot-1"></div>
       <div class="ob-dot" id="ob-dot-2"></div>
       <div class="ob-dot" id="ob-dot-3"></div>
-      <div class="ob-dot" id="ob-dot-4"></div>
-      <div class="ob-dot" id="ob-dot-5"></div>
     </div>
   </div>
 </div>
@@ -1532,6 +1500,10 @@ function closeMobileMoreSheet() {
         <button onclick="copyReferralCode()" aria-label="Copiar código de referido" style="flex:1;padding:12px 14px;background:var(--grad);border:none;border-radius:10px;color:white;font-size:13.5px;font-weight:700;cursor:pointer">📋 Copiar código</button>
         <button onclick="shareReferral()" aria-label="Compartir código de referido" style="flex:1;padding:12px 14px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:10px;color:#34d399;font-size:13.5px;font-weight:700;cursor:pointer">📤 Compartir</button>
       </div>
+      <button onclick="shareReferralWhatsApp()" aria-label="Invitar por WhatsApp" class="wa-invite-btn">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.4.8 3.2.7.5-.1 1.5-.6 1.7-1.2s.2-1.1.2-1.2-.2-.2-.4-.3z"/></svg>
+        Invitar por WhatsApp
+      </button>
     </div>
 
     <div style="display:flex;gap:12px;margin-bottom:24px">
@@ -8639,6 +8611,7 @@ function _breathHRFinish(completed) {
       <div class="bhr-title">${safeHtml(sum.title)}</div>
       <div class="bhr-msg">${safeHtml(sum.message)}</div>
       <div class="bhr-chart" id="bhr-chart-final"></div>
+      ${drop >= 3 ? '<button type="button" class="bhr-link" onclick="shareReferralWhatsApp()">💚 Invita a alguien a probarlo</button>' : ''}
       <div class="bhr-foot">Orientativo, no es un diagnóstico médico.</div>
     </div>`;
   _breathDrawChart('bhr-chart-final', s, true);
@@ -10172,6 +10145,16 @@ function copyReferralCode() {
   navigator.clipboard.writeText(_referralCode)
     .then(() => zyraToast("Código copiado ✓", "success"))
     .catch(() => zyraToast(_referralCode, "info", 6000));
+}
+// Invitar por WhatsApp en un toque, con el mensaje ya escrito (en Colombia es por donde se comparte todo)
+async function shareReferralWhatsApp() {
+  if (!_referralCode) { try { await loadReferral(); } catch (e) {} }
+  if (!_referralCode) { zyraToast("Un momento, estamos cargando tu código…", "info", 3000); return; }
+  const code = _referralCode;
+  const link = `${location.origin}/?ref=${encodeURIComponent(code)}`;
+  const text = `Oye, estoy usando Zyra 💜 Es como una amiga que te escucha y te ayuda con el estrés y la ansiedad. Entra con mi enlace y los dos recibimos 7 días Premium gratis:\n${link}`;
+  const url = "https://wa.me/?text=" + encodeURIComponent(text);
+  if (typeof zyraOpenExternal === "function") zyraOpenExternal(url); else window.open(url, "_blank", "noopener");
 }
 function shareReferral() {
   if (!_referralCode) return;
@@ -17318,10 +17301,9 @@ function obNext(step) {
   // Mostrar paso actual
   const curr = document.getElementById("ob-step-" + step);
   if (curr) curr.style.display = "block";
-  if (step === 3) { const ys = document.getElementById("ob-birth-year"); if (ys && ys.options.length < 2) _fillBirthYearSelect(ys, null, "Año de nacimiento (opcional)"); }
 
-  // Actualizar dots
-  for (let i = 0; i < 6; i++) {
+  // Actualizar dots (4 pasos: hola, nombre, qué te trajo, recordatorios)
+  for (let i = 0; i < 4; i++) {
     const dot = document.getElementById("ob-dot-" + i);
     if (dot) dot.className = "ob-dot" + (i === step ? " active" : "");
   }
@@ -17338,6 +17320,9 @@ function obSelectReason(btn, reason) {
   document.querySelectorAll(".ob-option").forEach(b => b.classList.remove("selected"));
   btn.classList.add("selected");
   obReason = reason;
+  // Un toque menos: al elegir, pasa solo al siguiente paso
+  clearTimeout(window._obReasonT);
+  window._obReasonT = setTimeout(() => { if (document.getElementById("ob-step-2")?.style.display === "block") obNext(3); }, 450);
 }
 
 function obSelectTheme(btn, theme) {
@@ -17364,15 +17349,7 @@ async function obFinish() {
       onboardingDone: true,
       onboardingReason: obReason
     }).catch(() => {});
-
-    // Edad y ejercicio (opcionales) en un guardado aparte: si fallara, no bloquea el onboarding
-    const obYear = document.getElementById("ob-birth-year")?.value;
-    const obAct  = document.getElementById("ob-activity")?.value;
-    if (obYear || obAct) {
-      const hrBody = { birthYear: obYear ? Number(obYear) : null, activityLevel: obAct || null };
-      await api("/profile", "PUT", hrBody).then(() => _saveHRProfileLocal(hrBody)).catch(() => {});
-      localStorage.setItem("zyra_hr_profile_asked", "1");
-    }
+    // La edad y el ejercicio ya no se piden aquí: se preguntan una vez al entrar a Sensores
 
   } catch (e) {
     console.error("obFinish error:", e);

@@ -185,6 +185,7 @@ app.use("/api/admin",         require("./routes/admin"));
 app.use("/api/voice",         require("./routes/voice"));
 app.use("/api/spotify",       require("./routes/spotify"));
 app.use("/api/contact",       require("./routes/contact"));
+app.use("/api/email",         require("./routes/email")); // darse de baja del correo "te extrañamos"
 
 app.get("/api/health", (req, res) => res.json({ status: "OK", ai: "Zyra/Groq", version: "5.0" }));
 app.get("/api/config", auth, (req, res) => res.json({
@@ -235,19 +236,21 @@ setInterval(async () => {
   } catch(e) { console.error("[FutureNotes] cron error:", e.message); }
 }, 60 * 60_000);
 
-// ── Cron: email de retención día 3 (usuarios free que no recibieron nudge)
+// ── Cron: correo "te extrañamos". Le llega a quien lleva 4+ días sin entrar (y no más de 45),
+// una sola vez por ausencia: si vuelve y se va de nuevo, puede recibir otro. Antes le llegaba a
+// todo el que se registró hace 3 días, aunque estuviera usando la app, y solo una vez en la vida.
 setInterval(async () => {
   if (!process.env.BREVO_API_KEY) return;
   try {
-    const User = require("./models/User");
+    const User    = require("./models/User");
+    const Profile = require("./models/Profile");
     const { sendNudgeEmail } = require("./utils/emailService");
-    const now     = new Date();
-    const from    = new Date(now - 4 * 24 * 60 * 60 * 1000); // hace 4 días
-    const to      = new Date(now - 3 * 24 * 60 * 60 * 1000); // hace 3 días
-    const targets = await User.find({ plan: "free", nudgeSentAt: null, createdAt: { $gte: from, $lte: to } }).select("email name nudgeSentAt").limit(50).lean();
-    for (const u of targets) {
-      await sendNudgeEmail(u.email, u.name.split(" ")[0]);
-      await User.updateOne({ _id: u._id }, { nudgeSentAt: now });
+    const { pickNudgeTargets } = require("./utils/nudge");
+    const now = new Date();
+    const targets = await pickNudgeTargets({ User, Profile, now, limit: 30 });
+    for (const t of targets) {
+      await sendNudgeEmail(t.email, t.name, { days: t.days, userId: t.userId });
+      await User.updateOne({ _id: t.userId }, { nudgeSentAt: now });
     }
     if (targets.length) console.log(`[nudge] Enviados: ${targets.length}`);
   } catch(e) { console.error("[nudge] cron error:", e.message); }

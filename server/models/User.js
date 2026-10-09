@@ -45,6 +45,8 @@ const S = new mongoose.Schema({
 
   // ── Retención ──
   nudgeSentAt: { type: Date, default: null },
+  // Pidió no recibir el correo "te extrañamos" (enlace al final del correo)
+  emailOptOut: { type: Boolean, default: false },
 
   // ── Admin ──
   isDisabled: { type: Boolean, default: false },
