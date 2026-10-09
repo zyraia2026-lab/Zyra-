@@ -347,6 +347,12 @@ function getArtistFromHistory(history) {
   if (!history?.length) return null;
   const aiMsgs = history.filter(h => h.role === "assistant").slice(-4).reverse();
   for (const msg of aiMsgs) {
+    // 0. La canción que sonó (la app la manda en el historial): el dato más exacto
+    const song = Array.isArray(msg.cards) && msg.cards.find(c => c && c.type === "song" && c.artist);
+    if (song) {
+      const name = String(song.artist).split(/,|\s+(?:x|ft\.?|feat\.?|y|&)\s+/i)[0].trim().slice(0, 60);
+      if (name) return detectArtist(name) || { key: name.toLowerCase(), name };
+    }
     // 1. Buscar artista conocido en el texto
     const a = detectArtist(msg.content || "");
     if (a) return a;
@@ -355,7 +361,8 @@ function getArtistFromHistory(history) {
     if (m2) {
       const name = m2[1].trim();
       // Validar que sea un nombre real de artista: corto, sin signos de puntuación ni frases
-      if (name && name.length > 1 && name.length <= 35 && name !== "algo" && !/[?"'!,;:()\[\]]/.test(name)) {
+      // ("te la pongo otra vez 🎵" no es el artista "otra vez")
+      if (name && name.length > 1 && name.length <= 35 && name !== "algo" && !/^(?:la|lo|las|los|esa|esta|otra|otro)\b/i.test(name) && !/[?"'!,;:()\[\]]/.test(name)) {
         return { key: name.toLowerCase(), name };
       }
     }

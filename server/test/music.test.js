@@ -94,3 +94,16 @@ test("hablar de la canción no pone otra; 'otra vez' repite la misma", () => {
   }
   assert.ok(M.isMusicFollowUp("repítela", played));
 });
+
+test("'ponme otra' después de repetir sigue con el mismo artista", () => {
+  // Falló en producción: tras "Va, te la pongo otra vez 🎵", tomó "otra vez" como artista
+  const h = [
+    { role: "assistant", content: "Va, te pongo algo de Clarent 🎵", cards: [{ type: "song", title: "LOVE", artist: "Clarent" }] },
+    { role: "assistant", content: "Va, te la pongo otra vez 🎵", cards: [{ type: "song", title: "LOVE", artist: "Clarent" }] },
+  ];
+  assert.equal(M.getArtistFromHistory(h).name, "Clarent");
+  // Sin tarjetas (historial viejo), "otra vez" tampoco es un artista
+  assert.equal(M.getArtistFromHistory([{ role: "assistant", content: "Va, te la pongo otra vez 🎵" }]), null);
+  // Varios artistas: el primero
+  assert.equal(M.getArtistFromHistory([{ role: "assistant", content: "Va 🎵", cards: [{ type: "song", title: "IA", artist: "Clarent, Mora" }] }]).name, "Clarent");
+});
