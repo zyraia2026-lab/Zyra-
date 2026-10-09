@@ -13885,7 +13885,9 @@ async function startTest(isNew = false) {
     // Si el chequeo falla por otra razón (red, etc), no bloqueamos el test.
   }
   testAnswers = {}; testStep = 0; testIsNew = isNew;
-  showPage("test"); renderTestStep();
+  // Primero se pinta y después se muestra la página: si no, la página vacía volvía a arrancar
+  // el test y gastaba el cupo del día dos veces ("Ya usaste el test hoy")
+  renderTestStep(); showPage("test");
 }
 function renderTestStep() {
   const wrap = document.getElementById("test-page-wrap");
