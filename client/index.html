@@ -17274,6 +17274,13 @@ async function checkOnboarding() {
 
       const el = document.getElementById("zyra-onboarding");
       if (el) el.style.display = "flex";
+      // Las ventanas de "¿cómo estás?" pudieron abrirse antes de que llegara la respuesta:
+      // se cierran para que no tapen la bienvenida (y no cuentan como "ya preguntado")
+      ["quick-emotion-modal", "daily-checkin-modal", "morning-overlay"].forEach(id => { const m = document.getElementById(id); if (m) m.style.display = "none"; });
+      document.getElementById("bm-overlay")?.remove();
+      quickEmotionShown = false;
+      sessionStorage.removeItem("zyra_checkin_session_shown");
+      localStorage.removeItem("zyra_qe_last");
     } else {
       // Usuario que ya completó el perfil — mostrar tour si no lo ha visto
       setTimeout(_checkShowTour, 1000);
@@ -25774,6 +25781,7 @@ function showDailyCheckin() {
   const key = "zyra_daily_checkin_" + new Date().toDateString();
   if (localStorage.getItem(key)) return;
   if (document.getElementById("bm-overlay")) return; // ya está haciendo el check-in cuerpo y mente
+  if (document.getElementById("zyra-onboarding")?.style.display === "flex") return; // ni sobre la bienvenida
   // Solo mostrar una vez por sesión de navegación (evita aparecer cada vez que el usuario cambia de sección)
   if (sessionStorage.getItem("zyra_checkin_session_shown")) return;
   sessionStorage.setItem("zyra_checkin_session_shown", "1");
