@@ -926,6 +926,7 @@ function closeSplash(){
       <button class="emotion-modal-btn" onclick="quickEmotionSelect('agotado')">😴<span>Agotado</span></button>
       <button class="emotion-modal-btn" onclick="quickEmotionSelect('esperanzado')">🌟<span>Esperanza</span></button>
     </div>
+    <button type="button" class="bm-btn" style="width:100%;margin:4px 0 6px" onclick="openBodyMindCheckin()">💓 Mejor, el check-in con mi pulso (30 s)</button>
     <div class="emotion-modal-skip" onclick="closeQuickEmotion()">Saltar por ahora</div>
   </div>
 </div>
@@ -4773,6 +4774,8 @@ function showPage(name) {
   if(name === "analytics")    loadAnalytics();
   if(name === "admin")        loadAdminPanel();
   if(name === "games")        { setTimeout(() => openGame(window._currentGame || 'breath'), 50); }
+  // Llegar al test con "atrás" o con un enlace dejaba la página en blanco: se arranca como siempre
+  if(name === "test" && !document.getElementById("test-page-wrap")?.innerHTML.trim()) { setTimeout(() => startTest(), 0); }
   if(name === "weekly-report") { showPage("planes"); setTimeout(() => { if(typeof openWeeklyReport==="function") openWeeklyReport(); }, 400); return; }
 
   // ── Tabbar móvil: mostrar/ocultar y marcar activo ──
@@ -9075,7 +9078,7 @@ function _heartWeekHtml(heart, opts = {}) {
   if (!heart) {
     return `<div class="hw-card">
       <div class="hw-head"><span class="hw-ico beating">${_HEART_SVG}</span><div><div class="hw-title">${title}</div><div class="hw-sub">Cómo va tu pulso en reposo, semana a semana</div></div></div>
-      <p class="hw-empty">Haz tu check-in cuerpo y mente cada día: mide tu pulso sentado y sin moverte (con el reloj o la cámara) y cuéntame cómo te sientes. Aquí verás cómo va cambiando.</p>${cta}</div>`;
+      <p class="hw-empty">Haz tu check-in cuerpo y mente cada día: mide tu pulso en reposo, sin moverte (con el reloj o la cámara) y cuéntame cómo te sientes. Aquí verás cómo va cambiando.</p>${cta}</div>`;
   }
   const d = heart.delta;
   const deltaHtml = d == null ? (heart.restAvg != null ? '<span class="hw-delta flat">Primera semana con datos</span>' : '')
@@ -9394,7 +9397,7 @@ async function measureWithWatch() {
     return;
   }
   _hrMeasureRequestedAt = Date.now(); // el resultado se interpreta y se muestra con consejos
-  zyraToast('💓 Midiendo desde tu reloj… quédate quieto y sentado unos segundos', 'info', 5000);
+  zyraToast('💓 Midiendo desde tu reloj… quédate en reposo unos segundos, sin moverte', 'info', 5000);
   try {
     await _watchWrite(_watchRxChar, [0x60, 0x00, 0x01]);
   } catch(e) {
@@ -10511,9 +10514,11 @@ async function loadDashboard() {
   if (dot) dot.style.display = lastEmDate === new Date().toDateString() ? 'none' : 'inline-block';
   // Smart habit nudges (afternoon/evening only) — only if still on dashboard
   const hour = new Date().getHours();
-  if (hour >= 15 && token && user && localStorage.getItem('zyra_rail_remind_water') !== '0') {
+  // El primer día de uso no se recuerda el agua: ya hay bastantes cosas nuevas en pantalla
+  const _firstDay = (() => { try { const k = "zyra_first_day"; if (!localStorage.getItem(k)) localStorage.setItem(k, new Date().toDateString()); return localStorage.getItem(k) === new Date().toDateString(); } catch (e) { return false; } })();
+  if (hour >= 15 && token && user && !_firstDay && localStorage.getItem('zyra_rail_remind_water') !== '0') {
     const waterToday = parseInt(localStorage.getItem("zyra_water_" + new Date().toDateString()) || "0");
-    if (waterToday < 4) setTimeout(() => { if(window._zyraCurrentPage==='dashboard') { zyraToast("💧 Solo "+waterToday+" vasos hoy — no se te olvide tomar agua", "info"); sendWatchReminder("💧 Toma agua: "+waterToday+" vasos hoy"); } }, 2000);
+    if (waterToday < 4) setTimeout(() => { if(window._zyraCurrentPage==='dashboard') { zyraToast(waterToday ? "💧 Llevas "+waterToday+" vaso"+(waterToday === 1 ? "" : "s")+" de agua hoy — uno más te ayuda" : "💧 ¿Ya tomaste agua hoy? Un vaso ahora te ayuda", "info"); sendWatchReminder("💧 Toma agua: "+waterToday+" vasos hoy"); } }, 2000);
     else if (waterToday < 8 && hour >= 19) setTimeout(() => { if(window._zyraCurrentPage==='dashboard') { zyraToast("💧 "+waterToday+"/8 vasos — casi llegas", "info"); sendWatchReminder("💧 "+waterToday+"/8 vasos — casi llegas"); } }, 2000);
   }
   // Pausa activa: el switch "Respirar" del dashboard existia pero no estaba
@@ -13847,9 +13852,9 @@ const TEST_Q = [
     q:"¿Cómo está tu relación contigo mismo/a?",
     sub:"Cómo nos hablamos a nosotros/as es lo más importante",
     opts:[
-      {e:"💚",t:"Me trato bien",sub:"Soy amable conmigo/a"},
+      {e:"💚",t:"Me trato bien",sub:"Soy amable conmigo"},
       {e:"😐",t:"No me pienso mucho",sub:"Neutral, no me analizo tanto"},
-      {e:"😔",t:"Me exijo demasiado",sub:"Soy muy duro/a conmigo/a"},
+      {e:"😔",t:"Me exijo demasiado",sub:"Soy muy duro/a conmigo"},
       {e:"💔",t:"No me siento bien conmigo",sub:"Tengo pensamientos difíciles sobre mí"},
     ]
   },
@@ -13872,7 +13877,11 @@ async function startTest(isNew = false) {
   try {
     await api('/gamification/test-start', 'POST');
   } catch(e) {
-    if (e.status === 403) { zyraToast(e.message || 'Ya usaste el test hoy', 'info', 5000); return; }
+    if (e.status === 403) {
+      zyraToast(e.message || 'Ya usaste el test hoy', 'info', 5000);
+      if (window._zyraCurrentPage === 'test' && !document.getElementById('test-page-wrap')?.innerHTML.trim()) showPage(_homePage());
+      return;
+    }
     // Si el chequeo falla por otra razón (red, etc), no bloqueamos el test.
   }
   testAnswers = {}; testStep = 0; testIsNew = isNew;
@@ -13893,15 +13902,15 @@ function renderTestStep() {
     </div>
     <div class="test-card">
       <div class="test-step-label">Pregunta ${testStep+1} de ${TEST_Q.length}</div>
-      <div class="test-question">${q.q}</div>
-      <div class="test-sub">${q.sub}</div>
+      <div class="test-question">${_g(q.q)}</div>
+      <div class="test-sub">${_g(q.sub)}</div>
       <div class="test-options">
         ${q.opts.map((o,i) => `
           <button class="test-option ${testAnswers[testStep]===i?"selected":""}" onclick="selectTestOpt(${i})">
             <span class="test-option-emoji">${o.e}</span>
             <div>
-              <div class="test-option-text">${o.t}</div>
-              <div class="test-option-sub">${o.sub}</div>
+              <div class="test-option-text">${_g(o.t)}</div>
+              <div class="test-option-sub">${_g(o.sub)}</div>
             </div>
           </button>`).join("")}
       </div>
@@ -16537,9 +16546,10 @@ function rateMsg(btn, vote) {
   setTimeout(() => btn.style.transform = "", 300);
 }
 function _chipHTML(chips) {
-  return chips.map(([e, txt]) =>
-    `<button class="prompt-chip" onclick="fillPrompt(this.dataset.msg)" data-msg="${txt.replace(/"/g,'&quot;')}">${e} ${txt}</button>`
-  ).join("");
+  return chips.map(([e, raw]) => {
+    const txt = _g(raw); // "Me siento solo/a" → "sola" / "solo" según "Sobre ti"
+    return `<button class="prompt-chip" onclick="fillPrompt(this.dataset.msg)" data-msg="${txt.replace(/"/g,'&quot;')}">${e} ${txt}</button>`;
+  }).join("");
 }
 function showResponseChips(text) {
   return; // Chat más limpio: sin chips de sugerencia después de cada respuesta.
@@ -21413,6 +21423,8 @@ async function checkApkAvailable(e) {
 }
 
 // ══ SERVICE WORKER REGISTRATION ══
+// Si al abrir ya había una versión instalada, una nueva sí es una "actualización"
+const _hadSWController = !!(navigator.serviceWorker && navigator.serviceWorker.controller);
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').then(reg => {
@@ -21429,6 +21441,8 @@ if ('serviceWorker' in navigator) {
         } catch(_) {}
       }
       if (e.data?.type === 'SW_UPDATED') {
+        // Primera visita: no hay versión anterior, así que no hay nada que "actualizar"
+        if (!_hadSWController) return;
         // Show update toast with reload option
         const t = document.createElement('div');
         t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1e1b4b;border:1.5px solid rgba(99,102,241,.5);border-radius:14px;padding:12px 20px;display:flex;align-items:center;gap:12px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.4);font-size:13px;color:#e8eaf6;white-space:nowrap;animation:slideUp .3s ease';
