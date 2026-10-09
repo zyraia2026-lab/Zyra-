@@ -1,5 +1,25 @@
 const { NO_SEND_EMAIL_RE } = require("./testAccounts");
 
+/* ══════════════════════════════════════════════════════════════
+   CORREOS DE ZYRA
+   Diseño hecho con tablas y estilos en línea: es lo único que Gmail, Outlook y el
+   correo del iPhone muestran igual (antes había "display:flex" y en Gmail/Outlook las
+   cifras del reporte se veían montadas). Cada correo lleva:
+   - texto de vista previa (lo que se ve debajo del asunto en la bandeja),
+   - versión en texto plano (ayuda a no caer en Spam),
+   - el logo de Zyra en vez de un emoji.
+   ══════════════════════════════════════════════════════════════ */
+
+const APP_URL  = process.env.RENDER_EXTERNAL_URL || "https://zyra-app-8qva.onrender.com";
+const LOGO_URL = `${APP_URL}/Imagenes/logo-email.png`;
+const SUPPORT  = "zyra.ia.2026@gmail.com";
+
+const C = {
+  bg: "#f3f1fb", card: "#ffffff", text: "#1f2340", soft: "#5b6178", muted: "#8a8fa6",
+  line: "#e9e7f5", brand: "#6d5ef0", brand2: "#8b5cf6", tint: "#f6f4ff",
+};
+const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+
 function esc(str) {
   return String(str || "")
     .replace(/&/g, "&amp;")
@@ -8,40 +28,137 @@ function esc(str) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
+// Para el asunto: es texto plano, así que no se escapa como HTML (antes "Ana & Juan"
+// llegaba como "Ana &amp; Juan"); solo se quitan saltos de línea
+function plain(str, max = 60) {
+  return String(str || "").replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
+}
+function firstName(name) {
+  return plain(name).split(" ")[0] || "";
+}
+// "1 de octubre": las fechas de la semana se arman a medianoche UTC en el servidor
+function fmtDay(d) {
+  return new Date(d).toLocaleDateString("es-CO", { day: "numeric", month: "long", timeZone: "UTC" });
+}
 
-const BRAND_HEADER = `
-  <div style="background:linear-gradient(135deg,#7c5cfc 0%,#6d5ef0 45%,#4a9eff 100%);padding:38px 32px 32px;text-align:center;">
-    <div style="display:inline-block;width:52px;height:52px;background:rgba(255,255,255,0.16);border:1px solid rgba(255,255,255,0.25);border-radius:16px;line-height:52px;font-size:24px;margin-bottom:14px;">🌊</div>
-    <h1 style="color:#ffffff;margin:0;font-size:24px;font-weight:800;letter-spacing:-0.3px;font-family:Georgia,'Times New Roman',serif;">Zyra</h1>
-    <p style="color:rgba(255,255,255,0.85);margin:6px 0 0;font-size:11.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">Bienestar emocional con IA</p>
+/* ── Piezas del diseño ── */
+function button(href, label, color = C.brand) {
+  return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:8px auto 0">
+    <tr><td align="center" bgcolor="${color}" style="border-radius:12px;background:${color}">
+      <a href="${href}" target="_blank" style="display:inline-block;padding:14px 30px;font-family:${FONT};font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:12px">${label}</a>
+    </td></tr></table>`;
+}
+function heading(icon, title, sub) {
+  return `<div style="text-align:center;margin:0 0 22px">
+    <div style="font-size:40px;line-height:1;margin:0 0 12px">${icon}</div>
+    <h1 style="margin:0;font-family:${FONT};font-size:22px;line-height:1.3;font-weight:800;color:${C.text}">${title}</h1>
+    ${sub ? `<p style="margin:10px 0 0;font-family:${FONT};font-size:15px;line-height:1.6;color:${C.soft}">${sub}</p>` : ""}
   </div>`;
+}
+function para(html, style = "") {
+  return `<p style="margin:0 0 14px;font-family:${FONT};font-size:15px;line-height:1.65;color:${C.soft};${style}">${html}</p>`;
+}
+function box(inner, { bg = C.tint, border = C.line } = {}) {
+  return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 20px">
+    <tr><td style="background:${bg};border:1px solid ${border};border-radius:14px;padding:18px 20px;font-family:${FONT};font-size:14px;line-height:1.7;color:${C.soft}">${inner}</td></tr></table>`;
+}
+// El código va en una sola línea (con espacios entre números, en el celular se partía en dos)
+function codeBox(code, label, color) {
+  return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 18px">
+    <tr><td align="center" style="background:${C.tint};border:2px dashed ${color};border-radius:16px;padding:22px 12px">
+      <div style="font-family:${FONT};font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:${color};margin:0 0 10px">${label}</div>
+      <div style="font-family:'Courier New',Consolas,monospace;font-size:34px;font-weight:800;letter-spacing:8px;white-space:nowrap;color:${C.text};padding-left:8px">${esc(String(code))}</div>
+    </td></tr></table>`;
+}
+// Fila de cifras (en tabla: en Gmail/Outlook "flex" no funciona)
+function stats(items) {
+  const cells = items.map(s => `<td align="center" valign="top" width="${Math.floor(100 / items.length)}%" style="padding:4px">
+      <div style="background:${s.bg};border-radius:12px;padding:14px 6px">
+        <div style="font-family:${FONT};font-size:22px;font-weight:800;color:${s.color};line-height:1.2">${s.value}</div>
+        <div style="font-family:${FONT};font-size:11px;color:${C.muted};margin-top:4px">${s.label}</div>
+      </div></td>`).join("");
+  return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 18px"><tr>${cells}</tr></table>`;
+}
+function steps(list) {
+  return list.map(([icon, title, text]) => `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 10px">
+    <tr><td width="44" valign="top" style="font-size:22px;line-height:1;padding-top:2px">${icon}</td>
+    <td style="font-family:${FONT};font-size:14px;line-height:1.55;color:${C.soft}"><strong style="color:${C.text}">${title}</strong><br/>${text}</td></tr></table>`).join("");
+}
+const CRISIS_LINES = `<strong style="color:${C.text}">Línea 106</strong> (apoyo en salud mental) · <strong style="color:${C.text}">123</strong> (emergencias)`;
 
-const BRAND_FOOTER = `
-  <div style="padding:24px 32px 30px;border-top:1px solid rgba(255,255,255,0.07);text-align:center;">
-    <p style="color:#4a4a6a;font-size:11.5px;margin:0 0 10px;line-height:1.6;">Este es un mensaje automático — no hace falta que respondas.</p>
-    <p style="color:#5a5a8a;font-size:11.5px;margin:0;">
-      <a href="mailto:zyra.ia.2026@gmail.com" style="color:#9b9bd8;text-decoration:none;font-weight:600;">Soporte</a>
-      <span style="color:#2a2a40;margin:0 8px;">·</span>
-      <a href="https://zyra-app-8qva.onrender.com/legal" style="color:#9b9bd8;text-decoration:none;font-weight:600;">Términos y Privacidad</a>
-    </p>
-    <p style="color:#33334d;font-size:10.5px;margin:16px 0 0;letter-spacing:.2px;">© 2026 Zyra — Hecho con 💜 para Latinoamérica</p>
-  </div>`;
+// HTML que genera la IA para el reporte: solo se dejan etiquetas de texto y sin atributos
+// (un enlace o un script colado desde el diario no debe llegar al correo)
+function cleanReportHtml(html) {
+  const ALLOWED = new Set(["p", "h3", "h4", "ul", "ol", "li", "strong", "b", "em", "i", "br"]);
+  const STYLE = {
+    p: `margin:0 0 12px;font-family:${FONT};font-size:15px;line-height:1.65;color:${C.soft}`,
+    h3: `margin:18px 0 8px;font-family:${FONT};font-size:16px;font-weight:800;color:${C.text}`,
+    h4: `margin:14px 0 6px;font-family:${FONT};font-size:15px;font-weight:800;color:${C.text}`,
+    ul: `margin:0 0 12px;padding-left:20px`, ol: `margin:0 0 12px;padding-left:20px`,
+    li: `margin:0 0 6px;font-family:${FONT};font-size:15px;line-height:1.6;color:${C.soft}`,
+    strong: `color:${C.text}`, b: `color:${C.text}`,
+  };
+  return String(html || "")
+    .replace(/<\s*(script|style|iframe|object|embed|svg|form)[\s\S]*?<\s*\/\s*\1\s*>/gi, "")
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<\s*(\/?)\s*([a-z0-9]+)[^>]*>/gi, (m, close, tag) => {
+      tag = tag.toLowerCase();
+      if (!ALLOWED.has(tag)) return "";
+      if (close || tag === "br") return close ? `</${tag}>` : "<br/>";
+      return STYLE[tag] ? `<${tag} style="${STYLE[tag]}">` : `<${tag}>`;
+    });
+}
 
-function wrap(body) {
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
-  <body style="margin:0;padding:0;background:#050508;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-    <div style="max-width:480px;margin:32px auto;padding:0 16px;">
-      <div style="background:#12121e;border-radius:22px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);box-shadow:0 24px 60px rgba(0,0,0,0.45);">
-        ${BRAND_HEADER}
-        <div style="padding:34px 32px;">${body}</div>
-        ${BRAND_FOOTER}
-      </div>
-    </div>
-  </body></html>`;
+// Versión en texto plano del correo (la piden los filtros de Spam y la leen algunos relojes)
+function htmlToText(html) {
+  return String(html || "")
+    .replace(/<(style|head)[\s\S]*?<\/\1>/gi, "")
+    .replace(/<div style="display:none[\s\S]*?<\/div>/i, "")
+    .replace(/<a [^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, (m, href, txt) => `${txt.replace(/<[^>]+>/g, "").trim()} (${href})`)
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|h1|h2|h3|h4|li|tr|div|table)>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&#8204;/g, "")
+    .replace(/[ \t]+/g, " ").replace(/\n\s*\n\s*\n+/g, "\n\n")
+    .split("\n").map(l => l.trim()).join("\n").trim();
+}
+
+// preheader: el texto que se ve en la bandeja debajo del asunto
+// note: línea pequeña antes del pie (por qué te llega el correo, darse de baja…)
+function layout({ preheader = "", body, note = "" }) {
+  const filler = "&#8204;&nbsp;".repeat(60);
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="color-scheme" content="light"/><meta name="supported-color-schemes" content="light"/><title>Zyra</title></head>
+<body style="margin:0;padding:0;background:${C.bg};-webkit-text-size-adjust:100%">
+<div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;mso-hide:all">${esc(preheader)}${filler}</div>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="${C.bg}" style="background:${C.bg}">
+  <tr><td align="center" style="padding:28px 12px">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:560px">
+      <tr><td align="center" bgcolor="${C.brand}" style="background:${C.brand};background-image:linear-gradient(135deg,#7c5cfc 0%,#6d5ef0 50%,#4a9eff 100%);border-radius:20px 20px 0 0;padding:26px 24px">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center"><tr>
+          <td valign="middle" style="padding-right:12px"><img src="${LOGO_URL}" width="44" height="44" alt="Zyra" style="display:block;border:0;border-radius:12px;background:#ffffff"/></td>
+          <td valign="middle" style="font-family:Georgia,'Times New Roman',serif;font-size:26px;font-weight:700;color:#ffffff;letter-spacing:-.3px">Zyra</td>
+        </tr></table>
+        <div style="font-family:${FONT};font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:rgba(255,255,255,.88);margin-top:10px">Tu amiga para el bienestar emocional</div>
+      </td></tr>
+      <tr><td bgcolor="${C.card}" style="background:${C.card};padding:34px 30px 28px;border-left:1px solid ${C.line};border-right:1px solid ${C.line}">${body}</td></tr>
+      <tr><td bgcolor="${C.card}" style="background:${C.card};border:1px solid ${C.line};border-top:1px solid ${C.line};border-radius:0 0 20px 20px;padding:20px 30px 24px;text-align:center">
+        ${note ? `<p style="margin:0 0 10px;font-family:${FONT};font-size:12px;line-height:1.6;color:${C.muted}">${note}</p>` : ""}
+        <p style="margin:0;font-family:${FONT};font-size:12px;line-height:1.7;color:${C.muted}">
+          <a href="mailto:${SUPPORT}" style="color:${C.brand};text-decoration:none;font-weight:600">Escríbenos</a>
+          &nbsp;·&nbsp;<a href="${APP_URL}/legal" style="color:${C.brand};text-decoration:none;font-weight:600">Términos y privacidad</a>
+        </p>
+        <p style="margin:8px 0 0;font-family:${FONT};font-size:11px;color:#b0b3c4">© 2026 Zyra · Hecho con 💜 en Colombia</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body></html>`;
 }
 
 // replyTo (opcional): a quién le llega la respuesta cuando el destinatario da "Responder"
-async function sendBrevoEmail({ to, subject, html, replyTo }) {
+// headers (opcional): por ejemplo List-Unsubscribe en los correos de recordatorio
+async function sendBrevoEmail({ to, subject, html, replyTo, text, headers }) {
   if (NO_SEND_EMAIL_RE.test(String(to || ""))) {
     console.log("[email] omitido: dominio de prueba que no recibe correo");
     return;
@@ -54,11 +171,13 @@ async function sendBrevoEmail({ to, subject, html, replyTo }) {
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      sender: { name: "Zyra 🌊", email: process.env.EMAIL_USER },
+      sender: { name: "Zyra", email: process.env.EMAIL_USER },
       to: [{ email: to }],
       ...(replyTo ? { replyTo } : {}),
+      ...(headers ? { headers } : {}),
       subject,
       htmlContent: html,
+      textContent: text || htmlToText(html),
     }),
   });
   if (!res.ok) {
@@ -67,143 +186,100 @@ async function sendBrevoEmail({ to, subject, html, replyTo }) {
   }
 }
 
+/* ══ Código para crear la cuenta o iniciar sesión ══ */
 const sendVerificationCode = async (toEmail, code, userName = "") => {
-  const nameHtml = userName ? ` <strong style="color:#f0f0ff">${esc(userName)}</strong>` : "";
-  const codeSpaced = String(code).split("").join(" ");
+  const name = esc(firstName(userName));
   await sendBrevoEmail({
     to: toEmail,
-    subject: `${code} es tu código de verificación — Zyra`,
-    html: wrap(`
-      <div style="text-align:center;margin:0 0 4px;">
-        <span style="display:inline-block;width:40px;height:40px;background:rgba(124,92,252,0.14);border-radius:12px;line-height:40px;font-size:19px;">🔐</span>
-      </div>
-      <h2 style="color:#f0f0ff;font-size:19px;font-weight:800;text-align:center;margin:16px 0 6px;letter-spacing:-.2px;">Confirma que eres tú</h2>
-      <p style="color:#8a8ab0;font-size:14px;margin:0 0 26px;text-align:center;line-height:1.6;">Hola${nameHtml}, usa este código para continuar:</p>
-      <div style="background:linear-gradient(160deg,rgba(124,92,252,0.16),rgba(74,158,255,0.08));border:1.5px solid rgba(124,92,252,0.4);border-radius:18px;padding:26px 20px;margin:0 0 24px;text-align:center;">
-        <p style="color:#8b8bc4;font-size:10.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin:0 0 14px;">Tu código de verificación</p>
-        <div style="font-size:38px;font-weight:800;letter-spacing:6px;color:#ffffff;font-family:'Courier New',Consolas,monospace;">${codeSpaced}</div>
-      </div>
-      <table role="presentation" width="100%" style="border-collapse:collapse;">
-        <tr>
-          <td style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:13px 16px;text-align:center;">
-            <span style="color:#7a7a9a;font-size:12.5px;">⏱ Expira en <strong style="color:#c0c0e0;">10 minutos</strong> · Si no fuiste tú, ignora este correo</span>
-          </td>
-        </tr>
-      </table>
-      <p style="color:#5a5a7a;font-size:11.5px;text-align:center;margin:16px 0 0;">💡 ¿No lo ves en tu bandeja principal? Revisa "Otros" o Spam — y muévelo a la principal para que los próximos lleguen ahí directo.</p>
-    `),
+    subject: `${code} es tu código de Zyra`,
+    html: layout({
+      preheader: "Úsalo en los próximos 10 minutos. Si no fuiste tú, ignora este correo.",
+      body: heading("🔐", "Confirma que eres tú", `${name ? `Hola, ${name}. ` : ""}Escribe este código en Zyra para continuar:`)
+        + codeBox(code, "Tu código", C.brand)
+        + para(`⏱ Vence en <strong style="color:${C.text}">10 minutos</strong>. Si no pediste este código, ignora este correo: nadie puede entrar sin él.`, "text-align:center;font-size:14px")
+        + para(`¿No te llegó a la bandeja principal? Búscalo en "Promociones" o en Spam, y márcalo como "No es spam" para que los próximos lleguen bien.`, `text-align:center;font-size:12.5px;color:${C.muted};margin:0`),
+    }),
   });
 };
 
+/* ══ Bienvenida (al crear la cuenta) ══ */
 const sendWelcomeEmail = async (toEmail, userName = "") => {
   try {
+    const first = firstName(userName);
+    const name = esc(first);
     await sendBrevoEmail({
       to: toEmail,
-      subject: `Hola, ${esc(userName)} — Zyra ya está lista para ti`,
-      html: wrap(`
-        <div style="text-align:center;margin-bottom:24px;">
-          <div style="font-size:48px;margin-bottom:8px;">🌊</div>
-          <h2 style="color:#f0f0ff;margin:0;font-size:22px;">Hola, ${esc(userName)}</h2>
-          <p style="color:#a8a8c8;font-size:15px;margin:12px 0 0;">Tu cuenta ya está lista. Cuando quieras hablar, aquí estoy.</p>
-        </div>
-        <div style="background:rgba(99,102,241,0.08);border-radius:14px;padding:20px;margin-bottom:20px;">
-          <p style="color:#c8c8e8;font-size:13px;margin:0 0 12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Con tu plan Gratis puedes:</p>
-          <div style="color:#a8a8c8;font-size:13px;line-height:2;">
-            💬 15 mensajes diarios con Zyra IA<br/>
-            📔 Hasta 10 entradas en tu diario<br/>
-            🎯 Hasta 3 metas activas<br/>
-            🧘 Ejercicios de meditación y respiración<br/>
-            🎵 Música para el bienestar
-          </div>
-        </div>
-        <div style="background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);border-radius:12px;padding:16px;margin-bottom:24px;">
-          <p style="color:#f87171;font-size:12px;margin:0;line-height:1.6;">
-            <strong>Aviso importante:</strong> Zyra es una herramienta de apoyo emocional y NO reemplaza la atención de un profesional de salud mental. Si estás atravesando una crisis, por favor contacta a un especialista o línea de ayuda en tu país.
-          </p>
-        </div>
-        <div style="text-align:center;">
-          <a href="https://zyra-app-8qva.onrender.com" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;">Abrir Zyra →</a>
-        </div>
-      `),
+      subject: first ? `${first}, te damos la bienvenida a Zyra 💜` : "Te damos la bienvenida a Zyra 💜",
+      html: layout({
+        preheader: "Tu cuenta está lista. Tres cosas cortas para empezar hoy.",
+        body: heading("💜", name ? `¡Hola, ${name}! Qué bueno tenerte aquí` : "¡Qué bueno tenerte aquí!", "Zyra es tu amiga para los días buenos y los difíciles: te escucha, te recuerda y te ayuda a sentirte mejor.")
+          + `<p style="margin:0 0 12px;font-family:${FONT};font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:${C.muted}">Para empezar hoy</p>`
+          + steps([
+            ["💬", "Cuéntale cómo estás", "Sin filtro y sin juicios. Zyra recuerda lo que le cuentas para acompañarte mejor."],
+            ["💓", "Haz tu check-in de 30 segundos", "Tu pulso (con el reloj o la cámara) y cómo te sientes. Así ves tu semana."],
+            ["🌬️", "Respira un minuto", "Una respiración guiada para bajar las revoluciones cuando lo necesites."],
+          ])
+          + `<div style="height:8px"></div>`
+          + box(`<strong style="color:${C.text}">Con el plan Gratis tienes:</strong> 15 mensajes al día con Zyra, diario ilimitado, hasta 3 metas, respiración, meditación, juegos y música.`)
+          + `<div style="text-align:center;margin:0 0 22px">${button(APP_URL, "Abrir Zyra")}</div>`
+          + box(`💙 Zyra te acompaña, pero no reemplaza a un profesional de la salud mental. Si en algún momento sientes que no puedes más, busca ayuda ya: ${CRISIS_LINES}.`, { bg: "#fbf9ff", border: C.line }),
+      }),
     });
   } catch(e) {
     console.error("Welcome email error:", e.message);
   }
 };
 
+/* ══ Código para cambiar la contraseña ══ */
 const sendPasswordResetCode = async (toEmail, code, userName = "") => {
-  const nameHtml = userName ? ` <strong style="color:#f0f0ff">${esc(userName)}</strong>` : "";
-  const codeSpaced = String(code).split("").join(" ");
+  const name = esc(firstName(userName));
   await sendBrevoEmail({
     to: toEmail,
-    subject: `${code} — Restablecer tu contraseña de Zyra`,
-    html: wrap(`
-      <div style="text-align:center;margin:0 0 4px;">
-        <span style="display:inline-block;width:40px;height:40px;background:rgba(239,68,68,0.14);border-radius:12px;line-height:40px;font-size:19px;">🔑</span>
-      </div>
-      <h2 style="color:#f0f0ff;font-size:19px;font-weight:800;text-align:center;margin:16px 0 6px;letter-spacing:-.2px;">Restablecer contraseña</h2>
-      <p style="color:#8a8ab0;font-size:14px;margin:0 0 26px;text-align:center;line-height:1.6;">Hola${nameHtml}, recibimos una solicitud para cambiar tu contraseña. Usa este código:</p>
-      <div style="background:linear-gradient(160deg,rgba(239,68,68,0.14),rgba(239,68,68,0.05));border:1.5px solid rgba(239,68,68,0.35);border-radius:18px;padding:26px 20px;margin:0 0 24px;text-align:center;">
-        <p style="color:#f0a0a0;font-size:10.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin:0 0 14px;">Código de restablecimiento</p>
-        <div style="font-size:38px;font-weight:800;letter-spacing:6px;color:#ffffff;font-family:'Courier New',Consolas,monospace;">${codeSpaced}</div>
-      </div>
-      <table role="presentation" width="100%" style="border-collapse:collapse;">
-        <tr>
-          <td style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:13px 16px;text-align:center;">
-            <span style="color:#7a7a9a;font-size:12.5px;">⏱ Expira en <strong style="color:#c0c0e0;">10 minutos</strong> · Si no fuiste tú, tu contraseña sigue igual</span>
-          </td>
-        </tr>
-      </table>
-      <p style="color:#5a5a7a;font-size:11.5px;text-align:center;margin:16px 0 0;">💡 ¿No lo ves en tu bandeja principal? Revisa "Otros" o Spam.</p>
-    `),
+    subject: `${code} es tu código para cambiar la contraseña de Zyra`,
+    html: layout({
+      preheader: "Vence en 10 minutos. Si no lo pediste, tu contraseña sigue igual.",
+      body: heading("🔑", "Cambia tu contraseña", `${name ? `Hola, ${name}. ` : ""}Recibimos una solicitud para cambiar la contraseña de tu cuenta. Usa este código:`)
+        + codeBox(code, "Tu código", "#e0567a")
+        + para(`⏱ Vence en <strong style="color:${C.text}">10 minutos</strong>. Si no lo pediste, ignora este correo: tu contraseña sigue igual y tu cuenta está segura.`, "text-align:center;font-size:14px;margin:0"),
+    }),
   });
 };
+
+/* ══ Reporte semanal (planes pagos) ══ */
+const EMOTION_EMOJI = { feliz:"😊", tranquilo:"😌", ansioso:"😰", triste:"😢", enojado:"😤", confundido:"🤔", esperanzado:"🌟", agotado:"😮‍💨", motivado:"💪", nostalgico:"🌅" };
+const EMOTION_NOUN = { feliz:"felicidad", tranquilo:"calma", ansioso:"ansiedad", triste:"tristeza", enojado:"enojo", confundido:"confusión", esperanzado:"esperanza", agotado:"agotamiento", motivado:"motivación", nostalgico:"nostalgia" };
 
 const sendWeeklyReport = async (toEmail, userName, html, data) => {
-  const EMOTION_EMOJI = { feliz:"😊", tranquilo:"😌", ansioso:"😰", triste:"😢", enojado:"😤", confundido:"🤔", esperanzado:"🌟", agotado:"😮‍💨", motivado:"💪", nostalgico:"🌅" };
   const topEmoji = EMOTION_EMOJI[data.topEmotion] || "💙";
+  const name = esc(firstName(userName));
+  const range = `${fmtDay(data.weekStart)} al ${fmtDay(new Date(new Date(data.weekEnd) - 1))}`;
+  const heart = data.heart;
+  const cells = [
+    { value: `${data.positivity}%`, label: "Ánimo positivo", color: C.brand, bg: C.tint },
+    { value: String(data.history.length), label: "Registros", color: "#0f9f76", bg: "#effaf5" },
+    { value: String(data.completedGoals.length), label: "Metas logradas", color: "#c27c0e", bg: "#fff8ec" },
+  ];
+  if (heart && heart.restAvg != null) cells.push({ value: `${heart.restAvg}`, label: "Pulso en reposo", color: "#d6336c", bg: "#fff1f5" });
+  const heartLine = heart && heart.goal
+    ? box(`🎯 <strong style="color:${C.text}">Meta de esta semana:</strong> ${esc(heart.goal.text)}`, { bg: "#fff6f9", border: "#f6d9e4" })
+    : "";
   await sendBrevoEmail({
     to: toEmail,
-    subject: `Tu reporte semanal Zyra ${topEmoji} — ${new Date(data.weekStart).toLocaleDateString("es-CO")}`,
-    html: wrap(`
-      <div style="text-align:center;margin-bottom:24px;">
-        <div style="font-size:40px;margin-bottom:8px;">${topEmoji}</div>
-        <h2 style="color:#f0f0ff;margin:0;font-size:20px;">Reporte de la semana, ${esc(userName)}</h2>
-        <p style="color:#7a7a9a;font-size:13px;margin:8px 0 0;">
-          ${new Date(data.weekStart).toLocaleDateString("es-CO")} – ${new Date(data.weekEnd).toLocaleDateString("es-CO")}
-        </p>
-      </div>
-      <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
-        <div style="flex:1;min-width:110px;background:rgba(99,102,241,.1);border-radius:12px;padding:14px;text-align:center">
-          <div style="font-size:24px;font-weight:800;color:#818cf8">${data.positivity}%</div>
-          <div style="font-size:11px;color:#7a7a9a;margin-top:4px">Positividad</div>
-        </div>
-        <div style="flex:1;min-width:110px;background:rgba(16,185,129,.1);border-radius:12px;padding:14px;text-align:center">
-          <div style="font-size:24px;font-weight:800;color:#34d399">${data.history.length}</div>
-          <div style="font-size:11px;color:#7a7a9a;margin-top:4px">Registros</div>
-        </div>
-        <div style="flex:1;min-width:110px;background:rgba(251,191,36,.1);border-radius:12px;padding:14px;text-align:center">
-          <div style="font-size:24px;font-weight:800;color:#fbbf24">${data.completedGoals.length}</div>
-          <div style="font-size:11px;color:#7a7a9a;margin-top:4px">Metas logradas</div>
-        </div>
-      </div>
-      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:20px;margin-bottom:20px;color:#c8c8e8;font-size:14px;line-height:1.8">
-        ${html}
-      </div>
-      <div style="text-align:center;margin-top:20px">
-        <a href="https://zyra-app-8qva.onrender.com" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:700;font-size:14px;display:inline-block">Ver mi progreso en Zyra →</a>
-      </div>
-    `),
+    subject: `Tu semana en Zyra ${topEmoji} · ${range}`,
+    html: layout({
+      preheader: `Tu emoción más frecuente fue ${EMOTION_NOUN[data.topEmotion] || "la calma"}. Mira lo que notó Zyra y tu plan para esta semana.`,
+      body: heading(topEmoji, name ? `${name}, así fue tu semana` : "Así fue tu semana", `Del ${range}`)
+        + stats(cells)
+        + `<div style="border-top:1px solid ${C.line};padding-top:16px;margin:0 0 6px">${cleanReportHtml(html)}</div>`
+        + heartLine
+        + `<div style="text-align:center;margin:6px 0 0">${button(`${APP_URL}/?p=weekly-report`, "Ver mi reporte en Zyra")}</div>`,
+      note: "Te llega porque tu plan incluye el reporte semanal. Este análisis lo hace la IA de Zyra con lo que registraste; no es un diagnóstico.",
+    }),
   });
 };
 
-// Reporte semanal compartido a un tercero (psicólogo, familiar, consejero) --
-// arma las estadísticas a partir de lo que el reporte ya guardado SÍ tiene
-// (emotionData/mainEmotion/insights), no de los datos crudos de cuando se
-// generó por primera vez (esos no se persisten). El encabezado deja claro
-// que es un reporte compartido, no uno dirigido al destinatario.
+/* ══ Reporte compartido con alguien de confianza (psicólogo, familiar…) ══ */
 const sendSharedWeeklyReport = async (toEmail, recipientName, userName, report) => {
-  const EMOTION_EMOJI = { feliz:"😊", tranquilo:"😌", ansioso:"😰", triste:"😢", enojado:"😤", confundido:"🤔", esperanzado:"🌟", agotado:"😮‍💨", motivado:"💪", nostalgico:"🌅" };
   const POSITIVE = new Set(["feliz","tranquilo","esperanzado","motivado"]);
   const freq = report.emotionData || {};
   const total = Object.values(freq).reduce((s, n) => s + n, 0);
@@ -211,98 +287,116 @@ const sendSharedWeeklyReport = async (toEmail, recipientName, userName, report) 
   const positivity = total > 0 ? Math.round((positive / total) * 100) : 0;
   const topEmoji = EMOTION_EMOJI[report.mainEmotion] || "💙";
   const weekStart = new Date(report.weekOf);
-  const weekEnd = new Date(weekStart.getTime() + 7 * 86400000);
-
+  const range = `${fmtDay(weekStart)} al ${fmtDay(new Date(weekStart.getTime() + 6 * 86400000))}`;
+  const who = esc(plain(userName, 80));
+  // Nombre completo: a un tercero ("Dra. Martínez") no se le saluda solo por la primera palabra
+  const to = esc(plain(recipientName, 40).replace(/[.\s]+$/, ""));
+  const cells = [
+    { value: `${positivity}%`, label: "Ánimo positivo", color: C.brand, bg: C.tint },
+    { value: String(total), label: "Registros", color: "#0f9f76", bg: "#effaf5" },
+  ];
+  if (report.heart && report.heart.restAvg != null) cells.push({ value: `${report.heart.restAvg}`, label: "Pulso en reposo", color: "#d6336c", bg: "#fff1f5" });
   await sendBrevoEmail({
     to: toEmail,
-    subject: `${esc(userName)} compartió su reporte de bienestar Zyra contigo ${topEmoji}`,
-    html: wrap(`
-      <div style="text-align:center;margin-bottom:24px;">
-        <div style="font-size:40px;margin-bottom:8px;">${topEmoji}</div>
-        <h2 style="color:#f0f0ff;margin:0;font-size:20px;">Hola${recipientName ? " " + esc(recipientName) : ""}, ${esc(userName)} quiso compartir esto contigo</h2>
-        <p style="color:#7a7a9a;font-size:13px;margin:8px 0 0;">
-          Semana del ${weekStart.toLocaleDateString("es-CO")} al ${weekEnd.toLocaleDateString("es-CO")}
-        </p>
-      </div>
-      <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
-        <div style="flex:1;min-width:110px;background:rgba(99,102,241,.1);border-radius:12px;padding:14px;text-align:center">
-          <div style="font-size:24px;font-weight:800;color:#818cf8">${positivity}%</div>
-          <div style="font-size:11px;color:#7a7a9a;margin-top:4px">Positividad</div>
-        </div>
-        <div style="flex:1;min-width:110px;background:rgba(16,185,129,.1);border-radius:12px;padding:14px;text-align:center">
-          <div style="font-size:24px;font-weight:800;color:#34d399">${total}</div>
-          <div style="font-size:11px;color:#7a7a9a;margin-top:4px">Registros</div>
-        </div>
-      </div>
-      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:20px;margin-bottom:20px;color:#c8c8e8;font-size:14px;line-height:1.8">
-        ${report.html}
-      </div>
-      <p style="color:#7a7a9a;font-size:12px;text-align:center;margin-top:20px;line-height:1.6">
-        Este análisis lo generó la IA de Zyra a partir de lo que ${esc(userName)} registró en la app.<br/>No reemplaza una evaluación profesional.
-      </p>
-    `),
+    subject: `${plain(userName, 40)} compartió contigo su reporte de bienestar ${topEmoji}`,
+    html: layout({
+      preheader: `Semana del ${range}. ${plain(userName, 40)} quiso que lo vieras.`,
+      body: heading(topEmoji, `${to ? `Hola, ${to}. ` : ""}${who} quiso compartir esto contigo`, `Su semana en Zyra, del ${range}`)
+        + stats(cells)
+        + `<div style="border-top:1px solid ${C.line};padding-top:16px;margin:0 0 6px">${cleanReportHtml(report.html)}</div>`
+        + box(`Este resumen lo hizo la IA de Zyra con lo que ${who} registró en la app. Puede servir para empezar una conversación, pero no reemplaza una evaluación profesional.`),
+      note: `Te llega porque ${who} escribió tu correo para compartirte este reporte. No te suscribimos a nada.`,
+    }),
   });
 };
 
+/* ══ Alerta de crisis al contacto de emergencia ══ */
 const sendCrisisAlert = async (toEmail, contactName, userName, message) => {
   try {
+    const who = esc(plain(userName, 80));
+    const to = esc(firstName(contactName));
     await sendBrevoEmail({
       to: toEmail,
-      subject: `⚠️ Alerta de bienestar — ${userName} podría necesitar apoyo`,
-      html: wrap(`
-        <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:16px;padding:24px;margin-bottom:20px">
-          <h2 style="color:#f87171;margin:0 0 8px;font-size:18px">⚠️ Alerta de bienestar emocional</h2>
-          <p style="color:#fca5a5;font-size:13px;margin:0">Zyra ha detectado que <strong>${esc(userName)}</strong> podría estar pasando por un momento difícil.</p>
-        </div>
-        <p style="color:#c8c8e8;font-size:14px;line-height:1.7">Hola ${esc(contactName)},</p>
-        <p style="color:#a8a8c8;font-size:14px;line-height:1.7">${esc(userName)} te registró como contacto de emergencia en Zyra. Hemos detectado una posible situación de crisis y te notificamos para que puedas estar disponible si te necesita.</p>
-        <p style="color:#a8a8c8;font-size:14px;line-height:1.7">Por favor intenta ponerte en contacto con ${esc(userName)} pronto. Si crees que está en peligro inmediato, contacta los servicios de emergencia.</p>
-        <div style="background:rgba(99,102,241,.08);border-radius:12px;padding:16px;margin:20px 0">
-          <p style="color:#818cf8;font-size:13px;margin:0;font-weight:700">Líneas de crisis:</p>
-          <p style="color:#a8a8c8;font-size:13px;margin:8px 0 0;line-height:1.8">🇨🇴 Colombia: Línea 106 (Salud Mental) · 123 (Emergencias)<br/>🇪🇸 España: 024 (Suicidio) · 112 (Emergencias)<br/>🌎 Internacional: befrienders.org</p>
-        </div>
-        <p style="color:#5a5a7a;font-size:12px">Este mensaje fue enviado automáticamente por Zyra como parte de su sistema de apoyo a usuarios.</p>
-      `),
+      subject: `${plain(userName, 40)} podría necesitar tu apoyo hoy`,
+      html: layout({
+        preheader: `${plain(userName, 40)} te eligió como su persona de confianza en Zyra.`,
+        body: heading("🤝", `${to ? `Hola, ${to}` : "Hola"}`, `<strong style="color:${C.text}">${who}</strong> te registró en Zyra como su contacto de confianza. Por lo que escribió hace poco, creemos que podría estar pasando por un momento muy difícil.`)
+          + `<p style="margin:0 0 12px;font-family:${FONT};font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:${C.muted}">Lo que puedes hacer</p>`
+          + steps([
+            ["📞", "Búscale hoy", "Una llamada o un mensaje sencillo: «Pensé en ti, ¿cómo estás?». No necesitas tener las palabras perfectas."],
+            ["👂", "Escucha sin juzgar", "Pregúntale cómo se siente y deja que hable. Estar presente ya ayuda mucho."],
+            ["🚨", "Si hay peligro inmediato", "Llama al 123 o acompáñale a urgencias. No le dejes sin compañía."],
+          ])
+          + box(`Líneas de ayuda en Colombia: ${CRISIS_LINES}. En otro país: <a href="https://findahelpline.com" style="color:${C.brand}">findahelpline.com</a>`, { bg: "#fff6f6", border: "#f7d6d6" }),
+        note: `Por privacidad, no incluimos lo que ${who} escribió. Te llega solo porque te eligió como su contacto de emergencia.`,
+      }),
     });
   } catch(e) {
     console.error("Crisis alert email error:", e.message);
   }
 };
 
-// "Te extrañamos": a quien lleva varios días sin entrar (lo manda el cron de server/index.js).
-// opts.days: días sin entrar · opts.userId: para el enlace de "no recibir más estos correos"
+/* ══ Apoyo a la propia persona cuando escribió algo de crisis ══
+   (antes recibía la alerta del contacto de emergencia: "Hola Ana, Ana te registró como
+   contacto de emergencia…") */
+const sendCrisisSupportEmail = async (toEmail, userName = "") => {
+  try {
+    const name = esc(firstName(userName));
+    await sendBrevoEmail({
+      to: toEmail,
+      subject: "Aquí estamos contigo 💙",
+      html: layout({
+        preheader: "Hay personas listas para escucharte ahora mismo, sin juzgarte.",
+        body: heading("💙", name ? `${name}, aquí estamos contigo` : "Aquí estamos contigo", "Lo que escribiste nos importa. Si estás pasando por un momento muy difícil, no tienes que cargarlo en silencio.")
+          + box(`<strong style="color:${C.text};font-size:15px">Habla con alguien ahora</strong><br/>📞 ${CRISIS_LINES}<br/>Te atienden personas preparadas para escucharte, sin juzgarte.`, { bg: "#fff6f6", border: "#f7d6d6" })
+          + steps([
+            ["🤝", "Busca a alguien de confianza", "Un amigo, alguien de tu familia o tu persona de confianza. Un mensaje corto basta: «No estoy bien, ¿hablamos?»."],
+            ["🛟", "Abre tu plan de seguridad", "Las señales, lo que te ayuda y las personas a las que puedes llamar, en un solo lugar."],
+          ])
+          + `<div style="text-align:center;margin:8px 0 0">${button(`${APP_URL}/?p=profile`, "Abrir mi plan de seguridad")}</div>`,
+        note: "Zyra te acompaña, pero no reemplaza a un profesional de la salud mental. Si estás en peligro, llama al 123.",
+      }),
+    });
+  } catch(e) {
+    console.error("Crisis support email error:", e.message);
+  }
+};
+
+/* ══ "Te extrañamos": a quien lleva varios días sin entrar (cron en server/index.js) ══
+   opts.days: días sin entrar · opts.userId: para el enlace de "no recibir más estos correos" */
 const sendNudgeEmail = async (toEmail, userName = "", opts = {}) => {
   try {
-    const name = esc(userName || "");
+    const first = firstName(userName);
+    const name = esc(first);
     const days = Number(opts.days) || 0;
     const { unsubscribeUrl } = require("./unsubscribe");
     const unsub = opts.userId ? unsubscribeUrl(opts.userId) : null;
     await sendBrevoEmail({
       to: toEmail,
-      subject: name ? `${name}, te extrañamos 💙` : "Te extrañamos 💙",
-      html: wrap(`
-        <div style="text-align:center;margin-bottom:24px;">
-          <div style="font-size:48px;margin-bottom:8px;">💙</div>
-          <h2 style="color:#f0f0ff;margin:0;font-size:20px;">${name ? `Hola, ${name}` : "Hola"}</h2>
-          <p style="color:#a8a8c8;font-size:15px;line-height:1.6;margin:12px 0 0;">${days >= 2 ? `Hace ${days} días que no hablamos.` : "Hace unos días que no hablamos."}<br/>No tienes que estar mal para volver: ¿cómo vas hoy?</p>
-        </div>
-        <div style="background:rgba(99,102,241,0.08);border-radius:14px;padding:20px;margin-bottom:20px;">
-          <p style="color:#c8c8e8;font-size:13px;margin:0 0 12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Algo cortico para hoy:</p>
-          <div style="color:#a8a8c8;font-size:13px;line-height:2.2;">
-            💓 <strong style="color:#c8c8e8;">Tu check-in cuerpo y mente</strong>: 30 segundos<br/>
-            💬 <strong style="color:#c8c8e8;">Contarle a Zyra cómo te fue</strong>: te escucha sin juzgar<br/>
-            🌬️ <strong style="color:#c8c8e8;">Una respiración guiada</strong>: un minuto para bajar las revoluciones
-          </div>
-        </div>
-        <div style="text-align:center;">
-          <a href="https://zyra-app-8qva.onrender.com" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;">Volver a Zyra →</a>
-        </div>
-        <p style="color:#5a5a7a;font-size:11px;text-align:center;margin-top:24px;line-height:1.6;">Te escribimos porque tienes una cuenta en Zyra.${unsub ? `<br/><a href="${unsub}" style="color:#7a7aaa;">No quiero recibir más estos correos</a>` : ""}</p>
-      `),
+      subject: first ? `${first}, te extrañamos 💙` : "Te extrañamos 💙",
+      // Gmail y Outlook muestran "Cancelar suscripción" junto al remitente con esto
+      headers: unsub ? { "List-Unsubscribe": `<${unsub}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } : undefined,
+      html: layout({
+        preheader: "No tienes que estar mal para volver. Algo de 30 segundos para hoy.",
+        body: heading("💙", name ? `Hola, ${name}` : "Hola", `${days >= 2 ? `Hace ${days} días que no hablamos.` : "Hace unos días que no hablamos."} No tienes que estar mal para volver: ¿cómo vas hoy?`)
+          + `<p style="margin:0 0 12px;font-family:${FONT};font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:${C.muted}">Algo cortico para hoy</p>`
+          + steps([
+            ["💓", "Tu check-in cuerpo y mente", "30 segundos: tu pulso y cómo te sientes."],
+            ["💬", "Cuéntale a Zyra cómo te fue", "Te escucha sin juzgar y se acuerda de lo que le cuentas."],
+            ["🌬️", "Una respiración guiada", "Un minuto para bajar las revoluciones."],
+          ])
+          + `<div style="text-align:center;margin:10px 0 0">${button(APP_URL, "Volver a Zyra")}</div>`,
+        note: `Te escribimos porque tienes una cuenta en Zyra.${unsub ? ` <a href="${unsub}" style="color:${C.muted};text-decoration:underline">No quiero recibir más estos correos</a>` : ""}`,
+      }),
     });
   } catch(e) {
     console.error("Nudge email error:", e.message);
   }
 };
 
-module.exports = { sendVerificationCode, sendWelcomeEmail, sendPasswordResetCode, sendWeeklyReport, sendSharedWeeklyReport, sendCrisisAlert, sendNudgeEmail, sendBrevoEmail };
+module.exports = {
+  sendVerificationCode, sendWelcomeEmail, sendPasswordResetCode, sendWeeklyReport, sendSharedWeeklyReport,
+  sendCrisisAlert, sendCrisisSupportEmail, sendNudgeEmail, sendBrevoEmail,
+  // Para las pruebas y para ver los correos sin enviarlos
+  _layout: layout, _cleanReportHtml: cleanReportHtml, _htmlToText: htmlToText,
+};

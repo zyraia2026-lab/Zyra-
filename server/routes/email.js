@@ -25,4 +25,13 @@ r.get("/unsubscribe", async (req, res) => {
   }
 });
 
+// "Cancelar suscripción" de un clic en Gmail/Outlook (encabezado List-Unsubscribe-Post):
+// el cliente de correo hace POST a la misma dirección, sin abrir ninguna página
+r.post("/unsubscribe", async (req, res) => {
+  const { u, t } = req.query;
+  if (!u || !mongoose.isValidObjectId(String(u)) || !validUnsubscribe(u, t)) return res.status(400).end();
+  try { await User.updateOne({ _id: u }, { emailOptOut: true }); res.status(200).end(); }
+  catch (e) { res.status(500).end(); }
+});
+
 module.exports = r;

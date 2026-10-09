@@ -55,7 +55,7 @@ async function notifyEmergencyContact(userId, userName, message) {
   try {
     const User    = require("../models/User");
     const Profile = require("../models/Profile");
-    const { sendCrisisAlert } = require("../utils/emailService");
+    const { sendCrisisAlert, sendCrisisSupportEmail } = require("../utils/emailService");
 
     const [user, profile] = await Promise.all([
       User.findById(userId).select("email").lean(),
@@ -73,9 +73,10 @@ async function notifyEmergencyContact(userId, userName, message) {
         .catch(e => console.error(`🚨 [CRISIS] Fallo enviando alerta al contacto de emergencia de ${userId}:`, e.message));
     }
 
-    // Siempre notificar al propio usuario
+    // Siempre escribirle a la propia persona, con un correo de apoyo (antes le llegaba la
+    // alerta del contacto: "Hola Ana, Ana te registró como contacto de emergencia…")
     if (user?.email) {
-      await sendCrisisAlert(user.email, userName, userName, message)
+      await sendCrisisSupportEmail(user.email, userName)
         .catch(e => console.error(`🚨 [CRISIS] Fallo enviando alerta al propio usuario ${userId}:`, e.message));
     }
 
