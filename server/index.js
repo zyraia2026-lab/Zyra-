@@ -313,6 +313,13 @@ for (const slug of GUIAS) {
   });
 }
 
+// ── /lab: prototipo 3D para elegir estilos de animación (no se indexa).
+app.get("/lab", (req, res) => {
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("X-Robots-Tag", "noindex");
+  res.sendFile(path.join(__dirname, "../client/lab.html"));
+});
+
 // ── SPA fallback — solo para rutas reales de la app; lo demas es 404 de verdad
 // (antes cualquier URL inventada respondia 200 con la app, lo que Google
 // indexa como paginas basura).
