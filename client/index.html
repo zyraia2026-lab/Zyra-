@@ -24306,6 +24306,7 @@ function _z3dMountRec() {
   const host = document.querySelector("#zyra-rec-card .zyra-rec-avatar");
   if (!host || !_z3dOn()) return;
   Zyra3D.aura(host, { portrait: document.getElementById("zyra-main-avatar"), size: 1.5, rim: 1.15, small: true, signalHz: 4, mood: _z3dMood,
+    live: { src: "/Imagenes/zyra-avatar-hd.webp", posY: 0.05, bg: [12, 8, 40, 0.38], parallax: 0.7 },
     signal: () => ({ state: document.getElementById("zyra-rec-text")?.textContent === "Pensando..." ? "thinking" : "idle" }) });
 }
 let _vcThinking = false, _vcLvlBuf = null, _vcLastSent = '';
@@ -24327,7 +24328,9 @@ function _z3dCallSignal() {
 function _z3dMountCall() {
   const host = document.querySelector("#page-voice-call .vc-avatar-section");
   if (!host || !_z3dOn()) return false;
-  return !!Zyra3D.aura(host, { portrait: document.getElementById("vc-avatar"), size: 1.75, rim: 1.12, signal: _z3dCallSignal, mood: _z3dMood });
+  // Retrato vivo: parpadea, la mira, mueve la boca al hablar y tiene profundidad al inclinar
+  return !!Zyra3D.aura(host, { portrait: document.getElementById("vc-avatar"), size: 1.75, rim: 1.12, signal: _z3dCallSignal, mood: _z3dMood,
+    live: { src: "/Imagenes/zyra-avatar-hd.webp", posY: 0.10, bg: [12, 8, 40, 0.42] } });
 }
 function _z3dBreath() {
   const c = document.getElementById("breath-circle");

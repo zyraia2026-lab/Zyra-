@@ -225,6 +225,76 @@ void main(){
   a *= vA * uAlpha;
   gl_FragColor = vec4(col * a, a);
 }`;
+  // Retrato vivo de Zyra: su foto dibujada con profundidad (se mueve en 3D al inclinar),
+  // parpadeo, ojos que miran y boca que se abre al hablar. Todo sale de UNA foto: se deforma
+  // la imagen solo en la zona de los ojos y de la boca (coordenadas medidas en la foto).
+  const LIVE_FS = `
+uniform sampler2D uTex; uniform sampler2D uDepth;
+uniform vec2 uC; uniform float uR; uniform vec4 uCrop; uniform vec2 uImg;
+uniform vec2 uTilt; uniform vec2 uGaze; uniform float uBlink; uniform float uTalk;
+uniform float uTime; uniform float uBreath; uniform float uPar;
+uniform vec4 uEyeL; uniform vec4 uEyeR; uniform vec4 uMouth; uniform vec3 uAng;
+uniform vec4 uBg; uniform float uAlpha;
+vec2 rot(vec2 v, float a){ float c = cos(a), s = sin(a); return vec2(c * v.x - s * v.y, s * v.x + c * v.y); }
+// Ojo: e = coordenadas del ojo (x a lo ancho, y hacia abajo; el borde del ojo abierto está en ±1)
+vec2 eyeWarp(vec2 px, vec4 E, float ang){
+  vec2 e = rot(px - E.xy, -ang) / E.zw;
+  float au = abs(e.x);
+  if (au > 1.85 || e.y < -2.15 || e.y > 1.45) return px;
+  // La mirada: el centro del ojo (iris) se corre un poco; los bordes no se mueven
+  float gm = 1.0 - smoothstep(0.35, 0.95, length(e * vec2(1.0, 0.9)));
+  vec2 s = e - rot(uGaze, -ang) * vec2(0.24, 0.16) * gm;
+  // Parpadeo: la piel de arriba del ojo (entre la ceja y las pestañas) se estira hacia abajo
+  // como un párpado y el ojo se aplasta debajo. Es la misma piel de la foto: no hay costuras.
+  // Hacia las esquinas se apaga suave (y llega hasta el delineado de la punta del ojo)
+  float b = uBlink * (1.0 - smoothstep(1.0, 1.8, au));
+  if (b > 0.002) {
+    float A = -2.1, L = -1.22, B = 1.45; // debajo de la ceja · borde de las pestañas · debajo del ojo
+    float edge = mix(L, 1.0, b) + min(e.x * e.x, 1.0) * 0.14 * b;
+    if (e.y < edge) s.y = A + (e.y - A) * (L - A) / (edge - A);
+    else s.y = L + (e.y - edge) * (B - L) / max(B - edge, 0.001);
+  }
+  return E.xy + rot(s * E.zw, ang);
+}
+// Boca: al hablar se abre (más hacia abajo, como la mandíbula)
+vec2 mouthWarp(vec2 px){
+  vec2 m = rot(px - uMouth.xy, -uAng.z) / uMouth.zw;
+  float w = 1.0 - smoothstep(0.75, 1.7, length(m * vec2(0.85, 0.5)));
+  float k = uTalk * w * (m.y > 0.0 ? 0.45 : 0.12);
+  m.y = m.y / (1.0 + k);
+  return uMouth.xy + rot(m * uMouth.zw, uAng.z);
+}
+void main(){
+  vec2 p = (gl_FragCoord.xy - uC) / uR;
+  float r = length(p);
+  if (r > 1.0) discard;
+  float edgeA = 1.0 - smoothstep(1.0 - 1.6 / uR, 1.0, r);
+  vec2 q = vec2(p.x, -p.y) * 0.5 + 0.5;
+  vec2 uv = uCrop.xy + q * uCrop.zw;
+  // Respira y flota
+  uv.y += (uv.y - 0.95) * uBreath * 0.008 + sin(uTime * 0.9) * 0.0022;
+  // Profundidad: lo que está más cerca (la cara, el cuerpo) se mueve más que el fondo
+  float dep = texture2D(uDepth, uv).r;
+  uv -= uTilt * (dep - 0.45) * vec2(0.032, 0.024) * uPar;
+  vec2 px = uv * uImg;
+  px = mouthWarp(px);
+  px = eyeWarp(px, uEyeL, uAng.x);
+  px = eyeWarp(px, uEyeR, uAng.y);
+  uv = px / uImg;
+  vec4 c = texture2D(uTex, clamp(uv, 0.0, 1.0));
+  if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) c = vec4(0.0);
+  gl_FragColor = (c + uBg * (1.0 - c.a)) * edgeA * uAlpha;
+}`;
+  // Medidas de la cara en la foto original (433 x 577 px): ojos y boca (centro, medio ancho,
+  // medio alto, inclinación). Si se cambia la foto, hay que volver a medirlas.
+  const ZYRA_FACE = {
+    img: [433, 577],
+    eyeL: [197.5, 168.0, 19.0, 10.5], angL: 0.05,
+    eyeR: [265.5, 144.5, 16.4, 12.0], angR: -0.34,
+    mouth: [246, 210, 27, 9], angM: -0.30,
+    face: [235 / 433, 170 / 577], // centro de la cara (para la profundidad)
+  };
+
   // Respiración: miles de partículas en una esfera que se infla y se suelta
   const BP_VS = `
 attribute vec3 aDir; attribute vec2 aSeed;
@@ -432,6 +502,7 @@ void main(){
     }
     // Mide la fluidez real; si cae, baja la resolución; si igual no alcanza, apaga el 3D
     perfTick(now) {
+      if (window.__z3dDebug && window.__z3dDebug.noPerf) return; // solo para fotos de prueba
       const p = this.perf;
       if (p.t0 === null || now - p.lastNow > 1000) { p.t0 = now; p.n = 0; }
       p.lastNow = now;
@@ -463,6 +534,150 @@ void main(){
       if (this.c) this.c.remove();
       this.host.classList.remove("z3d-on");
       if (this.host._z3d === this) delete this.host._z3d;
+    }
+  }
+
+  /* ══════════ Retrato vivo (se dibuja en el mismo lienzo del aura) ══════════ */
+  function texParams(gl) {
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  }
+  // Mapa de profundidad: la silueta (la parte no transparente) desenfocada + la cara un poco más cerca
+  function depthMap(img, face) {
+    const w = 54, h = 72;
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    const x = c.getContext("2d");
+    x.drawImage(img, 0, 0, w, h);
+    const d = x.getImageData(0, 0, w, h).data;
+    let a = new Float32Array(w * h);
+    for (let i = 0; i < w * h; i++) a[i] = d[i * 4 + 3] / 255;
+    const blur = (s) => {
+      const o = new Float32Array(w * h), o2 = new Float32Array(w * h), R = 2;
+      for (let y = 0; y < h; y++) for (let X = 0; X < w; X++) { let sum = 0, n = 0; for (let k = -R; k <= R; k++) { const xx = X + k; if (xx >= 0 && xx < w) { sum += s[y * w + xx]; n++; } } o[y * w + X] = sum / n; }
+      for (let y = 0; y < h; y++) for (let X = 0; X < w; X++) { let sum = 0, n = 0; for (let k = -R; k <= R; k++) { const yy = y + k; if (yy >= 0 && yy < h) { sum += o[yy * w + X]; n++; } } o2[y * w + X] = sum / n; }
+      return o2;
+    };
+    a = blur(blur(blur(a)));
+    const out = new Uint8Array(w * h);
+    for (let y = 0; y < h; y++) for (let X = 0; X < w; X++) {
+      const fu = ((X + 0.5) / w - face[0]) / 0.17, fv = ((y + 0.5) / h - face[1]) / 0.13;
+      out[y * w + X] = Math.round(255 * clamp(a[y * w + X] * 0.72 + Math.exp(-(fu * fu + fv * fv)) * 0.33, 0, 1));
+    }
+    return { w, h, data: out };
+  }
+  class LivePortrait {
+    constructor(aura, cfg) {
+      this.a = aura; this.cfg = cfg; this.face = cfg.face || ZYRA_FACE;
+      this.ready = false; this.fade = 0;
+      this.prog = program(aura.gl, QUAD_VS, FPREC + LIVE_FS);
+      this.aP = aura.gl.getAttribLocation(this.prog.p, "aP");
+      this.blink = 0; this.blinkT = -1; this.nextBlink = 1.5 + Math.random() * 2; this.double = false; this.lastSt = "";
+      this.gaze = [0, 0];
+      const img = new Image();
+      img.decoding = "async";
+      img.onload = () => { if (!aura.dead) { try { this.upload(img); } catch (e) {} } };
+      img.src = cfg.src;
+    }
+    upload(img) {
+      const gl = this.a.gl;
+      const W = img.naturalWidth, H = img.naturalHeight;
+      if (!W || !H) return;
+      // Sin mipmaps (WebGL1 y una imagen que no es potencia de 2): se achica antes con buena
+      // calidad para el tamaño en que se ve; si no, en tamaños pequeños se ve granulada
+      const shown = Math.max(1, (this.a.prPx || 120) * 2 * Math.max(this.a.dpr, 1));
+      const th = Math.round(clamp(shown / Math.min(1, W / H) * 1.15, 96, H));
+      let src = img;
+      if (th < H) {
+        const c = document.createElement("canvas"); c.height = th; c.width = Math.round(th * W / H);
+        const x = c.getContext("2d"); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = "high";
+        x.drawImage(img, 0, 0, c.width, c.height);
+        src = c;
+      }
+      this.tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, this.tex);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+      texParams(gl);
+      const D = depthMap(img, this.face.face);
+      this.dtex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, this.dtex);
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, D.w, D.h, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, D.data);
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+      texParams(gl);
+      const ar = W / H, py = this.cfg.posY == null ? 0.1 : this.cfg.posY;
+      // Igual que object-fit: cover + object-position de la <img> que reemplaza
+      this.crop = ar < 1 ? [0, py * (1 - ar), 1, ar] : [(1 - 1 / ar) * 0.5, 0, 1 / ar, 1];
+      this.ready = true;
+      if (this.a.portrait) this.a.portrait.style.transform = ""; // la foto de siempre queda quieta (y oculta)
+      this.a.host.classList.add("z3d-live");
+      kick();
+    }
+    // Se quita (equipo lento): vuelve la foto de siempre
+    dispose() {
+      const gl = this.a.gl;
+      try { if (this.tex) gl.deleteTexture(this.tex); if (this.dtex) gl.deleteTexture(this.dtex); gl.deleteProgram(this.prog.p); } catch (e) {}
+      this.ready = false;
+      this.a.host.classList.remove("z3d-live");
+    }
+    tick(dt, S) {
+      const dbg = window.__z3dDebug;
+      // Parpadeo natural (a veces doble); al empezar a escucharte también parpadea
+      if (S.st !== this.lastSt) { if (S.st === "listening" && this.blinkT < 0) this.nextBlink = S.t; this.lastSt = S.st; }
+      if (this.blinkT < 0 && S.t > this.nextBlink) { this.blinkT = 0; this.double = Math.random() < 0.18; }
+      let b = 0;
+      if (this.blinkT >= 0) {
+        this.blinkT += dt;
+        const k = this.blinkT / 0.17, curve = (x) => Math.sin(Math.PI * clamp(x, 0, 1));
+        if (k < 1) b = curve(k);
+        else if (this.double && k < 2.25) b = k < 1.25 ? 0 : curve(k - 1.25);
+        else { this.blinkT = -1; this.nextBlink = S.t + 2.2 + Math.random() * 3.6; }
+      }
+      this.blink = dbg && dbg.blink != null ? dbg.blink : b;
+      // Mirada: te sigue; te mira de frente cuando habla; mira hacia arriba cuando piensa
+      let gx = S.gx * 0.9, gy = S.gy * 0.7;
+      gx = lerp(gx, 0, S.speak * 0.6); gy = lerp(gy, 0, S.speak * 0.6);
+      gx = lerp(gx, -0.5, S.think); gy = lerp(gy, -0.8, S.think);
+      if (dbg && dbg.gx != null) { gx = dbg.gx; gy = dbg.gy || 0; }
+      this.gaze[0] = damp(this.gaze[0], gx, 7, dt);
+      this.gaze[1] = damp(this.gaze[1], gy, 7, dt);
+      if (this.ready) this.fade = Math.min(1, this.fade + dt * 3);
+    }
+    render(gl, S, br) {
+      if (!this.ready) return;
+      const a = this.a, F = this.face, u = this.prog.u, dbg = window.__z3dDebug;
+      const s = a.scale, cx = a.c.width / 2 + a.pOff[0] * s, cy = a.c.height / 2 - a.pOff[1] * s;
+      gl.disable(gl.DEPTH_TEST);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      gl.useProgram(this.prog.p);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.tex);
+      gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.dtex);
+      gl.uniform1i(u.uTex, 0); gl.uniform1i(u.uDepth, 1);
+      gl.uniform2f(u.uC, cx, cy);
+      gl.uniform1f(u.uR, a.prPx * s);
+      gl.uniform4fv(u.uCrop, this.crop);
+      gl.uniform2fv(u.uImg, F.img);
+      const tx = dbg && dbg.tx != null ? dbg.tx : S.gx, ty = dbg && dbg.ty != null ? dbg.ty : S.gy;
+      gl.uniform2f(u.uTilt, tx, ty);
+      gl.uniform2f(u.uGaze, this.gaze[0], this.gaze[1]);
+      gl.uniform1f(u.uBlink, this.blink);
+      gl.uniform1f(u.uTalk, dbg && dbg.talk != null ? dbg.talk : S.talk * 0.9);
+      gl.uniform1f(u.uTime, S.t);
+      gl.uniform1f(u.uBreath, br);
+      gl.uniform1f(u.uPar, this.cfg.parallax == null ? 1 : this.cfg.parallax);
+      gl.uniform4fv(u.uEyeL, F.eyeL); gl.uniform4fv(u.uEyeR, F.eyeR); gl.uniform4fv(u.uMouth, F.mouth);
+      gl.uniform3f(u.uAng, F.angL, F.angR, F.angM);
+      const bg = this.cfg.bg || [12, 8, 40, 0.42];
+      gl.uniform4f(u.uBg, bg[0] / 255 * bg[3], bg[1] / 255 * bg[3], bg[2] / 255 * bg[3], bg[3]);
+      gl.uniform1f(u.uAlpha, this.fade);
+      attrib(gl, a.tri, this.aP, 2);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      if (this.aP >= 0) gl.disableVertexAttribArray(this.aP);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.enable(gl.DEPTH_TEST);
     }
   }
 
@@ -507,6 +722,14 @@ void main(){
       this.onDown = (e) => this.poke(e);
       (o.pokeEl || host).addEventListener("pointerdown", this.onDown, { passive: true });
       if (this.portrait) this.portrait.style.willChange = "transform";
+      this.pOff = [0, 0];
+      // Retrato vivo: parpadea, mira, habla y tiene profundidad (si la foto no carga, queda la de siempre).
+      // En modo ligero (sin tarjeta gráfica) no: bajaba la llamada a 10 cuadros por segundo.
+      if (o.live && this.portrait && !this.soft) { try { this.live = new LivePortrait(this, o.live); } catch (e) { this.live = null; } }
+      // Con el retrato vivo no se baja mucho la resolución (la cara se vería borrosa): si el
+      // equipo no da, primero se quita el retrato vivo (ver lighter) y vuelve la foto nítida
+      this.baseMinScale = this.minScale;
+      if (this.live) this.minScale = Math.max(this.minScale, Math.min(this.maxScale, 1.5));
     }
     setDetail(level) {
       const gl = this.gl, s = icosphere(level);
@@ -525,6 +748,7 @@ void main(){
       this.nSpk = n;
     }
     lighter() {
+      if (this.live) { this.live.dispose(); this.live = null; this.minScale = this.baseMinScale; return true; }
       if (this.detail > 3) { this.setDetail(3); return true; }
       if (this.nSpk > 8) { this.setSparks(8); return true; }
       return false;
@@ -554,6 +778,11 @@ void main(){
       const css = Math.round(Math.max(hw, hh) * (this.opts.size || 1.6));
       this.sizeCanvas(css, css);
       const pr = this.portrait ? Math.min(this.portrait.offsetWidth, this.portrait.offsetHeight) / 2 : hw * 0.42;
+      this.prPx = pr;
+      // Dónde queda la foto dentro del lienzo (centro de la foto respecto al centro del contenedor)
+      const p = this.portrait;
+      if (p && p.offsetParent === this.host) this.pOff = [p.offsetLeft + p.offsetWidth / 2 - hw / 2, p.offsetTop + p.offsetHeight / 2 - hh / 2];
+      else if (p) { const a = this.host.getBoundingClientRect(), b = p.getBoundingClientRect(); this.pOff = [b.left + b.width / 2 - (a.left + a.width / 2), b.top + b.height / 2 - (a.top + a.height / 2)]; }
       this.pk = clamp(pr / 120, 0.1, 2);
       this.f = clamp((pr / (css / 2)) * (this.opts.rim || 1.06), 0.2, 0.9);
       const fov = 30 * Math.PI / 180, tan = Math.tan(fov / 2);
@@ -624,10 +853,13 @@ void main(){
       const glow = 0.35 + S.mic * 0.6 + S.talk * 0.45 + S.think * (0.3 + 0.25 * Math.sin(S.t * 5)) + S.listen * 0.15 + pokeGlow;
       const amp = S.amp + S.mic * 0.07 + S.think * 0.012;
       const speed = S.speed * (1 + S.think * 1.6 + S.speak * 0.5);
+      if (this.live) this.live.tick(dt, S);
+      this.br = br;
       this.render(scale, glow, amp, speed, wake);
       this.perfTick(now);
       // Su foto también vive: respira, asiente al hablar, se acerca al escucharte y se inclina contigo
-      if (this.portrait) {
+      // (con el retrato vivo, el movimiento lo hace el lienzo y la foto de siempre queda oculta)
+      if (this.portrait && !(this.live && this.live.ready)) {
         const pa = S.pokeAge, bounce = pa < 1.6 ? Math.exp(-pa * 5) * Math.sin(pa * 22) * 0.06 : 0;
         const sc = 1 + br * 0.01 + S.listen * 0.02 + S.mic * 0.03 + S.talk * 0.012 + bounce;
         const rx = -S.gy * 10 + S.talk * 3.2 * Math.sin(S.t * 7.3);
@@ -681,8 +913,11 @@ void main(){
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ibo);
       gl.drawElements(gl.TRIANGLES, this.count, gl.UNSIGNED_SHORT, 0);
       if (this.aPos >= 0) gl.disableVertexAttribArray(this.aPos);
+      // Retrato vivo encima de la esfera
+      if (this.live) this.live.render(gl, S, this.br || 0);
       // Chispas
       gl.depthMask(false);
+      gl.blendFunc(gl.ONE, gl.ONE);
       gl.blendFunc(gl.ONE, gl.ONE);
       gl.useProgram(this.spk.p);
       u = this.spk.u;
@@ -707,6 +942,7 @@ void main(){
       super.destroy();
       if (this.onDown) (this.opts.pokeEl || this.host).removeEventListener("pointerdown", this.onDown);
       if (this.portrait) { this.portrait.style.transform = ""; this.portrait.style.willChange = ""; }
+      this.host.classList.remove("z3d-live");
     }
   }
 
@@ -937,6 +1173,10 @@ void main(){
 .zyra-rec-avatar.z3d-on .zyra-rec-pulse{display:none}
 .zyra-rec-avatar.z3d-on .zyra-avatar-svg{position:relative;z-index:1;animation:none!important;filter:none!important}
 .zyra-rec-avatar.z3d-on .zyra-avatar-svg img{background:rgba(12,8,40,.38);box-shadow:inset 0 0 0 2px rgba(255,255,255,.3)}
+.vc-avatar-section.z3d-live .vc-avatar{background:transparent!important}
+.vc-avatar-section.z3d-live #vc-avatar-img{opacity:0}
+.zyra-rec-avatar.z3d-live .zyra-avatar-svg{border-radius:50%;box-shadow:inset 0 0 0 2px rgba(255,255,255,.3)}
+.zyra-rec-avatar.z3d-live .zyra-avatar-svg img{opacity:0}
 .breath-wrap.z3d-on{position:relative;padding:70px 0}
 .breath-wrap.z3d-on .breath-circle{background:transparent!important;box-shadow:none!important;transform:none!important;transition:none!important;z-index:1}
 .breath-wrap.z3d-on .breath-circle::before{content:"";position:absolute;inset:30px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.82) 38%,rgba(255,255,255,0) 72%);z-index:-1;pointer-events:none}
