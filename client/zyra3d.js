@@ -384,7 +384,7 @@ void main(){
       if (!v || v.dead) continue;
       const was = v.visible;
       v.visible = e.isIntersecting;
-      if (v.visible && !was) { v.dirty = true; v.rect = null; v.perf.warmUntil = performance.now() + 800; if (v.onShow) v.onShow(); kick(); }
+      if (v.visible && !was) { v.dirty = true; v.rect = null; v.perf.warmUntil = performance.now() + 2000; v.perf.slow = 0; if (v.onShow) v.onShow(); kick(); }
     }
   }, { rootMargin: "80px" }) : null;
 
@@ -446,7 +446,9 @@ void main(){
       if (fps < T * 0.77) {
         p.good = 0;
         if (this.scale > this.minScale + 0.01) { this.scale = Math.max(this.minScale, this.scale - 0.25); this.dirty = true; }
-        else if (!(this.lighter && this.lighter()) && fps < T * 0.4 && ++p.slow >= 3) slowDevice();
+        // 5 segundos seguidos muy lentos (no 3): al cambiar de página la carga da tirones
+        // de 1-2 s que no son culpa del 3D, y apagarlo por eso lo dejaba apagado toda la sesión
+        else if (!(this.lighter && this.lighter()) && fps < T * 0.4 && ++p.slow >= 5) slowDevice();
       } else {
         p.slow = Math.max(0, p.slow - 1);
         if (fps > T * 0.95 && ++p.good >= 4 && this.scale < this.maxScale) { p.good = 0; this.scale = Math.min(this.maxScale, this.scale + 0.15); this.dirty = true; }
