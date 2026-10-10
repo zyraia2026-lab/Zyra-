@@ -129,6 +129,41 @@ app.use("/api", apiRateLimit({
   standardHeaders: true, legacyHeaders: false, validate: { keyGeneratorIpFallback: false },
 }));
 
+// ── index.html comprimido UNA vez al arrancar (brotli calidad máxima: 305 KB en vez de 408 KB)
+// y servido desde la memoria. Antes se leía del disco y se comprimía en cada visita: tardaba
+// ~1,5 s en empezar a responder, contra ~0,5 s de los demás archivos. La compresión fuerte va en
+// segundo plano (no bloquea el arranque); mientras tanto se sirve como siempre.
+const INDEX_PATH = path.join(__dirname, "../client/index.html");
+let indexCache = null;
+(function buildIndexCache() {
+  try {
+    const zlib = require("zlib");
+    const raw = require("fs").readFileSync(INDEX_PATH);
+    zlib.brotliCompress(raw, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 11, [zlib.constants.BROTLI_PARAM_SIZE_HINT]: raw.length } }, (err, br) => {
+      if (err) return;
+      zlib.gzip(raw, { level: 9 }, (err2, gz) => {
+        indexCache = { br, gz: err2 ? null : gz };
+        console.log(`📦 index.html listo en memoria: ${Math.round(raw.length / 1024)} KB → brotli ${Math.round(br.length / 1024)} KB`);
+      });
+    });
+  } catch (e) { console.warn("index.html en memoria:", e.message); }
+})();
+function serveIndex(req, res) {
+  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  const ae = String(req.headers["accept-encoding"] || "");
+  if (indexCache && (/\bbr\b/.test(ae) || (/\bgzip\b/.test(ae) && indexCache.gz))) {
+    const useBr = /\bbr\b/.test(ae);
+    res.setHeader("Content-Type", "text/html; charset=UTF-8");
+    res.setHeader("Vary", "Accept-Encoding");
+    res.setHeader("Content-Encoding", useBr ? "br" : "gzip"); // compression() no la vuelve a comprimir
+    return res.end(useBr ? indexCache.br : indexCache.gz);
+  }
+  res.sendFile(INDEX_PATH);
+}
+app.get(["/", "/index.html"], serveIndex);
+
 app.use(express.static(path.join(__dirname, "../client"), {
   maxAge: process.env.NODE_ENV === "production" ? "1d" : 0,
   etag: true,
@@ -333,10 +368,7 @@ const NOT_FOUND_HTML = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-
 
 app.get("*", (req, res) => {
   if (req.path.startsWith("/api/")) return res.status(404).json({ message: "Ruta no encontrada" });
-  if (SPA_ROUTES.has(req.path)) {
-    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-    return res.sendFile(path.join(__dirname, "../client/index.html"));
-  }
+  if (SPA_ROUTES.has(req.path)) return serveIndex(req, res);
   res.status(404).type("html").send(NOT_FOUND_HTML);
 });
 
