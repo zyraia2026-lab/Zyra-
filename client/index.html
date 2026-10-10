@@ -2203,12 +2203,12 @@ async function b2bSubmitContact() {
     <div class="auth-left-content">
       <div class="auth-hero-text">
         <h2>Comienza tu viaje de <em>bienestar emocional</em></h2>
-        <p>Crea tu cuenta gratis y haz el test personalizado para que Zyra te entienda desde el primer momento.</p>
+        <p>Crea tu cuenta gratis en un minuto. Zyra se acuerda de lo que le cuentas y te acompaña desde el primer día.</p>
       </div>
       <div class="auth-stats">
         <div class="auth-stat">
-          <span class="auth-stat-num">8</span>
-          <span class="auth-stat-label">Preguntas</span>
+          <span class="auth-stat-num">1 min</span>
+          <span class="auth-stat-label">Para empezar</span>
         </div>
         <div class="auth-stat-sep"></div>
         <div class="auth-stat">
@@ -2218,11 +2218,11 @@ async function b2bSubmitContact() {
         <div class="auth-stat-sep"></div>
         <div class="auth-stat">
           <span class="auth-stat-num">$0</span>
-          <span class="auth-stat-label">Para empezar</span>
+          <span class="auth-stat-label">Gratis</span>
         </div>
       </div>
       <div class="auth-features">
-        <div class="auth-feat"><span class="auth-feat-icon">✨</span><span class="auth-feat-text">Test emocional de 8 preguntas al registrarte</span></div>
+        <div class="auth-feat"><span class="auth-feat-icon">✨</span><span class="auth-feat-text">Zyra se acuerda de ti y te pregunta cómo te fue</span></div>
         <div class="auth-feat"><span class="auth-feat-icon">💬</span><span class="auth-feat-text">Chatea con Zyra IA todos los días</span></div>
         <div class="auth-feat"><span class="auth-feat-icon">🌙</span><span class="auth-feat-text">Disponible 24/7, cuando más lo necesites</span></div>
       </div>
@@ -4365,14 +4365,20 @@ function _homePage() { return "dashboard"; }
     })
       .then(r => r.json())
       .then(d => {
-        if (!d.token) return;
+        if (!d.token) throw new Error(d.message || 'sin token');
         token = d.token;
         user  = d.user;
         localStorage.setItem('zyra_token', token);
         localStorage.setItem('zyra_user',  JSON.stringify(user));
+        // Cuenta nueva con Google: falta ver y aceptar los términos (edad y aviso de salud mental)
+        if (!d.user || !d.user.termsAcceptedAt) localStorage.setItem('zyra_terms_pending', '1');
         location.reload();
       })
-      .catch(() => {});
+      // Antes fallaba en silencio: la persona quedaba en la portada, sin sesión y sin saber por qué
+      .catch(() => setTimeout(() => {
+        if (typeof zyraToast === 'function') zyraToast('No pudimos terminar de entrar con Google. Intenta de nuevo, por favor.', 'error', 6000);
+        if (typeof showPage === 'function') showPage('login');
+      }, 1200));
   } else if (authError) {
     history.replaceState({}, '', location.pathname);
     const _msg = decodeURIComponent(authError).replace(/[<>"']/g, "");
@@ -4963,11 +4969,15 @@ async function doRegisterVerify() {
     loadFeatureConfig();
     applyPendingReferral();
     if (d.user.termsAcceptedAt) localStorage.setItem("zyra_terms_accepted", TERMS_VER);
+    // Términos → bienvenida de 3 pasos (nombre, motivo, recordatorios) → chat. Antes seguía el
+    // test de 8 preguntas y la bienvenida (con los recordatorios) quedaba para la próxima vez
+    // que abriera la app; muchas personas no volvían. El test queda como sugerencia en el chat.
     if (!d.user.termsAcceptedAt) {
-      _termsNextAction = "test";
+      _termsNextAction = _homePage();
       showTermsOverlay();
     } else {
-      startTest(true);
+      showPage(_homePage());
+      setTimeout(() => checkOnboarding(), 800);
     }
   } catch(e) { showError("vr-error", e.message); shakeCode("vr"); }
   finally { btn.disabled = false; btn.textContent = "Confirmar y Crear Cuenta →"; }
@@ -5014,6 +5024,7 @@ function updateTermsBtn() {
 async function acceptTermsAndContinue() {
   try { await api("/auth/accept-terms", "POST"); } catch(e) {}
   localStorage.setItem("zyra_terms_accepted", TERMS_VER);
+  localStorage.removeItem("zyra_terms_pending");
   const overlay = document.getElementById("zyra-terms-overlay");
   if(overlay) overlay.style.display = "none";
   document.body.style.overflow = "";
@@ -15550,6 +15561,8 @@ function newChat() {
   }
 
   addBotMsg(_g(welcome));
+  // Marca de saludo automático: la bienvenida personalizada lo reemplaza (_obWelcomeMessage)
+  { const _b = msgs.querySelectorAll(".msg.bot"); if (_b.length) _b[_b.length - 1].classList.add("msg-auto-greet"); }
   // Show anxiety breathing nudge
   if (_todayEmo === "ansioso" || _todayEmo === "enojado" || _todayEmo === "agotado") {
     setTimeout(() => zyraToast("💙 /respirar si necesitas calmar algo ahora mismo", "info", 4000), 3000);
@@ -17503,7 +17516,10 @@ async function obFinish() {
   } catch (e) {
     console.error("obFinish error:", e);
   } finally {
-    // 3. Cerrar onboarding y navegar al chat
+    // 3. Cerrar onboarding y navegar al chat. En esta primera sesión no sale "¿Cómo estás hoy?"
+    // encima del primer mensaje de Zyra (después de términos y bienvenida era la 3.ª ventana
+    // seguida); su primer mensaje ya le pregunta cómo está.
+    sessionStorage.setItem("zyra_checkin_session_shown", "1");
     const el = document.getElementById("zyra-onboarding");
     if (el) el.style.display = "none";
     updateNav();
@@ -17529,9 +17545,11 @@ function _obWelcomeMessage(firstName, reason) {
   try {
     const msgs = document.getElementById("messages");
     if (!msgs) return;
-    // Si ya hay mensajes reales (no solo el typing indicator), no inyectar
-    const existing = msgs.querySelectorAll(".msg.bot, .msg.user");
-    if (existing.length > 0) return;
+    // Si ya escribió algo, no se interrumpe. El saludo automático del chat (newChat) se cambia
+    // por este, que sí sabe qué la/lo trajo. Antes este mensaje nunca salía: el saludo
+    // automático llegaba primero y además llamaba a appendBotMessage, que no existe.
+    if (msgs.querySelector(".msg.user")) return;
+    msgs.querySelectorAll(".msg.bot.msg-auto-greet").forEach(m => m.remove());
 
     const WELCOME = {
       ansiedad: firstName
@@ -17557,11 +17575,20 @@ function _obWelcomeMessage(firstName, reason) {
         : `Hola 💜 Bienvenido/a. Me alegra que estés aquí. ¿Cómo estás hoy?`,
     };
 
-    const text = WELCOME[reason] || WELCOME.default;
-    appendBotMessage(text, null, null);
+    const text = _g(WELCOME[reason] || WELCOME.default);
+    addBotMsg(text);
+    chatHistory.push({ role: "assistant", content: text });
+    // Sugerencias: el test emocional (ya no es obligatorio al registrarse) y respuestas rápidas
+    const old = document.getElementById("prompt-chips"); if (old) old.remove();
+    const chips = document.createElement("div");
+    chips.id = "prompt-chips";
+    chips.className = "prompt-chips";
+    chips.innerHTML = `<button class="prompt-chip" onclick="startTest()">📝 Hacer el test emocional (1 min)</button>` + _chipHTML([["😊", "Hoy estoy bien"], ["😮‍💨", "Hoy ha sido un día pesado"], ["💬", "Solo quiero hablar"]]);
+    msgs.insertBefore(chips, document.getElementById("typing-indicator"));
+    msgs.scrollTop = msgs.scrollHeight;
     // Tour for new users — after the welcome message settles
     setTimeout(_checkShowTour, 4000);
-  } catch(e) {}
+  } catch(e) { console.warn("Bienvenida de Zyra:", e && e.message); }
 }
 
 /* ════ TEMAS DE COLOR ════ */
@@ -18393,6 +18420,7 @@ async function sendMsg() {
           if (userMsgs === 5) triggerMission("chat_zyra");
           showResponseChips(fullText);
           setTimeout(() => _maybeAskToWrite(msg), 1200);
+          if (userMsgs === 3) setTimeout(_maybeShowInstall, 4000);
         }
 
         if (data.error) {
@@ -19072,7 +19100,9 @@ function _initApp() {
     const authPages = window.ZYRA_AUTH_PAGES || ['landing','login','register','verify-login','verify-register','forgot-password','reset-password','voice-call'];
     const startPage = (urlPage && !authPages.includes(urlPage)) ? urlPage : _homePage();
     showPage(startPage);
-    setTimeout(() => checkOnboarding(), 1000);
+    // Cuenta nueva con Google: primero los términos (al aceptar sigue la bienvenida)
+    if (localStorage.getItem("zyra_terms_pending")) { _termsNextAction = startPage; showTermsOverlay(); }
+    else setTimeout(() => checkOnboarding(), 1000);
   } else {
     showPage("landing");
     updatePlanPagePrices(); // Precios en moneda local desde el primer render
@@ -21628,14 +21658,31 @@ let deferredPrompt = null;
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
-  // No mostrar durante llamada de voz ni al inicio — solo si el usuario lo solicita
-  const vcPage = document.getElementById('page-voice-call');
-  const isInCall = vcPage && vcPage.classList.contains('page') && getComputedStyle(vcPage).display !== 'none';
-  if (!isInCall && token) {
-    const banner = document.getElementById('pwa-install-banner');
-    if (banner) { banner.style.display = 'flex'; }
-  }
+  _maybeShowInstall();
 });
+// "Instala Zyra" cuando ya la conoce: desde su 2.ª visita o después de 3 mensajes con Zyra.
+// Antes salía apenas el navegador lo permitía, en el primer minuto y encima del chat. Si lo
+// cierra, no vuelve en 7 días.
+function _maybeShowInstall() {
+  try {
+    if (!deferredPrompt || !token) return;
+    if (window._zyraCurrentPage === 'voice-call') return;
+    const off = +localStorage.getItem('zyra_pwa_dismissed_at') || 0;
+    if (Date.now() - off < 7 * 86400000) return;
+    const visits = +localStorage.getItem('zyra_visits') || 0;
+    const talked = (typeof chatHistory !== 'undefined' ? chatHistory.filter(m => m.role === 'user').length : 0) >= 3;
+    if (visits < 2 && !talked) return;
+    const banner = document.getElementById('pwa-install-banner');
+    if (banner) banner.style.display = 'flex';
+  } catch (e) {}
+}
+function _dismissInstall() {
+  try { localStorage.setItem('zyra_pwa_dismissed_at', String(Date.now())); } catch (e) {}
+  const banner = document.getElementById('pwa-install-banner');
+  if (banner) banner.style.display = 'none';
+}
+// Visitas (una por sesión del navegador)
+try { if (!sessionStorage.getItem('zyra_visit_counted')) { sessionStorage.setItem('zyra_visit_counted', '1'); localStorage.setItem('zyra_visits', String((+localStorage.getItem('zyra_visits') || 0) + 1)); } } catch (e) {}
 
 function installPWA() {
   if (!deferredPrompt) {
@@ -21941,7 +21988,9 @@ document.addEventListener('DOMContentLoaded', () => {
        no se encimen con nada. Con @media(max-width:768px) para que NO se
        cuele en desktop (sin esto, esta regla le gana por especificidad al
        bottom:24px de arriba y el aviso queda flotando a mitad del chat en PC). */
-    @media(max-width:768px) { body[data-page="assistant"] #pwa-install-banner { bottom: 330px; } }
+    /* En el chat del celular va arriba, debajo del encabezado: abajo (bottom:330px) quedaba
+       encima de los mensajes y de las sugerencias */
+    @media(max-width:768px) { body[data-page="assistant"] #pwa-install-banner { bottom: auto; top: calc(78px + env(safe-area-inset-top)); } }
     /* En desktop, la caja del chat llega casi hasta el borde inferior de la
        ventana (deja solo ~32px libres) -- con bottom:24px el aviso terminaba
        encima del aviso legal y las pildoras de entrada. Se sube lo suficiente
@@ -21957,7 +22006,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <div style="font-size:28px">📱</div>
   <p><strong>Instala Zyra</strong><br>Úsala como app en tu celular</p>
   <button onclick="installPWA()">Instalar</button>
-  <button class="pwa-close" onclick="document.getElementById('pwa-install-banner').style.display='none'">✕</button>
+  <button class="pwa-close" aria-label="Cerrar" onclick="_dismissInstall()">✕</button>
 </div>
 
 

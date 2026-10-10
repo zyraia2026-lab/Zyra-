@@ -136,13 +136,13 @@ router.get('/:provider/callback', async (req, res) => {
     if (!user && isRealEmail) user = await User.findOne({ email: email.toLowerCase() });
 
     if (!user) {
-      // Crear nuevo usuario OAuth
+      // Crear nuevo usuario OAuth. Los términos NO se dan por aceptados: la app se los muestra
+      // (con la edad mínima y el aviso de que Zyra no reemplaza a un profesional), igual que
+      // al registrarse con correo. Antes se marcaban aceptados sin que la persona los viera.
       user = new User({
         name:  name || email.split('@')[0],
         email: email.toLowerCase(),
         [cfg.idField]: providerId,
-        termsAcceptedAt:      new Date(),
-        termsAcceptedVersion: '1.0',
       });
     } else {
       if (!user[cfg.idField]) user[cfg.idField] = providerId;
@@ -166,6 +166,7 @@ router.get('/:provider/callback', async (req, res) => {
       spotifyConnected:  user.spotifyConnected  || false,
       googleConnected:   !!user.googleId,
       facebookConnected: !!user.facebookId,
+      termsAcceptedAt:   user.termsAcceptedAt || null,
     };
 
     // El token real no va en la URL — solo un código de un solo uso, valido
