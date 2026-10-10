@@ -583,16 +583,12 @@ function closeSplash(){
 </div>
 
 <!-- ══ GDPR COOKIE BANNER ══ -->
-<div id="zyra-gdpr-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9600;background:rgba(14,14,26,.97);border-top:1px solid rgba(99,102,241,.25);backdrop-filter:blur(12px);padding:14px 20px">
-  <div style="max-width:700px;margin:0 auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-    <div style="flex:1;min-width:240px">
-      <div style="font-size:13px;color:var(--text,#e8eaf6);font-weight:600;margin-bottom:3px">🍪 Uso de almacenamiento local</div>
-      <div style="font-size:12px;color:var(--text3,#7880a0);line-height:1.5">Zyra guarda tu sesión y preferencias en el almacenamiento local de tu navegador (no cookies de seguimiento). Sin esto la app no funciona. <a onclick="showLegal('privacy')" style="color:#818cf8;cursor:pointer">Ver política</a></div>
-    </div>
-    <div style="display:flex;gap:8px;flex-shrink:0">
-      <button onclick="rejectGdpr()" style="padding:9px 16px;background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:10px;color:var(--text3,#7880a0);font-size:12px;cursor:pointer">Solo esenciales</button>
-      <button onclick="acceptGdpr()" style="padding:9px 18px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:10px;color:white;font-size:12px;font-weight:700;cursor:pointer">Entendido</button>
-    </div>
+<!-- Aviso corto: Zyra solo guarda lo esencial (sesión y preferencias), así que no hay nada que
+     "rechazar". Antes tenía dos botones que hacían lo mismo y tapaba un tercio de la pantalla. -->
+<div id="zyra-gdpr-banner" role="region" aria-label="Aviso de almacenamiento" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9600;background:rgba(14,14,26,.96);border-top:1px solid rgba(99,102,241,.25);backdrop-filter:blur(12px);padding:10px 16px calc(10px + env(safe-area-inset-bottom))">
+  <div style="max-width:700px;margin:0 auto;display:flex;align-items:center;gap:12px;width:100%">
+    <div style="flex:1;min-width:0;font-size:12px;color:#aab2d0;line-height:1.45">🔒 Zyra solo guarda en tu dispositivo lo necesario para funcionar (tu sesión y tus preferencias). Sin rastreo ni publicidad. <a onclick="showLegal('privacy')" style="color:#a5b4fc;cursor:pointer;text-decoration:underline">Ver política</a></div>
+    <button onclick="acceptGdpr()" style="flex-shrink:0;padding:9px 16px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:10px;color:white;font-size:13px;font-weight:700;cursor:pointer">Entendido</button>
   </div>
 </div>
 
@@ -1646,7 +1642,7 @@ function closeMobileMoreSheet() {
   <div class="lp-trust">
     <div class="lp-trust-item">🔒 Privado y cifrado</div>
     <div class="lp-trust-item">✅ Sin tarjeta para empezar</div>
-    <div class="lp-trust-item">🇨🇴 Hecho para Latinoamérica</div>
+    <div class="lp-trust-item">🌎 Hecho para Latinoamérica</div>
     <div class="lp-trust-item">🧠 IA que te conoce</div>
   </div>
 </section>
