@@ -207,7 +207,7 @@ async function applyVisit(userId, { countSession = true } = {}) {
       sendToUser(userId, {
         title: msg.title, body: msg.body,
         icon: "/Imagenes/logo-nuevo.png", badge: "/Imagenes/logo-nuevo.png",
-        tag: "zyra-streak-milestone", data: { url: "/?p=gamification" },
+        tag: "zyra-streak-milestone", data: { url: "/?p=dashboard" }, // antes "gamification": esa página no existe y abría en blanco
       }).catch(() => {});
     }
 

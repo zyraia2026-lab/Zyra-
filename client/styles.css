@@ -4772,3 +4772,15 @@ body { overflow-wrap: break-word; }
 .wa-invite-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
 .wa-invite-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(37,211,102,.35); }
 .wa-invite-btn:active { transform: scale(.98); }
+
+/* "¿Te escribo para saber cómo te fue?": tarjeta dentro del chat (ver _maybeAskToWrite) */
+.zf-ask{align-self:center;margin:6px auto 10px;max-width:440px;width:calc(100% - 24px);box-sizing:border-box;background:linear-gradient(135deg,rgba(139,92,246,.12),rgba(99,102,241,.08));border:1.5px solid rgba(139,92,246,.3);border-radius:18px;padding:14px 16px;animation:zfIn .45s cubic-bezier(.34,1.56,.64,1) both}
+.zf-ask-t{font-size:14px;font-weight:700;color:var(--text);line-height:1.45}
+.zf-ask-s{font-size:12px;color:var(--text3);line-height:1.55;margin-top:6px}
+.zf-ask-b{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.zf-ask-b button{border-radius:12px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.zf-yes{background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;box-shadow:0 6px 18px rgba(139,92,246,.3)}
+.zf-yes:disabled{opacity:.7;cursor:default}
+.zf-no{background:transparent;border:1px solid var(--border);color:var(--text3)}
+@keyframes zfIn{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.zf-ask{animation:none}}

@@ -66,6 +66,9 @@ const S = new mongoose.Schema({
   lastProactiveAt:    { type: Date, default: null },
   lastSundayReflectionAt: { type: Date, default: null },
   lastEveningCheckInAt:   { type: Date, default: null },
+  // Tope de notificaciones por día (hora Colombia): ver reservePushSlot en pushController
+  pushDay:   { type: String, default: "" },
+  pushCount: { type: Number, default: 0 },
 
   // ── Personalización ──
   theme: { type: String, enum: ["default","ocean","forest","sunset","midnight"], default: "default" },

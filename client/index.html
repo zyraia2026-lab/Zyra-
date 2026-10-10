@@ -7,7 +7,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;0,800;1,700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="styles.css?v=20261009"/>
+<link rel="stylesheet" href="styles.css?v=20261010"/>
 <script src="/hr-guide.js"></script>
 <script src="/zyra3d.js" defer></script>
 
@@ -1257,7 +1257,8 @@ function closeMobileMoreSheet() {
         <li class="feat-ok">✓ Gráficos: últimos 7 días</li>
         <li class="feat-ok">✓ Modo emergencia ilimitado</li>
         <li class="feat-ok">✓ Sin anuncios</li>
-        <li class="feat-no">🔒 Notificaciones push y por correo</li>
+        <li class="feat-ok">✓ Recordatorio diario y mensajes de Zyra en tu celular</li>
+        <li class="feat-no">🔒 Reporte semanal por correo</li>
         <li class="feat-no">🔒 Contacto de emergencia</li>
         <li class="feat-no">🔒 Exportar diario (PDF/CSV)</li>
       </ul>
@@ -1284,7 +1285,7 @@ function closeMobileMoreSheet() {
         <li class="feat-ok">✓ Análisis semanal + recomendaciones según tu diario</li>
         <li class="feat-ok">✓ Gráficos: últimos 30 días</li>
         <li class="feat-ok">✓ Contacto de emergencia</li>
-        <li class="feat-ok">✓ Notificaciones push + 1 correo semanal</li>
+        <li class="feat-ok">✓ Reporte semanal por correo</li>
         <li class="feat-no">🔒 Exportar diario (PDF/CSV)</li>
       </ul>
       <button class="plan-btn plan-btn-primary" id="btn-plan-basic" onclick="event.stopPropagation();upgradePlan('basic')">Elegir Básico →</button>
@@ -1310,7 +1311,7 @@ function closeMobileMoreSheet() {
         <li class="feat-ok feat-gold">★ Gráficos: histórico completo</li>
         <li class="feat-ok feat-gold">★ Contacto de emergencia</li>
         <li class="feat-ok feat-gold">★ Exportar diario en PDF y CSV</li>
-        <li class="feat-ok feat-gold">★ Notificaciones push + correo diario</li>
+        <li class="feat-ok feat-gold">★ Reporte semanal por correo</li>
         <li class="feat-ok feat-gold">★ Sin anuncios</li>
       </ul>
       <button class="plan-btn plan-btn-gold" id="btn-plan-premium" onclick="event.stopPropagation();upgradePlan('premium')">Elegir Premium ✦</button>
@@ -1337,7 +1338,7 @@ function closeMobileMoreSheet() {
         <tr><td>Ejercicios guiados</td><td>5 al día</td><td>15 al día</td><td>Ilimitados</td></tr>
         <tr><td>Gráficos de progreso</td><td>Últimos 7 días</td><td>Últimos 30 días</td><td>Histórico completo</td></tr>
         <tr><td>Exportar diario</td><td>No</td><td>No</td><td>PDF / CSV</td></tr>
-        <tr><td>Notificaciones</td><td>Solo en la app</td><td>Push + 1 correo/semana</td><td>Push + 1 correo/día</td></tr>
+        <tr><td>Notificaciones</td><td>En el celular</td><td>En el celular + reporte semanal por correo</td><td>En el celular + reporte semanal por correo</td></tr>
       </tbody>
     </table>
     <p style="font-size:11.5px;color:var(--text3);margin-top:14px;line-height:1.6">
@@ -4714,8 +4715,14 @@ function showPage(name) {
   // Salvavidas: si sales de la llamada de voz sin tocar "colgar" (boton atras
   // del celular, etc.), igual soltar el microfono — mismo bug que la camara.
   if (name !== 'voice-call' && typeof vcActive !== 'undefined' && vcActive && typeof endVoiceCall === 'function') endVoiceCall();
-  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
   const pg = document.getElementById("page-" + name);
+  // Un enlace a una página que no existe (p. ej. el aviso de racha abría "?p=gamification")
+  // dejaba la app en blanco: se va al inicio. "weekly-report" se maneja más abajo.
+  if (!pg && name !== "weekly-report") {
+    const home = (typeof token !== "undefined" && token) ? _homePage() : "landing";
+    if (home !== name && document.getElementById("page-" + home)) return showPage(home);
+  }
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
   if(pg) pg.classList.add("active");
   window.scrollTo({ top: 0, behavior: "instant" });
 
@@ -11288,44 +11295,33 @@ async function renderMemoryFollowUp() {
   const seenKey = "zyra_mem_followup_" + new Date().toDateString();
   if (localStorage.getItem(seenKey)) return;
   try {
-    const d = await api("/memory");
-    const mems = d?.memories || [];
-    const now = Date.now();
-    // Find memories with a followUpDate that passed within the last 5 days
-    const followUps = mems.filter(m => {
-      if (!m.followUpDate) return false;
-      const dt = new Date(m.followUpDate).getTime();
-      return dt <= now && dt >= now - 5 * 86400000;
-    }).sort((a, b) => new Date(b.followUpDate) - new Date(a.followUpDate));
-    if (!followUps.length) return;
-    const mem = followUps[0];
-    const daysDiff = Math.round((now - new Date(mem.followUpDate).getTime()) / 86400000);
-    const timeHint = daysDiff === 0 ? "hoy" : daysDiff === 1 ? "ayer" : `hace ${daysDiff} días`;
-    const snippet = mem.content.length > 80 ? mem.content.slice(0, 77) + "..." : mem.content;
-    const followUpPrompt = "¿Cómo me fue con: " + snippet.split(".")[0].slice(0, 60) + "?";
+    // Solo mira (peek): la pregunta se marca cuando Zyra la hace en el chat
+    const d = await api("/memory/followup?peek=1");
+    const f = d && d.followUp;
+    if (!f || !f.text) return;
+    const isAsk = f.kind === "ask";
     el.innerHTML = `<div style="background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(99,102,241,.06));border:1.5px solid rgba(139,92,246,.25);border-radius:20px;padding:16px 18px;position:relative">
-      <button id="mem-followup-dismiss" style="position:absolute;top:10px;right:12px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;line-height:1">×</button>
-      <div style="font-size:9px;font-weight:800;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Zyra recuerda</div>
+      <button id="mem-followup-dismiss" aria-label="Cerrar" style="position:absolute;top:10px;right:12px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;line-height:1">×</button>
+      <div style="font-size:9px;font-weight:800;color:#a78bfa;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Zyra se acuerda 💜</div>
       <div style="display:flex;align-items:flex-start;gap:12px">
         <img src="${LOGO}" alt="Zyra" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(139,92,246,.3)"/>
         <div style="flex:1;min-width:0">
-          <div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:10px">
-            ${timeHint === "hoy" ? "Hoy era" : timeHint === "ayer" ? "Ayer era" : `${timeHint.charAt(0).toUpperCase()+timeHint.slice(1)} fue`} el momento de algo que mencionaste: <em style="color:var(--accent)">&ldquo;${safeHtml(snippet)}&rdquo;</em>
-          </div>
+          <div style="font-size:14px;color:var(--text);line-height:1.6;margin-bottom:10px;font-weight:600">${safeHtml(_g(f.text))}</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button id="mem-followup-tell" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;border-radius:10px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">Cuéntarle a Zyra</button>
+            <button id="mem-followup-tell" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;border-radius:10px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">${isAsk ? "Contarle cómo me fue" : "Hablar con Zyra"}</button>
             <button id="mem-followup-later" style="background:transparent;border:1px solid rgba(139,92,246,.3);color:var(--text3);border-radius:10px;padding:7px 14px;font-size:12px;cursor:pointer">Después</button>
           </div>
         </div>
       </div>
     </div>`;
-    const hideCard = () => { el.style.display = "none"; };
+    const hideCard = () => { el.style.display = "none"; localStorage.setItem(seenKey, "1"); };
     document.getElementById("mem-followup-dismiss")?.addEventListener("click", hideCard);
     document.getElementById("mem-followup-later")?.addEventListener("click", hideCard);
     document.getElementById("mem-followup-tell")?.addEventListener("click", () => {
       hideCard();
+      // En el chat, Zyra hace la pregunta ella misma y queda en la conversación
+      sessionStorage.removeItem("zyra_fu_checked");
       showPage("assistant");
-      setTimeout(() => fillPrompt(followUpPrompt), 400);
     });
     el.style.display = "block";
   } catch(e) {}
@@ -15318,6 +15314,7 @@ async function loadAssistant() {
   setTimeout(restoreChatDraft, 200);
   _startPlaceholderRotation();
   updateChatStatusStrip();
+  setTimeout(_zyraFollowUpNudge, 1400); // "¿Cómo te fue en…?" si le contaste algo con fecha
   // Auto-focus chat input on desktop
   if (!('ontouchstart' in window)) {
     setTimeout(() => document.getElementById("chat-input")?.focus(), 350);
@@ -15564,6 +15561,105 @@ function newChat() {
   msgs.insertBefore(chips, document.getElementById("typing-indicator"));
   loadHistory();
   _maybeShowMorningFollowup();
+}
+
+/* ══════════════════════════════════════════
+   ZYRA SE ACUERDA DE TI
+   Si le contaste algo con fecha (un examen, una cita, una entrevista), al abrir el chat te
+   pregunta cómo te fue (o te da ánimo la víspera). Si tocaste la notificación, el chat abre
+   con esa misma pregunta para que respondas. La pregunta entra al historial que lee la IA:
+   así, cuando contestas "bien", Zyra sabe de qué hablas.
+══════════════════════════════════════════ */
+async function _zyraFollowUpNudge() {
+  if (!token) return;
+  const fromPush = !!window._zyraFromFollowUpPush;
+  window._zyraFromFollowUpPush = false;
+  if (!fromPush && sessionStorage.getItem("zyra_fu_checked")) return;
+  sessionStorage.setItem("zyra_fu_checked", "1");
+  try {
+    const d = await api("/memory/followup" + (fromPush ? "?recent=1" : ""));
+    const f = d && d.followUp;
+    if (!f || !f.text || window._zyraCurrentPage !== "assistant") return;
+    showTyping(true);
+    await new Promise(r => setTimeout(r, 1100));
+    showTyping(false);
+    if (window._zyraCurrentPage !== "assistant") return;
+    const text = _g(f.text);
+    addBotMsg(text);
+    chatHistory.push({ role: "assistant", content: text });
+    // Respuestas rápidas en vez de las sugerencias genéricas
+    const msgs = document.getElementById("messages");
+    const old = document.getElementById("prompt-chips"); if (old) old.remove();
+    const chips = document.createElement("div");
+    chips.id = "prompt-chips";
+    chips.className = "prompt-chips";
+    chips.innerHTML = _chipHTML(f.kind === "ask"
+      ? [["😊", "¡Me fue bien!"], ["😐", "Más o menos"], ["😔", "No me fue tan bien"]]
+      : [["💜", "¡Gracias, Zyra!"], ["😬", "Estoy nervioso/a"]]);
+    if (msgs) msgs.insertBefore(chips, document.getElementById("typing-indicator"));
+    if (msgs) msgs.scrollTop = msgs.scrollHeight;
+  } catch (e) {}
+}
+
+/* ── Pedir permiso para escribirte, en el momento justo ──
+   Antes solo se pedía en la bienvenida, antes de conocer a Zyra, y casi todo el mundo decía
+   "Ahora no" (0 de 24 personas tenían avisos). Ahora se ofrece cuando tiene sentido: le
+   contaste algo con fecha ("mañana tengo examen") o ya llevan un rato hablando. Máximo una
+   vez cada 3 días y 3 veces en total; nunca si ya dijiste que no en el navegador. */
+const _FU_TIME_RE = /\b(mañana|pasado mañana|el (lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)|este (lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|fin de semana|finde)|esta (semana|tarde|noche)|la (pr[oó]xima|otra) semana|en (unos|dos|tres) d[ií]as)\b/i;
+const _FU_EVENT_RE = /\b(tengo|tendr[eé]|voy|me toca|es mi|ser[aá] mi|presento|examen|parcial|quiz|prueba|entrevista|cita|reuni[oó]n|presentaci[oó]n|exposici[oó]n|sustentaci[oó]n|viaje|vuelo|m[eé]dico|doctor|operaci[oó]n|cumplea[ñn]os|partido|audici[oó]n|turno|primer d[ií]a|matr[ií]cula|resultado)/i;
+function _pushAskState() {
+  try { return JSON.parse(localStorage.getItem("zyra_push_ask") || "{}"); } catch (e) { return {}; }
+}
+function _isIOSBrowserTab() {
+  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const standalone = window.navigator.standalone === true || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+  return ios && !standalone;
+}
+async function _maybeAskToWrite(userMsg) {
+  try {
+    if (!token) return;
+    const st = _pushAskState();
+    if ((st.n || 0) >= 3 || (st.last && Date.now() - st.last < 3 * 86400000)) return;
+    const supported = ("Notification" in window) && ("serviceWorker" in navigator) && ("PushManager" in window);
+    const iosTab = _isIOSBrowserTab();
+    if (!supported && !iosTab) return;
+    if (supported && Notification.permission === "denied") return;
+    if (supported && Notification.permission === "granted") {
+      // Ya dio permiso alguna vez: se activa en silencio, sin volver a preguntar
+      const reg = await navigator.serviceWorker.ready;
+      if (!(await reg.pushManager.getSubscription())) requestPushPermission().catch(() => {});
+      return;
+    }
+    const aboutEvent = _FU_TIME_RE.test(userMsg) && _FU_EVENT_RE.test(userMsg);
+    const userTurns = chatHistory.filter(m => m.role === "user").length;
+    if (!aboutEvent && userTurns < 5) return;
+    localStorage.setItem("zyra_push_ask", JSON.stringify({ n: (st.n || 0) + 1, last: Date.now() }));
+    const msgs = document.getElementById("messages");
+    if (!msgs) return;
+    const card = document.createElement("div");
+    card.className = "zf-ask";
+    const q = aboutEvent ? "¿Te escribo para saber cómo te fue?" : "¿Quieres que te escriba de vez en cuando para saber cómo vas?";
+    card.innerHTML = iosTab
+      ? `<div class="zf-ask-t">💜 ${q}</div><div class="zf-ask-s">En el iPhone, Zyra solo puede escribirte si la agregas a tu pantalla de inicio: toca <b>Compartir</b> <span aria-hidden="true">⬆️</span> y luego <b>«Agregar a inicio»</b>. Después ábrela desde ese ícono.</div><div class="zf-ask-b"><button type="button" class="zf-no">Entendido</button></div>`
+      : `<div class="zf-ask-t">💜 ${q}</div><div class="zf-ask-s">Te llega un mensajito de Zyra en el celular. Máximo 2 al día, y lo apagas cuando quieras.</div><div class="zf-ask-b"><button type="button" class="zf-yes">Sí, escríbeme</button><button type="button" class="zf-no">No, gracias</button></div>`;
+    msgs.insertBefore(card, document.getElementById("typing-indicator"));
+    msgs.scrollTop = msgs.scrollHeight;
+    card.querySelector(".zf-no").onclick = () => card.remove();
+    const yes = card.querySelector(".zf-yes");
+    if (yes) yes.onclick = async () => {
+      yes.disabled = true; yes.textContent = "Un momento…";
+      try {
+        await requestPushPermission();
+        card.innerHTML = `<div class="zf-ask-t">✅ Listo. Te escribo por aquí 💜</div>`;
+        localStorage.setItem("zyra_push_ask", JSON.stringify({ n: 9, last: Date.now() }));
+        setTimeout(() => card.remove(), 4000);
+      } catch (e) {
+        card.innerHTML = `<div class="zf-ask-t">Sin problema 💜</div><div class="zf-ask-s">Si cambias de opinión, actívalo en Perfil → Recordatorios.</div>`;
+        setTimeout(() => card.remove(), 6000);
+      }
+    };
+  } catch (e) {}
 }
 
 async function _maybeShowMorningFollowup() {
@@ -18204,15 +18300,15 @@ async function sendMsg() {
       streamDiv.remove();
       const d = await r.json().catch(() => ({}));
       if (d.crisis) { zyraTriggerCrisis(); chatHistory.pop(); return; }
-      if (r.status === 429 || d.limitReached) {
-        const _limitMsgs = [
-          "Llegamos a los 15 mensajes de hoy — ese es el límite del plan Gratis 💙 Si quieres seguir, el plan Básico te da 100 por $11.900/mes. Mañana volvemos.",
-          "Por hoy llegamos al límite de mensajes del plan Gratis. Pero no te vayas lejos — mañana empezamos de cero, o el plan Básico te da 100 al día por $11.900 COP/mes 💜",
-          "15 mensajes completados. No es fácil parar justo cuando más quieres hablar 💙 Con el plan Básico tendrías 100 al día — $11.900/mes.",
-        ];
-        addBotMsg(_limitMsgs[Math.floor(Math.random() * _limitMsgs.length)]);
+      if (d.limitReached) {
+        // El servidor dice cuál límite fue (ej. conversaciones guardadas del plan)
+        addBotMsg(d.message || "Llegaste a un límite de tu plan por ahora 💙");
         showUpgradePrompt("messages", "basic");
-        _zyraMessagesRemaining = 0; updateMsgsRemainingUI();
+      } else if (r.status === 429) {
+        // El chat ya no tiene tope diario (sin cargas responde más liviano): un 429 aquí es el
+        // freno de 30 mensajes por minuto. Antes decía "llegamos a los 15 mensajes de hoy" y
+        // ofrecía el plan Básico con números viejos.
+        addBotMsg("Uy, vas muy rápido 😅 Dame un momentico y seguimos.");
       } else {
         addBotMsg("Ups, tuve un problema técnico. Intenta de nuevo en un momento.");
       }
@@ -18263,6 +18359,7 @@ async function sendMsg() {
           const userMsgs = chatHistory.filter(m => m.role === "user").length;
           if (userMsgs === 5) triggerMission("chat_zyra");
           showResponseChips(fullText);
+          setTimeout(() => _maybeAskToWrite(msg), 1200);
           if (data.convLimitReached) {
             zyraToast("Llegaste al límite de conversaciones de tu plan. Esta sesión no se guardó.", "info");
             showUpgradePrompt("conversations", "basic");
@@ -18917,6 +19014,9 @@ function _initApp() {
   }
   // Página legal accesible sin login (abierta desde el overlay de términos)
   const _urlPs = new URLSearchParams(window.location.search);
+  // Llegó tocando la notificación "¿Cómo te fue…?": el chat abre con esa pregunta
+  // (se guarda antes de showPage, que reemplaza la dirección y borra el parámetro)
+  if (_urlPs.get('zf') === '1') window._zyraFromFollowUpPush = true;
   const _legalTab = _urlPs.get('tab');
   if (_legalTab === 'terms' || _legalTab === 'privacy') {
     showPage('legal');
@@ -21455,6 +21555,7 @@ if ('serviceWorker' in navigator) {
         try {
           const params = new URLSearchParams(new URL(e.data.url, location.origin).search);
           const page = params.get('p');
+          if (params.get('zf') === '1') window._zyraFromFollowUpPush = true;
           if (page) showPage(page);
         } catch(_) {}
       }

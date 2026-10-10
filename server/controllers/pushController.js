@@ -48,22 +48,43 @@ exports.unsubscribe = async (req, res) => {
   } catch(e) { res.status(500).json({ message: e.message }); }
 };
 
-/* Enviar notificación a un usuario específico */
-async function sendToUser(userId, payload) {
-  if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
+/* Tope de notificaciones: máximo 2 al día por persona (día de Colombia), y las genéricas
+   ("¿cómo vas?", check-in de la noche, domingo) solo si ese día no le ha llegado ninguna.
+   Lo que la persona pidió (su recordatorio), los seguimientos de lo que contó y las metas
+   tienen prioridad. El mensaje de cuidado después de una crisis nunca se bloquea.
+   Antes podían llegar 3-4 avisos el mismo día y la gente termina apagándolos para siempre. */
+const colDay = () => new Date(Date.now() - 5 * 3600 * 1000).toISOString().slice(0, 10);
+async function reservePushSlot(userId, kind, P = Profile, today = colDay()) {
+  if (kind === "caring") return true;
+  const first = await P.updateOne({ user: userId, pushDay: { $ne: today } }, { $set: { pushDay: today, pushCount: 1 } });
+  if (first.modifiedCount) return true;
+  if (kind === "generic") return false;
+  const more = await P.updateOne({ user: userId, pushDay: today, pushCount: { $lt: 2 } }, { $inc: { pushCount: 1 } });
+  if (more.modifiedCount) return true;
+  return !(await P.exists({ user: userId })); // sin perfil (raro): no hay con qué contar
+}
+
+/* Enviar notificación a un usuario específico. kind: "reminder" | "followup" | "goal" |
+   "caring" | "generic" | otro. Devuelve true si se envió. */
+async function sendToUser(userId, payload, kind = "other") {
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) return false;
   const sub = await PushSub.findOne({ user: userId }).select("subscription").lean();
-  if (!sub) return;
+  if (!sub) return false;
+  if (!(await reservePushSlot(userId, kind))) return false;
   try {
     await webpush.sendNotification(sub.subscription, JSON.stringify(payload));
+    return true;
   } catch(e) {
     if (e.statusCode === 410 || e.statusCode === 404) {
       await PushSub.deleteOne({ user: userId });
     } else {
       console.warn("[Push] Error enviando a", userId, e.message);
     }
+    return false;
   }
 }
 exports.sendToUser = sendToUser;
+exports._reservePushSlot = reservePushSlot;
 
 /* Mensajes según última emoción registrada */
 const EMO_MESSAGES = {
@@ -105,14 +126,9 @@ exports.sendDailyReminders = async () => {
       reminderMinute:  min,
     }).select("user lastReminderSentAt currentEmotion").lean();
 
-    // Notificaciones push: el plan Gratis solo ve avisos dentro de la app,
-    // no push -- filtramos aquí antes de enviar nada.
-    const User = require("../models/User");
-    const paidUserIds = new Set(
-      (await User.find({ _id: { $in: profiles.map(p => p.user) }, plan: { $ne: "free" } }).select("_id").lean())
-        .map(u => String(u._id))
-    );
-    profiles = profiles.filter(p => paidUserIds.has(String(p.user)));
+    // El recordatorio que la persona eligió (con su hora) le llega en todos los planes: la
+    // bienvenida se lo ofrece a todo el mundo ("¿Te recuerdo cada noche?"). Antes solo les
+    // llegaba a los planes pagos, y los avisos genéricos sí les llegaban a todos.
 
     const DEDUP_MS = 50 * 60 * 1000;
     let sent = 0;
@@ -127,7 +143,7 @@ exports.sendDailyReminders = async () => {
         badge: "/Imagenes/logo-nuevo.png",
         tag:   "zyra-daily",
         data:  { url: "/?p=assistant" },
-      });
+      }, "reminder");
       await Profile.updateOne({ _id: p._id }, { lastReminderSentAt: now });
       sent++;
     }
@@ -164,7 +180,7 @@ exports.sendDailyReminders = async () => {
           badge: "/Imagenes/logo-nuevo.png",
           tag:   "zyra-reengagement",
           data:  { url: "/?p=assistant" },
-        });
+        }, "generic");
         reSent++;
       }
       if (reSent) console.log(`[Push] Re-engagement enviado: ${reSent} usuarios`);
@@ -206,7 +222,7 @@ exports.sendDailyReminders = async () => {
             badge: "/Imagenes/logo-nuevo.png",
             tag:   "zyra-goals",
             data:  { url: "/?p=goals" },
-          });
+          }, "goal");
           goalNotifs++;
         }
         if (goalNotifs) console.log(`[Push] Alertas de metas enviadas: ${goalNotifs} usuarios`);
@@ -321,7 +337,7 @@ exports.sendProactiveCheckIn = async () => {
         badge: "/Imagenes/logo-nuevo.png",
         tag:   "zyra-proactive",
         data:  { url: "/?p=assistant" },
-      });
+      }, "generic");
 
       await Profile.updateOne({ _id: p._id }, { $set: { lastProactiveAt: now } });
       sent++;
@@ -387,7 +403,7 @@ exports.sendSundayReflection = async () => {
         badge: "/Imagenes/logo-nuevo.png",
         tag:   "zyra-sunday",
         data:  { url: "/?p=journal" },
-      });
+      }, "generic");
 
       await Profile.updateOne({ _id: p._id }, { $set: { lastSundayReflectionAt: now } });
       sent++;
@@ -413,7 +429,8 @@ exports.sendEveningCheckIn = async () => {
     if (!subs.length) return;
     const userIds = subs.map(s => s.user);
 
-    const profiles = await Profile.find({ user: { $in: userIds } })
+    // Quien tiene su propio recordatorio de la noche ya recibe ese: no se le manda otro una hora antes
+    const profiles = await Profile.find({ user: { $in: userIds }, reminderEnabled: { $ne: true } })
       .select("user emotionHistory lastEveningCheckInAt").lean();
 
     const DEDUP_MS = 20 * 60 * 60 * 1000;
@@ -444,7 +461,7 @@ exports.sendEveningCheckIn = async () => {
         badge: "/Imagenes/logo-nuevo.png",
         tag:   "zyra-evening",
         data:  { url: "/?p=dashboard" },
-      });
+      }, "generic");
       await Profile.updateOne({ _id: p._id }, { $set: { lastEveningCheckInAt: now } });
       sent++;
     }
@@ -454,61 +471,46 @@ exports.sendEveningCheckIn = async () => {
   }
 };
 
-/* ─── Seguimiento de memorias con fechas próximas ─── */
-exports.sendMemoryFollowUps = async () => {
+/* ─── "Zyra se acuerda de ti" (6 pm Colombia) ───
+   Lo que la persona le contó con fecha (un examen, una cita, una entrevista):
+   - la víspera: ánimo ("Mañana es tu examen de cálculo. ¡Tú puedes! 💪")
+   - después: "¿Cómo te fue en el examen de cálculo?" — lo que hace una amiga de verdad.
+   Una por persona al día; lo que Zyra ya dijo en el chat no se repite aquí.
+   (Antes solo avisaba antes, con el dato en tercera persona: "Me contaste algo sobre esto
+   que pasa mañana: Tiene examen…".) */
+exports.sendMemoryFollowUps = async (now = new Date()) => {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
   try {
     const Memory = require("../models/Memory");
-    const now    = new Date();
+    const { pickFollowUp, markFollowUp, followUpText } = require("./memoryController");
     const colNow = new Date(now.getTime() - 5 * 60 * 60 * 1000);
-    const hour   = colNow.getUTCHours();
-
-    // Solo entre 18:00 y 18:04 Colombia
-    if (hour !== 18 || colNow.getUTCMinutes() > 4) return;
-
-    const tomorrow  = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    const dayAfter  = new Date(now.getTime() + 48 * 60 * 60 * 1000);
-
-    // Memorias con followUpDate mañana o pasado, no notificadas aún
-    const pending = await Memory.find({
-      followUpDate: { $gte: tomorrow, $lte: dayAfter },
-      followUpDone: false,
-    }).select("user content followUpDate").lean();
-
-    if (!pending.length) return;
+    if (colNow.getUTCHours() !== 18 || colNow.getUTCMinutes() > 4) return;
 
     const subs = await PushSub.find({}).select("user").lean();
-    const subSet = new Set(subs.map(s => s.user.toString()));
-
-    const byUser = {};
-    pending.forEach(m => {
-      const uid = m.user.toString();
-      if (!subSet.has(uid)) return;
-      if (!byUser[uid]) byUser[uid] = [];
-      byUser[uid].push(m);
+    if (!subs.length) return;
+    // Solo quien tiene algo con fecha cerca (de 4 días atrás a pasado mañana)
+    const today = new Date(colNow.toISOString().slice(0, 10) + "T00:00:00Z");
+    const withDates = await Memory.distinct("user", {
+      user: { $in: subs.map(s => s.user) },
+      followUpDate: { $gte: new Date(today - 4 * 86400000), $lte: new Date(+today + 2 * 86400000) },
     });
 
     let sent = 0;
-    for (const [uid, mems] of Object.entries(byUser)) {
-      const first = mems[0];
-      // Truncar el contenido para la notificación
-      const shortContent = first.content.length > 80 ? first.content.substring(0, 77) + "..." : first.content;
-      const followDate   = new Date(first.followUpDate);
-      const isToday      = followDate.toDateString() === now.toDateString();
-      const isTomorrow   = followDate.toDateString() === tomorrow.toDateString();
-      const whenStr      = isToday ? "hoy" : isTomorrow ? "mañana" : "pronto";
-
-      await sendToUser(uid, {
-        title: `Zyra se acordó 💜`,
-        body:  `Me contaste algo sobre esto que pasa ${whenStr}: ${shortContent}`,
+    for (const uid of withDates) {
+      const pick = await pickFollowUp(uid, now);
+      if (!pick) continue;
+      const body = await followUpText(pick);
+      const ok = await sendToUser(uid, {
+        title: pick.kind === "ask" ? "Zyra se acordó 💜" : "Zyra 💜",
+        body,
         icon:  "/Imagenes/logo-nuevo.png",
         badge: "/Imagenes/logo-nuevo.png",
         tag:   "zyra-followup",
-        data:  { url: "/?p=assistant" },
-      });
-      sent++;
+        data:  { url: "/?p=assistant&zf=1" },
+      }, "followup");
+      if (ok) { await markFollowUp(pick); sent++; }
     }
-    if (sent) console.log(`[Push] Follow-up de memorias enviado: ${sent} usuarios`);
+    if (sent) console.log(`[Push] "Zyra se acuerda" enviado: ${sent} usuarios`);
   } catch(e) {
     console.error("[Push] sendMemoryFollowUps error:", e.message);
   }
@@ -559,7 +561,7 @@ exports.sendCaringContacts = async () => {
           badge: "/Imagenes/logo-nuevo.png",
           tag:   "zyra-caring-contact",
           data:  { url: "/?p=assistant" },
-        });
+        }, "caring");
         await Profile.updateOne(
           { _id: p._id, [`crisisEvents.${matchIdx}.${stage.field}`]: null },
           { $set: { [`crisisEvents.${matchIdx}.${stage.field}`]: now } }

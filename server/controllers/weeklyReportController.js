@@ -156,7 +156,7 @@ async function generateWithGroq(data) {
     ? `\n- Meta activa que lleva más tiempo sin marcarse como avance: "${data.stalledGoal.title}"`
     : "";
 
-  const prompt = `Eres Zyra — la mejor amiga de ${data.userName}. Tienes 24 años, eres colombiana, hablas directo y con calor humano real. Revisaste su semana y vas a contarle lo que viste — y lo más importante, le vas a armar un plan concreto para la semana que ENTRA.
+  const prompt = `Eres Zyra, la IA amiga de ${data.userName}. Hablas como una amiga colombiana: directo y con calor humano real. Revisaste su semana y vas a contarle lo que viste — y lo más importante, le vas a armar un plan concreto para la semana que ENTRA.
 
 DATOS DE LA SEMANA QUE PASÓ (${data.weekStart.toLocaleDateString("es-CO")} al ${data.weekEnd.toLocaleDateString("es-CO")}):
 - Emociones registradas: ${emotionList}

@@ -11,6 +11,11 @@ const S = new mongoose.Schema({
   lastReferencedAt: { type: Date, default: null },
   followUpDate:     { type: Date, default: null }, // fecha para hacer seguimiento (ej: "examen el jueves")
   followUpDone:     { type: Boolean, default: false },
+  // "Zyra se acuerda": las frases salen al guardar la memoria (una sola llamada a la IA)
+  followUpCheer:     { type: String, default: "", maxlength: 200 }, // la víspera: "Mañana es tu examen de cálculo. ¡Tú puedes!"
+  followUpQuestion:  { type: String, default: "", maxlength: 200 }, // después: "¿Cómo te fue en el examen de cálculo?"
+  followUpCheeredAt: { type: Date, default: null },
+  followUpAskedAt:   { type: Date, default: null },
 });
 
 S.index({ user: 1, importance: -1 });
