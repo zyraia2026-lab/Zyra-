@@ -7,8 +7,9 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;0,800;1,700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="styles.css?v=20260929"/>
+<link rel="stylesheet" href="styles.css?v=20261009"/>
 <script src="/hr-guide.js"></script>
+<script src="/zyra3d.js" defer></script>
 
 <!-- ══ PWA META TAGS ══ -->
 <link rel="manifest" href="/manifest.json"/>
@@ -3183,11 +3184,11 @@ async function b2bSubmitContact() {
     <div class="chat-header">
       <button class="mob-hist-toggle" onclick="openMobileHistory()" aria-label="Ver conversaciones anteriores" title="Conversaciones">☰</button>
       <div class="chat-zyra-avatar" id="chat-zyra-av" style="position:relative;overflow:visible">
-        <img src="/Imagenes/logo-nuevo.png" alt="Zyra" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+        <img src="/Imagenes/zyra-avatar.png" alt="Zyra" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
         <div id="chat-zyra-svg-fb" style="display:none"></div>
         <div style="position:absolute;bottom:-2px;right:-2px;width:12px;height:12px;border-radius:50%;background:#22c55e;border:2px solid var(--surface)"></div>
       </div>
-      <div>
+      <div class="chat-title">
         <div class="chat-name">Zyra</div>
         <div class="chat-status"><span class="chat-dot"></span>Tu acompañante emocional · IA con memoria</div>
       </div>
@@ -3516,6 +3517,12 @@ async function b2bSubmitContact() {
       <button class="theme-auto-btn" data-mode="manual" onclick="setThemeMode('manual')">Manual</button>
       <button class="theme-auto-btn" data-mode="auto" onclick="setThemeMode('auto')">🌓 Auto (día/noche)</button>
     </div>
+    <div class="theme-auto-row" id="z3d-pref-row" style="margin-top:10px">
+      <span style="font-size:12px;color:var(--text3);font-weight:600;white-space:nowrap">Animaciones 3D:</span>
+      <button class="theme-auto-btn" data-z3d="auto" onclick="setZyra3DPref('auto')">✨ Automático</button>
+      <button class="theme-auto-btn" data-z3d="off" onclick="setZyra3DPref('off')">Apagadas</button>
+    </div>
+    <div id="z3d-pref-note" style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5"></div>
   </div>
 
   <!-- ══ SUSCRIPCIÓN ══ -->
@@ -4749,6 +4756,7 @@ function showPage(name) {
   // Llegar al test con "atrás" o con un enlace dejaba la página en blanco: se arranca como siempre
   if(name === "test" && !document.getElementById("test-page-wrap")?.innerHTML.trim()) { setTimeout(() => startTest(), 0); }
   if(name === "weekly-report") { showPage("planes"); setTimeout(() => { if(typeof openWeeklyReport==="function") openWeeklyReport(); }, 400); return; }
+  if (typeof _z3dPage === "function") _z3dPage(name);
 
   // ── Tabbar móvil: mostrar/ocultar y marcar activo ──
   const noTabPages = ['landing','login','register','verify-login','verify-register','voice-call','forgot-password','reset-password','admin'];
@@ -6668,6 +6676,7 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 async function loadProfile() {
+  if (typeof _renderZ3DPref === "function") _renderZ3DPref();
   try {
     const [ud, pd, gd, jd, gs] = await Promise.all([
       api("/auth/me"), api("/profile"), api("/goals"), api("/journal"),
@@ -14525,6 +14534,7 @@ function renderBreath(el) {
     </div>`;
   selectBreathTech(currentBreathTech, true);
   _renderBreathHRIdle();
+  if (typeof _z3dMountBreath === "function") _z3dMountBreath();
 }
 
 function selectBreathTech(tech, silent) {
@@ -14579,6 +14589,7 @@ async function startBreath() {
     circle.className = "breath-circle " + (ph.cls||"");
     label.textContent = ph.t;
     inst.textContent = `Ciclo ${cycleCount+1} de ${totalCycles}`;
+    const zb = _z3dBreath(); if (zb) zb.phase(ph.cls || "hold", ph.d);
     let sec = ph.d; secs.textContent = sec;
     function tick() {
       sec--;
@@ -14589,6 +14600,7 @@ async function startBreath() {
         if(cycleCount >= totalCycles) {
           circle.className = "breath-circle"; label.textContent = "✓";
           secs.style.display = "none"; inst.textContent = "Listo 💨 Bien hecho";
+          const zbEnd = _z3dBreath(); if (zbEnd) zbEnd.finish();
           // Track breath session
           const bKey = "zyra_breath_" + new Date().toDateString();
           localStorage.setItem(bKey, (parseInt(localStorage.getItem(bKey)||"0")+1).toString());
@@ -14617,6 +14629,7 @@ function stopBreath() {
   if(label)  label.textContent = "Listo";
   if(secs)   secs.style.display = "none";
   if(inst)   inst.textContent = "Presiona iniciar cuando estés en un lugar cómodo";
+  const zb = typeof _z3dBreath === "function" && _z3dBreath(); if (zb) zb.idle();
 }
 
 let _medTTSUtterance = null;
@@ -19163,6 +19176,7 @@ function endVoiceCall() {
   // Una llamada de menos de 30s no cuenta contra el cupo mensual
   if (vcSeconds < 30) api('/voice/discard', 'POST').catch(()=>{});
   vcActive = false;
+  _vcThinking = false;
   vcDIDToken++; // cancel any pending D-ID request
   vcAvatarReset();
   destroyZyra3DAvatar();
@@ -19299,6 +19313,7 @@ async function vcSendMessage(text) {
   const vcHistoryPayload = vcHistory.slice(-20);
   vcHistory.push({role:'user',content:text});
   vcSetStatus('Zyra está pensando...');
+  _vcThinking = true;
   try {
     const _vcToday = new Date().toDateString();
     const _vcDcParts = [];
@@ -19324,6 +19339,7 @@ async function vcSendMessage(text) {
     } catch(e) {}
     const vcHealthCtx = _vcHealthParts.length ? _vcHealthParts.join(", ") : undefined;
     const d = await api('/chat','POST',{message:text,conversationId:vcConvId,history:vcHistoryPayload,mode:'voice',dailyContext:vcDailyCtx,healthContext:vcHealthCtx});
+    _vcThinking = false;
 
     // Crisis detectada durante llamada de voz
     if (d.crisis) {
@@ -19344,6 +19360,7 @@ async function vcSendMessage(text) {
     if (!vcActive) return; // call ended while waiting for response
     vcSpeak(response, false);
   } catch(e) {
+    _vcThinking = false;
     if (!vcActive) return;
     // Mostrar el motivo real cuando el servidor lo manda (ej. límite del plan) en vez
     // de siempre el mismo mensaje generico que no dice qué pasó de verdad.
@@ -19937,7 +19954,7 @@ function setThemeMode(mode) {
 }
 function _updateAutoThemeUI() {
   const mode = localStorage.getItem('zyra_theme_mode') || 'manual';
-  document.querySelectorAll('.theme-auto-btn').forEach(b => {
+  document.querySelectorAll('.theme-auto-btn[data-mode]').forEach(b => {
     b.classList.toggle('active', b.dataset.mode === mode);
   });
 }
@@ -22563,6 +22580,8 @@ function showAchievementToast(ach) {
       <div class="ach-toast-name">${ach.label}</div>
     </div>`;
   document.body.appendChild(el);
+  // El emoji del logro entra girando como una moneda, y caen unas cuantas
+  if (window.Zyra3D && Zyra3D.motionOK()) { el.querySelector('.ach-toast-emoji').classList.add('z3d-flip'); Zyra3D.coinRain(10, 150); }
   requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
   setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 500); }, 3500);
 }
@@ -22592,7 +22611,10 @@ function showStreakCelebration(streak, coinsEarned) {
   requestAnimationFrame(() => requestAnimationFrame(() => {
     card.style.transform = 'scale(1)'; card.style.opacity = '1';
   }));
-  for (let i = 0; i < 45; i++) setTimeout(() => launchConfetti(), i * 55);
+  // Medalla 3D que llega girando (tócala y vuelve a girar) y lluvia de monedas
+  const _z3dCel = window.Zyra3D && Zyra3D.medal(document.getElementById('streak-cel-emoji'), m.emoji);
+  if (_z3dCel) { Zyra3D.coinRain(28, 350); for (let i = 0; i < 18; i++) setTimeout(() => launchConfetti(), 300 + i * 70); }
+  else for (let i = 0; i < 45; i++) setTimeout(() => launchConfetti(), i * 55);
   setTimeout(() => closeStreakCelebration(), 11000);
 }
 
@@ -24105,6 +24127,8 @@ let _3d = { active: false, renderer: null, animId: null, resizeFn: null };
 function initZyra3DAvatar() {
   const img = document.getElementById("vc-avatar-img");
   if (!img) return;
+  // Con 3D, el aura viva se encarga de todo; si no se puede, queda la animación de siempre
+  if (_z3dMountCall()) return;
   // Speaking animation polling
   _3d.active = true;
   _3d.animId = setInterval(() => {
@@ -24128,6 +24152,112 @@ function destroyZyra3DAvatar() {
   // Reset animation to idle
   const img = document.getElementById("vc-avatar-img");
   if (img) img.style.animation = 'zyraIdle 4s ease-in-out infinite';
+}
+
+/* ══════════════════════════════════════════
+   ZYRA 3D (client/zyra3d.js): el aura viva alrededor de Zyra en la llamada, el chat y
+   la sugerencia del inicio; la respiración en 3D; medalla y monedas al celebrar.
+   Si el celular no puede (o la persona lo apagó en Perfil), queda todo como antes.
+══════════════════════════════════════════ */
+function _z3dOn() { return !!(window.Zyra3D && Zyra3D.enabled()); }
+// El color del aura sigue el ánimo de hoy (si está ansioso o enojado, Zyra se queda en calma)
+function _z3dMood() {
+  const today = new Date().toDateString();
+  const emo = localStorage.getItem("zyra_checkin_emotion_" + today)
+    || (localStorage.getItem("zyra_last_emotion_date") === today ? localStorage.getItem("zyra_last_emotion") : "")
+    || "";
+  return emo;
+}
+let _z3dTypedAt = 0;
+function _z3dChatSignal() {
+  if (document.querySelector("#messages .msg.bot.streaming #_stream-hint") || document.querySelector("#typing-indicator.show")) return { state: "thinking" };
+  if (document.querySelector("#messages .msg.bot.streaming")) return { state: "speaking" };
+  if ((window.speechSynthesis && speechSynthesis.speaking) || (_chatAudio && !_chatAudio.paused)) return { state: "speaking" };
+  if (Date.now() - _z3dTypedAt < 1600) return { state: "listening", level: 0.3 };
+  return { state: "idle" };
+}
+function _z3dMountChat() {
+  const host = document.getElementById("chat-zyra-av");
+  if (!host || !_z3dOn()) return;
+  Zyra3D.aura(host, { portrait: host.querySelector("img"), size: 1, rim: 1.2, small: true, signalHz: 10, signal: _z3dChatSignal, mood: _z3dMood });
+  const inp = document.getElementById("chat-input");
+  if (inp && !inp._z3d) {
+    inp._z3d = true;
+    // Mientras escribes, Zyra "te escucha": su aura brilla con cada tecla
+    inp.addEventListener("input", () => { _z3dTypedAt = Date.now(); const a = host._z3d; if (a) a.kick(0.25); });
+  }
+}
+function _z3dMountRec() {
+  const host = document.querySelector("#zyra-rec-card .zyra-rec-avatar");
+  if (!host || !_z3dOn()) return;
+  Zyra3D.aura(host, { portrait: document.getElementById("zyra-main-avatar"), size: 1.5, rim: 1.15, small: true, signalHz: 4, mood: _z3dMood,
+    signal: () => ({ state: document.getElementById("zyra-rec-text")?.textContent === "Pensando..." ? "thinking" : "idle" }) });
+}
+let _vcThinking = false, _vcLvlBuf = null;
+function _vcMicLevel() {
+  if (!_vcAnalyser) return 0.15;
+  if (!_vcLvlBuf || _vcLvlBuf.length !== _vcAnalyser.frequencyBinCount) _vcLvlBuf = new Uint8Array(_vcAnalyser.frequencyBinCount);
+  _vcAnalyser.getByteFrequencyData(_vcLvlBuf);
+  let s = 0;
+  for (let i = 0; i < _vcLvlBuf.length; i++) s += _vcLvlBuf[i];
+  return Math.min(1, s / _vcLvlBuf.length / 255 * 1.8);
+}
+function _z3dCallSignal() {
+  if (!vcActive) return { state: "idle" };
+  if (vcSpeaking) return { state: "speaking" };
+  if (_vcThinking) return { state: "thinking" };
+  if (vcListening) return { state: "listening", level: _vcMicLevel() };
+  return { state: "idle" };
+}
+function _z3dMountCall() {
+  const host = document.querySelector("#page-voice-call .vc-avatar-section");
+  if (!host || !_z3dOn()) return false;
+  return !!Zyra3D.aura(host, { portrait: document.getElementById("vc-avatar"), size: 1.75, rim: 1.12, signal: _z3dCallSignal, mood: _z3dMood });
+}
+function _z3dBreath() {
+  const c = document.getElementById("breath-circle");
+  return c && c.parentElement && c.parentElement._z3d;
+}
+function _z3dMountBreath() {
+  const c = document.getElementById("breath-circle");
+  if (!c || !c.parentElement || !c.parentElement.classList.contains("breath-wrap") || !_z3dOn()) return;
+  Zyra3D.breath(c.parentElement, { px: 300 });
+}
+function _z3dPage(name) {
+  if (!window.Zyra3D) return;
+  Zyra3D.sweep();
+  if (name === "assistant") setTimeout(_z3dMountChat, 120);
+  if (name === "dashboard") setTimeout(_z3dMountRec, 500);
+}
+// zyra3d.js carga con "defer" (después de este script): al llegar, arranca lo de la página actual
+function _z3dReady() {
+  if (!window.Zyra3D || _z3dReady.done) return;
+  _z3dReady.done = true;
+  _z3dPage(window._zyraCurrentPage);
+  if (window._zyraCurrentPage === "wellness") _z3dMountBreath();
+  Zyra3D.tilt(".quick-card, .daily-challenge-card, .streak-card, .meditation-card");
+}
+window.addEventListener("zyra3d-ready", _z3dReady);
+if (window.Zyra3D) _z3dReady();
+/* Perfil → Animaciones 3D: Automático / Apagadas */
+function setZyra3DPref(mode) {
+  if (!window.Zyra3D) return;
+  Zyra3D.setPref(mode);
+  _renderZ3DPref();
+  if (mode === "off") { zyraToast("Animaciones 3D apagadas", "info", 2500); return; }
+  zyraToast(_z3dOn() ? "✨ Animaciones 3D activadas" : "Este equipo no puede mostrar las animaciones 3D", _z3dOn() ? "success" : "info", 3000);
+}
+function _renderZ3DPref() {
+  const row = document.getElementById("z3d-pref-row");
+  if (!row || !window.Zyra3D) return;
+  const st = Zyra3D.status();
+  const mode = Zyra3D.pref() === "off" ? "off" : "auto";
+  row.querySelectorAll(".theme-auto-btn").forEach(b => b.classList.toggle("active", b.dataset.z3d === mode));
+  const note = document.getElementById("z3d-pref-note");
+  if (note) {
+    const why = { reduced: "Tu equipo tiene activado “reducir movimiento”, así que se muestran las animaciones simples.", saveData: "Tienes el ahorro de datos activado, así que se muestran las animaciones simples.", slow: "Tu equipo iba lento con el 3D, así que por ahora se muestran las animaciones simples.", nogl: "Tu navegador no tiene gráficos 3D disponibles, así que se muestran las animaciones simples." };
+    note.textContent = mode === "off" ? "" : (why[st.reason] || "");
+  }
 }
 
 /* ══════════════════════════════════════════

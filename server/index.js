@@ -149,6 +149,11 @@ app.use(express.static(path.join(__dirname, "../client"), {
     if (filePath.endsWith("styles.css")) {
       res.setHeader("Cache-Control", "public, max-age=300");
     }
+    // Los .js que usa index.html van con él: si quedan un día en caché, la app nueva
+    // llamaría funciones que el archivo viejo todavía no tiene
+    if (filePath.endsWith("hr-guide.js") || filePath.endsWith("zyra3d.js")) {
+      res.setHeader("Cache-Control", "public, max-age=300");
+    }
     // manifest.json define el ícono con el que Android/iOS instalan la PWA —
     // si queda en caché 1 día, un cambio de logo tarda en reflejarse incluso
     // antes de instalar (después de instalada, el ícono queda fijo en el

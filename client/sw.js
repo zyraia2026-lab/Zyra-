@@ -1,7 +1,7 @@
 // ══ ZYRA SERVICE WORKER v5.6 ══
-const CACHE_NAME = 'zyra-v5.7';
+const CACHE_NAME = 'zyra-v5.8';
 const STATIC_ASSETS = [
-  '/', '/index.html', '/styles.css', '/hr-guide.js', '/manifest.json',
+  '/', '/index.html', '/styles.css', '/hr-guide.js', '/zyra3d.js', '/manifest.json',
   '/Imagenes/logo-nuevo.png',
 ];
 
@@ -52,7 +52,7 @@ self.addEventListener('fetch', e => {
   // usuarios reales corriendo versiones de días atrás sin saberlo (sin ver los
   // arreglos ya subidos). Red primero siempre que haya conexión; caché solo
   // como respaldo si está offline.
-  const isAppShell = url.pathname === '/' || url.pathname === '/index.html' || url.pathname === '/styles.css' || url.pathname === '/hr-guide.js';
+  const isAppShell = url.pathname === '/' || url.pathname === '/index.html' || url.pathname === '/styles.css' || url.pathname === '/hr-guide.js' || url.pathname === '/zyra3d.js';
   if (isAppShell) {
     e.respondWith(
       fetch(request).then(res => {

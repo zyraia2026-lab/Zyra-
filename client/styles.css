@@ -194,7 +194,7 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
 #page-assistant.active{display:flex;flex-direction:column}
 #page-planes.active{display:block}
 #page-test.active{display:flex;align-items:center;justify-content:center;background:var(--grad-soft);min-height:100vh}
-@keyframes pageFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes pageFade{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
 @keyframes pageSlide{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
 
 /* ══ Tema dark en cards y elementos ══ */
@@ -1986,8 +1986,8 @@ nav#app-shared-nav {
    ahora es la pantalla de entrada, sin esto no habia forma de ver el
    progreso sin ir aparte al dashboard. */
 .chat-status-strip{display:none}
-.chat-zyra-avatar{width:48px;height:48px;border-radius:var(--r-md);overflow:hidden;flex-shrink:0;background:var(--grad-soft);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm);border:2px solid var(--border)}
-.chat-zyra-avatar img{width:100%;height:100%;object-fit:contain;padding:5px}
+.chat-zyra-avatar{width:48px;height:48px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--grad-soft);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm);border:2px solid var(--border)}
+.chat-zyra-avatar img{width:100%;height:100%;object-fit:cover;object-position:50% 6%;border-radius:50%}
 .chat-name{font-size:16px;font-weight:800;color:var(--text);letter-spacing:-.2px}
 .chat-status{font-size:12px;color:var(--green);display:flex;align-items:center;gap:6px;font-weight:600}
 .chat-dot{width:7px;height:7px;background:var(--green);border-radius:50%;box-shadow:0 0 8px var(--green);animation:dotPulse 2s infinite}
@@ -3016,7 +3016,9 @@ body {
   }
   .chat-header::-webkit-scrollbar { display: none; }
   .chat-header > * { flex-shrink: 0; }
-  .chat-header > div:nth-child(2) { flex: 1; min-width: 0; overflow: hidden; }
+  /* Antes era "div:nth-child(2)": con el botón ☰ delante, el 2.º hijo es el avatar y
+     quedaba aplastado a 4 px (la foto se montaba encima del nombre) */
+  .chat-header > .chat-title { flex: 1; min-width: 0; overflow: hidden; }
   .chat-name   { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .chat-status { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
   .ai-badge    { display: none !important; }
