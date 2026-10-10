@@ -8,11 +8,6 @@ const HRGuide      = require("../../client/hr-guide"); // "Tu corazón esta sema
 
 const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,253}\.[^\s@]{2,}$/;
 
-let groq = null;
-try {
-  const Groq = require("groq-sdk");
-  if (process.env.GROQ_API_KEY?.length > 10) groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-} catch(_) {}
 
 const POSITIVE = new Set(["feliz","tranquilo","esperanzado","motivado"]);
 const NEGATIVE  = new Set(["ansioso","triste","enojado","agotado","confundido"]);
@@ -125,8 +120,6 @@ async function buildReportData(userId, userName) {
 }
 
 async function generateWithGroq(data) {
-  if (!groq) return null;
-
   const emotionList = Object.entries(data.freq)
     .sort((a,b)=>b[1]-a[1])
     .map(([e,c]) => `${e}(${c})`)
@@ -189,15 +182,15 @@ REGLAS DE VOZ (críticas):
 - Usa <p>, <h3>, <ul>, <li>, <strong>. Sin div, sin span.
 - Máximo 480 palabras en total`;
 
-  const r = await groq.chat.completions.create({
-    model: "openai/gpt-oss-120b",
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.7,
-    max_tokens: 1100,
-    reasoning_effort: "low",
-  });
-
-  let text = r.choices[0]?.message?.content?.trim() || null;
+  // El modelo grande de Groq primero (mejor redacción) y, si está sin cupo, Gemini y el chico,
+  // sin esperas: antes solo Groq, y si se le acababa el cupo el reporte no salía
+  let text = null;
+  try {
+    text = await require("../utils/ai").complete([{ role: "user", content: prompt }], {
+      order: ["openai/gpt-oss-120b", "gemini", "openai/gpt-oss-20b"],
+      temperature: 0.7, maxTokens: 1100, timeoutMs: 30000,
+    });
+  } catch (e) { console.error("Reporte semanal (IA):", e.message); }
   if (text) {
     // El modelo a veces envuelve la respuesta en un bloque de código markdown
     // (```html ... ```) aunque se le pide HTML crudo -- se quita por si acaso,
