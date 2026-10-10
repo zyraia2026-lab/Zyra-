@@ -31,18 +31,23 @@
     try { sessionStorage.removeItem("zyra_3d_slow"); } catch (e) {}
     if (v === "off") destroyAll();
   }
-  let glOK = null;
-  function hasGL() {
-    if (glOK !== null) return glOK;
-    try {
-      const c = document.createElement("canvas");
-      // Sin aceleración por hardware (WebGL por software) no vale la pena: iría lento
-      const gl = c.getContext("webgl", { failIfMajorPerformanceCaveat: pref() !== "force" });
-      glOK = !!gl;
-      const x = gl && gl.getExtension("WEBGL_lose_context");
-      if (x) x.loseContext();
-    } catch (e) { glOK = false; }
-    return glOK;
+  // "hw": con tarjeta gráfica. "soft": el navegador dibuja sin ella (p. ej. Chrome con la
+  // "aceleración por hardware" apagada): se usa en modo ligero, a 30 cuadros por segundo.
+  // "": no hay WebGL.
+  let glMode = null;
+  function detectGL() {
+    if (glMode !== null) return glMode;
+    const tryCtx = (caveat) => {
+      try {
+        const c = document.createElement("canvas");
+        const gl = c.getContext("webgl", { failIfMajorPerformanceCaveat: caveat });
+        const x = gl && gl.getExtension("WEBGL_lose_context");
+        if (x) x.loseContext();
+        return !!gl;
+      } catch (e) { return false; }
+    };
+    glMode = tryCtx(true) ? "hw" : tryCtx(false) ? "soft" : "";
+    return glMode;
   }
   // Por qué no hay 3D (para explicarlo en Perfil)
   function status() {
@@ -50,12 +55,11 @@
     if (p === "off") return { on: false, reason: "off" };
     if (p !== "force") {
       if (reduced()) return { on: false, reason: "reduced" };
-      const c = navigator.connection;
-      if (c && c.saveData) return { on: false, reason: "saveData" };
       try { if (sessionStorage.getItem("zyra_3d_slow")) return { on: false, reason: "slow" }; } catch (e) {}
     }
-    if (!hasGL()) return { on: false, reason: "nogl" };
-    return { on: true, reason: "" };
+    const g = detectGL();
+    if (!g) return { on: false, reason: "nogl" };
+    return { on: true, reason: g === "soft" ? "soft" : "" };
   }
   const enabled = () => status().on;
   // Medalla, monedas y tarjetas son CSS: no necesitan WebGL, solo que haya movimiento
@@ -352,7 +356,11 @@ void main(){
       if (!v.host.isConnected) { v.destroy(); continue; }
       if (!v.visible) continue;
       any = true;
-      try { v.tick(dt, now); } catch (e) { try { console.warn("Zyra3D:", e && e.message); } catch (_) {} v.destroy(); }
+      // Modo ligero: dibuja un cuadro sí y uno no (~30 por segundo) y guarda el tiempo
+      if (v.minGap && now - v.lastT < v.minGap) { v.pend += dt; continue; }
+      const d = Math.min(0.1, dt + v.pend);
+      v.pend = 0; v.lastT = now;
+      try { v.tick(d, now); } catch (e) { try { console.warn("Zyra3D:", e && e.message); } catch (_) {} v.destroy(); }
     }
     if (any && !document.hidden) raf = requestAnimationFrame(frame);
   }
@@ -389,17 +397,22 @@ void main(){
       this.dirty = true;
       this.dead = false;
       this.rect = null;
+      this.soft = detectGL() === "soft";
       const c = this.c = document.createElement("canvas");
       c.className = "z3d-canvas";
       c.setAttribute("aria-hidden", "true");
-      const gl = this.gl = c.getContext("webgl", { alpha: true, premultipliedAlpha: true, antialias: true, depth: true, stencil: false, powerPreference: "default", failIfMajorPerformanceCaveat: pref() !== "force" });
+      // Sin tarjeta gráfica el suavizado de bordes cuesta mucho: en modo ligero se omite
+      const gl = this.gl = c.getContext("webgl", { alpha: true, premultipliedAlpha: true, antialias: !this.soft, depth: true, stencil: false, powerPreference: "default", failIfMajorPerformanceCaveat: !this.soft });
       if (!gl) throw new Error("sin WebGL");
       host.insertBefore(c, host.firstChild);
       c.addEventListener("webglcontextlost", (e) => { e.preventDefault(); this.destroy(); });
       this.dpr = Math.min(window.devicePixelRatio || 1, 3);
-      this.maxScale = Math.min(this.dpr, this.opts.maxScale || 2);
-      this.minScale = Math.min(this.maxScale, Math.max(0.75, this.dpr * 0.4));
+      this.maxScale = Math.min(this.dpr, this.soft ? 1.25 : (this.opts.maxScale || 2));
+      this.minScale = Math.min(this.maxScale, this.soft ? 0.6 : Math.max(0.75, this.dpr * 0.4));
       this.scale = this.maxScale;
+      this.target = this.soft ? 30 : 60; // cuadros por segundo esperados
+      this.minGap = this.soft ? 29 : 0;
+      this.lastT = 0; this.pend = 0;
       this.perf = { t0: null, n: 0, lastNow: 0, warmUntil: performance.now() + 1500, slow: 0, good: 0 };
       this.fps = 0;
       host._z3d = this;
@@ -429,13 +442,14 @@ void main(){
       const fps = p.n * 1000 / el;
       p.t0 = now; p.n = 0;
       this.fps = fps;
-      if (fps < 46) {
+      const T = this.target;
+      if (fps < T * 0.77) {
         p.good = 0;
         if (this.scale > this.minScale + 0.01) { this.scale = Math.max(this.minScale, this.scale - 0.25); this.dirty = true; }
-        else if (!(this.lighter && this.lighter()) && fps < 24 && ++p.slow >= 3) slowDevice();
+        else if (!(this.lighter && this.lighter()) && fps < T * 0.4 && ++p.slow >= 3) slowDevice();
       } else {
         p.slow = Math.max(0, p.slow - 1);
-        if (fps > 57 && ++p.good >= 4 && this.scale < this.maxScale) { p.good = 0; this.scale = Math.min(this.maxScale, this.scale + 0.15); this.dirty = true; }
+        if (fps > T * 0.95 && ++p.good >= 4 && this.scale < this.maxScale) { p.good = 0; this.scale = Math.min(this.maxScale, this.scale + 0.15); this.dirty = true; }
       }
     }
     destroy() {
@@ -477,8 +491,8 @@ void main(){
       this.tri = buffer(gl, new Float32Array([-1, -1, 3, -1, -1, 3]));
       this.vbo = gl.createBuffer();
       this.ibo = gl.createBuffer();
-      this.setDetail(o.small ? 3 : 4);
-      this.setSparks(o.small ? 10 : 26);
+      this.setDetail(o.small || this.soft ? 3 : 4);
+      this.setSparks(this.soft ? (o.small ? 6 : 14) : (o.small ? 10 : 26));
       this.portrait = o.portrait || null;
       const m = MOODS.zyra;
       this.S = {
@@ -707,7 +721,7 @@ void main(){
       this.aDir = gl.getAttribLocation(this.pts.p, "aDir");
       this.aSeed = gl.getAttribLocation(this.pts.p, "aSeed");
       const hc = navigator.hardwareConcurrency || 4;
-      this.setCount(hc <= 4 ? 2600 : 4200);
+      this.setCount(this.soft ? 1500 : hc <= 4 ? 2600 : 4200);
       const P = isDark() ? PALS.dark : PALS.light;
       this.B = { t: Math.random() * 20, level: 0.3, from: 0.3, to: 0.3, dur: 1, tp: 0, kind: "idle", running: false, release: 0, flash: 0, hold: 0, yaw: 0, gx: 0, gy: 0, A: P.outA.slice(), C: P.outB.slice() };
     }
@@ -961,7 +975,7 @@ void main(){
     breath: (host, opts) => make(BreathView, host, opts),
     medal, coinRain, tilt: tiltCards,
     sweep, destroyAll,
-    debug: () => Array.from(live).map((v) => ({ type: v instanceof Aura ? "aura" : "breath", host: v.host.className, visible: v.visible, fps: Math.round(v.fps), scale: v.scale, size: v.cssW })),
+    debug: () => Array.from(live).map((v) => ({ type: v instanceof Aura ? "aura" : "breath", host: v.host.className, visible: v.visible, fps: Math.round(v.fps), scale: v.scale, size: v.cssW, soft: v.soft })),
   };
   try { window.dispatchEvent(new Event("zyra3d-ready")); } catch (e) {}
 })();

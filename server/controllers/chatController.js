@@ -13,7 +13,11 @@ let groq = null;
 try {
   const Groq = require("groq-sdk");
   if (process.env.GROQ_API_KEY?.length > 10) {
-    groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    // Sin reintentos: el plan gratis de Groq da 8.000 tokens por minuto por modelo y cada
+    // mensaje con memoria gasta ~3.300. Cuando se acaba, la librería esperaba y reintentaba
+    // sola (17-39 s por mensaje en la llamada, y la app cortaba a los 15 s). Ahora falla en
+    // ~0,3 s y responde el siguiente proveedor.
+    groq = new Groq({ apiKey: process.env.GROQ_API_KEY, maxRetries: 0, timeout: 15000 });
     console.log("✨ Zyra IA (Groq/Llama3) conectada correctamente");
   }
 } catch(e) { console.log("Groq no disponible:", e.message); }
@@ -57,6 +61,7 @@ async function callGemini(messages, temperature, maxTokens) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(toGeminiPayload(messages, temperature, maxTokens)),
+    signal: AbortSignal.timeout(15000), // si Google se cuelga, pasar al siguiente en vez de esperar sin fin
   });
   const data = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(data?.error?.message || `Gemini ${r.status}`);
@@ -1671,7 +1676,7 @@ exports.sendMessage = async (req, res) => {
             // emocionales largos).
             max_tokens: REASONING_EFFORT_MODELS.has(model) ? MAX_TOKENS + 200 : MAX_TOKENS,
             ...(REASONING_EFFORT_MODELS.has(model) ? { reasoning_effort: "low" } : {}),
-          });
+          }, { timeout: isVoice ? 8000 : 15000 }); // en la llamada, mejor pasar rápido al siguiente
           rawResponse = completion.choices[0]?.message?.content?.trim() || "";
           if (rawResponse) { console.log(`✅ Groq OK [${userPlan}] con ${model}`); break; }
         }

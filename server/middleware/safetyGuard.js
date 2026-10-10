@@ -97,7 +97,9 @@ async function aiSecondOpinion(message) {
   try {
     const Groq = require("groq-sdk");
     if (!process.env.GROQ_API_KEY || process.env.GROQ_API_KEY.length < 10) return false;
-    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    // Sin reintentos: tiene tope de 2,5 s, y los reintentos seguían por detrás gastando el
+    // cupo por minuto de Groq que necesita la respuesta de Zyra
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY, maxRetries: 0, timeout: 2500 });
     const r = await groq.chat.completions.create({
       model: "openai/gpt-oss-20b",
       messages: [{

@@ -19141,9 +19141,13 @@ function vcCreateSR() {
 
   sr.onresult = (e) => {
     if (_vcSRTimer) { clearTimeout(_vcSRTimer); _vcSRTimer = null; }
+    if (sr._done) return; // en Android a veces llega dos veces el mismo resultado final
     const transcript = Array.from(e.results).map(r=>r[0].transcript).join('');
     vcSetWaveLabel('🎤 '+transcript.substring(0,60)+(transcript.length>60?'...':''));
     if(e.results[e.results.length-1].isFinal && transcript.trim()) {
+      sr._done = true;
+      try { sr.abort(); } catch(_) {}
+      if (vcSR === sr) vcSR = null;
       vcSetListening(false);
       if (_vcAudioPlaying) { try { _vcAudioPlaying.pause(); } catch(e){} _vcAudioPlaying = null; }
       vcSpeaking = false; vcSetBodyClass(false);
@@ -19308,12 +19312,18 @@ function vcToggleMute() {
 async function vcSendMessage(text) {
   // Si hay bloqueo de crisis activo, no procesar voz tampoco
   if (zyraCrisisLocked) { zyraTriggerCrisis(); return; }
+  // Lo mismo otra vez mientras Zyra todavía piensa la respuesta: no se manda dos veces
+  const _norm = String(text).trim().toLowerCase();
+  if (_vcThinking && _norm === _vcLastSent) return;
+  _vcLastSent = _norm;
 
   vcAddMessage('user', text);
   const vcHistoryPayload = vcHistory.slice(-20);
   vcHistory.push({role:'user',content:text});
   vcSetStatus('Zyra está pensando...');
   _vcThinking = true;
+  // Si tarda, que se note que sigue ahí (antes quedaba en silencio y la persona repetía)
+  const _vcSlowT = setTimeout(() => { if (_vcThinking && vcActive) { vcSetStatus('Sigo pensando, dame un segundo…'); vcSetWaveLabel('Un momento…'); } }, 6000);
   try {
     const _vcToday = new Date().toDateString();
     const _vcDcParts = [];
@@ -19338,8 +19348,9 @@ async function vcSendMessage(text) {
       if (_vcSteps != null) _vcHealthParts.push(`pasos hoy: ${_vcSteps.toLocaleString()}`);
     } catch(e) {}
     const vcHealthCtx = _vcHealthParts.length ? _vcHealthParts.join(", ") : undefined;
-    const d = await api('/chat','POST',{message:text,conversationId:vcConvId,history:vcHistoryPayload,mode:'voice',dailyContext:vcDailyCtx,healthContext:vcHealthCtx});
-    _vcThinking = false;
+    // 30 s: el servidor prueba hasta 3 proveedores de IA; 15 s cortaba respuestas que sí llegaban
+    const d = await api('/chat','POST',{message:text,conversationId:vcConvId,history:vcHistoryPayload,mode:'voice',dailyContext:vcDailyCtx,healthContext:vcHealthCtx}, 30000);
+    _vcThinking = false; clearTimeout(_vcSlowT);
 
     // Crisis detectada durante llamada de voz
     if (d.crisis) {
@@ -19360,11 +19371,15 @@ async function vcSendMessage(text) {
     if (!vcActive) return; // call ended while waiting for response
     vcSpeak(response, false);
   } catch(e) {
-    _vcThinking = false;
+    _vcThinking = false; clearTimeout(_vcSlowT);
+    _vcLastSent = '';
     if (!vcActive) return;
     // Mostrar el motivo real cuando el servidor lo manda (ej. límite del plan) en vez
-    // de siempre el mismo mensaje generico que no dice qué pasó de verdad.
-    const err = (e?.message && e.message !== 'Error') ? e.message : 'Ups, tuve un pequeño problema. ¿Puedes intentarlo de nuevo?';
+    // de siempre el mismo mensaje generico que no dice qué pasó de verdad. En una
+    // llamada, "El servidor tardó demasiado" no suena a Zyra: se dice como lo diría ella.
+    const _netMsg = /tardó demasiado|Sin conexión/.test(e?.message || '');
+    const err = _netMsg ? 'Uy, se me cortó un segundo la señal. ¿Me lo repites?'
+      : (e?.message && e.message !== 'Error') ? e.message : 'Ups, tuve un pequeño problema. ¿Puedes intentarlo de nuevo?';
     vcAddMessage('bot', err); vcSpeak(err, false);
     if (e?.data?.limitReached) zyraToast(err, 'error', 6000);
   }
@@ -19418,7 +19433,7 @@ function vcAvatarReset() {
 function vcOnSpeakEnd(isGreeting) {
   vcSpeaking = false;
   vcSetBodyClass(false);
-  vcSetStatus('En llamada');
+  vcSetStatus(_vcThinking ? 'Zyra está pensando...' : 'En llamada');
   vcSetWaveActive(false, false);
   if (!vcMuted && !vcListening) {
     vcSetWaveLabel('Tu turno...');
@@ -24193,7 +24208,7 @@ function _z3dMountRec() {
   Zyra3D.aura(host, { portrait: document.getElementById("zyra-main-avatar"), size: 1.5, rim: 1.15, small: true, signalHz: 4, mood: _z3dMood,
     signal: () => ({ state: document.getElementById("zyra-rec-text")?.textContent === "Pensando..." ? "thinking" : "idle" }) });
 }
-let _vcThinking = false, _vcLvlBuf = null;
+let _vcThinking = false, _vcLvlBuf = null, _vcLastSent = '';
 function _vcMicLevel() {
   if (!_vcAnalyser) return 0.15;
   if (!_vcLvlBuf || _vcLvlBuf.length !== _vcAnalyser.frequencyBinCount) _vcLvlBuf = new Uint8Array(_vcAnalyser.frequencyBinCount);
@@ -24255,7 +24270,7 @@ function _renderZ3DPref() {
   row.querySelectorAll(".theme-auto-btn").forEach(b => b.classList.toggle("active", b.dataset.z3d === mode));
   const note = document.getElementById("z3d-pref-note");
   if (note) {
-    const why = { reduced: "Tu equipo tiene activado “reducir movimiento”, así que se muestran las animaciones simples.", saveData: "Tienes el ahorro de datos activado, así que se muestran las animaciones simples.", slow: "Tu equipo iba lento con el 3D, así que por ahora se muestran las animaciones simples.", nogl: "Tu navegador no tiene gráficos 3D disponibles, así que se muestran las animaciones simples." };
+    const why = { reduced: "Tu equipo tiene activado “reducir movimiento”, así que se muestran las animaciones simples.", soft: "✓ Activas en modo ligero: tu navegador tiene apagada la aceleración por hardware. Si la enciendes (en Chrome: Configuración → Sistema → “Usar aceleración de gráficos”), todo se verá más fluido.", slow: "Tu equipo iba lento con el 3D, así que por ahora se muestran las animaciones simples.", nogl: "Tu navegador no tiene gráficos 3D disponibles, así que se muestran las animaciones simples." };
     note.textContent = mode === "off" ? "" : (why[st.reason] || "");
   }
 }
