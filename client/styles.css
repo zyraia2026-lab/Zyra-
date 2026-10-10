@@ -240,13 +240,19 @@ input,button,textarea,select{font-family:'Plus Jakarta Sans',sans-serif}
    porque heredaba data-theme="dark" del <html>, que persiste en localStorage
    más allá del logout. Se anulan las reglas oscuras de arriba solo para estos
    componentes (auth-card/verify-card son exclusivos de estas páginas). */
-[data-theme="dark"] .auth-right { background: #f0f2ff !important; background-image: radial-gradient(circle, rgba(99,102,241,0.12) 1px, transparent 1px) !important; background-size: 28px 28px !important; background-color: #f0f2ff !important; }
-[data-theme="dark"] .auth-card { background: white !important; border-color: transparent !important; box-shadow: 0 4px 6px rgba(99,102,241,0.04), 0 20px 60px rgba(99,102,241,0.12), 0 0 0 1.5px rgba(99,102,241,0.08) !important; }
-[data-theme="dark"] .auth-card h1 { color: #0f172a !important; }
-[data-theme="dark"] .auth-sub { color: #64748b !important; }
-[data-theme="dark"] .auth-card .form-group label { color: #475569 !important; }
-[data-theme="dark"] .auth-card .form-group input { background: #fafbff !important; border-color: #e8ecf8 !important; color: #0f172a !important; -webkit-text-fill-color: #0f172a !important; }
-[data-theme="dark"] .auth-card .form-group input::placeholder { color: var(--text4) !important; -webkit-text-fill-color: #94a3b8 !important; }
+/* Solo en computador: en el celular, login y registro tienen su propio diseño (tarjeta
+   oscura de vidrio sobre la foto, ver AUTH MOBILE); estas reglas lo pisaban y quedaba la
+   tarjeta blanca con el nombre "Zyra" blanco sobre fondo claro (invisible) */
+@media (min-width: 769px) {
+  [data-theme="dark"] .auth-right { background: #f0f2ff !important; background-image: radial-gradient(circle, rgba(99,102,241,0.12) 1px, transparent 1px) !important; background-size: 28px 28px !important; background-color: #f0f2ff !important; }
+  [data-theme="dark"] .auth-card { background: white !important; border-color: transparent !important; box-shadow: 0 4px 6px rgba(99,102,241,0.04), 0 20px 60px rgba(99,102,241,0.12), 0 0 0 1.5px rgba(99,102,241,0.08) !important; }
+  [data-theme="dark"] .auth-card h1 { color: #0f172a !important; }
+  [data-theme="dark"] .auth-sub { color: #64748b !important; }
+  [data-theme="dark"] .auth-card .form-group label { color: #475569 !important; }
+  [data-theme="dark"] .auth-card .form-group input { background: #fafbff !important; border-color: #e8ecf8 !important; color: #0f172a !important; -webkit-text-fill-color: #0f172a !important; }
+  [data-theme="dark"] .auth-card .form-group input::placeholder { color: var(--text4) !important; -webkit-text-fill-color: #94a3b8 !important; }
+  [data-theme="dark"] .auth-card .social-btn { background: #fff !important; border-color: #e2e8f0 !important; color: #1e293b !important; }
+}
 [data-theme="dark"] .conv-item { background: var(--surface); }
 [data-theme="dark"] .journal-item { background: var(--bg2); border-color: var(--border); }
 [data-theme="dark"] .emotion-btn { background: var(--surface); border-color: var(--border); }
@@ -4787,3 +4793,11 @@ body { overflow-wrap: break-word; }
 .zf-no{background:transparent;border:1px solid var(--border);color:var(--text3)}
 @keyframes zfIn{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.zf-ask{animation:none}}
+
+/* "Continuar con Google" arriba en registro e inicio de sesión: la forma más rápida de entrar
+   (sin contraseña ni código por correo). Antes estaba al final, debajo de todo el formulario. */
+.auth-google-top{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;box-sizing:border-box;padding:13px 16px;margin:clamp(8px,1.6vh,16px) 0 0;border-radius:14px;background:#fff;color:#1f2937!important;-webkit-text-fill-color:#1f2937;font-size:15px;font-weight:700;text-decoration:none;border:1.5px solid #e2e8f0;box-shadow:0 4px 14px rgba(15,23,42,.08);transition:transform .12s,box-shadow .15s}
+.auth-google-top:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(15,23,42,.12)}
+.auth-google-top:active{transform:scale(.98)}
+.auth-or{display:flex;align-items:center;gap:12px;margin:clamp(10px,1.8vh,18px) 0 clamp(6px,1.2vh,12px);color:#94a3b8;font-size:12px;font-weight:600}
+.auth-or::before,.auth-or::after{content:"";flex:1;height:1px;background:rgba(148,163,184,.35)}

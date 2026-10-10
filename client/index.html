@@ -7,7 +7,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;0,800;1,700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="styles.css?v=20261010b"/>
+<link rel="stylesheet" href="styles.css?v=20261010c"/>
 <script src="/hr-guide.js"></script>
 <script src="/zyra3d.js" defer></script>
 
@@ -119,9 +119,22 @@
 }
 #spl-enter:active{transform:scale(.96)!important}
 #spl-cam-hint.show{color:rgba(148,163,184,.45);opacity:1}
+/* Visitas siguientes: solo el logo, quieto, mientras carga */
+#zyra-splash.quick{transition:opacity .35s ease,visibility 0s linear .35s}
+#zyra-splash.quick #spl-c,#zyra-splash.quick #spl-enter,#zyra-splash.quick #spl-diamonds,#zyra-splash.quick #spl-cam-hint{display:none}
+#zyra-splash.quick .sl{opacity:1;transform:none;filter:drop-shadow(0 0 12px rgba(192,132,252,.55))}
+#zyra-splash.quick #spl-tag{opacity:1;animation:none;margin:0}
 </style>
 <script>
 !function(){
+  // La animación completa solo la primera vez. Después, solo el logo un instante mientras la
+  // app termina de cargar (se quita en el primer showPage): antes había que esperar 2,4 s y
+  // tocar "Entrar a Zyra" cada vez que se abría la app (o esperar 18 s a que se cerrara sola).
+  var SP=document.getElementById('zyra-splash');
+  var seen=false;try{seen=!!localStorage.getItem('zyra_splash_seen');localStorage.setItem('zyra_splash_seen','1');}catch(e){}
+  if(seen&&SP){SP.classList.add('quick');return;}
+  // Primera vez: se cierra sola al terminar (o antes, si tocas "Entrar a Zyra")
+  setTimeout(function(){if(typeof closeSplash==='function')closeSplash();},3800);
   var C=document.getElementById('spl-c');if(!C)return;
   var X=C.getContext('2d'),W,H,T=0,alive=true;
   var stars=[],shoots=[],sparks=[];
@@ -474,7 +487,7 @@ function closeSplash(){
       <div style="position:absolute;top:-60px;left:50%;transform:translateX(-50%);width:220px;height:180px;background:radial-gradient(circle,rgba(139,92,246,.35),transparent 70%);pointer-events:none"></div>
       <div style="position:relative;text-align:center;margin-bottom:20px">
         <div style="width:68px;height:68px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 6px 24px rgba(99,102,241,.5),0 0 0 4px rgba(99,102,241,.12);padding:13px">
-          <img src="/Imagenes/logo-nuevo.png" alt="Zyra" style="width:100%;height:100%;object-fit:contain"/>
+          <img src="/Imagenes/logo-nuevo.webp" alt="Zyra" style="width:100%;height:100%;object-fit:contain"/>
         </div>
         <div style="font-size:11px;font-weight:800;color:#818cf8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Bienvenido a Zyra</div>
         <h2 id="terms-overlay-title" style="font-size:21px;font-weight:800;margin:0 0 6px;color:#e8eaf6;letter-spacing:-.3px">Antes de continuar</h2>
@@ -978,7 +991,7 @@ function closeSplash(){
       <div class="share-card">
         <div style="position:relative;z-index:1">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
-            <img src="/Imagenes/logo-nuevo.png" style="width:32px;height:32px;border-radius:8px"/>
+            <img src="/Imagenes/logo-nuevo.webp" style="width:32px;height:32px;border-radius:8px"/>
             <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:800;color:white">Zyra</span>
           </div>
           <div id="share-week-title" style="font-size:13px;color:rgba(255,255,255,.6);margin-bottom:6px">Mi semana emocional</div>
@@ -1151,11 +1164,11 @@ function closeMobileMoreSheet() {
        en varias páginas. Viven aquí porque la barra superior nunca se
        superpone con nada: el resto del contenido siempre le deja espacio. -->
   <div class="sb-topbar-icons">
-    <button class="sb-topbar-icon-btn sos-fab" id="sos-fab" onclick="showCrisisOverlay()" style="display:none" title="Apoyo de emergencia · Recursos de crisis"><img src="/Imagenes/icon-sos.png" alt="SOS" class="topbar-icon-img"></button>
-    <button class="sb-topbar-icon-btn ambient-fab" id="ambient-fab" onclick="toggleAmbientPanel()" style="display:none" title="Sonidos ambientales"><img src="/Imagenes/icon-sonidos.png" alt="Sonidos" class="topbar-icon-img"></button>
-    <button class="sb-topbar-icon-btn fab-qn" id="fab-qn" onclick="openQuickNote()" aria-label="Nota rápida en diario" title="Nota rápida"><img src="/Imagenes/icon-nota.png" alt="Nota rápida" class="topbar-icon-img"></button>
-    <button class="sb-topbar-icon-btn zyra-notif-fab" id="zyra-notif-fab" onclick="openNotifPanel()" title="Notificaciones" style="display:none" aria-label="Notificaciones"><img src="/Imagenes/icon-notif.png" alt="Notificaciones" class="topbar-icon-img"><span class="zyra-notif-count" id="zyra-notif-count">0</span></button>
-    <button class="sb-topbar-icon-btn" id="calm-fab" onclick="openCalmOverlay()" style="display:none" title="Momento de calma — 60 segundos"><img src="/Imagenes/icon-calma.png" alt="Momento de calma" class="topbar-icon-img"></button>
+    <button class="sb-topbar-icon-btn sos-fab" id="sos-fab" onclick="showCrisisOverlay()" style="display:none" title="Apoyo de emergencia · Recursos de crisis"><img src="/Imagenes/icon-sos.webp" alt="SOS" class="topbar-icon-img"></button>
+    <button class="sb-topbar-icon-btn ambient-fab" id="ambient-fab" onclick="toggleAmbientPanel()" style="display:none" title="Sonidos ambientales"><img src="/Imagenes/icon-sonidos.webp" alt="Sonidos" class="topbar-icon-img"></button>
+    <button class="sb-topbar-icon-btn fab-qn" id="fab-qn" onclick="openQuickNote()" aria-label="Nota rápida en diario" title="Nota rápida"><img src="/Imagenes/icon-nota.webp" alt="Nota rápida" class="topbar-icon-img"></button>
+    <button class="sb-topbar-icon-btn zyra-notif-fab" id="zyra-notif-fab" onclick="openNotifPanel()" title="Notificaciones" style="display:none" aria-label="Notificaciones"><img src="/Imagenes/icon-notif.webp" alt="Notificaciones" class="topbar-icon-img"><span class="zyra-notif-count" id="zyra-notif-count">0</span></button>
+    <button class="sb-topbar-icon-btn" id="calm-fab" onclick="openCalmOverlay()" style="display:none" title="Momento de calma — 60 segundos"><img src="/Imagenes/icon-calma.webp" alt="Momento de calma" class="topbar-icon-img"></button>
   </div>
 
   <div style="flex:1"></div>
@@ -1169,7 +1182,7 @@ function closeMobileMoreSheet() {
   <!-- ══ Barra lateral (desktop) ══ -->
   <div class="nav-inner">
     <div class="nav-logo" onclick="showPage('dashboard')" style="cursor:pointer">
-      <img src="/Imagenes/logo-nuevo.png" class="nav-logo-img" alt="Zyra"/>
+      <img src="/Imagenes/logo-nuevo.webp" class="nav-logo-img" alt="Zyra"/>
       <span class="nav-brand">Zyra</span>
     </div>
 
@@ -1609,7 +1622,7 @@ function closeMobileMoreSheet() {
 <!-- Nav -->
 <nav class="lp-nav">
   <div class="lp-logo">
-    <img src="/Imagenes/logo-nuevo.png" alt="Zyra"/>
+    <img src="/Imagenes/logo-nuevo.webp" alt="Zyra"/>
     <span class="lp-logo-text">Zyra</span>
   </div>
   <div class="lp-nav-btns">
@@ -1820,7 +1833,7 @@ function closeMobileMoreSheet() {
   <!-- Nav -->
   <nav class="b2b-nav">
     <div class="lp-logo" onclick="showPage('landing')" style="cursor:pointer">
-      <img src="/Imagenes/logo-nuevo.png" alt="Zyra" style="width:32px;height:32px;border-radius:10px"/>
+      <img src="/Imagenes/logo-nuevo.webp" alt="Zyra" style="width:32px;height:32px;border-radius:10px"/>
       <span class="lp-logo-text">Zyra</span>
       <span style="font-size:11px;background:rgba(251,191,36,.15);color:#fbbf24;border:1px solid rgba(251,191,36,.3);border-radius:6px;padding:2px 8px;font-weight:700;margin-left:6px">Empresas</span>
     </div>
@@ -2069,7 +2082,7 @@ async function b2bSubmitContact() {
 
     <!-- Logo top-left -->
     <div class="auth-left-brand">
-      <img src="Imagenes/logo-nuevo.png" alt="Zyra"/>
+      <img src="Imagenes/logo-nuevo.webp" alt="Zyra"/>
       <span class="auth-left-brand-name">Zyra</span>
     </div>
 
@@ -2116,16 +2129,21 @@ async function b2bSubmitContact() {
   <div class="auth-right">
     <!-- Header visible solo en móvil -->
     <div class="auth-mobile-header" style="display:none">
-      <img src="Imagenes/logo-nuevo.png" alt="Zyra"/>
+      <img src="Imagenes/logo-nuevo.webp" alt="Zyra"/>
       <span>Zyra</span>
     </div>
     <div class="auth-card">
       <div class="auth-logo-wrap">
-        <img src="Imagenes/logo-nuevo.png" class="auth-logo-img" alt="Zyra"/>
+        <img src="Imagenes/logo-nuevo.webp" class="auth-logo-img" alt="Zyra"/>
         <span class="auth-brand">Zyra</span>
       </div>
       <h1>Bienvenido de vuelta</h1>
       <p class="auth-sub">Aquí estás de vuelta. Sigue donde lo dejaste.</p>
+      <a href="/api/auth/google" class="auth-google-top" aria-label="Entrar con Google">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        <span>Entrar con Google</span>
+      </a>
+      <div class="auth-or"><span>o con tu correo</span></div>
       <div class="error-box" id="login-error"></div>
       <div class="form-group">
         <label>Correo electrónico</label>
@@ -2146,12 +2164,8 @@ async function b2bSubmitContact() {
         <span class="auth-security-icon">🔒</span>
         Tus datos están cifrados y son 100% privados
       </div>
-      <div class="auth-divider"><span>o continúa con</span></div>
+      <div class="auth-divider"><span>o también con</span></div>
       <div class="social-btns">
-        <a href="/api/auth/google" class="social-btn social-btn-google">
-          <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-          Google
-        </a>
         <a href="/api/auth/spotify" class="social-btn social-btn-spotify">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="#1DB954"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
           Spotify
@@ -2180,7 +2194,7 @@ async function b2bSubmitContact() {
     <div class="auth-slide-overlay"></div>
     <div class="auth-slide-dots" id="auth-slide-dots-reg"></div>
     <div class="auth-left-brand">
-      <img src="Imagenes/logo-nuevo.png" alt="Zyra"/>
+      <img src="Imagenes/logo-nuevo.webp" alt="Zyra"/>
       <span class="auth-left-brand-name">Zyra</span>
     </div>
     <div class="auth-live-badge">
@@ -2219,16 +2233,21 @@ async function b2bSubmitContact() {
   <div class="auth-right">
     <!-- Header visible solo en móvil -->
     <div class="auth-mobile-header" style="display:none">
-      <img src="Imagenes/logo-nuevo.png" alt="Zyra"/>
+      <img src="Imagenes/logo-nuevo.webp" alt="Zyra"/>
       <span>Zyra</span>
     </div>
     <div class="auth-card">
       <div class="auth-logo-wrap">
-        <img src="Imagenes/logo-nuevo.png" class="auth-logo-img" alt="Zyra"/>
+        <img src="Imagenes/logo-nuevo.webp" class="auth-logo-img" alt="Zyra"/>
         <span class="auth-brand">Zyra</span>
       </div>
       <h1>Crea tu cuenta</h1>
-      <p class="auth-sub">Crea tu cuenta. Gratis, sin tarjeta, sin trámites.</p>
+      <p class="auth-sub">Gratis, sin tarjeta, sin trámites.</p>
+      <a href="/api/auth/google" class="auth-google-top" aria-label="Continuar con Google">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        <span>Continuar con Google</span>
+      </a>
+      <div class="auth-or"><span>o con tu correo</span></div>
       <div class="error-box" id="reg-error"></div>
       <div class="form-group">
         <label>Nombre completo</label>
@@ -2276,12 +2295,8 @@ async function b2bSubmitContact() {
         <span class="auth-security-icon">🔒</span>
         Registro gratuito · Sin tarjeta · 100% privado
       </div>
-      <div class="auth-divider"><span>o regístrate con</span></div>
+      <div class="auth-divider"><span>o también con</span></div>
       <div class="social-btns">
-        <a href="/api/auth/google" class="social-btn social-btn-google">
-          <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-          Google
-        </a>
         <a href="/api/auth/spotify" class="social-btn social-btn-spotify">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="#1DB954"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
           Spotify
@@ -2373,7 +2388,7 @@ async function b2bSubmitContact() {
   <!-- ══ NOTA DE ZYRA ══ -->
   <div id="zyra-morning-note" style="display:none;background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.06));border:1px solid rgba(99,102,241,.18);border-radius:16px;padding:14px 16px;margin-bottom:16px;animation:pageFade .4s ease">
     <div style="display:flex;align-items:center;gap:10px">
-      <img src="/Imagenes/zyra-avatar.png" alt="Zyra" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'">
+      <img src="/Imagenes/zyra-avatar.webp" alt="Zyra" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'">
       <div style="flex:1;min-width:0">
         <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">Zyra te dice</div>
         <div id="zyra-morning-note-text" style="font-size:13px;color:var(--text);line-height:1.5;font-weight:500"></div>
@@ -2721,7 +2736,7 @@ async function b2bSubmitContact() {
   <div class="zyra-rec-card" id="zyra-rec-card">
     <div class="zyra-rec-avatar">
       <div class="zyra-avatar-svg" id="zyra-main-avatar">
-        <img src="/Imagenes/zyra-avatar.png" alt="Zyra" class="zyra-char-img" style="width:100%;height:100%;object-fit:cover;object-position:50% 5%;border-radius:50%"/>
+        <img src="/Imagenes/zyra-avatar.webp" alt="Zyra" class="zyra-char-img" style="width:100%;height:100%;object-fit:cover;object-position:50% 5%;border-radius:50%"/>
       </div>
       <div class="zyra-rec-pulse"></div>
     </div>
@@ -3025,7 +3040,7 @@ async function b2bSubmitContact() {
     <!-- Reacción de Zyra post-guardado -->
     <div id="journal-zyra-reaction" style="display:none;margin-bottom:14px;background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(139,92,246,.07));border:1.5px solid rgba(99,102,241,.22);border-radius:18px;padding:14px 16px;animation:pageFade .4s ease">
       <div style="display:flex;align-items:flex-start;gap:10px">
-        <img src="/Imagenes/zyra-avatar.png" alt="Zyra" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0">
+        <img src="/Imagenes/zyra-avatar.webp" alt="Zyra" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0">
         <div style="flex:1;min-width:0">
           <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Zyra leyó tu entrada</div>
           <div id="journal-zyra-reaction-text" style="font-size:13px;color:var(--text);line-height:1.6"></div>
@@ -3188,7 +3203,7 @@ async function b2bSubmitContact() {
     <div class="chat-header">
       <button class="mob-hist-toggle" onclick="openMobileHistory()" aria-label="Ver conversaciones anteriores" title="Conversaciones">☰</button>
       <div class="chat-zyra-avatar" id="chat-zyra-av" style="position:relative;overflow:visible">
-        <img src="/Imagenes/zyra-avatar.png" alt="Zyra" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+        <img src="/Imagenes/zyra-avatar.webp" alt="Zyra" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
         <div id="chat-zyra-svg-fb" style="display:none"></div>
         <div style="position:absolute;bottom:-2px;right:-2px;width:12px;height:12px;border-radius:50%;background:#22c55e;border:2px solid var(--surface)"></div>
       </div>
@@ -3667,7 +3682,7 @@ async function b2bSubmitContact() {
   <div style="max-width:460px;width:100%;animation:_letterRise .55s cubic-bezier(.34,1.56,.64,1) both">
     <div style="text-align:center;margin-bottom:22px">
       <div style="position:relative;display:inline-block;margin-bottom:14px">
-        <img src="/Imagenes/zyra-avatar.png" alt="Zyra" style="width:56px;height:56px;border-radius:50%;border:2.5px solid rgba(139,92,246,.5);box-shadow:0 0 0 0 rgba(139,92,246,.5);animation:_avatarPulse 1.6s ease-in-out infinite">
+        <img src="/Imagenes/zyra-avatar.webp" alt="Zyra" style="width:56px;height:56px;border-radius:50%;border:2.5px solid rgba(139,92,246,.5);box-shadow:0 0 0 0 rgba(139,92,246,.5);animation:_avatarPulse 1.6s ease-in-out infinite">
         <div style="position:absolute;top:-6px;right:-6px;font-size:22px;animation:_starFloat 3s ease-in-out infinite">📬</div>
       </div>
       <div style="font-size:11px;font-weight:800;color:#a78bfa;text-transform:uppercase;letter-spacing:.9px;margin-bottom:6px">Zyra guardó esto para ti</div>
@@ -3830,7 +3845,7 @@ async function b2bSubmitContact() {
   <div class="auth-right" style="width:100%;max-width:480px;margin:auto">
     <div class="auth-card">
       <div class="auth-logo-wrap">
-        <img src="Imagenes/logo-nuevo.png" class="auth-logo-img" alt="Zyra"/>
+        <img src="Imagenes/logo-nuevo.webp" class="auth-logo-img" alt="Zyra"/>
         <span class="auth-brand">Zyra</span>
       </div>
       <h1>¿Olvidaste tu contraseña?</h1>
@@ -3858,7 +3873,7 @@ async function b2bSubmitContact() {
   <div class="auth-right" style="width:100%;max-width:480px;margin:auto">
     <div class="auth-card">
       <div class="auth-logo-wrap">
-        <img src="Imagenes/logo-nuevo.png" class="auth-logo-img" alt="Zyra"/>
+        <img src="Imagenes/logo-nuevo.webp" class="auth-logo-img" alt="Zyra"/>
         <span class="auth-brand">Zyra</span>
       </div>
       <h1>Nueva contraseña</h1>
@@ -4219,7 +4234,7 @@ async function b2bSubmitContact() {
         <!-- Video D-ID (visible cuando Zyra habla) -->
         <video id="vc-avatar-vid" playsinline muted style="display:none;width:100%;height:100%;object-fit:cover;object-position:50% 8%;border-radius:50%"></video>
         <!-- Imagen estática (idle) -->
-        <img src="/Imagenes/zyra-avatar.png" alt="Zyra" id="vc-avatar-img"/>
+        <img src="/Imagenes/zyra-avatar.webp" alt="Zyra" id="vc-avatar-img"/>
       </div>
       <!-- Aura exterior — fuera de overflow:hidden para que no se recorte -->
       <div class="vc-avatar-glow"></div>
@@ -4288,7 +4303,7 @@ window.addEventListener('unhandledrejection', e => {
 
 window.YT_ENABLED      = false;
 window.SPOTIFY_ENABLED = false;
-const LOGO = "/Imagenes/zyra-avatar.png";
+const LOGO = "/Imagenes/zyra-avatar.webp";
 
 // ══════════════════════════════════════════
 //  NAVEGACIÓN EXTERNA (enlaces a Spotify/YouTube/Maps/mailto, etc.)
@@ -4713,6 +4728,12 @@ function hideError(id) { const e = document.getElementById(id); if(e) { e.style.
 function showPage(name) {
   window._zyraCurrentPage = name;
   document.body.dataset.page = name;
+  // Visitas siguientes: el logo de entrada se quita apenas la app muestra su primera página
+  if (!window._zyraSplashDone) {
+    window._zyraSplashDone = true;
+    const sp = document.getElementById("zyra-splash");
+    if (sp && sp.classList.contains("quick")) setTimeout(() => sp.classList.add("hidden"), 120);
+  }
   if (typeof closeMobileMoreSheet === "function") closeMobileMoreSheet();
   if (typeof stopCameraHR === "function" && document.getElementById('camera-hr-overlay')) stopCameraHR();
   // Salvavidas: si sales de la llamada de voz sin tocar "colgar" (boton atras
@@ -4767,6 +4788,7 @@ function showPage(name) {
   if(name === "test" && !document.getElementById("test-page-wrap")?.innerHTML.trim()) { setTimeout(() => startTest(), 0); }
   if(name === "weekly-report") { showPage("planes"); setTimeout(() => { if(typeof openWeeklyReport==="function") openWeeklyReport(); }, 400); return; }
   if (typeof _z3dPage === "function") _z3dPage(name);
+  if ((name === "login" || name === "register") && window._zyraAuthSlidesShow) window._zyraAuthSlidesShow();
 
   // ── Tabbar móvil: mostrar/ocultar y marcar activo ──
   const noTabPages = ['landing','login','register','verify-login','verify-register','voice-call','forgot-password','reset-password','admin'];
@@ -10690,7 +10712,7 @@ async function loadLunesDigestAI() {
   const prompt = `Mira mi semana emocional: ${emotionSummary}. ${topEmoEntry ? `La emoción más frecuente fue ${topEmoEntry[0]} (${topEmoEntry[1]} veces).` : ""} ${weekJournals ? `Escribí ${weekJournals} entrada(s) en el diario.` : ""} ${habitPct !== null ? `Cumplí el ${habitPct}% de mis hábitos.` : ""} Dame un análisis breve y honesto de mi semana (2-3 oraciones), y una sugerencia concreta y práctica para esta semana. Sin frases genéricas.`;
   try {
     const d = await api("/chat", "POST", { message: prompt, history: [], mode: "weekly_digest" });
-    textEl.innerHTML = `<div style="display:flex;gap:8px;align-items:flex-start"><img src="/Imagenes/zyra-avatar.png" style="width:26px;height:26px;border-radius:50%;flex-shrink:0;margin-top:2px" onerror="this.style.display='none'"><div>${safeHtml(d.response || "No pude generar el análisis ahora.").replace(/\n/g,"<br>")}</div></div>`;
+    textEl.innerHTML = `<div style="display:flex;gap:8px;align-items:flex-start"><img src="/Imagenes/zyra-avatar.webp" style="width:26px;height:26px;border-radius:50%;flex-shrink:0;margin-top:2px" onerror="this.style.display='none'"><div>${safeHtml(d.response || "No pude generar el análisis ahora.").replace(/\n/g,"<br>")}</div></div>`;
     textEl.style.display = "block";
     btn.style.display = "none";
   } catch {
@@ -10822,7 +10844,7 @@ async function loadDomingoRecapAI() {
   try {
     const d = await api("/chat", "POST", { message: prompt, history: [], mode: "sunday_recap", noSave: true });
     const reply = (d.response || "").trim();
-    textEl.innerHTML = `<div style="display:flex;gap:8px;align-items:flex-start"><img src="/Imagenes/zyra-avatar.png" style="width:26px;height:26px;border-radius:50%;flex-shrink:0;margin-top:2px" onerror="this.style.display='none'"><div>${safeHtml(reply).replace(/\n/g,"<br>")}</div></div>`;
+    textEl.innerHTML = `<div style="display:flex;gap:8px;align-items:flex-start"><img src="/Imagenes/zyra-avatar.webp" style="width:26px;height:26px;border-radius:50%;flex-shrink:0;margin-top:2px" onerror="this.style.display='none'"><div>${safeHtml(reply).replace(/\n/g,"<br>")}</div></div>`;
     textEl.style.display = "block";
     btn.style.display = "none";
   } catch {
@@ -10914,7 +10936,7 @@ async function loadMonthlyRecapAI() {
   try {
     const d = await api("/chat","POST",{message:prompt,history:[],mode:"monthly_recap",noSave:true});
     const reply = (d.response||"").trim();
-    textEl.innerHTML = `<div style="display:flex;gap:8px;align-items:flex-start"><img src="/Imagenes/zyra-avatar.png" style="width:26px;height:26px;border-radius:50%;flex-shrink:0;margin-top:2px" onerror="this.style.display='none'"><div>${safeHtml(reply).replace(/\n/g,"<br>")}</div></div>`;
+    textEl.innerHTML = `<div style="display:flex;gap:8px;align-items:flex-start"><img src="/Imagenes/zyra-avatar.webp" style="width:26px;height:26px;border-radius:50%;flex-shrink:0;margin-top:2px" onerror="this.style.display='none'"><div>${safeHtml(reply).replace(/\n/g,"<br>")}</div></div>`;
     textEl.style.display = "block";
     btn.style.display = "none";
   } catch {
@@ -18777,7 +18799,7 @@ function _zyraEmotionReaction(emotion, streak) {
   const card = document.createElement("div");
   card.id = "_zyra-emo-react";
   card.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(24px);z-index:9000;max-width:320px;width:calc(100% - 32px);background:var(--surface);border:1.5px solid var(--accent);border-radius:18px;padding:14px 16px;box-shadow:0 8px 32px rgba(0,0,0,.18);opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);display:flex;align-items:flex-start;gap:10px";
-  card.innerHTML = `<img src="/Imagenes/zyra-avatar.png" alt="Zyra" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid var(--accent)" onerror="this.style.display='none'"><div style="flex:1;min-width:0"><div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:4px">Zyra te dice</div><div style="font-size:13px;color:var(--text);line-height:1.5;font-weight:500">${msg}</div><button onclick="_zyraEmoReactChat()" style="margin-top:8px;background:var(--accent);border:none;color:#fff;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer">Cuéntame →</button></div><button onclick="this.closest('#_zyra-emo-react').remove()" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;line-height:1;flex-shrink:0;padding:0 0 0 4px">×</button>`;
+  card.innerHTML = `<img src="/Imagenes/zyra-avatar.webp" alt="Zyra" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid var(--accent)" onerror="this.style.display='none'"><div style="flex:1;min-width:0"><div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.4px;margin-bottom:4px">Zyra te dice</div><div style="font-size:13px;color:var(--text);line-height:1.5;font-weight:500">${msg}</div><button onclick="_zyraEmoReactChat()" style="margin-top:8px;background:var(--accent);border:none;color:#fff;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer">Cuéntame →</button></div><button onclick="this.closest('#_zyra-emo-react').remove()" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;line-height:1;flex-shrink:0;padding:0 0 0 4px">×</button>`;
   document.body.appendChild(card);
   requestAnimationFrame(() => { card.style.opacity = "1"; card.style.transform = "translateX(-50%) translateY(0)"; });
   const t = setTimeout(() => { card.style.opacity="0"; card.style.transform="translateX(-50%) translateY(20px)"; setTimeout(()=>card.remove(),350); }, 5500);
@@ -19899,40 +19921,45 @@ function vcSetBodyClass(speaking) {
 (function() {
   // 8 imágenes cuidadosamente elegidas — oscuras/naturales
   // Todas tienen suficiente zona oscura para el overlay
+  // Van detrás de una capa oscura: w=760 y q=45 se ven igual y pesan ~20 KB (antes 1080/72:
+  // hasta 685 KB la del bosque, que además iba primero; ahora va al final)
   const SLIDES = [
     {
-      url: 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=1080&q=72&auto=format',
-      // Bosque con luz dorada
-    },
-    {
-      url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1080&q=72&auto=format',
+      url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=760&q=45&auto=format',
       // Montañas brumosas al amanecer
     },
     {
-      url: 'https://images.unsplash.com/photo-1531512073830-ba890ca4eba2?w=1080&q=72&auto=format',
+      url: 'https://images.unsplash.com/photo-1531512073830-ba890ca4eba2?w=760&q=45&auto=format',
       // Persona meditando en naturaleza
     },
     {
-      url: 'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=1080&q=72&auto=format',
+      url: 'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=760&q=45&auto=format',
       // Persona en silencio con luz
     },
     {
-      url: 'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=1080&q=72&auto=format',
+      url: 'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=760&q=45&auto=format',
       // Amanecer en el lago
     },
     {
-      url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1080&q=72&auto=format',
+      url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=760&q=45&auto=format',
       // Montañas dramáticas
     },
     {
-      url: 'https://images.unsplash.com/photo-1496715976403-7e36dc43f17b?w=1080&q=72&auto=format',
+      url: 'https://images.unsplash.com/photo-1496715976403-7e36dc43f17b?w=760&q=45&auto=format',
       // Bosque de bambú
     },
     {
-      url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1080&q=72&auto=format',
+      url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=760&q=45&auto=format',
       // Persona serena en ventana
     },
+    {
+      url: 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=640&q=40&auto=format',
+      // Bosque con luz dorada (la más pesada: al final)
+    },
   ];
+  // Solo cuando se ve el inicio de sesión o el registro (antes cargaba y rotaba siempre, también
+  // dentro de la app: en un minuto bajaba las 8 fotos sin que nadie las viera)
+  const _authVisible = () => window._zyraCurrentPage === 'login' || window._zyraCurrentPage === 'register';
 
   let currentSlide = 0;
   let slideEls = [];
@@ -19946,8 +19973,7 @@ function vcSetBodyClass(speaking) {
     SLIDES.forEach((s, i) => {
       const div = document.createElement('div');
       div.className = 'auth-slide' + (i === startIdx ? ' active' : '');
-      // Solo se descarga la imagen visible y la siguiente (antes bajaban las 8 al abrir la app)
-      if (i === startIdx || i === (startIdx + 1) % SLIDES.length) div.style.backgroundImage = 'url(' + s.url + ')';
+      // La imagen se pone cuando se muestra la página (ver _zyraAuthSlidesShow)
       panel.insertBefore(div, panel.firstChild);
       slideEls.push(div);
       const dot = document.createElement('button');
@@ -19997,8 +20023,18 @@ function vcSetBodyClass(speaking) {
   }
 
   function nextSlide() {
+    if (!_authVisible() || document.hidden) return;
     goToSlide((currentSlide + 1) % SLIDES.length);
   }
+  // showPage('login' / 'register') → la imagen visible y la siguiente de cada panel
+  window._zyraAuthSlidesShow = function () {
+    const n = SLIDES.length;
+    // el registro arranca en la 3.ª foto y, tras rotar, sigue a la del login
+    [currentSlide, currentSlide + n, n + ((currentSlide + 2) % n)].forEach(si => {
+      _loadSlideBg(si);
+      _loadSlideBg(si < n ? (si + 1) % n : n + ((si - n + 1) % n));
+    });
+  };
 
   function startTimer() {
     timer = setInterval(nextSlide, 6000); // cambia cada 6 segundos
@@ -21445,9 +21481,9 @@ function buildZyraSVG(size) {
 /* Imagen Zyra en el avatar del voice call */
 function injectZyraAvatars() {
   const img = document.getElementById("vc-avatar-img");
-  if (img && !img.src) img.src = "Imagenes/zyra-avatar.png";
+  if (img && !img.src) img.src = "Imagenes/zyra-avatar.webp";
   const main = document.getElementById("zyra-main-avatar");
-  if (main && !main.src) main.src = "Imagenes/zyra-avatar.png";
+  if (main && !main.src) main.src = "Imagenes/zyra-avatar.webp";
 }
 document.addEventListener('DOMContentLoaded', injectZyraAvatars);
 const _baseLoadDashboard = loadDashboard;
@@ -27417,7 +27453,7 @@ document.addEventListener("keydown", e => {
 
     <!-- Step 4: Zyra's goodnight -->
     <div id="er-done" style="display:none;text-align:center">
-      <img src="/Imagenes/zyra-avatar.png" alt="Zyra" style="width:72px;height:72px;border-radius:50%;border:2px solid rgba(139,92,246,.4);margin-bottom:16px;object-fit:contain;background:rgba(139,92,246,.1)">
+      <img src="/Imagenes/zyra-avatar.webp" alt="Zyra" style="width:72px;height:72px;border-radius:50%;border:2px solid rgba(139,92,246,.4);margin-bottom:16px;object-fit:contain;background:rgba(139,92,246,.1)">
       <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:10px" id="er-done-title">Buenas noches 🌙</div>
       <div style="font-size:14px;color:rgba(255,255,255,.65);line-height:1.65;margin-bottom:24px" id="er-done-msg"></div>
       <button onclick="_erClose()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);border-radius:14px;padding:13px 32px;font-size:14px;cursor:pointer;font-weight:600">Descansá bien 💙</button>
@@ -27478,7 +27514,7 @@ document.addEventListener("keydown", e => {
 <!-- ══ NIGHT NUDGE ══ -->
 <div id="zyra-night-nudge" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:8000;width:calc(100% - 32px);max-width:400px;animation:slideUp .35s cubic-bezier(.16,1,.3,1)">
   <div style="background:linear-gradient(135deg,rgba(17,17,34,.96),rgba(30,20,60,.97));border:1px solid rgba(139,92,246,.3);border-radius:20px;padding:16px 18px;box-shadow:0 16px 50px rgba(0,0,0,.5);display:flex;gap:12px;align-items:center">
-    <div style="width:36px;height:36px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid rgba(139,92,246,.4)"><img src="/Imagenes/zyra-avatar.png" alt="Zyra" style="width:100%;height:100%;object-fit:cover"/></div>
+    <div style="width:36px;height:36px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid rgba(139,92,246,.4)"><img src="/Imagenes/zyra-avatar.webp" alt="Zyra" style="width:100%;height:100%;object-fit:cover"/></div>
     <div style="flex:1;min-width:0">
       <div style="font-size:12px;color:rgba(200,180,255,.9);line-height:1.5" id="zyra-night-nudge-text">¿Cómo fue tu día? Puedo guardarlo en tu diario.</div>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
