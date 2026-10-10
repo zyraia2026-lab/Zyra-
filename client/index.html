@@ -1251,6 +1251,7 @@ function closeMobileMoreSheet() {
         <li class="feat-ok">✓ Registro y acceso completo</li>
         <li class="feat-ok">✓ 20 cargas al día</li>
         <li class="feat-ok">✓ Diario ilimitado (escribir no gasta)</li>
+        <li class="feat-ok">✓ Zyra recuerda lo que le cuentas; en el historial ves tus últimas 5 conversaciones</li>
         <li class="feat-ok">✓ Test emocional 1 vez al día</li>
         <li class="feat-ok">✓ 2 llamadas al mes (5 min c/u)</li>
         <li class="feat-ok">✓ 5 ejercicios guiados al día</li>
@@ -1278,6 +1279,7 @@ function closeMobileMoreSheet() {
       <ul class="plan-features">
         <li class="feat-ok">✓ 1.800 cargas al mes (~60/día)</li>
         <li class="feat-ok">✓ Diario ilimitado</li>
+        <li class="feat-ok">✓ Historial de tus últimas 30 conversaciones</li>
         <li class="feat-ok">✓ Test emocional 3 veces al día</li>
         <li class="feat-ok">✓ 6 llamadas al mes (10 min c/u)</li>
         <li class="feat-ok">✓ 20 canciones completas por semana</li>
@@ -1304,6 +1306,7 @@ function closeMobileMoreSheet() {
       <ul class="plan-features">
         <li class="feat-ok feat-gold">★ 6.000 cargas al mes (~200/día, se siente ilimitado)</li>
         <li class="feat-ok feat-gold">★ Test emocional ilimitado</li>
+        <li class="feat-ok feat-gold">★ Historial completo de conversaciones</li>
         <li class="feat-ok feat-gold">★ 12 llamadas al mes (20 min c/u)</li>
         <li class="feat-ok feat-gold">★ Música ilimitada, playlists según tu ánimo</li>
         <li class="feat-ok feat-gold">★ Ejercicios guiados ilimitados</li>
@@ -18360,10 +18363,6 @@ async function sendMsg() {
           if (userMsgs === 5) triggerMission("chat_zyra");
           showResponseChips(fullText);
           setTimeout(() => _maybeAskToWrite(msg), 1200);
-          if (data.convLimitReached) {
-            zyraToast("Llegaste al límite de conversaciones de tu plan. Esta sesión no se guardó.", "info");
-            showUpgradePrompt("conversations", "basic");
-          }
         }
 
         if (data.error) {
