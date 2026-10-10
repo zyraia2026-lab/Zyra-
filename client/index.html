@@ -6,7 +6,10 @@
 <title>Zyra — Bienestar Emocional</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;0,800;1,700&display=swap" rel="stylesheet"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<!-- Las fuentes no bloquean la primera pantalla: se ve el texto ya y cambia a la fuente al llegar -->
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;0,800;1,700&display=swap" rel="stylesheet" media="print" onload="this.media='all'"/>
+<noscript><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;0,800;1,700&display=swap" rel="stylesheet"/></noscript>
 <link rel="stylesheet" href="styles.css?v=20261010c"/>
 <script src="/hr-guide.js"></script>
 <script src="/zyra3d.js" defer></script>
@@ -15864,10 +15867,18 @@ window.onYouTubeIframeAPIReady = function() {
   window._ytPlayerQueue.forEach(fn => fn());
   window._ytPlayerQueue = [];
 };
+// Se carga cuando la app ya está mostrando su primera página (antes competía con el arranque
+// y atrasaba el evento "load"); los reproductores esperan en _ytPlayerQueue hasta que esté
 (function() {
-  const s = document.createElement('script');
-  s.src = 'https://www.youtube.com/iframe_api';
-  document.head.appendChild(s);
+  const add = () => {
+    if (window._ytApiAdded) return; window._ytApiAdded = true;
+    const s = document.createElement('script');
+    s.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(s);
+  };
+  window._ytLoadApi = add;
+  const later = () => setTimeout(add, 2500);
+  if (document.readyState === 'complete') later(); else window.addEventListener('load', later);
 })();
 
 // Registro global de activadores
@@ -15875,6 +15886,7 @@ window._ytActivators = window._ytActivators || {};
 
 function ytInitPlayer(divId, videoId, fallbackId, onFail) {
   if (!videoId) { if (onFail) onFail(); return; }
+  if (window._ytLoadApi) window._ytLoadApi(); // si todavía no se había cargado, ya mismo
   const div = document.getElementById(divId);
   if (!div) return;
 
@@ -18937,10 +18949,17 @@ function _updateTabTitle() {
   const emo = localStorage.getItem("zyra_checkin_emotion_" + new Date().toDateString());
   document.title = emo && EMO_EMOJI[emo] ? `Zyra ${EMO_EMOJI[emo]}` : "Zyra";
 }
-window.addEventListener("load", () => {
+// La app arranca apenas el HTML está listo (después de los demás DOMContentLoaded). Antes
+// esperaba al evento "load" — todas las imágenes, fuentes y el script de YouTube —, y en un
+// celular con 4G regular la primera página tardaba ~10 s en aparecer.
+function _bootApp() {
+  if (window._zyraBooted) return;
+  window._zyraBooted = true;
   try { _initApp(); } catch(e) { console.error("Init error:", e); }
   _updateTabTitle(); _initEmotionAccent();
-});
+}
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => setTimeout(_bootApp, 0));
+else setTimeout(_bootApp, 0);
 function loadFeatureConfig() {
   api("/config")
     .then(d=>{ window.YT_ENABLED = !!d.ytEnabled; window.SPOTIFY_ENABLED = !!d.spotifyEnabled; })
